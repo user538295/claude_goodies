@@ -53,12 +53,9 @@ At any point you can run `/da-review <target>` or `/aaa` for a standalone qualit
 
 ### Quick install
 
-1. Clone this repository:
-   ```bash
-   git clone git@github.com:user538295/claude_goodies.git
-   ```
-
-2. Open Claude Code in any directory and paste the contents of `install-prompt.md`, replacing `<EXTRACTED_PATH>` with the full path to the cloned folder (e.g. `/Users/yourname/claude_goodies`) — Claude will handle the rest.
+1. Open `install-prompt.md` from this repository.
+2. Copy everything below the `---` line.
+3. Paste it into Claude Code — Claude will clone the repo, install everything, and clean up after itself.
 
 ### What gets installed and where
 

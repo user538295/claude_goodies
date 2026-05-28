@@ -1,0 +1,4 @@
+Progress   : [{{BAR}}] {{PCT}}%  ({{COMPLETED}}/{{TOTAL}} tasks)
+Next task  : {{PHASE}}.{{TASK_NUM}}  {{TASK_NAME}}
+Completed  : {{COMPLETED_LABEL}}, {{COMPLETED_PHASES_LABEL}}
+Remaining  : {{REMAINING_LABEL}}, {{REMAINING_PHASES_LABEL}}  →  {{PHASE_BREAKDOWN}}

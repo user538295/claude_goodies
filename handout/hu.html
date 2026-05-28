@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code – Agentikus Fejlesztési Workflow · Magyar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f1;
+    --bg-grid: #ecebe3;
+    --paper: #ffffff;
+    --ink: #1a1a1f;
+    --ink2: #3d3d45;
+    --muted: #797982;
+    --line: #d8d6cc;
+    --line2: #c0bdb1;
+
+    --ai: #4f46e5;        /* indigo - AI command */
+    --ai-soft: #eef0ff;
+    --human: #d97706;     /* amber - human gate */
+    --human-soft: #fef3e2;
+    --ok: #15803d;
+    --ok-soft: #dcfce7;
+    --danger: #b91c1c;
+    --danger-soft: #fee2e2;
+    --neutral: #525252;
+
+    --must: #b91c1c;
+    --suggested: #d97706;
+    --optional: #6b7280;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--ink);
+    background:
+      linear-gradient(rgba(0,0,0,0.025) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px) 0 0 / 24px 24px,
+      var(--bg);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px dashed var(--line2);
+  }
+  .brand-row { display: flex; align-items: baseline; gap: 0.65rem; flex-wrap: wrap; }
+  .brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    background: var(--paper);
+    padding: 3px 10px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+  }
+  h1 {
+    font-size: clamp(1.7rem, 3.5vw, 2.55rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    margin-top: 0.4rem;
+  }
+  h1 .accent { color: var(--ai); }
+  .sub {
+    color: var(--ink2);
+    margin-top: 0.35rem;
+    font-size: 0.97rem;
+    max-width: 620px;
+  }
+
+  .lang {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .lang a {
+    text-decoration: none;
+    color: var(--muted);
+    padding: 5px 11px;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+  }
+  .lang a.active { background: var(--ink); color: white; }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    font-size: 0.81rem;
+    color: var(--ink2);
+  }
+  .lg { display: inline-flex; align-items: center; gap: 7px; }
+  .lg .sw {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .sw.ai { background: var(--ai-soft); border-color: var(--ai); }
+  .sw.human { background: var(--human-soft); border-color: var(--human); }
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .badge.must { color: var(--must); border-color: var(--must); background: var(--danger-soft); }
+  .badge.suggested { color: var(--suggested); border-color: var(--suggested); background: var(--human-soft); }
+  .badge.optional { color: var(--optional); border-color: var(--optional); background: #f1f1ef; }
+
+  /* CONTROL: review intensity */
+  .control {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.65rem 0.95rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .control-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .modes { display: flex; gap: 4px; }
+  .mode-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink2);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.03em;
+  }
+  .mode-btn:hover { border-color: var(--ink2); }
+  .mode-btn.active {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+  }
+  .control-hint {
+    font-size: 0.82rem;
+    color: var(--muted);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  /* FLOW */
+  .flow-wrap {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.5rem 1rem 1.75rem;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 8px 24px -16px rgba(0,0,0,0.12);
+    position: relative;
+    overflow: hidden;
+  }
+  .flow-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(0,0,0,0.018) 1px, transparent 1px) 0 0 / 22px 22px,
+      linear-gradient(90deg, rgba(0,0,0,0.018) 1px, transparent 1px) 0 0 / 22px 22px;
+    pointer-events: none;
+  }
+  .flow-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 0.55rem;
+    position: relative;
+    align-items: stretch;
+  }
+  .node {
+    position: relative;
+    background: var(--bg);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 0.85rem 0.7rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(.2,.7,.2,1);
+    min-height: 168px;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+  }
+  .node:hover {
+    transform: translateY(-2px);
+    border-color: var(--ink2);
+    box-shadow: 0 6px 18px -10px rgba(0,0,0,0.25);
+  }
+  .node.active {
+    border-color: var(--ai);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+  }
+  .node.dimmed {
+    opacity: 0.32;
+    filter: saturate(0.4);
+  }
+
+  .node-num {
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    background: var(--ink);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.05em;
+  }
+  .node.human .node-num { background: var(--human); }
+
+  .node-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+  }
+  .node.ai { background: var(--ai-soft); border-color: rgba(79,70,229,0.35); }
+  .node.human { background: var(--human-soft); border-color: rgba(217,119,6,0.35); }
+  .node.ai .node-type { color: var(--ai); }
+  .node.human .node-type { color: var(--human); }
+
+  .node-cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.4rem;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .node-title {
+    font-size: 0.81rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+  .node-out {
+    font-size: 0.72rem;
+    color: var(--ink2);
+    margin-top: auto;
+    padding-top: 0.4rem;
+    border-top: 1px dashed var(--line);
+    line-height: 1.4;
+  }
+  .node-out strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 600;
+  }
+
+  .node-badge {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+  }
+
+  /* Arrows between nodes - using ::after */
+  .node:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--line2);
+    font-size: 1.1rem;
+    font-weight: 700;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* DETAIL PANEL */
+  .detail {
+    margin-top: 2rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    min-height: 220px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .detail-empty {
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.92rem;
+    padding: 2rem 1rem;
+  }
+  .detail-empty .kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    color: var(--ink);
+    margin: 0 2px;
+  }
+
+  .detail-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+  }
+  .detail-step {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--ink);
+    color: white;
+    padding: 3px 9px;
+    border-radius: 5px;
+    letter-spacing: 0.06em;
+  }
+  .detail-cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ai);
+  }
+  .detail-cmd.human { color: var(--human); }
+  .detail-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.015em;
+  }
+  .detail-desc {
+    color: var(--ink2);
+    font-size: 0.96rem;
+    margin-bottom: 1.25rem;
+    max-width: 720px;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem;
+  }
+  .detail-block {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+  }
+  .detail-block h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  .detail-block ul {
+    list-style: none;
+    font-size: 0.87rem;
+    color: var(--ink2);
+  }
+  .detail-block li {
+    padding: 3px 0 3px 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .detail-block li::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 11px;
+    width: 6px; height: 6px;
+    background: var(--ai);
+    border-radius: 50%;
+  }
+  .detail-block.human li::before { background: var(--human); }
+  .detail-tip {
+    grid-column: 1/-1;
+    background: linear-gradient(0deg, rgba(79,70,229,0.04), rgba(79,70,229,0.04)), var(--paper);
+    border: 1px solid rgba(79,70,229,0.18);
+    border-left: 3px solid var(--ai);
+    border-radius: 8px;
+    padding: 0.7rem 0.95rem;
+    font-size: 0.87rem;
+    color: var(--ink2);
+  }
+  .detail-tip strong { color: var(--ai); }
+  .detail-tip.human {
+    background: linear-gradient(0deg, rgba(217,119,6,0.04), rgba(217,119,6,0.04)), var(--paper);
+    border-color: rgba(217,119,6,0.2);
+    border-left-color: var(--human);
+  }
+  .detail-tip.human strong { color: var(--human); }
+
+  /* CHEATSHEET GRID */
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 1.25rem;
+    margin-top: 2.25rem;
+  }
+  @media (max-width: 900px) {
+    .grid2 { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.25rem 1.4rem;
+  }
+  .panel h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel h3::before {
+    content: '';
+    width: 12px; height: 12px;
+    background: var(--ai);
+    border-radius: 3px;
+  }
+  .panel.warn h3::before { background: var(--human); }
+  .panel.ok h3::before { background: var(--ok); }
+
+  .cmd-row {
+    display: grid;
+    grid-template-columns: 1.3fr 2fr;
+    gap: 0.6rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 0.85rem;
+  }
+  .cmd-row:last-child { border-bottom: none; }
+  .cmd-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--ai);
+    font-size: 0.82rem;
+    align-self: center;
+  }
+  .cmd-desc { color: var(--ink2); line-height: 1.5; }
+
+  .rule {
+    display: flex;
+    gap: 0.7rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 0.87rem;
+    color: var(--ink2);
+  }
+  .rule:last-child { border-bottom: none; }
+  .rule .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--human);
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    padding-top: 1px;
+  }
+
+  /* DECISION MATRIX */
+  .decision {
+    margin-top: 2.25rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.25rem 1.4rem;
+  }
+  .decision h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .decision-sub {
+    font-size: 0.87rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  .matrix {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
+  }
+  @media (max-width: 700px) {
+    .matrix { grid-template-columns: 1fr; }
+  }
+  .mode-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.95rem 1.05rem;
+    background: var(--bg);
+    transition: all 0.2s;
+  }
+  .mode-card .mc-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.45rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mode-card .mc-title::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--neutral);
+  }
+  .mode-card.min .mc-title { color: var(--neutral); }
+  .mode-card.bal .mc-title { color: var(--ai); }
+  .mode-card.bal .mc-title::before { background: var(--ai); }
+  .mode-card.max .mc-title { color: var(--ok); }
+  .mode-card.max .mc-title::before { background: var(--ok); }
+  .mode-card h4 {
+    font-size: 0.93rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+  .mode-card p {
+    font-size: 0.83rem;
+    color: var(--ink2);
+    line-height: 1.55;
+    margin-bottom: 0.55rem;
+  }
+  .mode-card .steps {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+
+  /* FOOTER */
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed var(--line2);
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  footer .principle {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  /* Responsive: collapse 9-col flow on small screens */
+  @media (max-width: 1100px) {
+    .flow {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem 0.6rem;
+    }
+    .node:not(:last-child)::after { display: none; }
+    .node { min-height: 140px; }
+  }
+  @media (max-width: 560px) {
+    .flow { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 1.5rem; }
+  }
+
+  /* Animation */
+  /* Devil's Advocate inline link */
+  .da-link {
+    color: var(--ai);
+    text-decoration: none;
+    border-bottom: 1px dashed currentColor;
+    font-weight: 600;
+    transition: color 0.18s;
+  }
+  .da-link:hover { color: var(--ink); }
+  .da-link::after {
+    content: '↓';
+    font-size: 0.85em;
+    margin-left: 2px;
+    opacity: 0.6;
+  }
+
+  /* DA section */
+  .da-section {
+    margin-top: 2.25rem;
+    background: linear-gradient(135deg, rgba(79,70,229,0.04), rgba(167,139,250,0.04)), var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.75rem 1.85rem;
+    position: relative;
+    overflow: hidden;
+    scroll-margin-top: 1.5rem;
+  }
+  .da-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: linear-gradient(180deg, var(--ai), #a78bfa);
+  }
+  .da-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--ai);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .da-eyebrow::before {
+    content: '👹';
+    font-size: 1.1rem;
+  }
+  .da-section h3 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.4rem;
+  }
+  .da-lede {
+    color: var(--ink2);
+    font-size: 0.97rem;
+    max-width: 720px;
+    margin-bottom: 1.25rem;
+    line-height: 1.65;
+  }
+  .da-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+  .da-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+  }
+  .da-card h4 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+    color: var(--ink);
+  }
+  .da-card p {
+    font-size: 0.84rem;
+    color: var(--ink2);
+    line-height: 1.6;
+  }
+  .da-quote {
+    border-left: 3px solid var(--ai);
+    padding: 0.55rem 0.9rem;
+    background: rgba(79,70,229,0.05);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.88rem;
+    color: var(--ink2);
+    font-style: italic;
+  }
+  .da-quote strong { color: var(--ai); font-style: normal; }
+
+  @keyframes pop { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .detail.open .detail-head, .detail.open .detail-title, .detail.open .detail-desc, .detail.open .detail-grid {
+    animation: pop 0.28s cubic-bezier(.2,.7,.2,1) both;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand-row">
+        <span class="brand">Claude Code · in Practice</span>
+      </div>
+      <h1>Agentic fejlesztési <span class="accent">workflow</span><br>9 lépésben.</h1>
+      <p class="sub">Hogyan kössük össze a <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/feature-refinement</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/iterative-review</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/plan-maker</span> és <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/implement-next</span> parancsokat – és hol döntsünk emberi review mellett.</p>
+    </div>
+    <nav class="lang" aria-label="Language">
+      <a href="hu.html" class="active">HU</a>
+      <a href="en.html">EN</a>
+    </nav>
+  </header>
+
+  <div class="legend" role="region" aria-label="Jelmagyarázat">
+    <span class="lg"><span class="sw ai"></span>AI parancs</span>
+    <span class="lg"><span class="sw human"></span>Emberi review gate</span>
+    <span class="lg"><span class="badge must">MUST</span> kötelező</span>
+    <span class="lg"><span class="badge suggested">SUGGESTED</span> ajánlott</span>
+    <span class="lg"><span class="badge optional">OPTIONAL</span> opcionális</span>
+  </div>
+
+  <div class="control">
+    <span class="control-label">Review intenzitás:</span>
+    <div class="modes" role="tablist">
+      <button class="mode-btn" data-mode="min">Minimum</button>
+      <button class="mode-btn active" data-mode="bal">Kiegyensúlyozott</button>
+      <button class="mode-btn" data-mode="max">Maximum</button>
+    </div>
+    <span class="control-hint" id="modeHint">Csak a kötelező és ajánlott gate-ek aktívak. A többi halványul.</span>
+  </div>
+
+  <!-- FLOW -->
+  <div class="flow-wrap">
+    <div class="flow-title">▸ Pipeline · brieftől a commit-ig</div>
+    <div class="flow" id="flow"></div>
+  </div>
+
+  <!-- DETAIL -->
+  <div class="detail" id="detail">
+    <div class="detail-empty">
+      Kattints egy lépésre a részletekért · vagy navigálj a <span class="kbd">←</span> <span class="kbd">→</span> billentyűkkel
+    </div>
+  </div>
+
+  <!-- DECISION MATRIX -->
+  <div class="decision">
+    <h3>Hány human review-t tartasz meg?</h3>
+    <p class="decision-sub">A senioritásod és a feladat kockázata dönti el. Több automatizálás → több token, több AI drift. Több emberi gate → lassabb, de biztosabb.</p>
+    <div class="matrix">
+      <div class="mode-card min">
+        <div class="mc-title">Minimum</div>
+        <h4>Gyors prototípus</h4>
+        <p>Csak a kötelező gate-eket tartod meg. Akkor jó, ha a feature kicsi, vagy throwaway POC.</p>
+        <div class="steps">3 → 4 → 5 → 6 → 8</div>
+      </div>
+      <div class="mode-card bal">
+        <div class="mc-title">Kiegyensúlyozott</div>
+        <h4>Tipikus napi munka</h4>
+        <p>Kötelező + ajánlott review-k. Senior fejlesztőnek ez az alapértelmezett.</p>
+        <div class="steps">1 → 3 → 4 → 5 → 6 → 7 → 8 → 9</div>
+      </div>
+      <div class="mode-card max">
+        <div class="mc-title">Maximum</div>
+        <h4>Magas kockázat / kritikus rendszer</h4>
+        <p>Minden gate aktív, beleértve az opcionálisat is. Production, biztonsági feature, vagy nagy refactor.</p>
+        <div class="steps">1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHEATSHEET -->
+  <div class="grid2">
+    <div class="panel">
+      <h3>Parancs cheatsheet</h3>
+      <div class="cmd-row">
+        <div class="cmd-name">/feature-refinement</div>
+        <div class="cmd-desc">Kérdés-felelek session, ami a kódot is elemzi. Brief md fájl születik belőle.</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name">/iterative-review &lt;file&gt;</div>
+        <div class="cmd-desc"><a href="#da" class="da-link">Devil's Advocate</a> ágensek párhuzamosan támadják, mások javítják. Ismétlődik, amíg nincs major issue.</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name">/plan-maker &lt;brief&gt;</div>
+        <div class="cmd-desc">Architektúra, tesztek, acceptance criteria, részletes taszkok. Akár 1000+ sor.</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name">/implement-next &lt;plan&gt;</div>
+        <div class="cmd-desc">A következő egyetlen taszkot implementálja. Belső <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixeli az issue-kat.</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name">/implement-all &lt;plan&gt;</div>
+        <div class="cmd-desc">Végigmegy minden uncompleted taszkon. Csak ha jól strukturált a plan és vállalod a kisebb kontrollt.</div>
+      </div>
+    </div>
+
+    <div class="panel warn">
+      <h3>Aranyszabályok</h3>
+      <div class="rule"><div class="num">01</div><div><strong>Garbage in → garbage out.</strong> A brief minősége határozza meg az egész pipeline outputját. Ne sajnáld rá az időt.</div></div>
+      <div class="rule"><div class="num">02</div><div><strong>Új session = tiszta lap.</strong> Jóváhagyott artefakt után új sessionben folytasd. Nem viszed a felesleges kontextust.</div></div>
+      <div class="rule"><div class="num">03</div><div><strong>Egy taszk = egy commit.</strong> Soha ne bundle-ölj több taszkot. A diff lekövethető marad.</div></div>
+      <div class="rule"><div class="num">04</div><div><strong>TDD nem opcionális.</strong> Funkcionalitást tesztelj (user story), nem a kódot. Unit + integration + e2e minden taszkhoz.</div></div>
+      <div class="rule"><div class="num">05</div><div><strong>Több automatizálás = több token.</strong> A human review-k arányát te döntöd el. Ez senioritás kérdése.</div></div>
+    </div>
+  </div>
+
+  <!-- DEVIL'S ADVOCATE OVERVIEW -->
+  <section class="da-section" id="da">
+    <div class="da-eyebrow">Devil's Advocate · az ágens, ami sokat számít</div>
+    <h3>Mit csinál a Devil's Advocate ágens, és miért menő?</h3>
+    <p class="da-lede">A legtöbb AI ágens azt nézi, <em>mi működik</em>. A Devil's Advocate fordítva áll a problémához: kifejezetten azt keresi, <em>mi romolhat el</em>. Stressz-teszteli a tervet, kérdőjelez, kontrázik, vakfoltokat tár fel — és nem győzni akar, hanem feltörni a saját feltételezéseinket.</p>
+
+    <div class="da-grid">
+      <div class="da-card">
+        <h4>Mit néz?</h4>
+        <p>Logikai hézagok, rejtett feltételezések, hiányzó edge case-ek, túl optimista becslések, hallucinált tények, és olyan kockázatok, amik nem szerepelnek a tervben.</p>
+      </div>
+      <div class="da-card">
+        <h4>Hogyan működik a loop?</h4>
+        <p>Több Devil's Advocate ágens párhuzamosan támadja az artefaktot (brief, plan, code diff). Más ágensek a moderate+ szintű issue-kat javítják. Újrafut, amíg nincs major issue.</p>
+      </div>
+      <div class="da-card">
+        <h4>Miért menő?</h4>
+        <p>Ez törli a confirmation bias-t a pipeline-ból. Az AI-d nem csak "egyetértő partner" lesz — kapsz egy belső kritikust is, aki előhívja, amit te magad nem mernél kimondani.</p>
+      </div>
+      <div class="da-card">
+        <h4>Mikor használd külön?</h4>
+        <p>A workflow-ban a 3. és 6. lépésben (brief és plan) automatikusan fut. De manuálisan is hívhatod kód review-ra, architektúrai döntésekre, vagy bármilyen "túl szépnek tűnő" ajánlatra.</p>
+      </div>
+    </div>
+
+    <div class="da-quote">
+      <strong>Devil's Advocate filozófia:</strong> "Nem azt keresem, ami működik — azt keresem, ami elromolhat." A jó kritika olcsóbb, mint a rossz implementáció.
+    </div>
+  </section>
+
+  <footer>
+    <div>Forrás: <em>Claude Code in Practice</em> · Mancz Gergely · GDM MIT · 2026</div>
+    <div class="principle">human-in-the-loop · agentic-development · not vibe coding</div>
+  </footer>
+</div>
+
+<script>
+const STEPS = [
+  {
+    n: 1, kind: 'ai', cmd: '/feature-refinement',
+    type: 'AI parancs',
+    title: 'Feature refinement',
+    short: 'Tisztázza az ötletet',
+    out: 'brief.md',
+    badge: 'suggested',
+    desc: 'Az AI először megnézi a kódot és a meglévő dokumentációt, csak utána tesz fel kérdéseket – és minden kérdéshez pro/kontrákat ad. Te döntesz, ő javasol.',
+    inputs: ['Részletes feature leírás szövegesen', 'Kontextus könyvtár (pl. @docs)'],
+    outputs: ['Strukturált brief md fájl', 'Problem · Goal · Scope · Edge cases · Open questions'],
+    tips: ['Ha már van részletes spec-ed, ki is hagyhatod – de ritkán van olyan jó, amilyennek hisszük.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 2, kind: 'human',
+    type: 'Human review',
+    title: 'Brief átnézése (gyors)',
+    short: 'Opcionális első olvasat',
+    out: 'javított brief',
+    badge: 'optional',
+    desc: 'Ha akarod, gyors átfutás. A következő iterative-review úgyis ki fogja szúrni a hibákat, de szemmel itt kapod el a teljes félreértést.',
+    inputs: ['brief.md'],
+    outputs: ['Megjegyzések / direkt edit'],
+    tips: ['Akkor érdemes, ha a refinement során sok bizonytalanságot érzékeltél.'],
+    tipKind: 'human'
+  },
+  {
+    n: 3, kind: 'ai', cmd: '/iterative-review',
+    type: 'AI parancs',
+    title: 'Brief iterative review',
+    short: 'Devil\'s Advocate támad',
+    out: 'javított brief',
+    badge: 'must',
+    desc: 'Több <a href="#da" class="da-link">Devil\'s Advocate</a> ágens párhuzamosan keresi a réseket, más ágensek javítják. Ismétlődik, amíg nincs major/critical issue.',
+    inputs: ['brief.md'],
+    outputs: ['Javított brief.md', 'Összefoglaló: mit változtatott, lesz-e feature loss'],
+    tips: ['Nem azt keresi, ami működik – azt, ami elromolhat. Mindig fusson le.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 4, kind: 'human',
+    type: 'Human review',
+    title: 'Brief végleges review',
+    short: 'Te döntesz a végén',
+    out: 'jóváhagyott brief',
+    badge: 'must',
+    desc: 'Ez az utolsó pont, ahol olcsón változtathatsz az iránynak. A plan után már drágább. Nézd meg az AI által változtatott részeket.',
+    inputs: ['javított brief.md', 'iterative-review összefoglaló'],
+    outputs: ['Jóváhagyott brief – ez lesz az igazság forrása'],
+    tips: ['A jó kontextus itt token spórolás később. Egy mondatnyi pontosítás 1000 tokent menthet.'],
+    tipKind: 'human'
+  },
+  {
+    n: 5, kind: 'ai', cmd: '/plan-maker',
+    type: 'AI parancs',
+    title: 'Detailed plan',
+    short: 'Architektúra + taszkok',
+    out: 'plan.md',
+    badge: 'must',
+    desc: 'A leghosszabb tervezési lépés és szándékosan az. Architektúra, fázisok (mindegyik releasable), tesztek, acceptance criteria, részletes taszkok.',
+    inputs: ['Jóváhagyott brief.md'],
+    outputs: ['plan.md – akár 1000+ sor', 'Fázisokra bontva, e2e tesztelhető', 'TDD-alapú taszk lista'],
+    tips: ['Új sessionben futtasd. A részletes plan az implementáció improvizálását szünteti meg.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 6, kind: 'ai', cmd: '/iterative-review',
+    type: 'AI parancs',
+    title: 'Plan iterative review',
+    short: 'Devil\'s Advocate a tervre is',
+    out: 'javított plan',
+    badge: 'must',
+    desc: 'Ugyanaz a <a href="#da" class="da-link">Devil\'s Advocate</a> loop, de most a planre. Itt szűri ki a hiányzó edge case-eket, a rosszul fázisolt taszkokat, a hiányzó teszteket.',
+    inputs: ['plan.md'],
+    outputs: ['Javított plan.md', 'Issue összefoglaló'],
+    tips: ['Drága, de olcsóbb, mint egy elszállt implementáció.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 7, kind: 'human',
+    type: 'Human review',
+    title: 'Plan végleges review',
+    short: 'Az utolsó olcsó változtatás',
+    out: 'jóváhagyott plan',
+    badge: 'suggested',
+    desc: 'Itt eldől, hogy a következő órákban mit fog kódolni az AI. Ha valami nem fér bele a fejedbe – most állítsd meg.',
+    inputs: ['javított plan.md'],
+    outputs: ['Jóváhagyott plan'],
+    tips: ['Ha túl nagy ahhoz, hogy átolvasd: kérd meg az AI-t, hogy szedje fázisokra és review-zd fázisonként.'],
+    tipKind: 'human'
+  },
+  {
+    n: 8, kind: 'ai', cmd: '/implement-next',
+    type: 'AI parancs',
+    title: 'Implement next task',
+    short: 'Egy taszk a backlogból',
+    out: 'kód + commit',
+    badge: 'must',
+    desc: 'A pipeline szíve. Csak a következő egyetlen taszk – semmi más. Belső iterative-review fixeli az issue-kat. Végén commit.',
+    inputs: ['plan.md', 'aktuális kódbázis'],
+    outputs: ['Implementáció + tesztek', 'Belső review összefoglaló', 'Git commit'],
+    tips: ['/implement-all is van: az egész backlogon végigmegy. Csak ha senior vagy és bízol a planben.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 9, kind: 'human',
+    type: 'Human review',
+    title: 'Implementation review',
+    short: 'Te vagy az utolsó gate',
+    out: 'merge-elhető PR',
+    badge: 'suggested',
+    desc: 'A kód előtted van. Te döntesz: javítod magad, javíttatod, vagy commitálod. A type-check és teszt zöld nem egyenlő a feature kész.',
+    inputs: ['Új commit', 'Tesztek + lint output'],
+    outputs: ['Merge-elhető változás'],
+    tips: ['Ha kihagyod ezt minden taszknál, ne lepődj meg, ha drift jelenik meg fázis végére.'],
+    tipKind: 'human'
+  }
+];
+
+const MODE_KEEP = {
+  min: ['must'],
+  bal: ['must', 'suggested'],
+  max: ['must', 'suggested', 'optional']
+};
+const MODE_HINT = {
+  min: 'Csak a kötelező gate-ek aktívak. Gyors, kockázatosabb.',
+  bal: 'Kötelező + ajánlott gate-ek. Senior alapértelmezett.',
+  max: 'Minden review aktív, beleértve az opcionálisat is. Lassú, biztos.'
+};
+
+const flowEl = document.getElementById('flow');
+const detailEl = document.getElementById('detail');
+let activeStep = null;
+let currentMode = 'bal';
+
+function renderFlow() {
+  flowEl.innerHTML = '';
+  STEPS.forEach(s => {
+    const el = document.createElement('button');
+    el.className = `node ${s.kind}`;
+    el.dataset.n = s.n;
+    el.dataset.badge = s.badge;
+    el.setAttribute('aria-label', `${s.n}. lépés: ${s.title}`);
+    el.innerHTML = `
+      <span class="node-num">${String(s.n).padStart(2,'0')}</span>
+      <div class="node-type">${s.type}</div>
+      ${s.cmd ? `<div class="node-cmd">${s.cmd}</div>` : `<div class="node-cmd" style="color:var(--human)">👁 Review</div>`}
+      <div class="node-title">${s.title}</div>
+      <div class="node-out"><strong>Output</strong>${s.out}</div>
+      <span class="node-badge"><span class="badge ${s.badge}">${s.badge.toUpperCase()}</span></span>
+    `;
+    el.addEventListener('click', () => selectStep(s.n));
+    flowEl.appendChild(el);
+  });
+  applyMode();
+}
+
+function selectStep(n) {
+  activeStep = n;
+  document.querySelectorAll('.node').forEach(node => {
+    node.classList.toggle('active', Number(node.dataset.n) === n);
+  });
+  const s = STEPS.find(x => x.n === n);
+  if (!s) return;
+  detailEl.classList.add('open');
+  detailEl.innerHTML = `
+    <div class="detail-head">
+      <span class="detail-step">${String(s.n).padStart(2,'0')} · ${s.type}</span>
+      ${s.cmd ? `<span class="detail-cmd">${s.cmd}</span>` : `<span class="detail-cmd human">👁 Human review</span>`}
+      <span class="badge ${s.badge}" style="margin-left:auto">${s.badge.toUpperCase()}</span>
+    </div>
+    <div class="detail-title">${s.title}</div>
+    <div class="detail-desc">${s.desc}</div>
+    <div class="detail-grid">
+      <div class="detail-block ${s.kind}">
+        <h4>Bemenet</h4>
+        <ul>${s.inputs.map(i=>`<li>${i}</li>`).join('')}</ul>
+      </div>
+      <div class="detail-block ${s.kind}">
+        <h4>Kimenet</h4>
+        <ul>${s.outputs.map(i=>`<li>${i}</li>`).join('')}</ul>
+      </div>
+      ${s.tips.map(t => `<div class="detail-tip ${s.tipKind}"><strong>Tipp:</strong> ${t}</div>`).join('')}
+    </div>
+  `;
+}
+
+function applyMode() {
+  const keep = MODE_KEEP[currentMode];
+  document.querySelectorAll('.node').forEach(node => {
+    const badge = node.dataset.badge;
+    node.classList.toggle('dimmed', !keep.includes(badge));
+  });
+  document.getElementById('modeHint').textContent = MODE_HINT[currentMode];
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === currentMode);
+  });
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentMode = btn.dataset.mode;
+    applyMode();
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') {
+    selectStep(activeStep === null ? 1 : Math.min(9, activeStep + 1));
+  } else if (e.key === 'ArrowLeft') {
+    selectStep(activeStep === null ? 1 : Math.max(1, activeStep - 1));
+  } else if (e.key === 'Escape') {
+    activeStep = null;
+    document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+    detailEl.classList.remove('open');
+    detailEl.innerHTML = `<div class="detail-empty">Kattints egy lépésre a részletekért · vagy navigálj a <span class="kbd">←</span> <span class="kbd">→</span> billentyűkkel</div>`;
+  }
+});
+
+renderFlow();
+selectStep(1);
+</script>
+</body>
+</html>

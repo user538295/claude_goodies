@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code in Practice · Handout</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background:
+      linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px) 0 0 / 24px 24px,
+      #f7f6f1;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    color: #1a1a1f;
+    padding: 1.5rem;
+  }
+  .card {
+    background: white;
+    border: 1px solid #d8d6cc;
+    border-radius: 18px;
+    padding: 2.5rem 2.75rem;
+    max-width: 540px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 24px 60px -32px rgba(0,0,0,0.18);
+  }
+  .brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: #797982;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.1rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    margin-bottom: 0.65rem;
+  }
+  h1 .a { color: #4f46e5; }
+  p {
+    color: #3d3d45;
+    font-size: 0.97rem;
+    margin-bottom: 1.75rem;
+    line-height: 1.65;
+  }
+  .picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+  }
+  .picker a {
+    text-decoration: none;
+    color: #1a1a1f;
+    background: #f7f6f1;
+    border: 1.5px solid #d8d6cc;
+    border-radius: 12px;
+    padding: 1.1rem 1rem 1rem;
+    transition: all 0.2s cubic-bezier(.2,.7,.2,1);
+    display: block;
+  }
+  .picker a:hover {
+    transform: translateY(-2px);
+    border-color: #4f46e5;
+    box-shadow: 0 8px 22px -14px rgba(79,70,229,0.4);
+  }
+  .picker .flag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4f46e5;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .picker .name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .picker .meta {
+    font-size: 0.78rem;
+    color: #797982;
+  }
+  .foot {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #797982;
+    letter-spacing: 0.1em;
+    padding-top: 1rem;
+    border-top: 1px dashed #c0bdb1;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">Claude Code · in Practice</div>
+    <h1>Agentic development<br><span class="a">workflow handout</span></h1>
+    <p>Interactive mindmap of the 9-step workflow. Five commands, four human review gates, one decision matrix.</p>
+    <div class="picker">
+      <a href="hu.html">
+        <div class="flag">HU</div>
+        <div class="name">Magyar</div>
+        <div class="meta">Hungarian version</div>
+      </a>
+      <a href="en.html">
+        <div class="flag">EN</div>
+        <div class="name">English</div>
+        <div class="meta">English version</div>
+      </a>
+    </div>
+    <div class="foot">human-in-the-loop · gdm mit · 2026</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code – Agentic Development Workflow · English</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f1;
+    --bg-grid: #ecebe3;
+    --paper: #ffffff;
+    --ink: #1a1a1f;
+    --ink2: #3d3d45;
+    --muted: #797982;
+    --line: #d8d6cc;
+    --line2: #c0bdb1;
+
+    --ai: #4f46e5;
+    --ai-soft: #eef0ff;
+    --human: #d97706;
+    --human-soft: #fef3e2;
+    --ok: #15803d;
+    --ok-soft: #dcfce7;
+    --danger: #b91c1c;
+    --danger-soft: #fee2e2;
+    --neutral: #525252;
+
+    --must: #b91c1c;
+    --suggested: #d97706;
+    --optional: #6b7280;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--ink);
+    background:
+      linear-gradient(rgba(0,0,0,0.025) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px) 0 0 / 24px 24px,
+      var(--bg);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px dashed var(--line2);
+  }
+  .brand-row { display: flex; align-items: baseline; gap: 0.65rem; flex-wrap: wrap; }
+  .brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    background: var(--paper);
+    padding: 3px 10px;
+    border: 1px solid var(--line);
+    border-radius: 100px;
+  }
+  h1 {
+    font-size: clamp(1.7rem, 3.5vw, 2.55rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    margin-top: 0.4rem;
+  }
+  h1 .accent { color: var(--ai); }
+  .sub {
+    color: var(--ink2);
+    margin-top: 0.35rem;
+    font-size: 0.97rem;
+    max-width: 620px;
+  }
+
+  .lang {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .lang a {
+    text-decoration: none;
+    color: var(--muted);
+    padding: 5px 11px;
+    border-radius: 100px;
+    letter-spacing: 0.08em;
+  }
+  .lang a.active { background: var(--ink); color: white; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    font-size: 0.81rem;
+    color: var(--ink2);
+  }
+  .lg { display: inline-flex; align-items: center; gap: 7px; }
+  .lg .sw {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .sw.ai { background: var(--ai-soft); border-color: var(--ai); }
+  .sw.human { background: var(--human-soft); border-color: var(--human); }
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .badge.must { color: var(--must); border-color: var(--must); background: var(--danger-soft); }
+  .badge.suggested { color: var(--suggested); border-color: var(--suggested); background: var(--human-soft); }
+  .badge.optional { color: var(--optional); border-color: var(--optional); background: #f1f1ef; }
+
+  .control {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.65rem 0.95rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .control-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .modes { display: flex; gap: 4px; }
+  .mode-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--ink2);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.03em;
+  }
+  .mode-btn:hover { border-color: var(--ink2); }
+  .mode-btn.active {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+  }
+  .control-hint {
+    font-size: 0.82rem;
+    color: var(--muted);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .flow-wrap {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.5rem 1rem 1.75rem;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 8px 24px -16px rgba(0,0,0,0.12);
+    position: relative;
+    overflow: hidden;
+  }
+  .flow-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(0,0,0,0.018) 1px, transparent 1px) 0 0 / 22px 22px,
+      linear-gradient(90deg, rgba(0,0,0,0.018) 1px, transparent 1px) 0 0 / 22px 22px;
+    pointer-events: none;
+  }
+  .flow-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 0.55rem;
+    position: relative;
+    align-items: stretch;
+  }
+  .node {
+    position: relative;
+    background: var(--bg);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 0.85rem 0.7rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(.2,.7,.2,1);
+    min-height: 168px;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+  }
+  .node:hover {
+    transform: translateY(-2px);
+    border-color: var(--ink2);
+    box-shadow: 0 6px 18px -10px rgba(0,0,0,0.25);
+  }
+  .node.active {
+    border-color: var(--ai);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.15);
+  }
+  .node.dimmed {
+    opacity: 0.32;
+    filter: saturate(0.4);
+  }
+
+  .node-num {
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    background: var(--ink);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.05em;
+  }
+  .node.human .node-num { background: var(--human); }
+
+  .node-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+  }
+  .node.ai { background: var(--ai-soft); border-color: rgba(79,70,229,0.35); }
+  .node.human { background: var(--human-soft); border-color: rgba(217,119,6,0.35); }
+  .node.ai .node-type { color: var(--ai); }
+  .node.human .node-type { color: var(--human); }
+
+  .node-cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.4rem;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .node-title {
+    font-size: 0.81rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+  .node-out {
+    font-size: 0.72rem;
+    color: var(--ink2);
+    margin-top: auto;
+    padding-top: 0.4rem;
+    border-top: 1px dashed var(--line);
+    line-height: 1.4;
+  }
+  .node-out strong {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 600;
+  }
+
+  .node-badge {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+  }
+
+  .node:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--line2);
+    font-size: 1.1rem;
+    font-weight: 700;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .detail {
+    margin-top: 2rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    min-height: 220px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .detail-empty {
+    color: var(--muted);
+    text-align: center;
+    font-size: 0.92rem;
+    padding: 2rem 1rem;
+  }
+  .detail-empty .kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    color: var(--ink);
+    margin: 0 2px;
+  }
+
+  .detail-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+  }
+  .detail-step {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--ink);
+    color: white;
+    padding: 3px 9px;
+    border-radius: 5px;
+    letter-spacing: 0.06em;
+  }
+  .detail-cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ai);
+  }
+  .detail-cmd.human { color: var(--human); }
+  .detail-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.015em;
+  }
+  .detail-desc {
+    color: var(--ink2);
+    font-size: 0.96rem;
+    margin-bottom: 1.25rem;
+    max-width: 720px;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem;
+  }
+  .detail-block {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+  }
+  .detail-block h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  .detail-block ul {
+    list-style: none;
+    font-size: 0.87rem;
+    color: var(--ink2);
+  }
+  .detail-block li {
+    padding: 3px 0 3px 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .detail-block li::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 11px;
+    width: 6px; height: 6px;
+    background: var(--ai);
+    border-radius: 50%;
+  }
+  .detail-block.human li::before { background: var(--human); }
+  .detail-tip {
+    grid-column: 1/-1;
+    background: linear-gradient(0deg, rgba(79,70,229,0.04), rgba(79,70,229,0.04)), var(--paper);
+    border: 1px solid rgba(79,70,229,0.18);
+    border-left: 3px solid var(--ai);
+    border-radius: 8px;
+    padding: 0.7rem 0.95rem;
+    font-size: 0.87rem;
+    color: var(--ink2);
+  }
+  .detail-tip strong { color: var(--ai); }
+  .detail-tip.human {
+    background: linear-gradient(0deg, rgba(217,119,6,0.04), rgba(217,119,6,0.04)), var(--paper);
+    border-color: rgba(217,119,6,0.2);
+    border-left-color: var(--human);
+  }
+  .detail-tip.human strong { color: var(--human); }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 1.25rem;
+    margin-top: 2.25rem;
+  }
+  @media (max-width: 900px) {
+    .grid2 { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.25rem 1.4rem;
+  }
+  .panel h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel h3::before {
+    content: '';
+    width: 12px; height: 12px;
+    background: var(--ai);
+    border-radius: 3px;
+  }
+  .panel.warn h3::before { background: var(--human); }
+  .panel.ok h3::before { background: var(--ok); }
+
+  .cmd-row {
+    display: grid;
+    grid-template-columns: 1.3fr 2fr;
+    gap: 0.6rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 0.85rem;
+  }
+  .cmd-row:last-child { border-bottom: none; }
+  .cmd-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--ai);
+    font-size: 0.82rem;
+    align-self: center;
+  }
+  .cmd-desc { color: var(--ink2); line-height: 1.5; }
+
+  .rule {
+    display: flex;
+    gap: 0.7rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 0.87rem;
+    color: var(--ink2);
+  }
+  .rule:last-child { border-bottom: none; }
+  .rule .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--human);
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    padding-top: 1px;
+  }
+
+  .decision {
+    margin-top: 2.25rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.25rem 1.4rem;
+  }
+  .decision h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .decision-sub {
+    font-size: 0.87rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  .matrix {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
+  }
+  @media (max-width: 700px) {
+    .matrix { grid-template-columns: 1fr; }
+  }
+  .mode-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.95rem 1.05rem;
+    background: var(--bg);
+    transition: all 0.2s;
+  }
+  .mode-card .mc-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.45rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mode-card .mc-title::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--neutral);
+  }
+  .mode-card.min .mc-title { color: var(--neutral); }
+  .mode-card.bal .mc-title { color: var(--ai); }
+  .mode-card.bal .mc-title::before { background: var(--ai); }
+  .mode-card.max .mc-title { color: var(--ok); }
+  .mode-card.max .mc-title::before { background: var(--ok); }
+  .mode-card h4 {
+    font-size: 0.93rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+  .mode-card p {
+    font-size: 0.83rem;
+    color: var(--ink2);
+    line-height: 1.55;
+    margin-bottom: 0.55rem;
+  }
+  .mode-card .steps {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed var(--line2);
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  footer .principle {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 1100px) {
+    .flow {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem 0.6rem;
+    }
+    .node:not(:last-child)::after { display: none; }
+    .node { min-height: 140px; }
+  }
+  @media (max-width: 560px) {
+    .flow { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 1.5rem; }
+  }
+
+  /* Devil's Advocate inline link */
+  .da-link {
+    color: var(--ai);
+    text-decoration: none;
+    border-bottom: 1px dashed currentColor;
+    font-weight: 600;
+    transition: color 0.18s;
+  }
+  .da-link:hover { color: var(--ink); }
+  .da-link::after {
+    content: '↓';
+    font-size: 0.85em;
+    margin-left: 2px;
+    opacity: 0.6;
+  }
+
+  /* DA section */
+  .da-section {
+    margin-top: 2.25rem;
+    background: linear-gradient(135deg, rgba(79,70,229,0.04), rgba(167,139,250,0.04)), var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.75rem 1.85rem;
+    position: relative;
+    overflow: hidden;
+    scroll-margin-top: 1.5rem;
+  }
+  .da-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: linear-gradient(180deg, var(--ai), #a78bfa);
+  }
+  .da-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--ai);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .da-eyebrow::before {
+    content: '👹';
+    font-size: 1.1rem;
+  }
+  .da-section h3 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.4rem;
+  }
+  .da-lede {
+    color: var(--ink2);
+    font-size: 0.97rem;
+    max-width: 720px;
+    margin-bottom: 1.25rem;
+    line-height: 1.65;
+  }
+  .da-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+  .da-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+  }
+  .da-card h4 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+    color: var(--ink);
+  }
+  .da-card p {
+    font-size: 0.84rem;
+    color: var(--ink2);
+    line-height: 1.6;
+  }
+  .da-quote {
+    border-left: 3px solid var(--ai);
+    padding: 0.55rem 0.9rem;
+    background: rgba(79,70,229,0.05);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.88rem;
+    color: var(--ink2);
+    font-style: italic;
+  }
+  .da-quote strong { color: var(--ai); font-style: normal; }
+
+  @keyframes pop { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .detail.open .detail-head, .detail.open .detail-title, .detail.open .detail-desc, .detail.open .detail-grid {
+    animation: pop 0.28s cubic-bezier(.2,.7,.2,1) both;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand-row">
+        <span class="brand">Claude Code · in Practice</span>
+      </div>
+      <h1>Agentic development <span class="accent">workflow</span><br>in 9 steps.</h1>
+      <p class="sub">How to chain the <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/feature-refinement</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/iterative-review</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/plan-maker</span> and <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/implement-next</span> commands — and where to keep human review gates.</p>
+    </div>
+    <nav class="lang" aria-label="Language">
+      <a href="hu.html">HU</a>
+      <a href="en.html" class="active">EN</a>
+    </nav>
+  </header>
+
+  <div class="legend" role="region" aria-label="Legend">
+    <span class="lg"><span class="sw ai"></span>AI command</span>
+    <span class="lg"><span class="sw human"></span>Human review gate</span>
+    <span class="lg"><span class="badge must">MUST</span> mandatory</span>
+    <span class="lg"><span class="badge suggested">SUGGESTED</span> recommended</span>
+    <span class="lg"><span class="badge optional">OPTIONAL</span> optional</span>
+  </div>
+
+  <div class="control">
+    <span class="control-label">Review intensity:</span>
+    <div class="modes" role="tablist">
+      <button class="mode-btn" data-mode="min">Minimum</button>
+      <button class="mode-btn active" data-mode="bal">Balanced</button>
+      <button class="mode-btn" data-mode="max">Maximum</button>
+    </div>
+    <span class="control-hint" id="modeHint">Only mandatory and recommended gates active. The rest are dimmed.</span>
+  </div>
+
+  <div class="flow-wrap">
+    <div class="flow-title">▸ Pipeline · from brief to commit</div>
+    <div class="flow" id="flow"></div>
+  </div>
+
+  <div class="detail" id="detail">
+    <div class="detail-empty">
+      Click a step for details · or navigate with <span class="kbd">←</span> <span class="kbd">→</span> arrow keys
+    </div>
+  </div>
+
+  <div class="decision">
+    <h3>How many human reviews do you keep?</h3>
+    <p class="decision-sub">Your seniority and the task's risk decide. More automation → more tokens, more AI drift. More human gates → slower, but safer.</p>
+    <div class="matrix">
+      <div class="mode-card min">
+        <div class="mc-title">Minimum</div>
+        <h4>Quick prototype</h4>
+        <p>You keep only the mandatory gates. Good for small features or throwaway POCs.</p>
+        <div class="steps">3 → 4 → 5 → 6 → 8</div>
+      </div>
+      <div class="mode-card bal">
+        <div class="mc-title">Balanced</div>
+        <h4>Typical daily work</h4>
+        <p>Mandatory + recommended reviews. The default for a senior developer.</p>
+        <div class="steps">1 → 3 → 4 → 5 → 6 → 7 → 8 → 9</div>
+      </div>
+      <div class="mode-card max">
+        <div class="mc-title">Maximum</div>
+        <h4>High risk / critical system</h4>
+        <p>Every gate active, including optional ones. Production, security features, large refactors.</p>
+        <div class="steps">1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>Command cheatsheet</h3>
+      <div class="cmd-row">
+        <div class="cmd-name">/feature-refinement</div>
+        <div class="cmd-desc">Q&amp;A session that also analyzes the codebase. Produces a brief md file.</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name">/iterative-review &lt;file&gt;</div>
+        <div class="cmd-desc"><a href="#da" class="da-link">Devil's Advocate</a> agents attack in parallel, other agents fix. Loops until no major issues remain.</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name">/plan-maker &lt;brief&gt;</div>
+        <div class="cmd-desc">Architecture, tests, acceptance criteria, detailed tasks. Often 1000+ lines.</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name">/implement-next &lt;plan&gt;</div>
+        <div class="cmd-desc">Implements only the next single task. Internal <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixes issues.</div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-name">/implement-all &lt;plan&gt;</div>
+        <div class="cmd-desc">Walks through every uncompleted task. Use only with a well-structured plan and lower-control tolerance.</div>
+      </div>
+    </div>
+
+    <div class="panel warn">
+      <h3>Golden rules</h3>
+      <div class="rule"><div class="num">01</div><div><strong>Garbage in → garbage out.</strong> The quality of the brief determines the whole pipeline's output. Invest the time.</div></div>
+      <div class="rule"><div class="num">02</div><div><strong>New session = clean slate.</strong> After each approved artifact, continue in a new session. Don't carry stale context.</div></div>
+      <div class="rule"><div class="num">03</div><div><strong>One task = one commit.</strong> Never bundle. The diff stays auditable.</div></div>
+      <div class="rule"><div class="num">04</div><div><strong>TDD is not optional.</strong> Test functionality (user story), not code. Unit + integration + e2e per task.</div></div>
+      <div class="rule"><div class="num">05</div><div><strong>More automation = more tokens.</strong> The ratio of human review gates is your call. That's where seniority shows.</div></div>
+    </div>
+  </div>
+
+  <!-- DEVIL'S ADVOCATE OVERVIEW -->
+  <section class="da-section" id="da">
+    <div class="da-eyebrow">Devil's Advocate · the agent that matters most</div>
+    <h3>What does the Devil's Advocate agent do, and why is it so cool?</h3>
+    <p class="da-lede">Most AI agents look at <em>what works</em>. Devil's Advocate flips it: it specifically hunts for <em>what can break</em>. It stress-tests the plan, questions assumptions, counters claims, exposes blind spots — not to win the argument, but to crack open your own confirmation bias.</p>
+
+    <div class="da-grid">
+      <div class="da-card">
+        <h4>What does it look for?</h4>
+        <p>Logical gaps, hidden assumptions, missing edge cases, over-optimistic estimates, hallucinated facts, and risks that aren't yet on the plan.</p>
+      </div>
+      <div class="da-card">
+        <h4>How does the loop work?</h4>
+        <p>Multiple Devil's Advocate agents attack the artifact (brief, plan, code diff) in parallel. Other agents fix any moderate+ issues. Reruns until no major issues remain.</p>
+      </div>
+      <div class="da-card">
+        <h4>Why is it cool?</h4>
+        <p>It removes confirmation bias from the pipeline. Your AI stops being just an agreeable partner — you get an internal critic that surfaces what you yourself wouldn't dare to say out loud.</p>
+      </div>
+      <div class="da-card">
+        <h4>When to use it standalone?</h4>
+        <p>The workflow runs it automatically at steps 3 and 6 (brief and plan). But you can invoke it manually for code review, architecture decisions, or any proposal that looks "too good to be true."</p>
+      </div>
+    </div>
+
+    <div class="da-quote">
+      <strong>Devil's Advocate philosophy:</strong> "I'm not looking for what works — I'm looking for what can break." Good criticism is cheaper than a bad implementation.
+    </div>
+  </section>
+
+  <footer>
+    <div>Source: <em>Claude Code in Practice</em> · Gergely Mancz · GDM MIT · 2026</div>
+    <div class="principle">human-in-the-loop · agentic-development · not vibe coding</div>
+  </footer>
+</div>
+
+<script>
+const STEPS = [
+  {
+    n: 1, kind: 'ai', cmd: '/feature-refinement',
+    type: 'AI command',
+    title: 'Feature refinement',
+    short: 'Clarify the idea',
+    out: 'brief.md',
+    badge: 'suggested',
+    desc: 'The AI first reads the code and existing docs, then asks questions — each with pro/con options. You decide, it recommends.',
+    inputs: ['Detailed feature description in prose', 'Context directory (e.g. @docs)'],
+    outputs: ['Structured brief md file', 'Problem · Goal · Scope · Edge cases · Open questions'],
+    tips: ['If you already have a detailed spec, you can skip — but specs are rarely as good as we think.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 2, kind: 'human',
+    type: 'Human review',
+    title: 'Brief skim (quick)',
+    short: 'Optional first read',
+    out: 'revised brief',
+    badge: 'optional',
+    desc: 'A fast pass if you want one. The next iterative-review will catch issues anyway, but a human eye catches whole-misunderstanding errors here.',
+    inputs: ['brief.md'],
+    outputs: ['Notes / direct edits'],
+    tips: ['Worth it when the refinement session felt uncertain or had many open questions.'],
+    tipKind: 'human'
+  },
+  {
+    n: 3, kind: 'ai', cmd: '/iterative-review',
+    type: 'AI command',
+    title: 'Brief iterative review',
+    short: 'Devil\'s Advocate attacks',
+    out: 'revised brief',
+    badge: 'must',
+    desc: 'Multiple <a href="#da" class="da-link">Devil\'s Advocate</a> agents search for gaps in parallel, other agents fix them. Loops until no major/critical issues remain.',
+    inputs: ['brief.md'],
+    outputs: ['Revised brief.md', 'Summary: what changed, any feature loss'],
+    tips: ['It hunts for what can break, not what works. Always run it.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 4, kind: 'human',
+    type: 'Human review',
+    title: 'Final brief review',
+    short: 'You sign it off',
+    out: 'approved brief',
+    badge: 'must',
+    desc: 'The last cheap point to change direction. After the plan it gets expensive. Inspect what the AI changed.',
+    inputs: ['revised brief.md', 'iterative-review summary'],
+    outputs: ['Approved brief — the source of truth'],
+    tips: ['Good context here saves tokens later. One sentence of clarification can save 1000 tokens downstream.'],
+    tipKind: 'human'
+  },
+  {
+    n: 5, kind: 'ai', cmd: '/plan-maker',
+    type: 'AI command',
+    title: 'Detailed plan',
+    short: 'Architecture + tasks',
+    out: 'plan.md',
+    badge: 'must',
+    desc: 'The longest planning step — intentionally. Architecture, releasable phases, tests, acceptance criteria, detailed tasks.',
+    inputs: ['Approved brief.md'],
+    outputs: ['plan.md — often 1000+ lines', 'Split into phases, each e2e testable', 'TDD-based task list'],
+    tips: ['Run it in a new session. A detailed plan kills implementation-time improvisation.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 6, kind: 'ai', cmd: '/iterative-review',
+    type: 'AI command',
+    title: 'Plan iterative review',
+    short: 'Devil\'s Advocate on the plan too',
+    out: 'revised plan',
+    badge: 'must',
+    desc: 'Same <a href="#da" class="da-link">Devil\'s Advocate</a> loop, now applied to the plan. Catches missing edge cases, badly-phased tasks, missing tests.',
+    inputs: ['plan.md'],
+    outputs: ['Revised plan.md', 'Issue summary'],
+    tips: ['Expensive — but cheaper than an off-the-rails implementation.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 7, kind: 'human',
+    type: 'Human review',
+    title: 'Final plan review',
+    short: 'Last cheap change point',
+    out: 'approved plan',
+    badge: 'suggested',
+    desc: 'This decides what the AI will code in the coming hours. If something doesn\'t fit your mental model, stop here.',
+    inputs: ['revised plan.md'],
+    outputs: ['Approved plan'],
+    tips: ['Too big to read in one go? Have the AI split it into phases and review phase-by-phase.'],
+    tipKind: 'human'
+  },
+  {
+    n: 8, kind: 'ai', cmd: '/implement-next',
+    type: 'AI command',
+    title: 'Implement next task',
+    short: 'One task from backlog',
+    out: 'code + commit',
+    badge: 'must',
+    desc: 'The heart of the pipeline. Only the next single task — nothing else. Internal iterative-review fixes issues. Ends with a commit.',
+    inputs: ['plan.md', 'current codebase'],
+    outputs: ['Implementation + tests', 'Internal review summary', 'Git commit'],
+    tips: ['/implement-all also exists — walks the whole backlog. Only if you trust the plan and accept less control.'],
+    tipKind: 'ai'
+  },
+  {
+    n: 9, kind: 'human',
+    type: 'Human review',
+    title: 'Implementation review',
+    short: 'You are the last gate',
+    out: 'mergeable PR',
+    badge: 'suggested',
+    desc: 'The code is in front of you. Fix it yourself, ask the AI to fix it, or commit. Green type-check + tests ≠ feature done.',
+    inputs: ['New commit', 'Tests + lint output'],
+    outputs: ['Mergeable change'],
+    tips: ['If you skip this on every task, expect drift to accumulate by end of phase.'],
+    tipKind: 'human'
+  }
+];
+
+const MODE_KEEP = {
+  min: ['must'],
+  bal: ['must', 'suggested'],
+  max: ['must', 'suggested', 'optional']
+};
+const MODE_HINT = {
+  min: 'Only mandatory gates active. Fast, but riskier.',
+  bal: 'Mandatory + recommended gates. The senior default.',
+  max: 'Every review active, including optional ones. Slow, but safe.'
+};
+
+const flowEl = document.getElementById('flow');
+const detailEl = document.getElementById('detail');
+let activeStep = null;
+let currentMode = 'bal';
+
+function renderFlow() {
+  flowEl.innerHTML = '';
+  STEPS.forEach(s => {
+    const el = document.createElement('button');
+    el.className = `node ${s.kind}`;
+    el.dataset.n = s.n;
+    el.dataset.badge = s.badge;
+    el.setAttribute('aria-label', `Step ${s.n}: ${s.title}`);
+    el.innerHTML = `
+      <span class="node-num">${String(s.n).padStart(2,'0')}</span>
+      <div class="node-type">${s.type}</div>
+      ${s.cmd ? `<div class="node-cmd">${s.cmd}</div>` : `<div class="node-cmd" style="color:var(--human)">👁 Review</div>`}
+      <div class="node-title">${s.title}</div>
+      <div class="node-out"><strong>Output</strong>${s.out}</div>
+      <span class="node-badge"><span class="badge ${s.badge}">${s.badge.toUpperCase()}</span></span>
+    `;
+    el.addEventListener('click', () => selectStep(s.n));
+    flowEl.appendChild(el);
+  });
+  applyMode();
+}
+
+function selectStep(n) {
+  activeStep = n;
+  document.querySelectorAll('.node').forEach(node => {
+    node.classList.toggle('active', Number(node.dataset.n) === n);
+  });
+  const s = STEPS.find(x => x.n === n);
+  if (!s) return;
+  detailEl.classList.add('open');
+  detailEl.innerHTML = `
+    <div class="detail-head">
+      <span class="detail-step">${String(s.n).padStart(2,'0')} · ${s.type}</span>
+      ${s.cmd ? `<span class="detail-cmd">${s.cmd}</span>` : `<span class="detail-cmd human">👁 Human review</span>`}
+      <span class="badge ${s.badge}" style="margin-left:auto">${s.badge.toUpperCase()}</span>
+    </div>
+    <div class="detail-title">${s.title}</div>
+    <div class="detail-desc">${s.desc}</div>
+    <div class="detail-grid">
+      <div class="detail-block ${s.kind}">
+        <h4>Input</h4>
+        <ul>${s.inputs.map(i=>`<li>${i}</li>`).join('')}</ul>
+      </div>
+      <div class="detail-block ${s.kind}">
+        <h4>Output</h4>
+        <ul>${s.outputs.map(i=>`<li>${i}</li>`).join('')}</ul>
+      </div>
+      ${s.tips.map(t => `<div class="detail-tip ${s.tipKind}"><strong>Tip:</strong> ${t}</div>`).join('')}
+    </div>
+  `;
+}
+
+function applyMode() {
+  const keep = MODE_KEEP[currentMode];
+  document.querySelectorAll('.node').forEach(node => {
+    const badge = node.dataset.badge;
+    node.classList.toggle('dimmed', !keep.includes(badge));
+  });
+  document.getElementById('modeHint').textContent = MODE_HINT[currentMode];
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === currentMode);
+  });
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentMode = btn.dataset.mode;
+    applyMode();
+  });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') {
+    selectStep(activeStep === null ? 1 : Math.min(9, activeStep + 1));
+  } else if (e.key === 'ArrowLeft') {
+    selectStep(activeStep === null ? 1 : Math.max(1, activeStep - 1));
+  } else if (e.key === 'Escape') {
+    activeStep = null;
+    document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+    detailEl.classList.remove('open');
+    detailEl.innerHTML = `<div class="detail-empty">Click a step for details · or navigate with <span class="kbd">←</span> <span class="kbd">→</span> arrow keys</div>`;
+  }
+});
+
+renderFlow();
+selectStep(1);
+</script>
+</body>
+</html>

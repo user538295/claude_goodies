@@ -53,9 +53,13 @@ At any point you can run `/da-review <target>` or `/aaa` for a standalone qualit
 
 ### Quick install
 
-1. Open `install-prompt.md` from this repository.
-2. Copy everything below the `---` line.
-3. Paste it into Claude Code — Claude will clone the repo, install everything, and clean up after itself.
+Paste this into Claude Code:
+
+```
+Fetch https://raw.githubusercontent.com/user538295/claude_goodies/main/install-prompt.md and follow the installation instructions it contains.
+```
+
+Claude will fetch the installer, clone the repo, install everything into `~/.claude/`, and clean up after itself.
 
 ### What gets installed and where
 

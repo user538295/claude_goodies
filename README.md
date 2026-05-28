@@ -53,13 +53,11 @@ At any point you can run `/da-review <target>` or `/aaa` for a standalone qualit
 
 A visual interactive reference of the agentic development workflow — five commands, four human review gates, one decision matrix.
 
-Available in English and Hungarian:
+**[Open handout](https://user538295.github.io/claude_goodies/handout/)** — language picker (EN / HU)
 
-- [**Open handout**](handout/index.html) — language picker (EN / HU)
-- [English](handout/en.html)
-- [Magyar](handout/hu.html)
-
-> To view locally: open `handout/index.html` in a browser.
+Or open directly:
+- [English](https://user538295.github.io/claude_goodies/handout/en.html)
+- [Magyar](https://user538295.github.io/claude_goodies/handout/hu.html)
 
 ---
 

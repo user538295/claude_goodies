@@ -58,11 +58,7 @@ At any point you can run `/da-review <target>` or `/aaa` for a standalone qualit
    git clone git@github.com:user538295/claude_goodies.git
    ```
 
-2. Open Claude Code in any directory and paste the contents of `install-prompt.md`, replacing `<EXTRACTED_PATH>` with the full path to the cloned repo:
-   ```
-   Install the Claude Code skills from /path/to/claude_goodies
-   ```
-   Then paste the full contents of `install-prompt.md` — Claude will handle the rest.
+2. Open Claude Code in any directory and paste the contents of `install-prompt.md`, replacing `<EXTRACTED_PATH>` with the full path to the cloned folder (e.g. `/Users/yourname/claude_goodies`) — Claude will handle the rest.
 
 ### What gets installed and where
 

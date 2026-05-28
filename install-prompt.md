@@ -2,16 +2,12 @@
 
 ## How to use this file
 
-1. Get the files — either clone the repo or extract the zip:
+1. Clone the repository:
    ```bash
-   # Option A — clone the repo (recommended)
    git clone git@github.com:user538295/claude_goodies.git
-
-   # Option B — extract the zip
-   unzip claude_skills_share.zip -d ~/Downloads/
    ```
 2. Open Claude Code in any project (or your home directory).
-3. Paste the block below ─ everything after the `---` ─ into the Claude Code prompt, replacing `<EXTRACTED_PATH>` with the full path to the cloned or extracted folder (e.g. `/Users/yourname/claude_goodies`).
+3. Paste the block below ─ everything after the `---` ─ into the Claude Code prompt, replacing `<EXTRACTED_PATH>` with the full path to the cloned folder (e.g. `/Users/yourname/claude_goodies`).
 
 ---
 
@@ -52,7 +48,7 @@ Confirm that `<EXTRACTED_PATH>` exists and contains the expected top-level items
 ls <EXTRACTED_PATH>
 ```
 
-Expected output must include: `agents`, `commands`, `scripts`, `skills`, `CLAUDE.md`, `prompt-me.md`.
+Expected output must include: `agents`, `commands`, `scripts`, `skills`, `CLAUDE.md`, `install-prompt.md`.
 
 Stop and report if any of these are missing.
 

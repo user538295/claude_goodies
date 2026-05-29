@@ -506,7 +506,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_transitions_empty.bats`
 
 #### Task 4.5 — Drift correction
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 2.3, Task 4.1, Task 4.2, Task 4.3, Task 4.4
 - **Description**:
   - `apply_drift_correction(path)` — called **inside** `apply_transitions()`, per-path. It verifies the actual git/disk state matches the conf-expected state and corrects any divergence.

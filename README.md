@@ -19,6 +19,7 @@ A curated set of Claude Code slash commands, skills, agents, and supporting scri
 | Skill | `documentation-standard` | `/documentation-standard` | Documentation quality enforcement with Markdown standards and Mermaid diagram support |
 | Skill | `plan-maker` | `/plan-maker` | (see Command above — also available as a skill) |
 | Config | `CLAUDE.md` | loaded automatically | Global behavioral guidelines: think before coding, simplicity first, surgical changes, TDD, verification protocol |
+| Script | `claude-sync.sh` | `claude-sync.sh [--dry-run]` | Syncs `~/.claude` to git: classifies files as tracked, ignored, deleted, or pending via `sync-answers.conf` |
 
 ---
 
@@ -80,6 +81,7 @@ All files are installed into your Claude Code user profile at `~/.claude/`:
 ```
 ~/.claude/
 ├── CLAUDE.md                            ← global behavioral config (merged, not overwritten)
+├── sync-answers.conf                    ← claude-sync state config (path=state, one per line)
 ├── agents/
 │   └── devils-advocate.md               ← adversarial review agent
 ├── commands/
@@ -251,6 +253,38 @@ The commands depend on five shell scripts in `~/.claude/scripts/`. These are cal
 
 ---
 
+## `claude-sync.sh`
+
+A standalone sync tool that keeps `~/.claude` in git by classifying every file as tracked, ignored, deleted, or pending.
+
+**Location:** `~/.local/bin/claude-sync.sh`  
+**Usage:** `claude-sync.sh [--dry-run]`
+
+### How it works
+
+Each file's desired state is recorded in `~/.claude/sync-answers.conf` (one entry per line, format: `path=state`):
+
+| State | Meaning |
+|---|---|
+| `r` | Tracked — `git add`ed and committed |
+| `i` | Ignored — added to `.gitignore` via sentinel block |
+| `d` | Deleted — moved to Trash and replaced with a tombstone entry |
+| `''` (empty) | Pending — not yet classified; reported but not acted on |
+
+The `.gitignore` sentinel block is managed automatically between `# BEGIN claude-sync` and `# END claude-sync` markers — existing manual entries outside the block are never touched.
+
+### Pipeline
+
+`reset_globals` → `preflight_check` → `parse_conf` → `build_actual_state` → `handle_deleted_files` → `apply_transitions` → `generate_report` → `commit_and_push`
+
+### Requirements
+
+- bash 4+ (macOS ships bash 3 — install via Homebrew: `brew install bash`)
+- `trash` for safe deletion (`brew install trash`)
+- git
+
+---
+
 ## CLAUDE.md
 
 `CLAUDE.md` is loaded automatically by Claude Code at the start of every session. It encodes four behavioral principles:
@@ -275,5 +309,6 @@ The install process diffs your existing `~/.claude/CLAUDE.md` against this one a
 - [Claude Code](https://claude.ai/code) (CLI, desktop app, or IDE extension)
 - macOS or Linux (the shell scripts use bash and awk)
 - Git (used by the commit-verification scripts)
+- **For `claude-sync.sh` only:** bash 4+ (`brew install bash`) and `trash` (`brew install trash`)
 
 No MCP servers are required. The commands work with Claude Code's built-in agent and tool capabilities.

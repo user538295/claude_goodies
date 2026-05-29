@@ -486,7 +486,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_transitions_d.bats`
 
 #### Task 4.4 — Transitions from `empty`
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 4.1
 - **Description**:
   - `apply_from_empty(path, new_state)` — `new_state` ∈ `{r, i, d}`

@@ -239,7 +239,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_conf_io.bats`
 
 #### Task 1.3 — Config writer
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 1.2
 - **Description**:
   - `write_conf()` — rewrites `$CONF_FILE` from `CONF_STATE` + `CONF_ORDER_TYPES`/`CONF_ORDER_PATHS`; respects `DRY_RUN` (no-op if true, logs "DRY-RUN: would write conf")

@@ -241,3 +241,175 @@ teardown() {
   [ "${CONF_ORDER_PATH_INDEX["foo"]}" = "1" ]
   [ "${CONF_ORDER_PATH_INDEX["bar"]}" = "1" ]
 }
+
+# ---------------------------------------------------------------------------
+# test_write_round_trip
+# ---------------------------------------------------------------------------
+@test "test_write_round_trip" {
+  # Fixture: comment, entry, blank, entry, comment
+  printf '# header\nfoo=r\n\nbar=i\n# footer\n' > "$CONF_FILE"
+  parse_conf
+
+  # Snapshot state before write
+  local -A state_before=()
+  local key
+  for key in "${!CONF_STATE[@]}"; do
+    state_before["$key"]="${CONF_STATE[$key]}"
+  done
+  local -a order_types_before=("${CONF_ORDER_TYPES[@]}")
+  local -a order_paths_before=("${CONF_ORDER_PATHS[@]}")
+
+  write_conf
+
+  # Re-parse after write
+  reset_globals
+  parse_conf
+
+  # CONF_STATE must match
+  [ "${#CONF_STATE[@]}" -eq "${#state_before[@]}" ]
+  for key in "${!state_before[@]}"; do
+    [ "${CONF_STATE[$key]}" = "${state_before[$key]}" ]
+  done
+
+  # CONF_ORDER_TYPES must match
+  [ "${#CONF_ORDER_TYPES[@]}" -eq "${#order_types_before[@]}" ]
+  local i
+  for i in "${!order_types_before[@]}"; do
+    [ "${CONF_ORDER_TYPES[$i]}" = "${order_types_before[$i]}" ]
+  done
+
+  # CONF_ORDER_PATHS must match
+  [ "${#CONF_ORDER_PATHS[@]}" -eq "${#order_paths_before[@]}" ]
+  for i in "${!order_paths_before[@]}"; do
+    [ "${CONF_ORDER_PATHS[$i]}" = "${order_paths_before[$i]}" ]
+  done
+}
+
+# ---------------------------------------------------------------------------
+# test_write_preserves_comments
+# ---------------------------------------------------------------------------
+@test "test_write_preserves_comments" {
+  printf '# first comment\nfoo=r\n# second comment\nbar=i\n' > "$CONF_FILE"
+  parse_conf
+  write_conf
+
+  # Verify exact line order: comment, entry, comment, entry
+  mapfile -t lines < "$CONF_FILE"
+  [ "${lines[0]}" = "# first comment" ]
+  [ "${lines[1]}" = "foo=r" ]
+  [ "${lines[2]}" = "# second comment" ]
+  [ "${lines[3]}" = "bar=i" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_write_appends_new_entries
+# ---------------------------------------------------------------------------
+@test "test_write_appends_new_entries" {
+  printf 'foo=r\n' > "$CONF_FILE"
+  parse_conf
+
+  # Add a new key not present in the original conf
+  CONF_STATE["baz"]="i"
+
+  write_conf
+
+  local content
+  content=$(cat "$CONF_FILE")
+  [[ "$content" == *"baz=i"* ]]
+
+  # Index must be updated for the new key
+  [ "${CONF_ORDER_PATH_INDEX["baz"]+set}" = "set" ]
+  [ "${CONF_ORDER_PATH_INDEX["baz"]}" = "1" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_write_skips_removed_entries
+# ---------------------------------------------------------------------------
+@test "test_write_skips_removed_entries" {
+  printf 'foo=r\nbar=i\n' > "$CONF_FILE"
+  parse_conf
+
+  unset 'CONF_STATE[foo]'
+
+  write_conf
+
+  local content
+  content=$(cat "$CONF_FILE")
+  # foo must be absent
+  [[ "$content" != *"foo="* ]]
+  # bar must be present
+  [[ "$content" == *"bar=i"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# test_write_empty_state_round_trips
+# ---------------------------------------------------------------------------
+@test "test_write_empty_state_round_trips" {
+  printf 'foo=\n' > "$CONF_FILE"
+  parse_conf 2>/dev/null
+  write_conf 2>/dev/null
+  reset_globals
+  parse_conf 2>/dev/null
+  # After round-trip, foo should exist with empty value (not be missing)
+  [[ -n "${CONF_STATE[foo]+exists}" ]]
+  [ "${CONF_STATE[foo]}" = "" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_write_path_with_space_round_trips
+# ---------------------------------------------------------------------------
+@test "test_write_path_with_space_round_trips" {
+  printf 'my file.md=r\n' > "$CONF_FILE"
+  parse_conf 2>/dev/null
+  write_conf 2>/dev/null
+  reset_globals
+  parse_conf 2>/dev/null
+  [ "${CONF_STATE["my file.md"]}" = "r" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_write_dry_run_no_write
+# ---------------------------------------------------------------------------
+@test "test_write_dry_run_no_write" {
+  printf 'foo=r\n' > "$CONF_FILE"
+  parse_conf
+
+  local before
+  before=$(cat "$CONF_FILE")
+
+  DRY_RUN=true
+  CONF_STATE["foo"]="i"  # mutate state — must NOT be written
+
+  local output
+  output=$(write_conf)
+
+  local after
+  after=$(cat "$CONF_FILE")
+
+  # File must be unchanged
+  [ "$before" = "$after" ]
+  # Output must mention DRY-RUN
+  [[ "$output" == *"DRY-RUN"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# test_write_atomic
+# ---------------------------------------------------------------------------
+@test "test_write_atomic" {
+  local tmpconf_dir
+  tmpconf_dir=$(mktemp -d)
+  local old_conf_file="$CONF_FILE"
+  CONF_FILE="$tmpconf_dir/sync-answers.conf"
+
+  printf 'foo=r\n' > "$CONF_FILE"
+  parse_conf 2>/dev/null
+  write_conf 2>/dev/null
+
+  # Count any files in the dir that look like temp files (not the final conf file itself)
+  local leftover_count
+  leftover_count=$(find "$tmpconf_dir" -maxdepth 1 -type f ! -name 'sync-answers.conf' | wc -l | tr -d ' ')
+  [ "$leftover_count" -eq 0 ]
+
+  CONF_FILE="$old_conf_file"
+  rm -rf "$tmpconf_dir"
+}

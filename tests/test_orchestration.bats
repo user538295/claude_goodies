@@ -454,3 +454,35 @@ teardown() { [[ -d "${TMPDIR_TEST:-}" ]] && rm -rf "$TMPDIR_TEST"; }
   done
   [ "$found" = "true" ]
 }
+
+# ---------------------------------------------------------------------------
+# test_auto_detected_files_sorted_in_conf
+# Multiple new files discovered in one run must be written alphabetically
+# into sync-answers.conf regardless of processing order.
+# ---------------------------------------------------------------------------
+@test "test_auto_detected_files_sorted_in_conf" {
+  # Create and track three files that will be auto-detected as 'r'
+  for f in zebra.txt apple.txt mango.txt; do
+    echo "content" > "$CLAUDE_DIR/$f"
+    git -C "$CLAUDE_DIR" add -- "$f"
+  done
+
+  ACTUAL_STATE["zebra.txt"]="tracked"
+  ACTUAL_STATE["apple.txt"]="tracked"
+  ACTUAL_STATE["mango.txt"]="tracked"
+
+  apply_transitions
+
+  # write_conf was called by apply_transitions; check the conf file order
+  local lines
+  lines=$(grep -E '\.(txt)=' "$CONF_FILE" | cut -d= -f1)
+  local prev="" sorted=true
+  while IFS= read -r line; do
+    if [[ -n "$prev" && "$line" < "$prev" ]]; then
+      sorted=false
+      break
+    fi
+    prev="$line"
+  done <<< "$lines"
+  [ "$sorted" = "true" ]
+}

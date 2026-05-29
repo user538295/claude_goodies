@@ -195,3 +195,134 @@ teardown() {
   echo "$output" | grep -qxF "a/"
   [[ "$output" != *"a/b"* ]]
 }
+
+# ---------------------------------------------------------------------------
+# Task 2.3 — build_actual_state tests
+# ---------------------------------------------------------------------------
+
+_setup_git_repo() {
+  # Configure git identity and create an initial commit
+  git -C "$CLAUDE_DIR" config user.email "test@test.com"
+  git -C "$CLAUDE_DIR" config user.name "Test"
+  echo "content" > "$CLAUDE_DIR/tracked.txt"
+  git -C "$CLAUDE_DIR" add tracked.txt
+  git -C "$CLAUDE_DIR" commit -m "init" >/dev/null 2>&1
+  # Add .gitignore that ignores ignored.txt
+  echo "ignored.txt" > "$CLAUDE_DIR/.gitignore"
+  git -C "$CLAUDE_DIR" add .gitignore
+  git -C "$CLAUDE_DIR" commit -m "gitignore" >/dev/null 2>&1
+}
+
+# ---------------------------------------------------------------------------
+# test_actual_state_tracked
+# ---------------------------------------------------------------------------
+@test "test_actual_state_tracked" {
+  _setup_git_repo
+  # tracked.txt is committed — should resolve to 'tracked'
+  CONF_STATE=()
+
+  build_actual_state
+
+  [ "${ACTUAL_STATE[tracked.txt]}" = "tracked" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_actual_state_ignored
+# ---------------------------------------------------------------------------
+@test "test_actual_state_ignored" {
+  _setup_git_repo
+  # Create file matching the ignored pattern in .gitignore
+  echo "secret" > "$CLAUDE_DIR/ignored.txt"
+  CONF_STATE=()
+
+  build_actual_state
+
+  [ "${ACTUAL_STATE[ignored.txt]}" = "ignored" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_actual_state_untracked
+# ---------------------------------------------------------------------------
+@test "test_actual_state_untracked" {
+  _setup_git_repo
+  # Create a new file that is neither committed nor ignored
+  echo "new" > "$CLAUDE_DIR/untracked.txt"
+  CONF_STATE=()
+
+  build_actual_state
+
+  [ "${ACTUAL_STATE[untracked.txt]}" = "untracked" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_actual_state_missing
+# ---------------------------------------------------------------------------
+@test "test_actual_state_missing" {
+  _setup_git_repo
+  # CONF_STATE references a file that does not exist on disk
+  CONF_STATE["ghost.txt"]="track"
+
+  build_actual_state
+
+  [ "${ACTUAL_STATE[ghost.txt]}" = "missing" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_build_actual_state_aborts_on_git_error
+# ---------------------------------------------------------------------------
+@test "test_build_actual_state_aborts_on_git_error" {
+  _setup_git_repo
+  # Create an untracked file so it will reach git_is_ignored
+  echo "new" > "$CLAUDE_DIR/untracked.txt"
+  CONF_STATE=()
+
+  # Locate the real git binary before modifying PATH
+  local real_git
+  real_git="$(command -v git)"
+
+  # Create a fake git that returns 128 for check-ignore, delegates rest to real git
+  local fake_git_dir="$BATS_TMPDIR/fake-git-$$"
+  mkdir -p "$fake_git_dir"
+  cat > "$fake_git_dir/git" << GITEOF
+#!/bin/bash
+if [[ "\$*" == *"check-ignore"* ]]; then
+  echo "fatal: fake git error" >&2
+  exit 128
+fi
+exec "$real_git" "\$@"
+GITEOF
+  chmod +x "$fake_git_dir/git"
+
+  # Run in subshell with fake git prepended to PATH.
+  # Pass ORIG_PATH so the subshell can construct PATH correctly without quoting issues.
+  local orig_path="$PATH"
+  run env PATH="$fake_git_dir:$orig_path" bash -c "
+    source '$SCRIPT'
+    CLAUDE_DIR='$CLAUDE_DIR'
+    reset_globals
+    build_actual_state
+  "
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"untracked.txt"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# test_actual_state_tracked_directory
+# ---------------------------------------------------------------------------
+@test "test_actual_state_tracked_directory" {
+  # Set up: create a directory with a file, commit it, add to CONF_STATE
+  git -C "$CLAUDE_DIR" config user.email "test@test.com" 2>/dev/null || true
+  git -C "$CLAUDE_DIR" config user.name "Test" 2>/dev/null || true
+
+  mkdir -p "$CLAUDE_DIR/mydir"
+  echo "content" > "$CLAUDE_DIR/mydir/file.txt"
+  git -C "$CLAUDE_DIR" add mydir/file.txt
+  git -C "$CLAUDE_DIR" commit -m "add dir" >/dev/null 2>&1
+
+  CONF_STATE["mydir/"]="r"
+
+  build_actual_state
+
+  [ "${ACTUAL_STATE["mydir/"]}" = "tracked" ]
+}

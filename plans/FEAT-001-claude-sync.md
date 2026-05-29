@@ -342,7 +342,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_git_helpers.bats`
 
 #### Task 2.3 — Actual state builder
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 2.1, Task 2.2
 - **Description**:
   - `build_actual_state()` — populates `ACTUAL_STATE[path]` for every path returned by `scan_files()`

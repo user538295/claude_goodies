@@ -643,7 +643,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_commit.bats`
 
 #### Task 5.4 — Deleted file handling at scan time
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 2.3
 - **Description**:
   - `handle_deleted_files()` — called by `main()` in execution step 5, before `apply_transitions()` in step 6 (NOT called by `apply_transitions()`); handles paths that are in `CONF_STATE` but missing from both disk and scan output

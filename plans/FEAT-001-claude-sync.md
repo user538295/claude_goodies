@@ -545,7 +545,7 @@ deleted/file=d
 > **Releasable**: after this phase, the complete script is functional end-to-end
 
 #### Task 5.1 — Transition dispatcher (`apply_transitions`)
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 4.5
 - **Description**:
   - `apply_transitions()` — main reconcile loop; iterates all paths from union of `scan_files()` output and `CONF_STATE` keys

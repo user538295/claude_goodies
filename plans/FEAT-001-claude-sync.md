@@ -375,7 +375,7 @@ deleted/file=d
 > **Releasable**: after this phase, the sentinel section in `.gitignore` can be safely rebuilt from conf without corrupting hand-written entries
 
 #### Task 3.1 — Sentinel section writer
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 1.3
 - **Description**:
   - `write_sentinel_section()` — fully rebuilds the `# BEGIN claude-sync` / `# END claude-sync` block in `$GITIGNORE_FILE`; respects `DRY_RUN`

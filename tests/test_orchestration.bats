@@ -362,3 +362,95 @@ teardown() { [[ -d "${TMPDIR_TEST:-}" ]] && rm -rf "$TMPDIR_TEST"; }
   # CONF_STATE stays 'd'
   [ "${CONF_STATE[gone.txt]}" = "d" ]
 }
+
+# ---------------------------------------------------------------------------
+# test_new_tracked_file_auto_assigned_r
+# File is already tracked in git but not in conf.
+# apply_transitions must auto-assign CONF_STATE='r' and add to REPORT_APPLIED.
+# ---------------------------------------------------------------------------
+@test "test_new_tracked_file_auto_assigned_r" {
+  echo "content" > "$CLAUDE_DIR/tracked.txt"
+  ACTUAL_STATE["tracked.txt"]="tracked"
+
+  apply_transitions
+
+  [ "${CONF_STATE[tracked.txt]}" = "r" ]
+
+  local found=false
+  local entry
+  for entry in "${REPORT_APPLIED[@]}"; do
+    [[ "$entry" == *"tracked.txt"* ]] && found=true && break
+  done
+  [ "$found" = "true" ]
+
+  # Must NOT be in REPORT_PENDING
+  local in_pending=false
+  for entry in "${REPORT_PENDING[@]}"; do
+    [[ "$entry" == *"tracked.txt"* ]] && in_pending=true && break
+  done
+  [ "$in_pending" = "false" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_new_ignored_file_auto_assigned_i
+# File is gitignored but not in conf.
+# apply_transitions must auto-assign CONF_STATE='i' and add to REPORT_APPLIED.
+# ---------------------------------------------------------------------------
+@test "test_new_ignored_file_auto_assigned_i" {
+  echo "content" > "$CLAUDE_DIR/ignored.txt"
+  ACTUAL_STATE["ignored.txt"]="ignored"
+
+  apply_transitions
+
+  [ "${CONF_STATE[ignored.txt]}" = "i" ]
+
+  local found=false
+  local entry
+  for entry in "${REPORT_APPLIED[@]}"; do
+    [[ "$entry" == *"ignored.txt"* ]] && found=true && break
+  done
+  [ "$found" = "true" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_new_untracked_file_still_pending
+# Untracked file (not tracked, not ignored) must still go to REPORT_PENDING as ''.
+# ---------------------------------------------------------------------------
+@test "test_new_untracked_file_still_pending" {
+  echo "content" > "$CLAUDE_DIR/unknown.txt"
+  ACTUAL_STATE["unknown.txt"]="untracked"
+
+  apply_transitions
+
+  [ "${CONF_STATE[unknown.txt]}" = "" ]
+
+  local found=false
+  local entry
+  for entry in "${REPORT_PENDING[@]}"; do
+    [[ "$entry" == *"unknown.txt"* ]] && found=true && break
+  done
+  [ "$found" = "true" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_dry_run_auto_detected_r_not_written_to_conf
+# DRY_RUN=true: tracked file not in conf — report dry-run action, do NOT mutate CONF_STATE.
+# ---------------------------------------------------------------------------
+@test "test_dry_run_auto_detected_r_not_written_to_conf" {
+  DRY_RUN=true
+  echo "content" > "$CLAUDE_DIR/tracked.txt"
+  ACTUAL_STATE["tracked.txt"]="tracked"
+
+  apply_transitions
+
+  # CONF_STATE must NOT be mutated in dry-run
+  [ -z "${CONF_STATE[tracked.txt]+exists}" ]
+
+  # Should appear in REPORT_DRY_RUN
+  local found=false
+  local entry
+  for entry in "${REPORT_DRY_RUN[@]}"; do
+    [[ "$entry" == *"tracked.txt"* ]] && found=true && break
+  done
+  [ "$found" = "true" ]
+}

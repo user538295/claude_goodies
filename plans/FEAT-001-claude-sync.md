@@ -618,7 +618,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_report.bats`
 
 #### Task 5.3 — Commit and push
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 5.2
 - **Description**:
   - `commit_and_push()` — called after `generate_report()`; skipped entirely in `DRY_RUN` mode

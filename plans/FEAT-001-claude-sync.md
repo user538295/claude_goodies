@@ -456,7 +456,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_transitions_i.bats`
 
 #### Task 4.3 — Transitions from `d`
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 4.1
 - **Description**:
   - `apply_from_d(path, new_state)` — `new_state` ∈ `{r, i, ''}`

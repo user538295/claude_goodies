@@ -207,7 +207,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_preflight.bats`
 
 #### Task 1.2 — Config parser
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 1.1
 - **Description**:
   - `parse_conf()` — reads `$CONF_FILE` into `CONF_STATE` and `CONF_ORDER_TYPES`/`CONF_ORDER_PATHS`; safe to call if file does not exist (treats as empty conf)

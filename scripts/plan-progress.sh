@@ -31,7 +31,7 @@ parsed=$(awk "$(cat "$_dir/task_section.awk")"'
 BEGIN {
     completed=0; remaining=0
     has_section=0; has_phases=0
-    cur_phase_num=""; cur_done=0; cur_rem=0
+    cur_phase_num=""; cur_done=0; cur_rem=0; cur_subtask_num=""
     phase_count=0; ordinal=0
     comp_phases=0; rem_phases=0; breakdown=""
     found_next=0
@@ -45,7 +45,18 @@ found && /^### / {
     has_phases=1
     h=substr($0,5)
     cur_phase_num=(match(h,/^[0-9]+/)) ? substr(h,RSTART,RLENGTH) : ""
-    cur_done=0; cur_rem=0
+    cur_done=0; cur_rem=0; cur_subtask_num=""
+    next
+}
+
+found && /^#### / {
+    h=substr($0,6)
+    cur_subtask_num=""
+    if (match(h,/[0-9]+\.[0-9]+/)) {
+        task_id=substr(h,RSTART,RLENGTH)
+        dot=index(task_id,".")
+        cur_subtask_num=substr(task_id,dot+1)
+    }
     next
 }
 
@@ -59,7 +70,7 @@ found && /^- \[ \]/ {
         next_name=name
         if (has_phases) {
             next_phase=(cur_phase_num!="") ? cur_phase_num : (ordinal+1)
-            next_num=cur_done+cur_rem
+            next_num=(cur_subtask_num!="") ? (cur_subtask_num+0) : (cur_done+cur_rem)
         } else {
             next_num=completed+remaining
         }
@@ -129,6 +140,7 @@ eval "$(echo "$parsed" | grep -Ev "^(NEXT_NAME|BREAKDOWN)=")"
 task_label()  { [ "$1" -eq 1 ] && echo "1 task"  || echo "$1 tasks";  }
 phase_label() { [ "$1" -eq 1 ] && echo "1 phase" || echo "$1 phases"; }
 
+TOTAL_PHASES=$((COMP_PHASES + REM_PHASES))
 COMPLETED_LABEL=$(task_label "$COMPLETED")
 REMAINING_LABEL=$(task_label "$REMAINING")
 COMPLETED_PHASES_LABEL=$(phase_label "$COMP_PHASES")
@@ -156,6 +168,8 @@ awk -v BAR="$BAR" \
     -v COMPLETED_PHASES_LABEL="${COMPLETED_PHASES_LABEL:-}" \
     -v REMAINING_LABEL="$REMAINING_LABEL" \
     -v REMAINING_PHASES_LABEL="${REMAINING_PHASES_LABEL:-}" \
+    -v COMP_PHASES="$COMP_PHASES" \
+    -v TOTAL_PHASES="$TOTAL_PHASES" \
     -v PHASE_BREAKDOWN="${BREAKDOWN:-}" \
 '
 function sub_ph(line,    k, v) {
@@ -170,6 +184,8 @@ function sub_ph(line,    k, v) {
     gsub(/\{\{COMPLETED_PHASES_LABEL\}\}/,  COMPLETED_PHASES_LABEL,    line)
     gsub(/\{\{REMAINING_LABEL\}\}/,         REMAINING_LABEL,           line)
     gsub(/\{\{REMAINING_PHASES_LABEL\}\}/,  REMAINING_PHASES_LABEL,    line)
+    gsub(/\{\{COMP_PHASES\}\}/,             COMP_PHASES,               line)
+    gsub(/\{\{TOTAL_PHASES\}\}/,            TOTAL_PHASES,              line)
     gsub(/\{\{PHASE_BREAKDOWN\}\}/,         PHASE_BREAKDOWN,           line)
     return line
 }

@@ -410,7 +410,7 @@ deleted/file=d
 > **Releasable**: after each task, the corresponding source-state transitions are fully executable; after the full phase, all 12 non-identity transitions plus drift correction work correctly
 
 #### Task 4.1 — Transitions from `r`
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 2.2, Task 3.1
 - **Description**:
   - `apply_from_r(path, new_state)` — `new_state` ∈ `{i, d, ''}`

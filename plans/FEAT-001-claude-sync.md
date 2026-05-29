@@ -263,7 +263,7 @@ deleted/file=d
 > **Releasable**: after this phase, the script can accurately describe the current state of every file under `~/.claude` relative to git
 
 #### Task 2.1 — File system scanner
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 1.1
 - **Description**:
   - `scan_files()` — prints one path per line to stdout, relative to `$CLAUDE_DIR`

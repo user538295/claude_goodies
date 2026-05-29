@@ -677,7 +677,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_deleted_files.bats`
 
 #### Task 5.5 — Main entry point and CLI
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 5.3, Task 5.4
 - **Description**:
   - `main(args...)` — argument parsing and top-level orchestration

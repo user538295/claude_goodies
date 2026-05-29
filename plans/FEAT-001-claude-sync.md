@@ -295,7 +295,7 @@ deleted/file=d
   - Checkpoint: `bats ~/.claude/tests/test_scanner.bats`
 
 #### Task 2.2 — Git state helpers
-- [ ] **File**: `~/.local/bin/claude-sync.sh`
+- [x] **File**: `~/.local/bin/claude-sync.sh`
 - **Depends on**: Task 1.1
 - **Description**:
   - `git_is_tracked(path)` — returns 0=tracked, 1=not tracked, 2=git error

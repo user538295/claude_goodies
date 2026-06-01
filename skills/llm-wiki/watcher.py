@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 import json
+import os
+import hashlib
 
 
 @dataclass
@@ -49,3 +51,69 @@ class StabilityGate:
 
     def advance(self, new_snapshot: dict[str, ManifestEntry]) -> None:
         self._prev = new_snapshot
+
+
+_LARGE_FILE_THRESHOLD = 500 * 1024 * 1024  # 500 MB
+_SCAN_CAP = 100
+
+
+def _hash_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(65536):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+class FileScanner:
+    def __init__(self, raw_dir: Path) -> None:
+        self._raw_dir = raw_dir
+
+    def scan(
+        self,
+        manifest: dict[str, ManifestEntry],
+        gate: StabilityGate,
+    ) -> tuple[list[str], dict[str, ManifestEntry]]:
+        if not self._raw_dir.exists():
+            return [], {}
+
+        updated: dict[str, ManifestEntry] = {}
+        candidates: list[str] = []
+
+        for dirpath, _dirnames, filenames in os.walk(self._raw_dir, followlinks=False):
+            for filename in filenames:
+                path = os.path.join(dirpath, filename)
+                try:
+                    stat = os.stat(path)
+                except OSError:
+                    continue
+
+                mtime = stat.st_mtime
+                size = stat.st_size
+                existing = manifest.get(path)
+
+                if existing is not None and existing.mtime == mtime and existing.size == size:
+                    # Unchanged — reuse existing entry, but still a candidate for stability check
+                    new_entry = existing
+                else:
+                    # New or changed — compute hash if not too large
+                    if size > _LARGE_FILE_THRESHOLD:
+                        sha256 = None
+                    else:
+                        try:
+                            sha256 = _hash_file(Path(path))
+                        except OSError:
+                            continue
+                    new_entry = ManifestEntry(mtime=mtime, size=size, sha256=sha256)
+
+                candidates.append(path)
+                updated[path] = new_entry
+
+        # Filter candidates by stability gate
+        stable = [p for p in candidates if gate.is_stable(p, updated[p])]
+
+        # Cap at 100, sorted alphabetically
+        stable.sort()
+        stable = stable[:_SCAN_CAP]
+
+        return stable, updated

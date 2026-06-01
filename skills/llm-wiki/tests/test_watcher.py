@@ -1,12 +1,15 @@
 import json
+import os
+import hashlib
 import pytest
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from watcher import ManifestEntry, ManifestStore, StabilityGate
+from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, _hash_file
 
 
 def test_manifest_load_missing_file(tmp_path):
@@ -100,3 +103,132 @@ def test_stability_advance_empty_clears_all():
     gate.advance({"/some/file.md": entry})
     gate.advance({})
     assert gate.is_stable("/some/file.md", entry) is False
+
+
+# --- FileScanner tests ---
+
+def test_scanner_new_file_not_stable_first_poll(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    (raw / "file.md").write_text("hello")
+    scanner = FileScanner(raw)
+    gate = StabilityGate()
+    stable, updated = scanner.scan({}, gate)
+    assert stable == []
+    assert len(updated) == 1
+
+
+def test_scanner_new_file_stable_second_poll(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    (raw / "file.md").write_text("hello")
+    scanner = FileScanner(raw)
+    gate = StabilityGate()
+    _, updated = scanner.scan({}, gate)
+    gate.advance(updated)
+    stable, _ = scanner.scan(updated, gate)
+    assert len(stable) == 1
+    assert stable[0] == str(raw / "file.md")
+
+
+def test_scanner_changed_file_resets_stability(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    f = raw / "file.md"
+    f.write_text("hello")
+    scanner = FileScanner(raw)
+    gate = StabilityGate()
+    _, updated = scanner.scan({}, gate)
+    gate.advance(updated)
+    # Modify the file to change mtime/size
+    f.write_text("hello world changed")
+    stable, _ = scanner.scan(updated, gate)
+    assert stable == []
+
+
+def test_scanner_cap_100_files_alphabetical(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    for i in range(150):
+        (raw / f"file_{i:04d}.md").write_text(f"content {i}")
+    scanner = FileScanner(raw)
+    gate = StabilityGate()
+    # First scan: advance so all files are stable on second scan
+    _, updated = scanner.scan({}, gate)
+    gate.advance(updated)
+    stable, _ = scanner.scan(updated, gate)
+    assert len(stable) == 100
+    assert stable == sorted(stable)
+
+
+def test_scanner_large_file_no_hash(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    f = raw / "bigfile.bin"
+    f.write_bytes(b"x")  # small actual file
+    fake_stat = MagicMock()
+    fake_stat.st_mtime = 1000.0
+    fake_stat.st_size = 500 * 1024 * 1024 + 1  # > 500MB
+    scanner = FileScanner(raw)
+    gate = StabilityGate()
+    with patch("os.stat", return_value=fake_stat):
+        _, updated = scanner.scan({}, gate)
+    assert updated[str(f)].sha256 is None
+    assert updated[str(f)].size == 500 * 1024 * 1024 + 1
+
+
+def test_scanner_hash_helper_correct(tmp_path):
+    f = tmp_path / "test.txt"
+    content = b"hello world"
+    f.write_bytes(content)
+    expected = hashlib.sha256(content).hexdigest()
+    assert _hash_file(f) == expected
+
+
+def test_scanner_symlink_not_followed(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    outside = tmp_path / "outside_file.txt"
+    outside.write_text("outside content")
+    link = raw / "link"
+    link.symlink_to(outside)
+    scanner = FileScanner(raw)
+    gate = StabilityGate()
+    _, updated = scanner.scan({}, gate)
+    gate.advance(updated)
+    stable, _ = scanner.scan(updated, gate)
+    assert str(outside) not in stable
+
+
+def test_scanner_nonexistent_raw_dir(tmp_path):
+    scanner = FileScanner(tmp_path / "does_not_exist")
+    gate = StabilityGate()
+    stable, updated = scanner.scan({}, gate)
+    assert stable == []
+    assert updated == {}
+
+
+@pytest.mark.skipif(os.getuid() == 0, reason="root bypasses permissions")
+def test_scanner_unreadable_subdirectory(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    locked = raw / "locked"
+    locked.mkdir()
+    (locked / "hidden.md").write_text("secret")
+    locked.chmod(0o000)
+    try:
+        scanner = FileScanner(raw)
+        gate = StabilityGate()
+        scanner.scan({}, gate)  # must not raise
+    finally:
+        locked.chmod(0o755)  # restore for cleanup
+
+
+def test_scanner_empty_raw_dir(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    scanner = FileScanner(raw)
+    gate = StabilityGate()
+    stable, updated = scanner.scan({}, gate)
+    assert stable == []
+    assert updated == {}

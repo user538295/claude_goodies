@@ -174,7 +174,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "stability" -v`
 
 #### Task 1.3 — `FileScanner`
-- [ ] **File**: `~/.claude/skills/llm-wiki/watcher.py`
+- [x] **File**: `~/.claude/skills/llm-wiki/watcher.py`
 - **Depends on**: Task 1.1, Task 1.2
 - **Description**:
   - `class FileScanner` — no instance state; takes `raw_dir: Path` as constructor argument
@@ -193,16 +193,16 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - SHA256 helper: `_hash_file(path: Path) -> str` — reads in 64KB chunks; returns hex digest
 - **Releasable**: after this task, raw/ directory can be scanned for stable changes with capping
 - **Tests (TDD)** — `tests/test_watcher.py`:
-  - Unit: `test_scanner_new_file_not_stable_first_poll` — new file not returned on first scan (not yet stable)
-  - Unit: `test_scanner_new_file_stable_second_poll` — same file returned on second scan after `gate.advance()`
-  - Unit: `test_scanner_changed_file_resets_stability` — file that changes mtime between polls is not stable
-  - Unit: `test_scanner_cap_100_files_alphabetical` — when 150 files are stable, returns first 100 alphabetically
-  - Unit: `test_scanner_large_file_no_hash` — file >500MB gets `sha256=None` in manifest entry
-  - Unit: `test_scanner_hash_helper_correct` — SHA256 of known content matches expected value
-  - Unit: `test_scanner_symlink_not_followed` — create a symlink in `raw/` pointing to a file outside; assert the symlink target is NOT in the scan results (symlinks are not followed; `followlinks=False`)
-  - Unit: `test_scanner_nonexistent_raw_dir` — call `scan()` with a nonexistent directory path; assert it returns `([], {})` without raising an exception. (The caller validates `raw_dir` at startup; the scanner must not crash if called with a missing directory.)
-  - Unit: `test_scanner_unreadable_subdirectory` — create a subdirectory in `raw/` with mode 000; call `scan()`; assert the scanner does NOT raise an exception and logs (or silently skips) the unreadable directory. **Note: skip this test if `os.getuid() == 0` (root bypasses file permissions; use `pytest.mark.skipif(os.getuid() == 0, reason='root bypasses permissions')`).**
-  - Unit: `test_scanner_empty_raw_dir` — call `scan()` with an existing but empty directory; assert returns `([], {})`
+  - [x] Unit: `test_scanner_new_file_not_stable_first_poll` — new file not returned on first scan (not yet stable)
+  - [x] Unit: `test_scanner_new_file_stable_second_poll` — same file returned on second scan after `gate.advance()`
+  - [x] Unit: `test_scanner_changed_file_resets_stability` — file that changes mtime between polls is not stable
+  - [x] Unit: `test_scanner_cap_100_files_alphabetical` — when 150 files are stable, returns first 100 alphabetically
+  - [x] Unit: `test_scanner_large_file_no_hash` — file >500MB gets `sha256=None` in manifest entry
+  - [x] Unit: `test_scanner_hash_helper_correct` — SHA256 of known content matches expected value
+  - [x] Unit: `test_scanner_symlink_not_followed` — create a symlink in `raw/` pointing to a file outside; assert the symlink target is NOT in the scan results (symlinks are not followed; `followlinks=False`)
+  - [x] Unit: `test_scanner_nonexistent_raw_dir` — call `scan()` with a nonexistent directory path; assert it returns `([], {})` without raising an exception. (The caller validates `raw_dir` at startup; the scanner must not crash if called with a missing directory.)
+  - [x] Unit: `test_scanner_unreadable_subdirectory` — create a subdirectory in `raw/` with mode 000; call `scan()`; assert the scanner does NOT raise an exception and logs (or silently skips) the unreadable directory. **Note: skip this test if `os.getuid() == 0` (root bypasses file permissions; use `pytest.mark.skipif(os.getuid() == 0, reason='root bypasses permissions')`).**
+  - [x] Unit: `test_scanner_empty_raw_dir` — call `scan()` with an existing but empty directory; assert returns `([], {})`
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "scanner" -v`
 
 #### Task 1.4 — `PendingQueue`

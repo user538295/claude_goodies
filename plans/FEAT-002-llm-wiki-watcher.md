@@ -317,7 +317,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
 > **Releasable**: after Task 2.5, a user can invoke any of the 4 watcher operations by name and Claude will know exactly what to do.
 
 #### Task 2.1 — `start-watch` operation in SKILL.md
-- [ ] **File**: `~/.claude/skills/llm-wiki/SKILL.md`
+- [x] **File**: `~/.claude/skills/llm-wiki/SKILL.md`
 - **Depends on**: Task 1.7
 - **Description**:
   - Add `start-watch` under `## Step 2 — Operations` → operation names list, and add a new `### start-watch` subsection in the Operations section with the following procedure:

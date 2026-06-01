@@ -280,6 +280,21 @@ Operation names defined in `schema.md`:
   superseded-by note (see schema.md for details).
 - **Evolve schema** — when a new page category emerges (e.g. `wiki/architecture/`,
   `wiki/testing/`), update `schema.md` first, then create the directory.
+- **start-watch** — start the filesystem watcher that auto-ingests files dropped into `raw/`.
+
+### start-watch
+
+`start-watch` checks the skill path via `ls ~/.claude/skills/llm-wiki/watcher.py` first; falls back to `<repo>/.claude/skills/llm-wiki/watcher.py`.
+
+**Procedure:**
+
+1. Check `llm-wiki/` exists — if not, fail: "No llm-wiki/ directory found. Run setup first."
+2. Check for existing watcher: read `llm-wiki/.watcher/watcher.pid`; if the file exists, verify via `ps -p <pid> -o command=` that the command contains `watcher.py`; if running, report status and offer restart (on restart: send SIGTERM, wait 2s, then proceed to start).
+3. Create `llm-wiki/.watcher/` if absent.
+4. Add `llm-wiki/.watcher/` to `.gitignore` at project root if not already present (mandatory — append the line if absent, never duplicate).
+5. Run: `nohup python3 ~/.claude/skills/llm-wiki/watcher.py start <project-root> > /dev/null &` (stderr is NOT redirected so startup errors are visible in the terminal before daemonizing).
+6. Wait 2 seconds, then read the PID file to confirm the watcher started; report the PID to the user. If the PID file is absent, check the terminal for startup errors.
+7. Log to `llm-wiki/log.md`: `## [YYYY-MM-DD] infra | watcher started | llm-wiki/.watcher/`
 
 ---
 

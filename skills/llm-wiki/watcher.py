@@ -117,3 +117,58 @@ class FileScanner:
         stable = stable[:_SCAN_CAP]
 
         return stable, updated
+
+
+class PendingQueue:
+    def __init__(self, watcher_dir: Path) -> None:
+        self._pending = watcher_dir / "pending"
+        self._snoozed = watcher_dir / "pending.snoozed"
+
+    def load_sets(self) -> tuple[set[str], dict[str, tuple[float, int]]]:
+        pending_set: set[str] = set()
+        try:
+            for line in self._pending.read_text().splitlines():
+                line = line.strip()
+                if line:
+                    pending_set.add(line)
+        except OSError:
+            pass
+
+        snoozed_dict: dict[str, tuple[float, int]] = {}
+        try:
+            for line in self._snoozed.read_text().splitlines():
+                parts = line.split("\t")
+                if len(parts) != 3:
+                    continue
+                path, mtime_str, size_str = parts
+                try:
+                    snoozed_dict[path] = (float(mtime_str), int(size_str))
+                except ValueError:
+                    continue
+        except OSError:
+            pass
+
+        return pending_set, snoozed_dict
+
+    def should_append(
+        self,
+        path: str,
+        current_entry: ManifestEntry,
+        pending_set: set[str],
+        snoozed_dict: dict[str, tuple[float, int]],
+    ) -> bool:
+        if path in pending_set:
+            return False
+        if path in snoozed_dict:
+            if snoozed_dict[path] == (current_entry.mtime, current_entry.size):
+                return False
+            return True
+        return True
+
+    def append(self, path: str) -> None:
+        fd = os.open(str(self._pending), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+        try:
+            os.write(fd, (path + "\n").encode())
+            os.fsync(fd)
+        finally:
+            os.close(fd)

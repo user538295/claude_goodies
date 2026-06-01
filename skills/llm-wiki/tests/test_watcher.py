@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, _hash_file
+from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, PendingQueue, _hash_file
 
 
 def test_manifest_load_missing_file(tmp_path):
@@ -232,3 +232,60 @@ def test_scanner_empty_raw_dir(tmp_path):
     stable, updated = scanner.scan({}, gate)
     assert stable == []
     assert updated == {}
+
+
+# --- PendingQueue tests ---
+
+def test_queue_append_not_in_pending(tmp_path):
+    queue = PendingQueue(tmp_path)
+    entry = ManifestEntry(mtime=1.0, size=100, sha256=None)
+    pending_set, snoozed_dict = queue.load_sets()
+    assert queue.should_append("/some/file.md", entry, pending_set, snoozed_dict) is True
+
+
+def test_queue_dedup_already_in_pending(tmp_path):
+    queue = PendingQueue(tmp_path)
+    (tmp_path / "pending").write_text("/some/file.md\n")
+    entry = ManifestEntry(mtime=1.0, size=100, sha256=None)
+    pending_set, snoozed_dict = queue.load_sets()
+    assert queue.should_append("/some/file.md", entry, pending_set, snoozed_dict) is False
+
+
+def test_queue_snoozed_unchanged(tmp_path):
+    queue = PendingQueue(tmp_path)
+    (tmp_path / "pending.snoozed").write_text("/some/file.md\t1.0\t100\n")
+    entry = ManifestEntry(mtime=1.0, size=100, sha256=None)
+    pending_set, snoozed_dict = queue.load_sets()
+    assert queue.should_append("/some/file.md", entry, pending_set, snoozed_dict) is False
+
+
+def test_queue_snoozed_changed(tmp_path):
+    queue = PendingQueue(tmp_path)
+    (tmp_path / "pending.snoozed").write_text("/some/file.md\t1.0\t100\n")
+    entry = ManifestEntry(mtime=2.0, size=200, sha256=None)
+    pending_set, snoozed_dict = queue.load_sets()
+    assert queue.should_append("/some/file.md", entry, pending_set, snoozed_dict) is True
+
+
+def test_queue_append_creates_file(tmp_path):
+    queue = PendingQueue(tmp_path)
+    queue.append("/some/file.md")
+    assert (tmp_path / "pending").exists()
+    assert (tmp_path / "pending").read_text() == "/some/file.md\n"
+
+
+def test_queue_append_multiple_lines(tmp_path):
+    queue = PendingQueue(tmp_path)
+    queue.append("/a.md")
+    queue.append("/b.md")
+    lines = (tmp_path / "pending").read_text().splitlines()
+    assert lines == ["/a.md", "/b.md"]
+
+
+def test_queue_load_sets_malformed_snoozed_line(tmp_path):
+    queue = PendingQueue(tmp_path)
+    (tmp_path / "pending.snoozed").write_text("/valid/file.md\t1.0\t100\n/malformed-no-tabs\n")
+    pending_set, snoozed_dict = queue.load_sets()
+    assert "/valid/file.md" in snoozed_dict
+    assert snoozed_dict["/valid/file.md"] == (1.0, 100)
+    assert "/malformed-no-tabs" not in snoozed_dict

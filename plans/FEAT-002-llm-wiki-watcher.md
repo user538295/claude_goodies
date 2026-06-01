@@ -206,7 +206,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "scanner" -v`
 
 #### Task 1.4 — `PendingQueue`
-- [ ] **File**: `~/.claude/skills/llm-wiki/watcher.py`
+- [x] **File**: `~/.claude/skills/llm-wiki/watcher.py`
 - **Depends on**: Task 1.1
 - **Description**:
   - `class PendingQueue`:
@@ -225,13 +225,13 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - `pending.snoozed` is tab-delimited: `<abs-path>\t<mtime_float>\t<size_int>`
 - **Releasable**: after this task, the dedup-safe append-only queue is callable
 - **Tests (TDD)** — `tests/test_watcher.py`:
-  - Unit: `test_queue_append_not_in_pending` — path not in pending → appended
-  - Unit: `test_queue_dedup_already_in_pending` — path in pending → not appended again
-  - Unit: `test_queue_snoozed_unchanged` — path in snoozed (tab-delimited with mtime+size) and mtime+size unchanged → not appended
-  - Unit: `test_queue_snoozed_changed` — path in snoozed (tab-delimited with mtime+size) but mtime/size changed → appended
-  - Unit: `test_queue_append_creates_file` — append to non-existent pending creates it
-  - Unit: `test_queue_append_multiple_lines` — multiple appends produce multiple lines
-  - Unit: `test_queue_load_sets_malformed_snoozed_line` — write `pending.snoozed` with one valid tab-delimited line and one malformed line (e.g., path-only, no tabs); assert `load_sets()` returns only the valid entry without raising an exception.
+  - [x] Unit: `test_queue_append_not_in_pending` — path not in pending → appended
+  - [x] Unit: `test_queue_dedup_already_in_pending` — path in pending → not appended again
+  - [x] Unit: `test_queue_snoozed_unchanged` — path in snoozed (tab-delimited with mtime+size) and mtime+size unchanged → not appended
+  - [x] Unit: `test_queue_snoozed_changed` — path in snoozed (tab-delimited with mtime+size) but mtime/size changed → appended
+  - [x] Unit: `test_queue_append_creates_file` — append to non-existent pending creates it
+  - [x] Unit: `test_queue_append_multiple_lines` — multiple appends produce multiple lines
+  - [x] Unit: `test_queue_load_sets_malformed_snoozed_line` — write `pending.snoozed` with one valid tab-delimited line and one malformed line (e.g., path-only, no tabs); assert `load_sets()` returns only the valid entry without raising an exception.
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "queue" -v`
 
 #### Task 1.5 — `PIDFile`

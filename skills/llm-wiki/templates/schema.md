@@ -145,6 +145,62 @@ wiki page — do not silently choose one.
 
 ## Operations
 
+## Pre-flight check
+
+**Run this check before every operation.** It handles crash recovery and surfaces pending
+raw-file ingests from the watcher queue.
+
+**Skip check**: If `llm-wiki/.watcher/` does not exist, skip the entire pre-flight check and proceed directly to the requested operation.
+
+### Step PF-1 — Check for crashed ingest (`pending.processing.tmp`)
+
+If `llm-wiki/.watcher/pending.processing.tmp` exists:
+- A crash occurred during the atomic rename. Delete `pending.processing.tmp`.
+- Proceed with `pending.processing` as-is (the `#done:` marker for the last file was not
+  written; it will be re-ingested on resume). Continue to Step PF-2.
+
+### Step PF-2 — Check for interrupted ingest (`pending.processing`)
+
+If `llm-wiki/.watcher/pending.processing` exists, a prior ingest was interrupted.
+
+1. Read the file. Identify remaining lines — those **without** a `#done:` prefix.
+2. Skip any remaining line that does not resolve to an existing path under `llm-wiki/raw/`
+   (corrupt partial write from a mid-rewrite crash).
+3. If no valid remaining lines exist after filtering, silently delete `pending.processing` and proceed to Step PF-3 (no user prompt needed).
+4. Say: *"A previous ingest was interrupted with N file(s) remaining. Resume or discard?"*
+   - **Resume**: treat the valid remaining lines as the ingest set; proceed to ingest
+     (no rename needed — `pending.processing` already exists).
+   - **Discard**: delete `pending.processing`; continue to Step PF-3.
+
+### Step PF-3 — Check pending queue
+
+Read `llm-wiki/.watcher/pending`. If the file is absent or empty, no action needed.
+
+If non-empty:
+1. Filter `pending` to only paths that exist under `llm-wiki/raw/` — silently skip non-existent paths. Show the user only the count of existing files.
+2. Cross-reference against `llm-wiki/.watcher/pending.snoozed`: any path present in both
+   files means the file changed after snooze — remove it from `pending.snoozed` before
+   presenting to the user. Write the filtered content to `pending.snoozed.tmp`, then
+   atomically rename to `pending.snoozed` (`mv pending.snoozed.tmp pending.snoozed`).
+3. Say: *"N new file(s) detected in raw/ — ingest them first?"*
+   - **Yes**: rename `pending` → `pending.processing`; ingest files one at a time using
+     the Ingest operation (each file gets its own Ingest call and its own `log.md` entry).
+     After each successful ingest, write the modified content with `#done:` prepended to
+     that line to a sibling temp file `pending.processing.tmp`, then rename it over
+     `pending.processing` (atomic crash-safety). After ALL files are processed, delete
+     `pending.processing`. Append to `log.md`:
+     `## [YYYY-MM-DD] ingest | <file1>, <file2> (from watcher queue) | <pages touched>`
+   - **No**: for each path, run `python3 -c "import os,sys; s=os.stat(sys.argv[1]); print(f'{s.st_mtime}\t{s.st_size}', end='')" "$path"` (the path must be shell-quoted to handle filenames with spaces) to get the current float mtime and integer size. Read existing `pending.snoozed` content (if any) to preserve prior snoozed entries. Write the combined content (existing entries + new declined paths as `<path>\t<mtime>\t<size>` lines) to `pending.snoozed.tmp` first, then atomically rename to `pending.snoozed` (`mv pending.snoozed.tmp pending.snoozed`). If a file no longer exists, skip it (do not snooze). After successfully writing to `pending.snoozed` (rename complete), delete `pending` (the snoozed paths are now tracked in `pending.snoozed`; the watcher will create a fresh `pending` on its next poll cycle if new files are detected). Snoozed files will not be re-prompted. User can run `check-pending` to review snoozed files.
+
+### Watcher health warning (non-blocking)
+
+After processing Step PF-3, read `llm-wiki/.watcher/watcher.pid` (if it exists) and check
+the heartbeat timestamp (line 2):
+- Heartbeat age **90s–300s**: warn "watcher heartbeat is stale — it may be hung" but do
+  not block the operation.
+- Heartbeat age **> 300s** or PID file absent: warn "watcher is not running — run
+  start-watch to resume monitoring" but do not block the operation.
+
 ### Log line format
 
 All operations append a single line to `log.md` in this shape:

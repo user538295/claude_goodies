@@ -402,7 +402,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
 > **Releasable**: after Task 3.1, every new llm-wiki setup gets the pre-flight check in its `schema.md`, and existing wikis can have it added manually.
 
 #### Task 3.1 — Pre-flight check section in `templates/schema.md`
-- [ ] **File**: `~/.claude/skills/llm-wiki/templates/schema.md`
+- [x] **File**: `~/.claude/skills/llm-wiki/templates/schema.md`
 - **Depends on**: Task 2.5
 - **Description**:
   - Insert a new `## Pre-flight check` section at the very top of the `## Operations` section (immediately after the `## Operations` heading, before `### Log line format`)

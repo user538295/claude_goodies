@@ -476,7 +476,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
 ### Final Phase — Verification & Documentation
 
 #### Task 4.1 — Final verification & documentation update
-- [ ] **File**: N/A (agent task)
+- [x] **File**: N/A (agent task)
 - **Depends on**: all prior tasks
 - **Description**:
   - Run the complete test suite and verify all pass

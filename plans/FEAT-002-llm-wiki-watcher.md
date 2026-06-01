@@ -154,7 +154,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "manifest" -v`
 
 #### Task 1.2 — `StabilityGate`
-- [ ] **File**: `~/.claude/skills/llm-wiki/watcher.py`
+- [x] **File**: `~/.claude/skills/llm-wiki/watcher.py`
 - **Depends on**: Task 1.1
 - **Description**:
   - `class StabilityGate` — holds `_prev: dict[str, ManifestEntry]` (previous-poll snapshot)
@@ -165,12 +165,12 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - **Note**: There is no `mark()` method. Gate state is updated exclusively via `advance()` at the end of each poll cycle.
 - **Releasable**: after this task, two-consecutive-poll stability gate is callable
 - **Tests (TDD)** — `tests/test_watcher.py`:
-  - Unit: `test_stability_first_poll_not_stable` — path not in prev → False
-  - Unit: `test_stability_unchanged_across_polls` — same mtime+size → True
-  - Unit: `test_stability_changed_mtime` — mtime changes → False
-  - Unit: `test_stability_changed_size` — size changes → False
-  - Unit: `test_stability_advance_replaces_state` — after `advance`, old entries are gone
-  - Unit: `test_stability_advance_empty_clears_all` — after calling `advance({})`, `is_stable()` returns False for any previously-known path
+  - [x] Unit: `test_stability_first_poll_not_stable` — path not in prev → False
+  - [x] Unit: `test_stability_unchanged_across_polls` — same mtime+size → True
+  - [x] Unit: `test_stability_changed_mtime` — mtime changes → False
+  - [x] Unit: `test_stability_changed_size` — size changes → False
+  - [x] Unit: `test_stability_advance_replaces_state` — after `advance`, old entries are gone
+  - [x] Unit: `test_stability_advance_empty_clears_all` — after calling `advance({})`, `is_stable()` returns False for any previously-known path
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "stability" -v`
 
 #### Task 1.3 — `FileScanner`

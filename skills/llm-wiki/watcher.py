@@ -35,3 +35,17 @@ class ManifestStore:
         tmp = path.with_suffix(".tmp")
         tmp.write_text(json.dumps(data))
         tmp.rename(path)
+
+
+class StabilityGate:
+    def __init__(self) -> None:
+        self._prev: dict[str, ManifestEntry] = {}
+
+    def is_stable(self, path: str, current: ManifestEntry) -> bool:
+        prev = self._prev.get(path)
+        if prev is None:
+            return False
+        return prev.mtime == current.mtime and prev.size == current.size
+
+    def advance(self, new_snapshot: dict[str, ManifestEntry]) -> None:
+        self._prev = new_snapshot

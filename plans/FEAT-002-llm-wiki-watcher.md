@@ -334,7 +334,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
 - **Checkpoint**: manually read SKILL.md and verify `start-watch` section is present and complete
 
 #### Task 2.2 — `stop-watch` operation in SKILL.md
-- [ ] **File**: `~/.claude/skills/llm-wiki/SKILL.md`
+- [x] **File**: `~/.claude/skills/llm-wiki/SKILL.md`
 - **Depends on**: Task 2.1
 - **Description**:
   - Add `stop-watch` to operation names list and add `### stop-watch` subsection:

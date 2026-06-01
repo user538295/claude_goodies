@@ -15,8 +15,10 @@ Applies Andrej Karpathy's LLM Wiki pattern to a product team. The wiki is a pers
 LLM-maintained markdown knowledge base that sits between raw sources (product docs, specs, code
 notes, competitor docs) and the people who need answers or want to draft new specs.
 
-The pattern stays minimal. **No automation, no agents, no RAG, no vector DBs, no graph DBs, no
-eval systems, no governance.** Just markdown files, an index, and a log.
+The pattern stays minimal. **No automation of wiki content. File change detection is permitted
+as infrastructure — the watcher detects but never acts; all ingest decisions remain with the
+human. No agents, no RAG, no vector DBs, no graph DBs, no eval systems, no governance.** Just
+markdown files, an index, and a log.
 
 The full original idea is in `reference/karpathy-llm-wiki.md` — read it if context is missing.
 
@@ -261,8 +263,10 @@ then re-inject (which will write `v2`).
 
 ## Step 2 — Operations
 
-**All operation procedures live in `llm-wiki/schema.md`, which is the single source of truth.**
-Before running any operation, re-read `llm-wiki/schema.md` — it evolves per project.
+**Content operation procedures live in `llm-wiki/schema.md`. Infrastructure and watcher
+operations (`start-watch`, `stop-watch`, `watch-status`, `check-pending`) are defined in this
+file below.**
+Before running any content operation, re-read `llm-wiki/schema.md` — it evolves per project.
 
 This file (`SKILL.md`) only routes you to schema.md and enforces the hard rules below. If you
 detect a conflict between this file and `schema.md`, `schema.md` wins (it was project-adapted)
@@ -281,6 +285,9 @@ Operation names defined in `schema.md`:
 - **Evolve schema** — when a new page category emerges (e.g. `wiki/architecture/`,
   `wiki/testing/`), update `schema.md` first, then create the directory.
 - **start-watch** — start the filesystem watcher that auto-ingests files dropped into `raw/`.
+- **stop-watch** — stop the running filesystem watcher.
+- **watch-status** — report the current status of the filesystem watcher.
+- **check-pending** — review pending and snoozed ingest queue entries.
 
 ### start-watch
 
@@ -295,6 +302,44 @@ Operation names defined in `schema.md`:
 5. Run: `nohup python3 ~/.claude/skills/llm-wiki/watcher.py start <project-root> > /dev/null &` (stderr is NOT redirected so startup errors are visible in the terminal before daemonizing).
 6. Wait 2 seconds, then read the PID file to confirm the watcher started; report the PID to the user. If the PID file is absent, check the terminal for startup errors.
 7. Log to `llm-wiki/log.md`: `## [YYYY-MM-DD] infra | watcher started | llm-wiki/.watcher/`
+
+### stop-watch
+
+**Procedure:**
+
+1. Read `llm-wiki/.watcher/watcher.pid` — if absent: report "watcher is not running (no PID file)"
+2. Parse `<pid>:<nonce>` from line 1
+3. Verify via `ps -p <pid> -o command=` that the output contains `watcher.py` — if not: report "stale PID file, watcher not running"; delete the stale PID file
+4. Send SIGTERM: `kill -TERM <pid>`
+5. Wait up to 5s for process to exit (poll `ps -p <pid>` every 1s)
+6. Report success or timeout
+7. Log to `llm-wiki/log.md`: `## [YYYY-MM-DD] infra | watcher stopped | llm-wiki/.watcher/`
+
+### watch-status
+
+**Procedure:**
+
+1. Read `watcher.pid` — if absent: report "not running (no PID file)"
+2. Parse `<pid>:<nonce>` and heartbeat timestamp (line 2)
+3. Verify PID via `ps -p <pid> -o command=` (contains `watcher.py`)
+4. Compute heartbeat age = `now - heartbeat_dt`
+5. Report based on age:
+   - Age < 90s → "running (last heartbeat: Xs ago)"
+   - Age 90s–300s → "stale/hung — heartbeat Xs ago; watcher may be hung. Consider stop-watch + start-watch."
+   - Age > 300s or PID not found → "not running — run start-watch to resume monitoring"
+6. Also report: pending queue size (line count of `pending` if file exists)
+
+### check-pending
+
+**Procedure:**
+
+1. Read `llm-wiki/.watcher/pending` — list all pending paths (missing file = empty)
+2. Read `llm-wiki/.watcher/pending.snoozed` — list all snoozed paths (tab-delimited: `<path>\t<mtime>\t<size>`)
+3. Cross-reference: if any path appears in both pending and snoozed, remove it from snoozed (snooze is stale). Write modifications to `pending.snoozed.tmp` first, then atomically rename to `pending.snoozed`.
+4. Present two lists to user:
+   - **Pending** (N files): list of paths — offer standard ingest prompt (proceeds to ingest flow)
+   - **Snoozed** (N files): list of paths — for each, offer: (a) un-snooze (move back to pending), (b) dismiss permanently (delete from snoozed), (c) keep snoozed
+5. User can act on pending, snoozed, or both in one operation
 
 ---
 

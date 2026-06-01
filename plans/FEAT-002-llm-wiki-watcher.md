@@ -384,7 +384,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
 - **Checkpoint**: manually read SKILL.md and verify `check-pending` section is present and complete
 
 #### Task 2.5 — SKILL.md preamble update (automation boundary)
-- [ ] **File**: `~/.claude/skills/llm-wiki/SKILL.md`
+- [x] **File**: `~/.claude/skills/llm-wiki/SKILL.md`
 - **Depends on**: Task 2.4
 - **Description**:
   - In the opening paragraph of SKILL.md (the paragraph beginning "The pattern stays minimal. **No automation...**"), update the sentence to read:

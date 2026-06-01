@@ -368,7 +368,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
 - **Checkpoint**: manually read SKILL.md and verify `watch-status` section is present and complete
 
 #### Task 2.4 — `check-pending` operation in SKILL.md
-- [ ] **File**: `~/.claude/skills/llm-wiki/SKILL.md`
+- [x] **File**: `~/.claude/skills/llm-wiki/SKILL.md`
 - **Depends on**: Task 2.3
 - **Description**:
   - Add `check-pending` to operation names list and add `### check-pending` subsection:

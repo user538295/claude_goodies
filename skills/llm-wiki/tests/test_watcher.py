@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, PendingQueue, PIDFile, WatcherLog, _hash_file
+from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, PendingQueue, PIDFile, WatcherLog, _hash_file, main
 
 
 def test_manifest_load_missing_file(tmp_path):
@@ -395,3 +395,217 @@ def test_log_rotate_exactly_at_boundary_no_rotation(tmp_path):
     wl.rotate_if_needed()
     lines = log_file.read_text().splitlines()
     assert len(lines) == 10000
+
+
+# --- main() unit tests ---
+
+def test_main_missing_llm_wiki_raw_exits_1(tmp_path):
+    # tmp_path has no llm-wiki/raw/ subdirectory
+    with patch("sys.argv", ["watcher.py", "start", str(tmp_path)]):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+    assert exc_info.value.code == 1
+
+
+def test_main_creates_watcher_dir(tmp_path):
+    # Create llm-wiki/raw/ but not .watcher/
+    raw_dir = tmp_path / "llm-wiki" / "raw"
+    raw_dir.mkdir(parents=True)
+    watcher_dir = tmp_path / "llm-wiki" / ".watcher"
+    assert not watcher_dir.exists()
+
+    # Use MagicMock so clear() is a no-op and is_set() returns True immediately
+    mock_event = MagicMock()
+    mock_event.is_set.return_value = True
+
+    with patch("sys.argv", ["watcher.py", "start", str(tmp_path)]):
+        with patch("watcher._stop_event", mock_event):
+            main()
+
+    assert watcher_dir.exists()
+
+
+# --- Integration tests ---
+
+def test_full_poll_cycle(tmp_path):
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    test_file = raw_dir / "article.md"
+    test_file.write_text("# Hello\nThis is content.")
+
+    watcher_dir = tmp_path / ".watcher"
+    watcher_dir.mkdir()
+    manifest_path = watcher_dir / "manifest.json"
+
+    scanner = FileScanner(raw_dir)
+    gate = StabilityGate()
+    queue = PendingQueue(watcher_dir)
+    manifest: dict[str, ManifestEntry] = {}
+
+    # Cycle 1 — file is new, not stable yet
+    stable_paths, updated_entries = scanner.scan(manifest, gate)
+    gate.advance(updated_entries)
+    pending_set, snoozed_dict = queue.load_sets()
+    for path in stable_paths:
+        if queue.should_append(path, updated_entries[path], pending_set, snoozed_dict):
+            queue.append(path)
+    manifest = updated_entries
+    ManifestStore.save(manifest_path, manifest)
+
+    # After cycle 1: not in pending
+    pending_set_after_1, _ = queue.load_sets()
+    assert str(test_file) not in pending_set_after_1
+
+    # Cycle 2 — file is unchanged, now stable
+    stable_paths, updated_entries = scanner.scan(manifest, gate)
+    gate.advance(updated_entries)
+    pending_set, snoozed_dict = queue.load_sets()
+    for path in stable_paths:
+        if queue.should_append(path, updated_entries[path], pending_set, snoozed_dict):
+            queue.append(path)
+    manifest = updated_entries
+    ManifestStore.save(manifest_path, manifest)
+
+    # After cycle 2: IS in pending
+    pending_set_after_2, _ = queue.load_sets()
+    assert str(test_file) in pending_set_after_2
+    assert len(pending_set_after_2) == 1
+
+    # Manifest reflects correct data
+    loaded = ManifestStore.load(manifest_path)
+    assert str(test_file) in loaded
+    entry = loaded[str(test_file)]
+    stat = test_file.stat()
+    assert entry.mtime == stat.st_mtime
+    assert entry.size == stat.st_size
+    assert entry.sha256 is not None
+
+
+def test_poll_cycle_cap_deferred(tmp_path):
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    # Create 110 files
+    for i in range(110):
+        (raw_dir / f"file_{i:04d}.md").write_text(f"content {i}")
+
+    watcher_dir = tmp_path / ".watcher"
+    watcher_dir.mkdir()
+
+    scanner = FileScanner(raw_dir)
+    gate = StabilityGate()
+    queue = PendingQueue(watcher_dir)
+    manifest: dict[str, ManifestEntry] = {}
+
+    # Cycle 1 — establish baseline
+    _, updated_entries = scanner.scan(manifest, gate)
+    gate.advance(updated_entries)
+    manifest = updated_entries
+
+    # Cycle 2 — all files stable, but cap at 100
+    stable_paths, updated_entries = scanner.scan(manifest, gate)
+    gate.advance(updated_entries)
+    pending_set, snoozed_dict = queue.load_sets()
+    for path in stable_paths:
+        if queue.should_append(path, updated_entries[path], pending_set, snoozed_dict):
+            queue.append(path)
+
+    pending_set_after, _ = queue.load_sets()
+    assert len(pending_set_after) == 100
+
+
+def test_sigterm_exits_cleanly(tmp_path):
+    import subprocess
+    import time
+    import signal as sig_mod
+    import json
+
+    project_root = tmp_path
+    raw_dir = project_root / "llm-wiki" / "raw"
+    raw_dir.mkdir(parents=True)
+
+    watcher_py = Path(__file__).parent.parent / "watcher.py"
+    proc = subprocess.Popen(
+        ["python3", str(watcher_py), "start", str(project_root)],
+        cwd=str(watcher_py.parent),
+    )
+    time.sleep(2)
+    proc.send_signal(sig_mod.SIGTERM)
+    proc.wait(timeout=5)
+
+    # (a) exit code is 0
+    assert proc.returncode == 0
+
+    watcher_dir = project_root / "llm-wiki" / ".watcher"
+    log_file = watcher_dir / "watcher.log"
+    pid_file = watcher_dir / "watcher.pid"
+    manifest_file = watcher_dir / "manifest.json"
+
+    # (b) watcher.log contains "watcher stopped"
+    assert log_file.exists()
+    assert "watcher stopped" in log_file.read_text()
+
+    # (c) manifest.json is valid JSON
+    assert manifest_file.exists()
+    json.loads(manifest_file.read_text())
+
+    # (d) watcher.pid exists
+    assert pid_file.exists()
+
+
+def test_dedup_across_poll_cycles(tmp_path):
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    test_file = raw_dir / "notes.md"
+    test_file.write_text("some notes")
+
+    watcher_dir = tmp_path / ".watcher"
+    watcher_dir.mkdir()
+
+    scanner = FileScanner(raw_dir)
+    gate = StabilityGate()
+    queue = PendingQueue(watcher_dir)
+    manifest: dict[str, ManifestEntry] = {}
+
+    def run_cycle(manifest):
+        stable_paths, updated_entries = scanner.scan(manifest, gate)
+        gate.advance(updated_entries)
+        pending_set, snoozed_dict = queue.load_sets()
+        for path in stable_paths:
+            if queue.should_append(path, updated_entries[path], pending_set, snoozed_dict):
+                queue.append(path)
+        return updated_entries
+
+    # Cycle 1 — not stable
+    manifest = run_cycle(manifest)
+    # Cycle 2 — stable, appended once
+    manifest = run_cycle(manifest)
+    # Cycle 3 — already in pending, should NOT be appended again
+    manifest = run_cycle(manifest)
+
+    pending_set, _ = queue.load_sets()
+    assert len(pending_set) == 1
+    assert str(test_file) in pending_set
+
+
+def test_raw_dir_deleted_mid_run(tmp_path):
+    raw_dir = tmp_path / "raw"
+    # Do NOT create raw_dir — simulate deleted mid-run
+
+    watcher_dir = tmp_path / ".watcher"
+    watcher_dir.mkdir()
+
+    scanner = FileScanner(raw_dir)
+    gate = StabilityGate()
+    queue = PendingQueue(watcher_dir)
+    manifest: dict[str, ManifestEntry] = {}
+
+    # Should not crash
+    stable_paths, updated_entries = scanner.scan(manifest, gate)
+    gate.advance(updated_entries)
+    pending_set, snoozed_dict = queue.load_sets()
+    for path in stable_paths:
+        if queue.should_append(path, updated_entries[path], pending_set, snoozed_dict):
+            queue.append(path)
+
+    assert stable_paths == []
+    assert updated_entries == {}

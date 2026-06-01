@@ -1,9 +1,14 @@
+import argparse
+import hashlib
+import json
+import os
+import secrets
+import signal
+import sys
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-import json
-import os
-import hashlib
 
 
 @dataclass
@@ -237,3 +242,68 @@ class PIDFile:
         except ValueError:
             return None
         return (pid, nonce, heartbeat_dt)
+
+
+_stop_event = threading.Event()
+
+
+def _sigterm_handler(signum, frame) -> None:
+    _stop_event.set()
+
+
+def main() -> None:
+    _stop_event.clear()
+
+    parser = argparse.ArgumentParser(prog="watcher")
+    subparsers = parser.add_subparsers(dest="command")
+    start_parser = subparsers.add_parser("start")
+    start_parser.add_argument("project_root", type=Path)
+    args = parser.parse_args()
+
+    project_root: Path = args.project_root.resolve()
+    raw_dir = project_root / "llm-wiki" / "raw"
+    if not raw_dir.exists():
+        print(f"error: {raw_dir} does not exist", file=sys.stderr)
+        sys.exit(1)
+
+    watcher_dir = project_root / "llm-wiki" / ".watcher"
+    watcher_dir.mkdir(parents=True, exist_ok=True)
+
+    nonce = secrets.token_hex(4)
+    manifest_path = watcher_dir / "manifest.json"
+
+    log = WatcherLog(watcher_dir)
+    log.rotate_if_needed()
+
+    manifest = ManifestStore.load(manifest_path)
+
+    gate = StabilityGate()
+    scanner = FileScanner(raw_dir)
+    queue = PendingQueue(watcher_dir)
+    pid_file = PIDFile(watcher_dir)
+
+    pid = os.getpid()
+    pid_file.write(pid, nonce)
+
+    signal.signal(signal.SIGTERM, _sigterm_handler)
+
+    log.write(f"watcher started pid={pid} nonce={nonce} project={project_root}")
+
+    while not _stop_event.is_set():
+        stable_paths, updated_entries = scanner.scan(manifest, gate)
+        gate.advance(updated_entries)
+        pending_set, snoozed_dict = queue.load_sets()
+        for path in stable_paths:
+            if queue.should_append(path, updated_entries[path], pending_set, snoozed_dict):
+                queue.append(path)
+                log.write(f"detected {path}")
+        manifest = updated_entries
+        ManifestStore.save(manifest_path, manifest)
+        pid_file.update_heartbeat(pid, nonce)
+        _stop_event.wait(timeout=30)
+
+    log.write("watcher stopped")
+
+
+if __name__ == "__main__":
+    main()

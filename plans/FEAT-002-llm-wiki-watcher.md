@@ -275,7 +275,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "log" -v`
 
 #### Task 1.7 — Main poll loop + CLI entrypoint
-- [ ] **File**: `~/.claude/skills/llm-wiki/watcher.py`
+- [x] **File**: `~/.claude/skills/llm-wiki/watcher.py`
 - **Depends on**: Task 1.1, 1.2, 1.3, 1.4, 1.5, 1.6
 - **Description**:
   - `def main() -> None` — argparse with single subcommand `start <project-root>`
@@ -301,13 +301,13 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - `if __name__ == "__main__": main()`
 - **Releasable**: after this task, `nohup python3 watcher.py start <project-root> &` is fully functional
 - **Tests (TDD)** — `tests/test_watcher.py`:
-  - Unit: `test_main_missing_llm_wiki_raw_exits_1` — no llm-wiki/raw/ → sys.exit(1) with clear message
-  - Unit: `test_main_creates_watcher_dir` — `.watcher/` created if absent
-  - Integration: `test_full_poll_cycle` — place a file in a tmp raw/, run two scan+gate cycles, verify path appears in pending after second cycle. Assertions: (a) `pending` contains exactly the path of the placed file (one line, no duplicates); (b) manifest reflects the file with correct mtime, size, sha256; (c) on first cycle file is NOT in pending; on second cycle it IS.
-  - Integration: `test_poll_cycle_cap_deferred` — 110 stable files → only 100 in pending after first qualifying cycle
-  - Integration: `test_sigterm_exits_cleanly` — send SIGTERM to a running watcher subprocess, verify it exits 0 and writes stop log line. Assertions: (a) process exit code is 0; (b) `watcher.log` contains a stop log line matching `watcher stopped`; (c) `manifest.json` is valid JSON (not corrupt from mid-write shutdown); (d) `watcher.pid` still exists (cleanup is optional — document expected state).
-  - Integration: `test_dedup_across_poll_cycles` — run two full poll cycles with the SAME file; assert `pending` contains exactly ONE entry for that path (not two)
-  - Integration: `test_raw_dir_deleted_mid_run` — start a watcher against a valid `raw/`; delete the directory; run one poll cycle; assert watcher logs an error, does NOT append to pending, and continues running (does not crash)
+  - [x] Unit: `test_main_missing_llm_wiki_raw_exits_1` — no llm-wiki/raw/ → sys.exit(1) with clear message
+  - [x] Unit: `test_main_creates_watcher_dir` — `.watcher/` created if absent
+  - [x] Integration: `test_full_poll_cycle` — place a file in a tmp raw/, run two scan+gate cycles, verify path appears in pending after second cycle. Assertions: (a) `pending` contains exactly the path of the placed file (one line, no duplicates); (b) manifest reflects the file with correct mtime, size, sha256; (c) on first cycle file is NOT in pending; on second cycle it IS.
+  - [x] Integration: `test_poll_cycle_cap_deferred` — 110 stable files → only 100 in pending after first qualifying cycle
+  - [x] Integration: `test_sigterm_exits_cleanly` — send SIGTERM to a running watcher subprocess, verify it exits 0 and writes stop log line. Assertions: (a) process exit code is 0; (b) `watcher.log` contains a stop log line matching `watcher stopped`; (c) `manifest.json` is valid JSON (not corrupt from mid-write shutdown); (d) `watcher.pid` still exists (cleanup is optional — document expected state).
+  - [x] Integration: `test_dedup_across_poll_cycles` — run two full poll cycles with the SAME file; assert `pending` contains exactly ONE entry for that path (not two)
+  - [x] Integration: `test_raw_dir_deleted_mid_run` — start a watcher against a valid `raw/`; delete the directory; run one poll cycle; assert watcher logs an error, does NOT append to pending, and continues running (does not crash)
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "main or poll or sigterm" -v`
 
 ---

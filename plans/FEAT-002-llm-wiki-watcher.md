@@ -235,7 +235,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "queue" -v`
 
 #### Task 1.5 — `PIDFile`
-- [ ] **File**: `~/.claude/skills/llm-wiki/watcher.py`
+- [x] **File**: `~/.claude/skills/llm-wiki/watcher.py`
 - **Depends on**: nothing
 - **Description**:
   - `class PIDFile`:
@@ -246,11 +246,11 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - Nonce is a 8-char hex string generated once at process start via `secrets.token_hex(4)`
 - **Releasable**: after this task, PID + heartbeat file management is callable
 - **Tests (TDD)** — `tests/test_watcher.py`:
-  - Unit: `test_pidfile_write_then_read` — write pid/nonce, read back correct values
-  - Unit: `test_pidfile_missing_returns_none` — read on absent file returns None
-  - Unit: `test_pidfile_malformed_returns_none` — garbage content returns None
-  - Unit: `test_pidfile_update_heartbeat_preserves_pid_nonce` — heartbeat update keeps same pid:nonce (atomic tmp+rename)
-  - Unit: `test_pidfile_one_line_only_returns_none` — write a PID file with only line 1 (pid:nonce) and no line 2 (timestamp); assert `read()` returns `None`
+  - [x] Unit: `test_pidfile_write_then_read` — write pid/nonce, read back correct values
+  - [x] Unit: `test_pidfile_missing_returns_none` — read on absent file returns None
+  - [x] Unit: `test_pidfile_malformed_returns_none` — garbage content returns None
+  - [x] Unit: `test_pidfile_update_heartbeat_preserves_pid_nonce` — heartbeat update keeps same pid:nonce (atomic tmp+rename)
+  - [x] Unit: `test_pidfile_one_line_only_returns_none` — write a PID file with only line 1 (pid:nonce) and no line 2 (timestamp); assert `read()` returns `None`
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "pidfile" -v`
 
 #### Task 1.6 — `WatcherLog`

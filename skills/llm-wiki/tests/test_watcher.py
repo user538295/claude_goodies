@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, PendingQueue, _hash_file
+from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, PendingQueue, PIDFile, _hash_file
 
 
 def test_manifest_load_missing_file(tmp_path):
@@ -289,3 +289,47 @@ def test_queue_load_sets_malformed_snoozed_line(tmp_path):
     assert "/valid/file.md" in snoozed_dict
     assert snoozed_dict["/valid/file.md"] == (1.0, 100)
     assert "/malformed-no-tabs" not in snoozed_dict
+
+
+# --- PIDFile tests ---
+
+def test_pidfile_write_then_read(tmp_path):
+    pf = PIDFile(tmp_path)
+    pf.write(12345, "abcd1234")
+    result = pf.read()
+    assert result is not None
+    pid, nonce, heartbeat_dt = result
+    assert pid == 12345
+    assert nonce == "abcd1234"
+    assert heartbeat_dt.tzinfo is not None
+
+
+def test_pidfile_missing_returns_none(tmp_path):
+    pf = PIDFile(tmp_path)
+    assert pf.read() is None
+
+
+def test_pidfile_malformed_returns_none(tmp_path):
+    pid_file = tmp_path / "watcher.pid"
+    pid_file.write_text("not-valid-content\n")
+    pf = PIDFile(tmp_path)
+    assert pf.read() is None
+
+
+def test_pidfile_update_heartbeat_preserves_pid_nonce(tmp_path):
+    pf = PIDFile(tmp_path)
+    pf.write(99, "nonce99")
+    pf.update_heartbeat(99, "nonce99")
+    result = pf.read()
+    assert result is not None
+    pid, nonce, _ = result
+    assert pid == 99
+    assert nonce == "nonce99"
+    assert not (tmp_path / "watcher.pid.tmp").exists()
+
+
+def test_pidfile_one_line_only_returns_none(tmp_path):
+    pid_file = tmp_path / "watcher.pid"
+    pid_file.write_text("42:mynonce\n")
+    pf = PIDFile(tmp_path)
+    assert pf.read() is None

@@ -254,7 +254,7 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "pidfile" -v`
 
 #### Task 1.6 — `WatcherLog`
-- [ ] **File**: `~/.claude/skills/llm-wiki/watcher.py`
+- [x] **File**: `~/.claude/skills/llm-wiki/watcher.py`
 - **Depends on**: nothing
 - **Description**:
   - `class WatcherLog`:
@@ -265,13 +265,13 @@ A `## Pre-flight check` section is inserted at the very top of the `## Operation
       - If `> 10000` lines: read all lines, keep last 4999 tail lines (cut at line boundary; never mid-line), prepend `[<timestamp>] rotated: kept last 5000 of <N> lines` as the first of the 5000 retained lines, write all 5000 atomically (tmp + rename). Total output is 5000 lines.
 - **Releasable**: after this task, structured log writing + startup rotation is callable
 - **Tests (TDD)** — `tests/test_watcher.py`:
-  - Unit: `test_log_write_creates_file` — write to non-existent log creates it
-  - Unit: `test_log_write_includes_timestamp_and_message` — log line has ISO prefix
-  - Unit: `test_log_rotate_noop_under_threshold` — 9000-line file is not rotated
-  - Unit: `test_log_rotate_exactly_at_threshold` — 10001-line file is trimmed to 5000 lines
-  - Unit: `test_log_rotate_cuts_at_line_boundary` — no partial lines in rotated output
-  - Unit: `test_log_rotate_missing_file_noop` — no exception when file absent
-  - Unit: `test_log_rotate_exactly_at_boundary_no_rotation` — create a file with exactly 10000 lines; call `rotate_if_needed()`; assert the file is NOT modified (10000 lines exactly does NOT trigger rotation; threshold is strictly > 10000)
+  - [x] Unit: `test_log_write_creates_file` — write to non-existent log creates it
+  - [x] Unit: `test_log_write_includes_timestamp_and_message` — log line has ISO prefix
+  - [x] Unit: `test_log_rotate_noop_under_threshold` — 9000-line file is not rotated
+  - [x] Unit: `test_log_rotate_exactly_at_threshold` — 10001-line file is trimmed to 5000 lines
+  - [x] Unit: `test_log_rotate_cuts_at_line_boundary` — no partial lines in rotated output
+  - [x] Unit: `test_log_rotate_missing_file_noop` — no exception when file absent
+  - [x] Unit: `test_log_rotate_exactly_at_boundary_no_rotation` — create a file with exactly 10000 lines; call `rotate_if_needed()`; assert the file is NOT modified (10000 lines exactly does NOT trigger rotation; threshold is strictly > 10000)
   - Checkpoint: `cd ~/.claude/skills/llm-wiki && python -m pytest tests/test_watcher.py -k "log" -v`
 
 #### Task 1.7 — Main poll loop + CLI entrypoint

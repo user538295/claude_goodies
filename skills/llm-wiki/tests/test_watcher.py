@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, PendingQueue, PIDFile, _hash_file
+from watcher import ManifestEntry, ManifestStore, StabilityGate, FileScanner, PendingQueue, PIDFile, WatcherLog, _hash_file
 
 
 def test_manifest_load_missing_file(tmp_path):
@@ -333,3 +333,65 @@ def test_pidfile_one_line_only_returns_none(tmp_path):
     pid_file.write_text("42:mynonce\n")
     pf = PIDFile(tmp_path)
     assert pf.read() is None
+
+
+# --- WatcherLog tests ---
+
+def test_log_write_creates_file(tmp_path):
+    wl = WatcherLog(tmp_path)
+    wl.write("hello")
+    assert (tmp_path / "watcher.log").exists()
+
+
+def test_log_write_includes_timestamp_and_message(tmp_path):
+    import re
+    wl = WatcherLog(tmp_path)
+    wl.write("test message")
+    content = (tmp_path / "watcher.log").read_text()
+    pattern = r"^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00\] test message\n$"
+    assert re.match(pattern, content), f"Line did not match pattern: {content!r}"
+
+
+def test_log_rotate_noop_under_threshold(tmp_path):
+    wl = WatcherLog(tmp_path)
+    log_file = tmp_path / "watcher.log"
+    log_file.write_text("".join(f"line {i}\n" for i in range(9000)))
+    wl.rotate_if_needed()
+    lines = log_file.read_text().splitlines()
+    assert len(lines) == 9000
+
+
+def test_log_rotate_exactly_at_threshold(tmp_path):
+    wl = WatcherLog(tmp_path)
+    log_file = tmp_path / "watcher.log"
+    log_file.write_text("".join(f"line {i}\n" for i in range(10001)))
+    wl.rotate_if_needed()
+    lines = log_file.read_text().splitlines()
+    assert len(lines) == 5000
+
+
+def test_log_rotate_cuts_at_line_boundary(tmp_path):
+    wl = WatcherLog(tmp_path)
+    log_file = tmp_path / "watcher.log"
+    log_file.write_text("".join(f"line {i}\n" for i in range(10001)))
+    wl.rotate_if_needed()
+    content = log_file.read_text()
+    lines = content.splitlines(keepends=True)
+    # Every line except possibly the last should end with \n
+    for line in lines[:-1]:
+        assert line.endswith("\n"), f"Line does not end with newline: {line!r}"
+
+
+def test_log_rotate_missing_file_noop(tmp_path):
+    wl = WatcherLog(tmp_path)
+    # Should not raise even if file is absent
+    wl.rotate_if_needed()
+
+
+def test_log_rotate_exactly_at_boundary_no_rotation(tmp_path):
+    wl = WatcherLog(tmp_path)
+    log_file = tmp_path / "watcher.log"
+    log_file.write_text("".join(f"line {i}\n" for i in range(10000)))
+    wl.rotate_if_needed()
+    lines = log_file.read_text().splitlines()
+    assert len(lines) == 10000

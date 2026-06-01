@@ -175,6 +175,32 @@ class PendingQueue:
             os.close(fd)
 
 
+class WatcherLog:
+    def __init__(self, watcher_dir: Path) -> None:
+        self._path = watcher_dir / "watcher.log"
+
+    def write(self, msg: str) -> None:
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        with open(self._path, "a") as f:
+            f.write(f"[{ts}] {msg}\n")
+
+    def rotate_if_needed(self) -> None:
+        try:
+            lines = self._path.read_text().splitlines(keepends=True)
+        except OSError:
+            return
+        if len(lines) <= 10000:
+            return
+        n = len(lines)
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        rotation_line = f"[{ts}] rotated: kept last 5000 of {n} lines\n"
+        tail = lines[-(4999):]
+        output = [rotation_line] + tail
+        tmp = self._path.with_suffix(".log.tmp")
+        tmp.write_text("".join(output))
+        tmp.rename(self._path)
+
+
 class PIDFile:
     def __init__(self, watcher_dir: Path) -> None:
         self._path = watcher_dir / "watcher.pid"

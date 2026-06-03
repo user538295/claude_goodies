@@ -61,18 +61,19 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
+# File Deletion
+- **Never use `rm`** to delete files. Always move files to trash instead: `trash <file>` (macOS). If `trash` is not available, use `mv <file> ~/.Trash/`.
+
 # Tools and agents
 - Prefer multi-agent approaches when the task complexity warrants it
 - Always use background sub-agents for the work and find the appropriate agent type for the task.
+- **`gh` CLI is NOT available on this machine.** Never use `gh` commands. Use standard `git` commands instead (`git commit`, `git diff`, `git log`, etc.).
 
 # Plan execution and commit granularity
 
 When executing any plan (task list, backlog item, feature spec) via a slash command:
 - Each task gets its own commit with non-empty file changes. Never bundle multiple tasks into one commit.
 - When a command delegates to a sub-command in a loop (e.g. `/implement-all` → `/implement-next`), ALWAYS invoke the sub-command via the `Skill` tool, one task at a time. NEVER spawn a single agent for all tasks.
-- Count uncompleted tasks with the script — do not count manually: `bash ~/.claude/scripts/count-uncompleted-tasks.sh <plan_file>`
-- After each sub-command completes, verify commit: `bash ~/.claude/scripts/check-task-commit.sh <sha_before>`
-- After the full run, verify total count: `bash ~/.claude/scripts/verify-run-commits.sh <sha_start> <N>`
 - These rules apply to ALL plan-based workflows and ALL delegation commands.
 - After any run, independent verification (no Claude cooperation needed): `bash ~/.claude/scripts/audit-plan-run.sh <plan_file> <sha_start>`
 
@@ -84,17 +85,20 @@ When executing any plan (task list, backlog item, feature spec) via a slash comm
 
 # Mandatory Verification Protocol
 
-**CRITICAL**: You must NEVER make assumptions. All statements must be based on verified facts.
+**CRITICAL — NO EXCEPTIONS**: Never state any fact, file path, function name, configuration value, line number, or behavior as true without first verifying it with tools (Read, Grep, Glob, Bash). This applies unconditionally — **confidence is not verification**.
 
-If there is documentation, check it before you answer — refer to the documentation (in which file, which title did you find the answer).
+- Never assume a file exists, a function is named X, a config has value Y, or a feature behaves a certain way.
+- Never skip verification because the answer "seems obvious" or you "remember" it from earlier context.
+- Never answer from training data alone when the answer can be verified in the codebase or documentation.
+- Always cite where you found the answer: file path + section or line number.
 
-## If You Don't Know Something:
+## Verification steps — apply before every factual claim:
 
-1. **STOP** - Do not proceed with guesses or assumptions
-2. **STATE** - Say explicitly: "I don't know this. Let me verify..."
-3. **SEARCH** - Use Grep/Glob/Read tools to find the information in the codebase
-4. **VERIFY** - Check actual code, data files, or documentation
-5. **SAVE** - Use Serena's memory system to save verified facts for future reference
+1. **STOP** - Do not respond with unverified claims, regardless of confidence
+2. **SEARCH** - Use Read/Grep/Glob/Bash to locate the actual information
+3. **VERIFY** - Confirm the fact in the source
+4. **CITE** - Reference the exact file and location in your answer
+5. **SAVE** - Use the available memory system to persist verified facts for future conversations
 
 # Code Style
 

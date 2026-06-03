@@ -6,6 +6,6 @@
 
 ## Term
 
-Short definition. Link to [[feature-name]] or [[decision-name]] when relevant.
+Short definition. Link to [[topic-name]] or [[decision-name]] when relevant.
 
 -->

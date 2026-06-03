@@ -8,16 +8,16 @@ Catalog of all wiki pages. LLM updates this on every ingest or page creation.
 
 | Page | Summary |
 |------|---------|
-| [overview](wiki/overview.md) | Product summary, architecture, open decisions |
+| [overview](wiki/overview.md) | What this wiki covers, key themes, open questions |
 | [glossary](wiki/glossary.md) | Shared terminology and definitions |
 
-## Decisions
+## Topics
 
 | Page | Summary |
 |------|---------|
 | _none yet_ | |
 
-## Features
+## Decisions
 
 | Page | Summary |
 |------|---------|

@@ -1,10 +1,14 @@
-# Product Wiki Schema
+# Wiki Schema
 
 This document tells the LLM how the wiki works. Follow it exactly. Update it when conventions
 evolve (see **Evolve schema** below).
 
-Based on Karpathy's LLM Wiki pattern (see `karpathy-llm-wiki.md` in this folder), adapted for
-product work.
+Based on Karpathy's LLM Wiki pattern (see `karpathy-llm-wiki.md` in this folder). The pattern is
+domain-agnostic — research, personal knowledge, course notes, reading a book, deep-dives on a
+topic, business intelligence. The concrete examples in this file are written against a research
+wiki for illustration; the structure works for any non-product domain. Adapt vocabulary in
+context (e.g. "topic" can mean a concept, a paper, a character, a habit, an entity — whatever
+the unit of synthesis is for your domain).
 
 ---
 
@@ -15,54 +19,52 @@ llm-wiki/
   schema.md          ← you are here
   index.md           ← catalog of all wiki pages (LLM maintains)
   log.md             ← append-only activity log (LLM maintains)
-  raw/               ← immutable sources (LLM never modifies)
-    product-docs/    ← official product documentation
-    specs/           ← accepted/shipped feature specs
-    code-notes/      ← notes extracted from source code
-    competitor-docs/ ← competitor screenshots, docs, teardowns
+  raw/               ← immutable sources (LLM never modifies); flat — drop sources here
   wiki/              ← LLM-maintained knowledge (write here)
-    overview.md      ← product summary and architecture
+    overview.md      ← high-level summary of what this wiki covers
     glossary.md      ← shared terminology
-    features/        ← one page per feature
-    decisions/       ← key product decisions and rationale
+    topics/          ← main content pages (concepts, entities, summaries)
+    decisions/       ← key choices and their rationale
     archive/         ← retired pages (created lazily on first archive)
-  drafts/            ← work in progress (not product truth)
-    specs/           ← draft specs under review
+  drafts/            ← work in progress (not truth); flat — no subdirectories
 ```
 
-Additional `wiki/` subdirectories (e.g. `wiki/architecture/`, `wiki/testing/`,
-`wiki/integrations/`) may emerge as the wiki grows. **Add them via the Evolve schema operation
-— register the new category here before creating the directory.**
+`raw/` is **flat** by design — categorization is the wiki's job, not raw/'s. You may organize
+your own sub-folders inside `raw/` if you find them useful (the skill won't stop you), but the
+skill imposes none.
+
+Additional `wiki/` subdirectories (e.g. `wiki/methods/`, `wiki/people/`,
+`wiki/timelines/`) may emerge as the wiki grows. **Add them via the Evolve schema operation —
+register the new category here before creating the directory.**
 
 ## Existing project documentation
 
 <!--
   SETUP STEP — REPLACE THIS COMMENT BLOCK ENTIRELY.
 
-  Replace this entire HTML comment with a real table mapping the project's existing
-  documentation roots to raw/ layers. Do not leave the comment in place.
+  If external documentation already exists in the project (e.g. a `docs/` folder, a
+  literature directory, exported notebooks), list each path here with a one-line note on how
+  the LLM should treat it. If all sources will be dropped into `raw/` directly, replace this
+  comment with the no-external-docs line below.
 
   Example:
 
-  | Path                    | Treat as              | Evidence level |
-  |-------------------------|-----------------------|----------------|
-  | `docs/architecture/`    | `raw/product-docs/`   | Strong         |
-  | `docs/adrs/`            | `raw/product-docs/`   | Strong         |
-  | `docs/shipped/`         | `raw/specs/`          | Strong         |
-  | `docs/testing/`         | `raw/product-docs/`   | Supporting     |
-  | `docs/backlog/`         | `drafts/specs/`       | Weak           |
-
-  Backlog/planned folders are ALWAYS draft-level evidence — never cite as current behavior.
+  | Path                    | Note                                                          |
+  |-------------------------|---------------------------------------------------------------|
+  | `docs/papers/`          | Read-only literature corpus — cite as `docs/papers/<file>`.   |
+  | `docs/notebooks/`       | Personal notebooks — cite when relevant; do not modify.       |
+  | `notes/`                | Free-form notes — read for context, never treat as truth.     |
 
   If no external docs exist, replace this comment with:
   _No external documentation roots detected. All sources will live under `raw/`._
 -->
 
 When ingesting from external docs, note the source as the full path
-(e.g. `source: docs/adrs/001-foo.md`).
+(e.g. `source: docs/papers/2024-attention-is-all-you-need.pdf`).
 
-**Immutability scope:** the LLM never modifies files in `raw/` or in any mapped external path.
-Humans may edit external paths freely (they are the source of truth that the LLM reads from).
+**Immutability scope:** the LLM never modifies files in `raw/` or in any external path listed
+above. Humans may edit external paths freely (they are the source of truth that the LLM reads
+from).
 
 ---
 
@@ -72,13 +74,15 @@ Humans may edit external paths freely (they are the source of truth that the LLM
 canonical version — if the two ever diverge, SKILL.md wins for this list only. (For everything
 else in this document, schema.md is authoritative over SKILL.md.)**
 
-When sources conflict, prefer in this order:
+Two tiers:
 
-1. **Source code** — what the app actually does. Strongest evidence.
-2. **Accepted specs** (`raw/specs/`) — what was intentionally built.
-3. **Product docs** (`raw/product-docs/`) — may be stale.
-4. **Draft specs** (`drafts/specs/`) — aspirational, not truth.
-5. **Competitor docs** (`raw/competitor-docs/`) — external, observation only.
+1. **Raw sources** (`raw/` and any external paths listed above) — the strongest evidence.
+2. **Drafts** (`drafts/`) — aspirational; work in progress; never cited as truth.
+
+Within raw sources, trust order is **undefined**. When two raw sources conflict, the LLM must
+flag the contradiction explicitly on the wiki page and present both positions; it must never
+silently choose one. The human is responsible for resolving raw-source conflicts (typically by
+adding a decision page that records which source wins and why).
 
 Always note the source of a claim. When sources conflict, state the conflict explicitly on the
 wiki page — do not silently choose one.
@@ -91,8 +95,8 @@ wiki page — do not silently choose one.
 
 - **Create-yes, modify-no.** The LLM may *create* new files in `raw/` during ingest of
   user-provided material (pasted text, fetched URL content, transcribed screenshots). The LLM
-  **never modifies or deletes** files already in `raw/`. When a source changes (e.g. an App
-  Store listing is updated), the LLM creates a *new* raw file with a new dated filename — the
+  **never modifies or deletes** files already in `raw/`. When a source changes (e.g. a paper
+  has a revised preprint), the LLM creates a *new* raw file with a new dated filename — the
   old file stays as the audit trail.
 - Most sources are markdown or text. **Non-text sources are allowed** (PDFs, screenshots,
   exported HTML, CSV):
@@ -103,6 +107,8 @@ wiki page — do not silently choose one.
   - For PDFs specifically, the LLM may *read* the PDF directly (multimodal) for extraction,
     even though it cannot *write* one.
 - Filename convention: `YYYY-MM-DD_short-description.<ext>`
+- `raw/` is **flat** — no required subdirectories. If you create sub-folders for your own
+  convenience, the LLM will respect them (citations use the full path).
 
 ### wiki/ — Compiled knowledge (LLM writes)
 
@@ -110,15 +116,17 @@ wiki page — do not silently choose one.
 - Every page must have a one-line `> summary:` at the top.
 - Use `[[page-name]]` for internal links (Obsidian-compatible).
 - Cross-reference generously. Orphan pages are a smell.
-- When a claim comes from a source, cite it inline: `(source: raw/specs/login.md)`.
-- **Filename collisions:** if two features would produce the same kebab-case name (e.g.
-  `import.md` for CSV import vs. bank import), disambiguate by domain prefix:
-  `csv-import.md`, `bank-import.md`. Never overwrite an existing page silently.
+- When a claim comes from a source, cite it inline: `(source: raw/<file>)` or
+  `(source: <external-path>)`.
+- **Filename collisions:** if two topics would produce the same kebab-case name (e.g.
+  `attention.md` for the cognitive concept vs. the ML mechanism), disambiguate by domain
+  prefix: `attention-cognitive.md`, `attention-ml.md`. Never overwrite an existing page
+  silently.
 
-**Feature pages** (`wiki/features/<feature-name>.md`):
-- What it does (current behavior, from code/specs)
-- Key behaviors and edge cases
-- Related features (links)
+**Topic pages** (`wiki/topics/<topic-name>.md`):
+- What the topic is (the synthesis — the LLM's compiled view across sources)
+- Key claims with citations
+- Related topics (links)
 - Open questions
 - Conflicts or gaps between sources
 
@@ -128,18 +136,20 @@ wiki page — do not silently choose one.
 - Alternatives considered
 - Source reference
 
+Decision pages capture the choices *the wiki itself* makes about how to interpret conflicting
+sources, what conventions to adopt, which threads to prioritise — anything where a deliberate
+call was made. In a research wiki this might be "which definition of `embodied cognition` we
+adopt across pages"; in a book wiki it might be "which character is the actual narrator of
+chapter 3 given two conflicting interpretations."
+
 ### drafts/ — Work in progress (not truth)
 
-- Draft specs live here until reviewed and accepted.
+- Drafts live here until reviewed and promoted to `wiki/topics/` (or `wiki/decisions/`).
 - Top of every draft: `> STATUS: draft | author: X | date: YYYY-MM-DD`
-- A draft becomes truth only when moved to `raw/specs/` after review.
-- Never cite a draft as evidence of product behavior.
-
-### Competitor docs
-
-- Observations only. Never mix into internal product claims.
-- When referencing competitor behavior in wiki pages, prefix with: `(competitor: <name>)`
-- Keep competitor raw docs in `raw/competitor-docs/` only.
+- **Promotion is a human action**, not a skill operation: the human explicitly moves a draft
+  out of `drafts/` into the appropriate `wiki/` location to mark it as truth.
+- Never cite a draft as evidence on a wiki page.
+- `drafts/` is **flat** — no subdirectories.
 
 ---
 
@@ -209,7 +219,7 @@ All operations append a single line to `log.md` in this shape:
 ## [YYYY-MM-DD] <verb> | <subject> | <objects-touched>
 ```
 
-- `<verb>`: the operation name, lowercase (e.g. `init`, `ingest`, `re-ingest`, `feature`,
+- `<verb>`: the operation name, lowercase (e.g. `init`, `ingest`, `re-ingest`, `topic`,
   `draft`, `archive`, `schema`, `lint`, `infra`).
 - `<subject>`: the primary input of the operation — usually a filename, but for `init` it is
   a short phrase like `wiki created`, for `infra` it is `pointer injected` or similar.
@@ -222,9 +232,9 @@ text if needed.
 ### Ingest a source
 
 1. The human provides material in one of three ways:
-   - **(a)** drops a file into the appropriate `raw/` subfolder (or an external mapped path)
-     and says "Ingest `<path>`";
-   - **(b)** pastes text or gives a URL — the LLM creates the raw file under `raw/<bucket>/`
+   - **(a)** drops a file into `raw/` (or an external listed path) and says
+     "Ingest `<path>`";
+   - **(b)** pastes text or gives a URL — the LLM creates the raw file under `raw/`
      using the filename convention and the provenance header below;
    - **(c)** provides a binary file (PDF, image) — the human places the binary at the target
      path; the LLM creates a sibling markdown file with extracted text and the provenance
@@ -249,60 +259,62 @@ text if needed.
    grandfathered (Lint may flag missing fields as informational, never as an error).
 
    **Filename convention.** New raw files should use the date-prefixed form
-   `YYYY-MM-DD_short-description.<ext>` (e.g. `2026-05-30_ynab.md`). Legacy raw files
-   ingested before this convention may lack the prefix — leave them as-is; Re-ingest of a
-   legacy file produces a properly-named new file with `Supersedes: <legacy-name>`.
+   `YYYY-MM-DD_short-description.<ext>` (e.g. `2026-05-30_attention-paper.md`). Legacy raw
+   files ingested before this convention may lack the prefix — leave them as-is; Re-ingest of
+   a legacy file produces a properly-named new file with `Supersedes: <legacy-name>`.
 3. **Save-format rule.** Preserve all substantive claims from the source. Structured
    reformatting into tables/sections is fine; lossy summarisation that drops claims is not.
 4. LLM reads the source and creates or updates the relevant wiki pages, citing the raw file
-   inline as `(source: raw/<bucket>/<file>)`.
+   inline as `(source: raw/<file>)`.
 5. LLM updates `index.md`.
 6. LLM appends to `log.md`: `## [YYYY-MM-DD] ingest | <filename> | <pages touched>`
 
-**Re-ingest (source updated).** When a tracked source changes — App Store listing revised,
-competitor's landing page rewritten — create a *new* raw file with the new ingestion date in
-the filename (e.g. `2026-08-01_app-store-listing.md`) and include `Supersedes: <prior-name>`
-in its provenance header. Update wiki citations to point at the new file: **trace the full
-supersession chain back via `Supersedes:` links and grep for citations of every predecessor
-filename**, not just the immediate prior one — at chain depth > 1, a wiki page that was never
-updated during an earlier re-ingest may still cite the original. The old files stay untouched
-as the audit trail; the Supersedes field makes the chain forward-discoverable without
-modifying them. Log:
+**Re-ingest (source updated).** When a tracked source changes — a paper has a revised
+preprint, a website page is rewritten, a chapter is re-released — create a *new* raw file with
+the new ingestion date in the filename (e.g. `2026-08-01_attention-paper.md`) and include
+`Supersedes: <prior-name>` in its provenance header. Update wiki citations to point at the new
+file: **trace the full supersession chain back via `Supersedes:` links and grep for citations
+of every predecessor filename**, not just the immediate prior one — at chain depth > 1, a wiki
+page that was never updated during an earlier re-ingest may still cite the original. The old
+files stay untouched as the audit trail; the Supersedes field makes the chain
+forward-discoverable without modifying them. Log:
 `## [YYYY-MM-DD] re-ingest | <new-filename> supersedes <old-filename> | <pages touched>`
 
 **Sync trigger.** Beyond explicit user-initiated ingests, the LLM should proactively refresh
-the wiki in the same session as any substantive change to the underlying codebase or product
-— new feature, architectural decision, removed feature, or behaviour change in an existing
-feature. Skip for trivial edits (typos, whitespace, comment-only, single-line refactors,
-no-behaviour dependency bumps). When in doubt, ask the user before re-ingesting — re-ingest
+the wiki in the same session after adding, changing, or removing any significant concept,
+decision, or source material in the underlying domain. Skip for trivial edits (typos,
+whitespace, comment-only tweaks). When in doubt, ask the user before re-ingesting — re-ingest
 is cheaper than spurious churn but still costs a session.
 
-### Create a feature page
+### Create a topic page
 
-1. Human: "Create a feature page for <feature name>"
+1. Human: "Create a topic page for <topic name>"
 2. LLM checks `index.md` — does the page already exist?
-3. LLM searches raw sources for relevant material (specs, code-notes, docs).
-4. LLM creates `wiki/features/<feature-name>.md` using the feature page structure above.
+3. LLM searches raw sources for relevant material.
+4. LLM creates `wiki/topics/<topic-name>.md` using the topic page structure above.
 5. LLM links it from related pages and `wiki/overview.md` if appropriate.
 6. LLM updates `index.md`.
 7. LLM appends to `log.md`.
 
-### Draft a spec
+### Draft a document
 
-1. Human: "Draft a spec for <feature>"
-2. LLM reads the relevant feature page from `wiki/features/`.
-3. LLM reads any existing specs in `raw/specs/` for context and consistency.
-4. LLM creates `drafts/specs/<feature-name>.md` with STATUS header.
-5. LLM does NOT update `index.md` or treat draft as product truth.
+1. Human: "Draft a document for <subject>" (e.g. a literature review section, a synthesis
+   memo, an essay outline, a proposal — anything that isn't ready to be cited as truth yet).
+2. LLM reads any relevant topic pages from `wiki/topics/`.
+3. LLM reads relevant raw sources for context.
+4. LLM creates `drafts/<short-name>.md` with the STATUS header.
+5. LLM does NOT update `index.md` or treat draft as wiki truth.
 6. Human reviews and edits the draft.
-7. When accepted: human moves to `raw/specs/`, LLM updates wiki.
+7. When promoted: human moves the draft to the appropriate `wiki/` location, then LLM
+   updates `index.md` and `log.md` for the promoted page.
 
 ### Query
 
 1. Human asks a question.
 2. LLM reads `index.md` to find relevant pages.
 3. LLM reads those pages and synthesizes an answer with citations.
-4. If the answer is reusable (a comparison, an analysis), LLM asks: "Should I file this as a wiki page?"
+4. If the answer is reusable (a comparison, an analysis, a connection discovered), LLM asks:
+   "Should I file this as a wiki page?"
 
 ### Lint (periodic)
 
@@ -310,8 +322,9 @@ Ask the LLM to health-check the wiki:
 - Pages with no inbound links
 - Claims without source citations
 - Contradictions between pages
-- Features mentioned in overview but lacking a feature page
-- Draft specs that have been sitting without review
+- Topics mentioned in overview but lacking a topic page
+- Drafts that have been sitting without review (flag drafts not modified in 30+ days as
+  stale)
 
 ### Archive (retire a stale page)
 
@@ -325,14 +338,14 @@ Ask the LLM to health-check the wiki:
 
 ### Evolve schema (add a new wiki page category)
 
-When the wiki organically needs a new category (e.g. `wiki/architecture/`, `wiki/testing/`,
-`wiki/integrations/`):
+When the wiki organically needs a new category (e.g. `wiki/methods/`, `wiki/people/`,
+`wiki/timelines/`):
 
 1. Human: "Evolve schema — add `<category>` pages."
 2. **Validate the proposed category name:**
    - Reserved peer directories (must not be used as wiki/ subdirectory names — they exist at
      the top level of `llm-wiki/`): `raw`, `drafts`.
-   - Reserved wiki/ subdirectories (already defined): `features`, `decisions`, `archive`.
+   - Reserved wiki/ subdirectories (already defined): `topics`, `decisions`, `archive`.
    - Reserved wiki/ filenames (do not name a category the same as an existing top-level wiki
      file): `overview`, `glossary`.
    - Must not duplicate an existing category in the Directory Layout.
@@ -357,22 +370,23 @@ removal diff, get confirmation, remove the line from Directory Layout, and eithe
 
 ```yaml
 ---
-type: feature | decision | overview | glossary | architecture | testing
-sources: [raw/specs/foo.md, raw/code-notes/bar.md]
+type: topic | decision | overview | glossary
+sources: [raw/2026-05-30_attention-paper.md, docs/papers/2024-attention.pdf]
 updated: YYYY-MM-DD
 status: current | stale | disputed | archived
 ---
 ```
 
+Add new `type:` values as you Evolve the schema.
+
 ---
 
 ## What the LLM must never do
 
-- Modify or delete existing files in `raw/` or in any external mapped path. (The LLM may
+- Modify or delete existing files in `raw/` or in any external listed path. (The LLM may
   *create* new files in `raw/` during ingest — see the Ingest operation.)
-- Treat a draft spec as product truth.
-- Mix competitor observations into internal product claims without a clear label.
-- Invent behavior not supported by a source.
+- Treat a draft as truth.
+- Invent claims not supported by a source.
 - Leave a conflict unresolved — always flag it explicitly.
 - Create a new `wiki/` subdirectory without first registering it via **Evolve schema** —
   with one exception: `wiki/archive/` is pre-registered in the Directory Layout and is

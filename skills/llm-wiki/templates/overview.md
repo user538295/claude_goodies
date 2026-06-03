@@ -1,21 +1,21 @@
-> summary: Product overview — what it is, who it's for, how it's built. Updated as sources are ingested.
+> summary: High-level summary of what this wiki covers. Updated as sources are ingested.
 
 # Overview
 
-<!-- Fill in as sources are ingested. Suggested sections: -->
+<!-- Fill in as sources are ingested. Suggested sections — adapt or remove freely based on the domain: -->
 
-## What it is
+## What this covers
 
-## Who it's for
+<!-- One paragraph: the scope of the wiki. What kinds of sources go in, what kinds of questions it should answer. -->
 
-## Architecture at a glance
+## Key themes
 
-## Major features
+<!-- The major threads running through the wiki. Link to wiki/topics/*.md via [[topic-name]]. -->
 
-<!-- Link to wiki/features/*.md via [[feature-name]] -->
+## Key sources and references
 
-## Open decisions
-
-<!-- Link to wiki/decisions/*.md -->
+<!-- The most authoritative or frequently-cited material. Point at raw/ files or external references. -->
 
 ## Open questions
+
+<!-- Things you want answered but don't have a confident answer for yet. Useful for steering future ingest. -->

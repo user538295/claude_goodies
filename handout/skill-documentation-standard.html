@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/documentation-standard — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/documentation-standard/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/documentation-standard</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Comprehensive documentation management for software projects — create, update, organize, and refactor architecture docs, ADRs, user manuals, and development guides following enforced structure, naming conventions, and content standards.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/documentation-standard</code> when working with project documentation at any stage: starting from scratch, auditing existing docs for quality and consistency, refactoring structure, or reviewing docs as part of a PR or sprint. It covers directory layout, file naming, metadata headers, writing style, diagram format (Mermaid), and maintenance workflows.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"Creating new documentation from scratch"</code></li>
+        <li><code>"Refactoring existing documentation structure"</code></li>
+        <li><code>"Reviewing documentation for consistency"</code></li>
+        <li><code>"Onboarding new projects (setting up doc structure)"</code></li>
+        <li><code>"Auditing documentation quality"</code></li>
+        <li><code>"Fixing naming convention violations"</code></li>
+        <li><code>"Updating cross-references after restructuring"</code></li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Invoke as a slash command, optionally followed by a description of the documentation task:</p>
+      <pre><code>/documentation-standard [description of the documentation task]</code></pre>
+      <p>Examples of invocation targets: an existing <code>/Documentation/</code> folder to audit, a new architecture doc to create, an ADR to draft, or a full doc refactor request. The skill applies its standard directory structure, naming conventions, and quality checklist to whatever target you describe.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Create a new architecture document</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/documentation-standard Create a new architecture document for our caching strategy. Backend and infra engineers are the audience.</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Creating: Documentation/Architecture/170_caching_strategy.md
+
+Metadata header added:
+  Purpose: Defines caching layers and invalidation strategies
+  Audience: Backend and infrastructure engineers
+  Status: Draft
+  Last reviewed: 2026-06-05
+  Next review: 2026-09-05
+
+Structure applied:
+  ## Principles
+  1. Cache close to the data source
+  2. Invalidate explicitly, not by TTL
+  3. Monitor cache hit rates
+
+  ## Overview
+  ...  (remaining content authored here)
+
+Index updated: 990_documentation_index_and_contribution_guide.md</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Audit and refactor existing documentation</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/documentation-standard Audit the Documentation/ folder. We have a lot of files added over time — naming might be inconsistent, some docs may lack metadata headers, and cross-references are probably stale.</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Audit complete. Issues found:
+
+Naming violations (3 files):
+  - api_docs.md → rename to 600_api_reference_or_public_interface.md
+  - ErrorHandling.md → rename to 140_error_handling_strategy.md
+  - readme_services.md → move to Architecture/, rename to 120_services_and_integration_architecture.md
+
+Missing metadata headers (5 files):
+  - testing_strategy.md, performance.md, ... (details listed)
+
+Broken cross-references (2 links):
+  - 100_system_architecture_overview.md links to deleted services_v1.md
+
+No duplicated content detected.
+Diagrams: 2 PNG screenshots found — recommend converting to Mermaid.
+
+Suggested actions: rename 3 files, add metadata to 5, fix 2 links, convert 2 diagrams.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-skill-packager.html">/skill-packager</a> — Packages a Claude Code skill into a distributable ZIP; use <code>/documentation-standard</code> to ensure the skill's own documentation (SKILL.md, README) meets quality standards before packaging.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

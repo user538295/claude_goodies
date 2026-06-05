@@ -216,7 +216,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
   - Checkpoint: open `handout/skill-aaa.html` in browser; count 7 sections; count 2+ examples; verify no inline `:root` block
 
 #### Task 2.2 — `skill-documentation-standard.html`
-- [ ] **File**: `handout/skill-documentation-standard.html`
+- [x] **File**: `handout/skill-documentation-standard.html`
 - **Depends on**: Task 1.2, Task 1.3, Task 1.4
 - **Description**:
   - Copy `_template.html` and fill in the sections.

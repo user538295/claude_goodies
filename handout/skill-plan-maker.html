@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/plan-maker — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/plan-maker/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/plan-maker</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Creates and updates detailed, actionable implementation plans with the smallest possible tasks, full test specifications, and explicit dependency chains.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/plan-maker</code> whenever you need to break down work into structured, implementable tasks. It drives an architectural challenge round before writing anything, ensuring decisions are made explicitly and edge cases are surfaced before implementation begins.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"make a plan for"</code></li>
+        <li><code>"create a plan"</code></li>
+        <li><code>"plan this out"</code></li>
+        <li><code>"write up a plan"</code></li>
+        <li><code>"update the plan for"</code></li>
+        <li><code>"add tasks to the plan"</code></li>
+        <li><code>"how should we implement X"</code></li>
+      </ul>
+      <p>Also triggers on any request to decompose a feature, fix, refactor, or initiative into actionable steps — even short or casual planning requests.</p>
+      <p><strong>Workflow context:</strong> <code>/plan-maker</code> is a key entry point in the 9-step agentic workflow pipeline. See <a href="en.html">en.html</a> for how it fits alongside <code>/feature-refinement</code>, <code>/implement-next</code>, and <code>/implement-all</code>.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Invoke as a slash command, optionally followed by a brief description of what to plan:</p>
+      <pre><code>/plan-maker [feature description or goal]</code></pre>
+      <p>The skill will gather context interactively, run architecture challenge rounds (raising concerns as options with pros/cons and a recommendation), then write the plan to the project's plan directory.</p>
+      <p><strong>Parameters:</strong> none required. If you provide a description it is used as the starting point for context gathering; otherwise the skill asks.</p>
+      <p><strong>Updating an existing plan:</strong> say <code>"update the plan for X"</code> — the skill finds the existing file and appends new tasks rather than creating a duplicate.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — New feature plan</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/plan-maker Add OAuth2 login to the API so users can sign in with Google or GitHub</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code># FEAT-012 — OAuth2 Login
+**Purpose**: Allow users to authenticate via Google or GitHub instead of email/password
+**Audience**: API consumers and end users
+**Status**: To Do
+
+## Background
+The current auth system requires email/password accounts. Adding OAuth2 removes signup
+friction and delegates credential management to trusted providers.
+
+## Goal
+Users can initiate OAuth2 login, exchange the callback code for a session token, and
+access protected endpoints — with no change to the existing password-login path.
+
+## Scope
+### In Scope
+- Google and GitHub OAuth2 providers
+- Token exchange endpoint, session creation, user upsert
+
+### Out of Scope
+- OAuth2 for admin accounts (separate system)
+- Mobile deep-link callbacks (deferred)
+
+## Task breakdown
+
+### Phase 1 — OAuth2 core
+#### Task 1.1 — OAuth2 provider config loader
+- [ ] **File**: `src/auth/oauth_config.py`
+...
+#### Task 1.2 — Callback endpoint
+...
+#### Task 1.N — Final verification &amp; documentation update
+...</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Update an existing plan</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>update the plan for FEAT-012 — we also need to support Apple Sign In</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Found existing plan: plans/FEAT-012-oauth2-login.md
+
+Architectural concern raised:
+  Apple Sign In uses a different token format (JWT, not opaque) and requires
+  client-secret rotation every 6 months.
+  - Option A: reuse the existing provider abstraction — Pro: minimal change;
+    Con: abstraction leaks Apple-specific JWT handling
+  - Option B: add an AppleProvider subclass with dedicated JWT validation —
+    Pro: clean separation; Con: slightly more code
+  - Recommendation: Option B — cleaner long-term
+
+New tasks appended to Phase 1:
+  Task 1.5 — AppleProvider JWT validator
+  Task 1.6 — Apple client-secret rotation script
+  Task N.N — Final verification updated with Apple AC
+
+Plan saved: plans/FEAT-012-oauth2-login.md (6 tasks, 2 new)</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-feature-refinement.html">/feature-refinement</a> — Refines a rough feature idea into a structured brief before planning; use it upstream of <code>/plan-maker</code> when the scope is still ambiguous.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

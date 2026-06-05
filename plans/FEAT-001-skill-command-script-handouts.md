@@ -447,7 +447,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
 ### Phase 6 — Final Verification
 
 #### Task 6.1 — Final verification & documentation update
-- [ ] **File**: N/A (agent task)
+- [x] **File**: N/A (agent task)
 - **Depends on**: Task 5.1 (all prior tasks)
 - **Description**:
   - **Automated pre-checks (run before manual verification)**: Run all pre-checks from the `handout/` directory (e.g., `cd /Users/manczg/.claude/handout`). Replace `/path/to/handout` with the actual path. Execute the following shell commands:

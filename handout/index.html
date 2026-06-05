@@ -88,10 +88,11 @@
     color: var(--ink2);
     line-height: 1.45;
   }
+  /* ── Agentic workflow card row ── */
   .workflow-section {
-    border-top: 1px dashed var(--line2);
-    padding-top: 1.5rem;
-    margin-top: 2.5rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--line);
   }
   .workflow-section > h2 {
     font-size: 0.75rem;
@@ -99,82 +100,102 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6rem;
     font-family: 'JetBrains Mono', monospace;
   }
-  .workflow-card {
-    background: var(--paper);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem 1rem;
-    text-decoration: none;
-    color: inherit;
-    display: block;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    max-width: 560px;
-  }
-  .workflow-card:hover {
-    border-color: var(--ai);
-    box-shadow: 0 2px 8px rgba(79,70,229,0.08);
-  }
-  .workflow-card-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--ink);
-    margin-bottom: 0.25rem;
-  }
-  .workflow-card-title .accent { color: var(--ai); }
-  .workflow-card-sub {
-    font-size: 0.82rem;
+  .workflow-section > p {
+    font-size: 0.85rem;
     color: var(--muted);
     margin-bottom: 1rem;
-    line-height: 1.4;
   }
-  .workflow-steps {
+  .flow-preview {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 1.2rem;
+    cursor: pointer;
+    -webkit-overflow-scrolling: touch;
+  }
+  .fp-node {
+    position: relative;
+    flex: 0 0 auto;
+    width: 108px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 0.7rem 0.6rem 0.6rem;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    min-height: 120px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    text-decoration: none;
+    color: inherit;
   }
-  .workflow-step {
+  .flow-preview:hover .fp-node { opacity: 0.7; }
+  .flow-preview:hover .fp-node:hover {
+    opacity: 1;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px -8px rgba(0,0,0,0.2);
+  }
+  .fp-node.ai    { background: var(--ai-soft);    border-color: rgba(79,70,229,0.35); }
+  .fp-node.human { background: var(--human-soft); border-color: rgba(217,119,6,0.35); }
+  .fp-num {
+    position: absolute;
+    top: -9px; left: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    background: var(--ink);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 5px;
+    letter-spacing: 0.05em;
+  }
+  .fp-node.human .fp-num { background: var(--human); }
+  .fp-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+  }
+  .fp-node.ai    .fp-type { color: var(--ai); }
+  .fp-node.human .fp-type { color: var(--human); }
+  .fp-cmd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.25;
+    margin-bottom: 0.25rem;
+    word-break: break-word;
+  }
+  .fp-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+    margin-top: auto;
+  }
+  .fp-arrow {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    font-size: 0.8rem;
-  }
-  .workflow-step-n {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--muted);
-    min-width: 1.4rem;
-    text-align: right;
-  }
-  .ws-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
+    padding: 0 4px;
+    color: var(--line2);
+    font-size: 0.9rem;
+    font-weight: 700;
     flex-shrink: 0;
+    align-self: center;
+    margin-bottom: 1.2rem;
   }
-  .ws-dot.ai   { background: var(--ai); }
-  .ws-dot.human { background: var(--human); }
-  .workflow-step-title { color: var(--ink2); }
-  .workflow-step-cmd {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    color: var(--ai);
-    margin-left: auto;
-  }
-  .workflow-lang-links {
-    margin-top: 0.9rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--line);
-    display: flex;
-    gap: 0.75rem;
+  .workflow-lang {
+    margin-top: 0.5rem;
     font-size: 0.78rem;
+    color: var(--muted);
   }
-  .workflow-lang-links a {
-    color: var(--ai);
-    text-decoration: none;
-  }
-  .workflow-lang-links a:hover { text-decoration: underline; }
+  .workflow-lang a { color: var(--ai); text-decoration: none; }
+  .workflow-lang a:hover { text-decoration: underline; }
   .dir-footer {
     margin-top: 2rem;
     padding-top: 1rem;
@@ -199,6 +220,32 @@
       <h1>Handout <span class="accent">Directory</span></h1>
     </div>
     <p class="dir-subtitle">Quick-reference pages for every skill, command, and script group. Click any entry to see what it does, when to use it, and concrete examples.</p>
+
+    <!-- Agentic workflow card row -->
+    <div class="workflow-section">
+      <h2>Agentic workflow</h2>
+      <p>Agentic development workflow in 9 steps — from brief to commit. Click any card to open the full interactive pipeline.</p>
+      <div class="flow-preview" role="link" onclick="location.href='agentic-workflow-en.html'" title="Open agentic workflow">
+        <a class="fp-node ai" href="agentic-workflow-en.html"><span class="fp-num">01</span><span class="fp-type">AI command</span><span class="fp-cmd">/feature-refinement</span><span class="fp-title">Feature refinement</span></a>
+        <span class="fp-arrow">→</span>
+        <a class="fp-node human" href="agentic-workflow-en.html"><span class="fp-num">02</span><span class="fp-type">Human review</span><span class="fp-cmd">👁 Review</span><span class="fp-title">Brief skim</span></a>
+        <span class="fp-arrow">→</span>
+        <a class="fp-node ai" href="agentic-workflow-en.html"><span class="fp-num">03</span><span class="fp-type">AI command</span><span class="fp-cmd">/iterative-review</span><span class="fp-title">Brief iterative review</span></a>
+        <span class="fp-arrow">→</span>
+        <a class="fp-node human" href="agentic-workflow-en.html"><span class="fp-num">04</span><span class="fp-type">Human review</span><span class="fp-cmd">👁 Review</span><span class="fp-title">Final brief review</span></a>
+        <span class="fp-arrow">→</span>
+        <a class="fp-node ai" href="agentic-workflow-en.html"><span class="fp-num">05</span><span class="fp-type">AI command</span><span class="fp-cmd">/plan-maker</span><span class="fp-title">Detailed plan</span></a>
+        <span class="fp-arrow">→</span>
+        <a class="fp-node ai" href="agentic-workflow-en.html"><span class="fp-num">06</span><span class="fp-type">AI command</span><span class="fp-cmd">/iterative-review</span><span class="fp-title">Plan iterative review</span></a>
+        <span class="fp-arrow">→</span>
+        <a class="fp-node human" href="agentic-workflow-en.html"><span class="fp-num">07</span><span class="fp-type">Human review</span><span class="fp-cmd">👁 Review</span><span class="fp-title">Final plan review</span></a>
+        <span class="fp-arrow">→</span>
+        <a class="fp-node ai" href="agentic-workflow-en.html"><span class="fp-num">08</span><span class="fp-type">AI command</span><span class="fp-cmd">/implement-next</span><span class="fp-title">Implement next task</span></a>
+        <span class="fp-arrow">→</span>
+        <a class="fp-node human" href="agentic-workflow-en.html"><span class="fp-num">09</span><span class="fp-type">Human review</span><span class="fp-cmd">👁 Review</span><span class="fp-title">Implementation review</span></a>
+      </div>
+      <div class="workflow-lang">Also in: <a href="agentic-workflow-hu.html">Magyar (HU)</a></div>
+    </div>
 
     <!-- Skills -->
     <div class="cat-section">
@@ -273,29 +320,6 @@
       </div>
     </div>
 
-    <!-- Agentic workflow preview -->
-    <div class="workflow-section">
-      <h2>Agentic workflow</h2>
-      <a class="workflow-card" href="agentic-workflow-en.html">
-        <div class="workflow-card-title">Agentic development <span class="accent">workflow</span> in 9 steps.</div>
-        <div class="workflow-card-sub">How to chain /feature-refinement, /iterative-review, /plan-maker and /implement-next — and where to keep human review gates.</div>
-        <div class="workflow-steps">
-          <div class="workflow-step"><span class="workflow-step-n">1</span><span class="ws-dot ai"></span><span class="workflow-step-title">Feature refinement</span><span class="workflow-step-cmd">/feature-refinement</span></div>
-          <div class="workflow-step"><span class="workflow-step-n">2</span><span class="ws-dot human"></span><span class="workflow-step-title">Brief skim (quick)</span></div>
-          <div class="workflow-step"><span class="workflow-step-n">3</span><span class="ws-dot ai"></span><span class="workflow-step-title">Brief iterative review</span><span class="workflow-step-cmd">/iterative-review</span></div>
-          <div class="workflow-step"><span class="workflow-step-n">4</span><span class="ws-dot human"></span><span class="workflow-step-title">Final brief review</span></div>
-          <div class="workflow-step"><span class="workflow-step-n">5</span><span class="ws-dot ai"></span><span class="workflow-step-title">Detailed plan</span><span class="workflow-step-cmd">/plan-maker</span></div>
-          <div class="workflow-step"><span class="workflow-step-n">6</span><span class="ws-dot ai"></span><span class="workflow-step-title">Plan iterative review</span><span class="workflow-step-cmd">/iterative-review</span></div>
-          <div class="workflow-step"><span class="workflow-step-n">7</span><span class="ws-dot human"></span><span class="workflow-step-title">Final plan review</span></div>
-          <div class="workflow-step"><span class="workflow-step-n">8</span><span class="ws-dot ai"></span><span class="workflow-step-title">Implement next task</span><span class="workflow-step-cmd">/implement-next</span></div>
-          <div class="workflow-step"><span class="workflow-step-n">9</span><span class="ws-dot human"></span><span class="workflow-step-title">Implementation review</span></div>
-        </div>
-        <div class="workflow-lang-links">
-          <span>Also available in:</span>
-          <a href="agentic-workflow-hu.html" onclick="event.stopPropagation()">Magyar (HU)</a>
-        </div>
-      </a>
-    </div>
 
     <div class="dir-footer">human-in-the-loop · gdm mit · 2026</div>
   </div>

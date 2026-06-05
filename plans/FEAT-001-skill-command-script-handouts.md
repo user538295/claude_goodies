@@ -130,7 +130,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
   - Checkpoint: open `en.html` in browser; font renders as Inter (not system-ui fallback) — confirms Google Fonts loaded
 
 #### Task 1.2 — Update `en.html` and `hu.html` to import `styles.css`; verify visual parity
-- [ ] **File**: `handout/en.html`, `handout/hu.html`
+- [x] **File**: `handout/en.html`, `handout/hu.html`
 - **Depends on**: Task 1.1
 - **Description**:
   - In `en.html`: replace the extracted CSS rules with `<link rel="stylesheet" href="styles.css">` at the top of `<style>` (or as a `<link>` tag before `<style>`); remove only the extracted blocks — leave all pipeline-specific CSS in place

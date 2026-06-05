@@ -1,50 +1,12 @@
 <!DOCTYPE html>
+<!-- Source: handout/hu.html (modified — styles extracted to styles.css) -->
 <html lang="hu">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Claude Code – Agentikus Fejlesztési Workflow · Magyar</title>
+<link rel="stylesheet" href="styles.css">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #f7f6f1;
-    --bg-grid: #ecebe3;
-    --paper: #ffffff;
-    --ink: #1a1a1f;
-    --ink2: #3d3d45;
-    --muted: #797982;
-    --line: #d8d6cc;
-    --line2: #c0bdb1;
-
-    --ai: #4f46e5;        /* indigo - AI command */
-    --ai-soft: #eef0ff;
-    --human: #d97706;     /* amber - human gate */
-    --human-soft: #fef3e2;
-    --ok: #15803d;
-    --ok-soft: #dcfce7;
-    --danger: #b91c1c;
-    --danger-soft: #fee2e2;
-    --neutral: #525252;
-
-    --must: #b91c1c;
-    --suggested: #d97706;
-    --optional: #6b7280;
-  }
-
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    color: var(--ink);
-    background:
-      linear-gradient(rgba(0,0,0,0.025) 1px, transparent 1px) 0 0 / 24px 24px,
-      linear-gradient(90deg, rgba(0,0,0,0.025) 1px, transparent 1px) 0 0 / 24px 24px,
-      var(--bg);
-    line-height: 1.6;
-    min-height: 100vh;
-  }
 
   .wrap {
     max-width: 1280px;
@@ -62,18 +24,6 @@
     margin-bottom: 1.75rem;
     padding-bottom: 1.25rem;
     border-bottom: 1px dashed var(--line2);
-  }
-  .brand-row { display: flex; align-items: baseline; gap: 0.65rem; flex-wrap: wrap; }
-  .brand {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    color: var(--muted);
-    text-transform: uppercase;
-    background: var(--paper);
-    padding: 3px 10px;
-    border: 1px solid var(--line);
-    border-radius: 100px;
   }
   h1 {
     font-size: clamp(1.7rem, 3.5vw, 2.55rem);
@@ -127,20 +77,6 @@
   }
   .sw.ai { background: var(--ai-soft); border-color: var(--ai); }
   .sw.human { background: var(--human-soft); border-color: var(--human); }
-  .badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9.5px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 2px 7px;
-    border-radius: 4px;
-    border: 1px solid;
-  }
-  .badge.must { color: var(--must); border-color: var(--must); background: var(--danger-soft); }
-  .badge.suggested { color: var(--suggested); border-color: var(--suggested); background: var(--human-soft); }
-  .badge.optional { color: var(--optional); border-color: var(--optional); background: #f1f1ef; }
-
   /* CONTROL: review intensity */
   .control {
     display: flex;

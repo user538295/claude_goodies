@@ -370,7 +370,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
 > **Releasable**: after each task — the script group handout page is complete.
 
 #### Task 4.1 — `scripts-plan.html`
-- [ ] **File**: `handout/scripts-plan.html`
+- [x] **File**: `handout/scripts-plan.html`
 - **Depends on**: Task 1.2, Task 1.3, Task 1.4
 - **Description**:
   - Copy `_template.html` and fill in the sections.

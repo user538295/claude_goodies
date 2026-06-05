@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scripts-plan — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>scripts-plan</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>A group of five shell scripts that track plan progress, enforce one-commit-per-task discipline, and audit completed plan runs — used directly by developers and automatically by <code>/implement-next</code> and <code>/implement-all</code>.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use these scripts whenever you are working with Markdown plan files that contain <code>- [ ]</code> / <code>- [x]</code> task checkboxes:</p>
+      <ul>
+        <li>To see which task is next and the current completion percentage — use <code>plan-progress.sh</code>.</li>
+        <li>To count how many tasks remain before starting a run — use <code>count-uncompleted-tasks.sh</code>.</li>
+        <li>After each <code>/implement-next</code> invocation in a loop — <code>check-task-commit.sh</code> verifies exactly one commit was made.</li>
+        <li>After completing a full <code>/implement-all</code> or <code>/implement-next</code> run — use <code>verify-run-commits.sh</code> to confirm commit count matches task count.</li>
+        <li>At any later time, to audit a historical run independently — use <code>audit-plan-run.sh</code>.</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+
+      <h3>User-invocable scripts</h3>
+
+      <h4><code>plan-progress.sh</code></h4>
+      <p>Prints a formatted progress header for the next uncompleted task. Uses <code>progress-header-phased.template</code> (phased plans) or <code>progress-header-flat.template</code> (flat plans).</p>
+      <pre><code>bash ~/.claude/scripts/plan-progress.sh &lt;plan_file&gt;</code></pre>
+      <p><strong>Exit codes:</strong> 0 = header printed + <code>NEXT_TASK_*</code> machine-readable lines; 1 = all tasks complete; 2 = usage error or file not found; 3 = no recognized task section heading.</p>
+
+      <h4><code>count-uncompleted-tasks.sh</code></h4>
+      <p>Counts top-level <code>- [ ]</code> lines within the recognized task section. Prints <code>number_of_uncompleted_tasks=&lt;N&gt;</code>.</p>
+      <pre><code>bash ~/.claude/scripts/count-uncompleted-tasks.sh &lt;plan_file&gt;</code></pre>
+      <p><strong>Exit codes:</strong> 0 = success; 2 = usage error or file not found.</p>
+
+      <h4><code>audit-plan-run.sh</code></h4>
+      <p>Standalone post-run audit. Verifies the number of non-merge commits since <code>&lt;sha_start&gt;</code> matches the number of tasks completed in this run (current completed minus pre-run completed).</p>
+      <pre><code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan_file&gt; &lt;sha_start&gt;</code></pre>
+      <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION or mismatch; 2 = usage or git error.</p>
+
+      <h4><code>verify-run-commits.sh</code></h4>
+      <p>Verifies exactly <code>&lt;expected_count&gt;</code> non-merge commits were created since <code>&lt;sha_start&gt;</code>. Lighter than <code>audit-plan-run.sh</code> — does not diff the plan file.</p>
+      <pre><code>bash ~/.claude/scripts/verify-run-commits.sh &lt;sha_start&gt; &lt;expected_count&gt;</code></pre>
+      <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION; 2 = usage or git error.</p>
+
+      <h4><code>check-task-commit.sh</code></h4>
+      <p>Verifies exactly <strong>one</strong> non-merge commit with non-empty file changes was created since <code>&lt;sha_before&gt;</code>. Run after each <code>/implement-next</code> invocation inside a loop.</p>
+      <pre><code>bash ~/.claude/scripts/check-task-commit.sh &lt;sha_before&gt;</code></pre>
+      <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION; 2 = usage or git error.</p>
+
+      <h3>Internal dependencies (called by user-invocable scripts — not invoked directly)</h3>
+      <ul>
+        <li><code>task_section.awk</code> — AWK fragment that activates when the parser enters a recognized task section heading (<code>## Tasks</code>, <code>## Task</code>, or <code>## Task breakdown</code>). Called by <code>plan-progress.sh</code>, <code>count-uncompleted-tasks.sh</code>, and <code>audit-plan-run.sh</code>.</li>
+        <li><code>progress-header-phased.template</code> — Mustache-style template for phased plans (plans with <code>###</code> phase headings). Called by <code>plan-progress.sh</code>.</li>
+        <li><code>progress-header-flat.template</code> — Mustache-style template for flat plans (no phase headings). Called by <code>plan-progress.sh</code>.</li>
+      </ul>
+
+      <h3>Dependency table</h3>
+      <table class="dep-table">
+        <colgroup>
+          <col class="col-script">
+          <col class="col-type">
+          <col class="col-deps">
+          <col class="col-caller">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Script</th>
+            <th>Type</th>
+            <th>Internal deps</th>
+            <th>Auto-called by</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>plan-progress.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td><code>task_section.awk</code>, templates</td>
+            <td><code>/implement-next</code> Step 1</td>
+          </tr>
+          <tr>
+            <td><code>count-uncompleted-tasks.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td><code>task_section.awk</code></td>
+            <td><code>/implement-all</code> init</td>
+          </tr>
+          <tr>
+            <td><code>audit-plan-run.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td><code>task_section.awk</code></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><code>verify-run-commits.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td>—</td>
+            <td><code>/implement-all</code> final step</td>
+          </tr>
+          <tr>
+            <td><code>check-task-commit.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td>—</td>
+            <td><code>/implement-all</code> per-task verify</td>
+          </tr>
+          <tr>
+            <td><code>task_section.awk</code></td>
+            <td><span class="badge suggested">internal</span></td>
+            <td>—</td>
+            <td>plan-progress, count-uncompleted, audit-plan-run</td>
+          </tr>
+          <tr>
+            <td><code>progress-header-phased.template</code></td>
+            <td><span class="badge suggested">internal</span></td>
+            <td>—</td>
+            <td><code>plan-progress.sh</code></td>
+          </tr>
+          <tr>
+            <td><code>progress-header-flat.template</code></td>
+            <td><span class="badge suggested">internal</span></td>
+            <td>—</td>
+            <td><code>plan-progress.sh</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Check plan progress with <code>plan-progress.sh</code></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>bash ~/.claude/scripts/plan-progress.sh plans/FEAT-001-skill-command-script-handouts.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Progress   : [█████████░░░] 79%  (15/19 tasks, 3/6 phases)
+Next task  : 4.1  **File**: `handout/scripts-plan.html`
+
+NEXT_TASK_NAME=**File**: `handout/scripts-plan.html`
+NEXT_TASK_PHASE=4
+NEXT_TASK_NUMBER=1</code></pre>
+        <p>Exit code 0. The <code>NEXT_TASK_*</code> lines are machine-readable and parsed by <code>/implement-next</code> in Step 1 to identify the task to implement.</p>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Audit a completed run with <code>audit-plan-run.sh</code></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>bash ~/.claude/scripts/audit-plan-run.sh plans/FEAT-001-skill-command-script-handouts.md abc1234</code></pre>
+        <p><strong>Output / Result (PASS):</strong></p>
+        <pre><code>Plan file : plans/FEAT-001-skill-command-script-handouts.md
+sha_start : abc1234
+Tasks completed in this run (top-level) : 4
+Non-merge commits since sha_start : 4
+
+PASS: 4 commits for 4 completed tasks — counts match</code></pre>
+        <p><strong>Output / Result (VIOLATION):</strong></p>
+        <pre><code>Plan file : plans/FEAT-001-skill-command-script-handouts.md
+sha_start : abc1234
+Tasks completed in this run (top-level) : 4
+Non-merge commits since sha_start : 3
+
+VIOLATION: 3 commits for 4 completed tasks — counts do not match</code></pre>
+        <p>A VIOLATION means at least two tasks were bundled into a single commit, breaking the one-task-one-commit rule. Exit code 1.</p>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — Calls <code>plan-progress.sh</code> in Step 1 and <code>check-task-commit.sh</code> after each commit to enforce the one-task-one-commit rule; these scripts are its primary consumers.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

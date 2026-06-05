@@ -56,6 +56,34 @@ footer {
   color: var(--muted);
 }
 
+/* Dependency table — used in script group handout pages */
+.dep-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.dep-table colgroup .col-script  { width: 35%; }
+.dep-table colgroup .col-type    { width: 20%; }
+.dep-table colgroup .col-deps    { width: 25%; }
+.dep-table colgroup .col-caller  { width: 20%; }
+
+.dep-table thead tr {
+  background: var(--bg-grid);
+  border-bottom: 2px solid var(--line);
+}
+
+.dep-table th,
+.dep-table td {
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
+.dep-table tbody tr {
+  border-bottom: 1px solid var(--line);
+}
+
 /* Responsive: 375px — full-width single column, reduced padding */
 @media (max-width: 375px) {
   .card-page {

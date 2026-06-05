@@ -164,7 +164,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
   - Checkpoint: used in Task 2.1; confirm first handout page renders correctly at 375px and 1280px
 
 #### Task 1.4 — Create `_template.html` skeleton
-- [ ] **File**: `handout/_template.html`
+- [x] **File**: `handout/_template.html`
 - **Depends on**: Task 1.3
 - **Description**:
   - Create a minimal HTML5 skeleton that all 13 handout pages must copy and fill in. The skeleton defines the exact HTML structure, class names, and section markers so pages are structurally uniform.

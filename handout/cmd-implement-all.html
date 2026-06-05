@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/implement-all — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/implement-all.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/implement-all</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Repeatedly delegates to <code>/implement-next</code> — one task at a time — until every uncompleted task in a plan file is implemented, verified, and committed.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/implement-all</code> when you have a plan file with multiple uncompleted tasks and want to run the full implementation loop hands-off. The command handles the entire cycle — building a task list, spawning implementation agents, verifying each commit, running a final audit, and fixing any test failures — without requiring manual intervention between tasks.</p>
+      <ul>
+        <li>You have a plan file (e.g. <code>plans/FEAT-001.md</code>) with one or more <code>[ ]</code> tasks and want to implement them all in sequence.</li>
+        <li>You want each task to get its own commit with non-empty file changes, enforced automatically.</li>
+        <li>You want a final audit (<code>verify-run-commits.sh</code>) to confirm commit granularity after all tasks complete.</li>
+        <li>You are resuming a partially-completed run and want to continue from the next uncompleted task.</li>
+      </ul>
+      <p><strong>Critical constraints (enforced by the command itself):</strong></p>
+      <ul>
+        <li>Does NOT spawn a single agent for all tasks — every task goes through <code>/implement-next</code> individually.</li>
+        <li>Does NOT write code directly — all implementation is delegated.</li>
+        <li>Does NOT skip or merge verify tasks.</li>
+        <li>Does NOT proceed if the plan's <code>## Tasks</code> or <code>## Task breakdown</code> heading is missing (raises a WARNING and stops).</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Pass the path to the plan file as the sole argument.</p>
+      <pre><code>/implement-all [plan-file-path]</code></pre>
+      <p><strong>Parameters:</strong></p>
+      <ul>
+        <li><code>[plan-file-path]</code> — (required) Relative path to the plan Markdown file, e.g. <code>plans/FEAT-001-my-feature.md</code>.</li>
+      </ul>
+      <p><strong>Process phases:</strong></p>
+      <ol>
+        <li><strong>Setup:</strong> Records <code>sha_start</code> (current HEAD) and runs <code>count-uncompleted-tasks.sh</code> to get the exact task count. Stops immediately if a WARNING is raised.</li>
+        <li><strong>Build task list:</strong> Creates <code>2 × N</code> tasks — alternating <code>[IMPLEMENT]</code> / <code>[VERIFY]</code> pairs, one pair per uncompleted plan task.</li>
+        <li><strong>Execute pairs:</strong> For each pair, spawns an implementation agent (via <code>/implement-next</code>), then a verification agent that checks: new commit exists, <code>check-task-commit.sh</code> passes, plan item is marked <code>[x]</code>, and checkpoint tests pass.</li>
+        <li><strong>Final audit:</strong> Runs <code>verify-run-commits.sh &lt;sha_start&gt; &lt;N&gt;</code> and the full test suite. Spawns fix agents for any failing tests (up to 3 attempts).</li>
+      </ol>
+      <p><strong>Zero tasks:</strong> If <code>count-uncompleted-tasks.sh</code> returns <code>0</code> (and no WARNING), the task-list build is skipped and the command jumps directly to the final audit.</p>
+      <p><strong>Resuming a partial run:</strong> Re-record <code>sha_start</code> at the current HEAD and re-run — <code>count-uncompleted-tasks.sh</code> counts only the remaining <code>[ ]</code> tasks. To audit the full run from the beginning, use <code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan-file&gt; &lt;original_sha_start&gt;</code>.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Run all tasks in a feature plan <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/implement-all plans/FEAT-001-skill-command-script-handouts.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>sha_start = a3f9c12
+
+count-uncompleted-tasks.sh output: number_of_uncompleted_tasks=7
+
+Building task list (14 tasks):
+  [IMPLEMENT] Task 3.3 — cmd-implement-all.html
+  [VERIFY]    Task 3.3 — cmd-implement-all.html
+  [IMPLEMENT] Task 3.4 — cmd-implement-next.html
+  [VERIFY]    Task 3.4 — cmd-implement-next.html
+  …
+
+[IMPLEMENT Task 3.3] → spawning /implement-next agent…
+[VERIFY Task 3.3]    → new commit b1d2e3f detected; check-task-commit.sh: PASS; plan [x]: PASS → PASS
+
+… (6 more pairs) …
+
+Final audit: verify-run-commits.sh a3f9c12 7 → EXIT 0 (PASS)
+Full test suite: all 42 tests green (CLEAN)
+
+Summary: 7 tasks implemented, 7 commits, audit PASS, suite CLEAN.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Resume after a partial run <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/implement-all plans/FEAT-002-api-refactor.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>sha_start = d4e5f60  (current HEAD — partial run already advanced the branch)
+
+count-uncompleted-tasks.sh output: number_of_uncompleted_tasks=3
+  (4 tasks already marked [x] from a prior session)
+
+Building task list (6 tasks):
+  [IMPLEMENT] Task 2.3 — Extract AuthService
+  [VERIFY]    Task 2.3 — Extract AuthService
+  [IMPLEMENT] Task 2.4 — Wire new AuthService into routes
+  [VERIFY]    Task 2.4 — Wire new AuthService into routes
+  [IMPLEMENT] Task 2.5 — Update integration tests
+  [VERIFY]    Task 2.5 — Update integration tests
+
+… (executing 3 pairs) …
+
+Final audit: verify-run-commits.sh d4e5f60 3 → EXIT 0 (PASS)
+Full test suite: 1 test failing → spawning fix agent…
+Fix agent applied: updated mock in auth_test.py
+Re-running suite: all 38 tests green (CLEAN after 1 fix)
+
+Summary: 3 tasks implemented, 3 commits, audit PASS, suite CLEAN.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — The single-task implementation command that <code>/implement-all</code> delegates to for each task; runs TDD, DA review, tests, check-off, and commit for one task at a time.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — Devil's advocate review loop invoked by <code>/implement-next</code> during each task's implementation; spawns parallel DA agents and fix agents until no critical/major/moderate issues remain.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

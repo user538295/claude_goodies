@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/aaa — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/aaa/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/aaa</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Evaluate and improve ideas, product features, architecture, and code using evidence, industry best practices, research, gap analysis, and 3–4 world-class options.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/aaa</code> when you want to know whether an idea, feature, architecture, workflow, strategy, or piece of code is excellent — or how to raise it to the highest practical quality level. It provides rigorous product, UX, technical, architecture, or code review backed by research and direct judgment.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"is this excellent?"</code></li>
+        <li><code>"is this world-class?"</code></li>
+        <li><code>"AAA quality"</code></li>
+        <li><code>"worth building?"</code></li>
+        <li><code>"how do I improve this?"</code></li>
+        <li><code>"rigorous review of this feature / architecture / code"</code></li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Invoke directly as a slash command, optionally followed by a description of what to evaluate:</p>
+      <pre><code>/aaa [description or paste of the idea / feature / code / architecture to evaluate]</code></pre>
+      <p>The skill accepts any artifact: a short idea, a feature spec, a code snippet, an architecture diagram description, or a full file. If additional context (requirements, stack, competitors) is available, include it — the skill will use it.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Idea quality review</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/aaa We want to build an AI-powered note-taking app that auto-links related notes and surfaces forgotten ideas at the right moment. Is this AAA quality?</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Initial classification: Promising but underdeveloped
+
+The core idea (auto-linking + surfacing) is validated by tools like Roam, Obsidian, and Mem.
+Differentiation is low without a clear edge on timing or context.
+
+Gap analysis:
+- Problem intensity: high (note retrieval is a known pain)
+- Differentiation: weak — Mem.ai already does this with LLMs
+- Feasibility: medium (embedding-based retrieval is mature)
+
+3 world-class options:
+1. Lean/elegant — Obsidian plugin, no new app, ship fast
+2. AI-native — real-time bidirectional linking with semantic drift detection
+3. Enterprise — team knowledge graph with access controls
+
+Recommendation: Option 1 to validate, Option 2 if differentiation from Mem is confirmed.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Code review</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/aaa
+```python
+def get_user(id):
+    result = db.execute(f"SELECT * FROM users WHERE id = {id}")
+    return result.fetchone()
+```
+Is this world-class code?</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Classification: Weak
+
+Blockers:
+- SQL injection: f-string interpolation directly into a query is a critical security vulnerability.
+  Fix: use parameterized queries — db.execute("SELECT * FROM users WHERE id = ?", (id,))
+- No error handling: db failures silently return None
+
+Improvements:
+- Type hints: def get_user(id: int) -> Optional[User]
+- Limit columns: SELECT id, name, email instead of SELECT *
+- Use an ORM if available (SQLAlchemy, Django ORM)
+
+Recommendation: Fix the injection blocker immediately; add type hints and column specificity next.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-da-review.html">/da-review</a> — Single-pass devil's advocate review that finds flaws without applying fixes; good for a quick critical read before <code>/aaa</code>.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — Multi-agent review loop that both finds and fixes moderate-or-above issues; use when you want the problems resolved automatically rather than listed.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

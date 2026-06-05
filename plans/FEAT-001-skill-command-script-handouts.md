@@ -191,7 +191,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
 > **Releasable**: after each task — the individual skill handout page is complete and browsable. All 6 tasks in this phase are independent; any completed page is immediately usable.
 
 #### Task 2.1 — `skill-aaa.html`
-- [ ] **File**: `handout/skill-aaa.html`
+- [x] **File**: `handout/skill-aaa.html`
 - **Depends on**: Task 1.2, Task 1.3, Task 1.4
 - **Description**:
   - Copy `_template.html` and fill in the sections.

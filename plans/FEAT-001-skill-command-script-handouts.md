@@ -351,7 +351,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
   - Checkpoint: open in browser; 7 sections; 2+ examples; relationship to implement-all and scripts-plan noted
 
 #### Task 3.5 — `cmd-iterative-review.html`
-- [ ] **File**: `handout/cmd-iterative-review.html`
+- [x] **File**: `handout/cmd-iterative-review.html`
 - **Depends on**: Task 1.2, Task 1.3, Task 1.4
 - **Description**:
   - Copy `_template.html` and fill in the sections.

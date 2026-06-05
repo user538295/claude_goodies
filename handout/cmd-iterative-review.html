@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/iterative-review — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/iterative-review.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/iterative-review</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Spawns multiple devil's advocate agents in parallel to review a target, then spawns fix agents to address all moderate-or-above issues, re-runs tests after each fix pass, and repeats until no critical, major, or moderate issues remain.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/iterative-review</code> when you want review <em>and</em> automatic fixes applied in a loop — not just a flaw list. It keeps cycling until no critical, major, or moderate issues remain.</p>
+      <p><strong>Key distinction from <code>/da-review</code>:</strong> <code>/da-review</code> <em>identifies</em> problems and stops — you fix them yourself. <code>/iterative-review</code> identifies <em>and fixes</em> all moderate-or-above issues automatically, re-running tests between each cycle. Choose <code>/da-review</code> when you want control over the fixes; choose <code>/iterative-review</code> when you want problems resolved automatically.</p>
+      <p>Typical trigger situations:</p>
+      <ul>
+        <li>After implementing a task via <code>/implement-next</code> — to catch and fix issues before committing.</li>
+        <li>When a diff has multiple suspected issues and you want them all resolved in one shot.</li>
+        <li>When you need confidence that no critical, major, or moderate issues remain before merging.</li>
+        <li>As part of a multi-task plan execution loop (<code>/implement-all</code> calls this internally).</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Pass a target as the argument. If no argument is supplied, the command reviews the current uncommitted changes (<code>git diff HEAD</code>).</p>
+      <pre><code>/iterative-review [target]</code></pre>
+      <p><strong>Parameters:</strong></p>
+      <ul>
+        <li><code>[target]</code> — (optional) what to review: a file path, a plan file path, a <code>git diff</code> snippet, or a description. If empty, defaults to <code>git diff HEAD</code>.</li>
+      </ul>
+      <p><strong>Loop behavior:</strong> Each cycle spawns a minimum of 3 DA agents reviewing from different angles (correctness/edge cases, architecture/design, test coverage gaps). Issues are labelled with severity and a cycle-prefixed ID (e.g., <code>C1-I-1</code>). Fix agents address all Critical, Major, and Moderate findings. The loop stops when the consolidated issue list contains no Critical, Major, or Moderate items — or when the same root-cause issues reappear unchanged across cycles (unresolvable oscillation).</p>
+      <p><strong>Severity rubric:</strong></p>
+      <ul>
+        <li><span class="badge must">Critical</span> — blocks correctness, security, or safety</li>
+        <li><span class="badge suggested">Major</span> — significant design flaw, missing requirement, or likely bug</li>
+        <li><span class="badge optional">Moderate</span> — suboptimal but workable</li>
+        <li>Minor — style, naming, or nitpick (reported but not fixed automatically)</li>
+      </ul>
+      <p><strong>Note:</strong> Fix agents do NOT create git commits — all changes remain as uncommitted working-tree modifications.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Auto-fix issues in a feature diff <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/iterative-review $(git diff HEAD)</code></pre>
+        <p><strong>Output / Result (after 2 cycles):</strong></p>
+        <pre><code>## Cycle 1 — DA findings (3 agents)
+Critical C1-I-1: `save_order()` called before payment confirmed — order can be
+  saved without charge.
+Major    C1-I-2: No rollback on partial failure between charge and order save.
+Moderate C1-I-3: Retry count hardcoded to 3; should be env-configurable.
+
+## Cycle 1 — Fixes applied
+C1-I-1 fixed: moved `save_order()` call after payment confirmation check.
+C1-I-2 fixed: added try/finally block with rollback on charge success + save failure.
+C1-I-3 fixed: replaced magic number with MAX_RETRY env var (default 3).
+
+Tests: 42 passed, 0 failed.
+
+## Cycle 2 — DA findings (3 agents)
+(no Critical, Major, or Moderate issues found)
+
+## Review Summary
+### Verdict
+No critical, major or moderate issues remain.
+### Remaining Open Issues
+- Minor N1: variable `tmp` in line 47 could be renamed for clarity (not auto-fixed).</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Review a plan file and fix gaps <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/iterative-review plans/FEAT-007-payments.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>## Cycle 1 — DA findings
+Major C1-I-1: Task 3.2 adds a `/refund` endpoint but no task covers updating
+  ledger records on refund — creates an inconsistency in accounting reports.
+Major C1-I-2: No rollback task defined if the DB migration in Task 4.1 fails.
+Moderate C1-I-3: Acceptance criteria for Task 2.3 omit rate-limiting the
+  charge endpoint.
+
+## Cycle 1 — Fixes applied
+C1-I-1 fixed: added Task 3.3 "Update ledger on refund" to the plan.
+C1-I-2 fixed: added Task 4.2 "Rollback plan for DB migration failure".
+C1-I-3 fixed: added rate-limit acceptance criterion to Task 2.3.
+
+## Cycle 2 — DA findings
+(no Critical, Major, or Moderate issues found)
+
+## Review Summary
+### Verdict
+No critical, major or moderate issues remain.
+### Changes Made
+- C1-I-1 → Major → added Task 3.3 to plan
+- C1-I-2 → Major → added Task 4.2 to plan
+- C1-I-3 → Moderate → tightened Task 2.3 acceptance criteria</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-da-review.html">/da-review</a> — Single-pass review that finds issues without fixing them; use when you want to stay in control of the fixes yourself.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — Implements one plan task end-to-end and calls <code>/iterative-review</code> internally as part of its DA review loop.</li>
+        <li><a href="cmd-implement-all.html">/implement-all</a> — Runs <code>/implement-next</code> repeatedly until every plan task is done; each task's review loop uses <code>/iterative-review</code>.</li>
+        <li><a href="skill-aaa.html">/aaa</a> — Evaluates quality against world-class standards with research and gap analysis; complements review by benchmarking against industry excellence, not just flagging flaws.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

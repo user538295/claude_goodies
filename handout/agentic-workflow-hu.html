@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Source: handout/en.html (modified — styles extracted to styles.css) -->
-<html lang="en">
+<!-- Source: handout/agentic-workflow-hu.html (modified — styles extracted to styles.css) -->
+<html lang="hu">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claude Code – Agentic Development Workflow · English</title>
+<title>Claude Code – Agentikus Fejlesztési Workflow · Magyar</title>
 <link rel="stylesheet" href="styles.css">
 <style>
 
@@ -14,6 +14,7 @@
     padding: 2rem 1.5rem 4rem;
   }
 
+  /* HEADER */
   header {
     display: flex;
     justify-content: space-between;
@@ -58,6 +59,7 @@
   }
   .lang a.active { background: var(--ink); color: white; }
 
+  /* LEGEND */
   .legend {
     display: flex;
     flex-wrap: wrap;
@@ -75,6 +77,7 @@
   }
   .sw.ai { background: var(--ai-soft); border-color: var(--ai); }
   .sw.human { background: var(--human-soft); border-color: var(--human); }
+  /* CONTROL: review intensity */
   .control {
     display: flex;
     align-items: center;
@@ -120,6 +123,7 @@
     min-width: 200px;
   }
 
+  /* FLOW */
   .flow-wrap {
     background: var(--paper);
     border: 1px solid var(--line);
@@ -255,6 +259,7 @@
     z-index: 2;
   }
 
+  /* Arrows between nodes - using ::after */
   .node:not(:last-child)::after {
     content: '→';
     position: absolute;
@@ -268,6 +273,7 @@
     pointer-events: none;
   }
 
+  /* DETAIL PANEL */
   .detail {
     margin-top: 2rem;
     background: var(--paper);
@@ -388,6 +394,7 @@
   }
   .detail-tip.human strong { color: var(--human); }
 
+  /* CHEATSHEET GRID */
   .grid2 {
     display: grid;
     grid-template-columns: 1.1fr 1fr;
@@ -457,6 +464,7 @@
     padding-top: 1px;
   }
 
+  /* DECISION MATRIX */
   .decision {
     margin-top: 2.25rem;
     background: var(--paper);
@@ -528,6 +536,7 @@
     color: var(--muted);
   }
 
+  /* FOOTER */
   footer {
     margin-top: 3rem;
     padding-top: 1.5rem;
@@ -544,6 +553,7 @@
     letter-spacing: 0.04em;
   }
 
+  /* Responsive: collapse 9-col flow on small screens */
   @media (max-width: 1100px) {
     .flow {
       grid-template-columns: repeat(3, 1fr);
@@ -557,6 +567,7 @@
     h1 { font-size: 1.5rem; }
   }
 
+  /* Animation */
   /* Devil's Advocate inline link */
   .da-link {
     color: var(--ai);
@@ -668,136 +679,140 @@
       <div class="brand-row">
         <span class="brand">Claude Code · in Practice</span>
       </div>
-      <h1>Agentic development <span class="accent">workflow</span><br>in 9 steps.</h1>
-      <p class="sub">How to chain the <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/feature-refinement</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/iterative-review</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/plan-maker</span> and <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/implement-next</span> commands — and where to keep human review gates.</p>
+      <h1>Agentic fejlesztési <span class="accent">workflow</span><br>9 lépésben.</h1>
+      <p class="sub">Hogyan kössük össze a <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/feature-refinement</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/iterative-review</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/plan-maker</span> és <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/implement-next</span> parancsokat – és hol döntsünk emberi review mellett.</p>
     </div>
     <nav class="lang" aria-label="Language">
-      <a href="hu.html">HU</a>
-      <a href="en.html" class="active">EN</a>
+      <a href="agentic-workflow-hu.html" class="active">HU</a>
+      <a href="agentic-workflow-en.html">EN</a>
     </nav>
   </header>
 
-  <div class="legend" role="region" aria-label="Legend">
-    <span class="lg"><span class="sw ai"></span>AI command</span>
-    <span class="lg"><span class="sw human"></span>Human review gate</span>
-    <span class="lg"><span class="badge must">MUST</span> mandatory</span>
-    <span class="lg"><span class="badge suggested">SUGGESTED</span> recommended</span>
-    <span class="lg"><span class="badge optional">OPTIONAL</span> optional</span>
+  <div class="legend" role="region" aria-label="Jelmagyarázat">
+    <span class="lg"><span class="sw ai"></span>AI parancs</span>
+    <span class="lg"><span class="sw human"></span>Emberi review gate</span>
+    <span class="lg"><span class="badge must">MUST</span> kötelező</span>
+    <span class="lg"><span class="badge suggested">SUGGESTED</span> ajánlott</span>
+    <span class="lg"><span class="badge optional">OPTIONAL</span> opcionális</span>
   </div>
 
   <div class="control">
-    <span class="control-label">Review intensity:</span>
+    <span class="control-label">Review intenzitás:</span>
     <div class="modes" role="tablist">
       <button class="mode-btn" data-mode="min">Minimum</button>
-      <button class="mode-btn active" data-mode="bal">Balanced</button>
+      <button class="mode-btn active" data-mode="bal">Kiegyensúlyozott</button>
       <button class="mode-btn" data-mode="max">Maximum</button>
     </div>
-    <span class="control-hint" id="modeHint">Only mandatory and recommended gates active. The rest are dimmed.</span>
+    <span class="control-hint" id="modeHint">Csak a kötelező és ajánlott gate-ek aktívak. A többi halványul.</span>
   </div>
 
+  <!-- FLOW -->
   <div class="flow-wrap">
-    <div class="flow-title">▸ Pipeline · from brief to commit</div>
+    <div class="flow-title">▸ Pipeline · brieftől a commit-ig</div>
     <div class="flow" id="flow"></div>
   </div>
 
+  <!-- DETAIL -->
   <div class="detail" id="detail">
     <div class="detail-empty">
-      Click a step for details · or navigate with <span class="kbd">←</span> <span class="kbd">→</span> arrow keys
+      Kattints egy lépésre a részletekért · vagy navigálj a <span class="kbd">←</span> <span class="kbd">→</span> billentyűkkel
     </div>
   </div>
 
+  <!-- DECISION MATRIX -->
   <div class="decision">
-    <h3>How many human reviews do you keep?</h3>
-    <p class="decision-sub">Your seniority and the task's risk decide. More automation → more tokens, more AI drift. More human gates → slower, but safer.</p>
+    <h3>Hány human review-t tartasz meg?</h3>
+    <p class="decision-sub">A senioritásod és a feladat kockázata dönti el. Több automatizálás → több token, több AI drift. Több emberi gate → lassabb, de biztosabb.</p>
     <div class="matrix">
       <div class="mode-card min">
         <div class="mc-title">Minimum</div>
-        <h4>Quick prototype</h4>
-        <p>You keep only the mandatory gates. Good for small features or throwaway POCs.</p>
+        <h4>Gyors prototípus</h4>
+        <p>Csak a kötelező gate-eket tartod meg. Akkor jó, ha a feature kicsi, vagy throwaway POC.</p>
         <div class="steps">3 → 4 → 5 → 6 → 8</div>
       </div>
       <div class="mode-card bal">
-        <div class="mc-title">Balanced</div>
-        <h4>Typical daily work</h4>
-        <p>Mandatory + recommended reviews. The default for a senior developer.</p>
+        <div class="mc-title">Kiegyensúlyozott</div>
+        <h4>Tipikus napi munka</h4>
+        <p>Kötelező + ajánlott review-k. Senior fejlesztőnek ez az alapértelmezett.</p>
         <div class="steps">1 → 3 → 4 → 5 → 6 → 7 → 8 → 9</div>
       </div>
       <div class="mode-card max">
         <div class="mc-title">Maximum</div>
-        <h4>High risk / critical system</h4>
-        <p>Every gate active, including optional ones. Production, security features, large refactors.</p>
+        <h4>Magas kockázat / kritikus rendszer</h4>
+        <p>Minden gate aktív, beleértve az opcionálisat is. Production, biztonsági feature, vagy nagy refactor.</p>
         <div class="steps">1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9</div>
       </div>
     </div>
   </div>
 
+  <!-- CHEATSHEET -->
   <div class="grid2">
     <div class="panel">
-      <h3>Command cheatsheet</h3>
+      <h3>Parancs cheatsheet</h3>
       <div class="cmd-row">
         <div class="cmd-name">/feature-refinement</div>
-        <div class="cmd-desc">Q&amp;A session that also analyzes the codebase. Produces a brief md file.</div>
+        <div class="cmd-desc">Kérdés-felelek session, ami a kódot is elemzi. Brief md fájl születik belőle.</div>
       </div>
       <div class="cmd-row">
         <div class="cmd-name">/iterative-review &lt;file&gt;</div>
-        <div class="cmd-desc"><a href="#da" class="da-link">Devil's Advocate</a> agents attack in parallel, other agents fix. Loops until no major issues remain.</div>
+        <div class="cmd-desc"><a href="#da" class="da-link">Devil's Advocate</a> ágensek párhuzamosan támadják, mások javítják. Ismétlődik, amíg nincs major issue.</div>
       </div>
       <div class="cmd-row">
         <div class="cmd-name">/plan-maker &lt;brief&gt;</div>
-        <div class="cmd-desc">Architecture, tests, acceptance criteria, detailed tasks. Often 1000+ lines.</div>
+        <div class="cmd-desc">Architektúra, tesztek, acceptance criteria, részletes taszkok. Akár 1000+ sor.</div>
       </div>
       <div class="cmd-row">
         <div class="cmd-name">/implement-next &lt;plan&gt;</div>
-        <div class="cmd-desc">Implements only the next single task. Internal <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixes issues.</div>
+        <div class="cmd-desc">A következő egyetlen taszkot implementálja. Belső <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixeli az issue-kat.</div>
       </div>
       <div class="cmd-row">
         <div class="cmd-name">/implement-all &lt;plan&gt;</div>
-        <div class="cmd-desc">Walks through every uncompleted task. Use only with a well-structured plan and lower-control tolerance.</div>
+        <div class="cmd-desc">Végigmegy minden uncompleted taszkon. Csak ha jól strukturált a plan és vállalod a kisebb kontrollt.</div>
       </div>
     </div>
 
     <div class="panel warn">
-      <h3>Golden rules</h3>
-      <div class="rule"><div class="num">01</div><div><strong>Garbage in → garbage out.</strong> The quality of the brief determines the whole pipeline's output. Invest the time.</div></div>
-      <div class="rule"><div class="num">02</div><div><strong>New session = clean slate.</strong> After each approved artifact, continue in a new session. Don't carry stale context.</div></div>
-      <div class="rule"><div class="num">03</div><div><strong>One task = one commit.</strong> Never bundle. The diff stays auditable.</div></div>
-      <div class="rule"><div class="num">04</div><div><strong>TDD is not optional.</strong> Test functionality (user story), not code. Unit + integration + e2e per task.</div></div>
-      <div class="rule"><div class="num">05</div><div><strong>More automation = more tokens.</strong> The ratio of human review gates is your call. That's where seniority shows.</div></div>
+      <h3>Aranyszabályok</h3>
+      <div class="rule"><div class="num">01</div><div><strong>Garbage in → garbage out.</strong> A brief minősége határozza meg az egész pipeline outputját. Ne sajnáld rá az időt.</div></div>
+      <div class="rule"><div class="num">02</div><div><strong>Új session = tiszta lap.</strong> Jóváhagyott artefakt után új sessionben folytasd. Nem viszed a felesleges kontextust.</div></div>
+      <div class="rule"><div class="num">03</div><div><strong>Egy taszk = egy commit.</strong> Soha ne bundle-ölj több taszkot. A diff lekövethető marad.</div></div>
+      <div class="rule"><div class="num">04</div><div><strong>TDD nem opcionális.</strong> Funkcionalitást tesztelj (user story), nem a kódot. Unit + integration + e2e minden taszkhoz.</div></div>
+      <div class="rule"><div class="num">05</div><div><strong>Több automatizálás = több token.</strong> A human review-k arányát te döntöd el. Ez senioritás kérdése.</div></div>
     </div>
   </div>
 
   <!-- DEVIL'S ADVOCATE OVERVIEW -->
   <section class="da-section" id="da">
-    <div class="da-eyebrow">Devil's Advocate · the agent that matters most</div>
-    <h3>What does the Devil's Advocate agent do, and why is it so cool?</h3>
-    <p class="da-lede">Most AI agents look at <em>what works</em>. Devil's Advocate flips it: it specifically hunts for <em>what can break</em>. It stress-tests the plan, questions assumptions, counters claims, exposes blind spots — not to win the argument, but to crack open your own confirmation bias.</p>
+    <div class="da-eyebrow">Devil's Advocate · az ágens, ami sokat számít</div>
+    <h3>Mit csinál a Devil's Advocate ágens, és miért menő?</h3>
+    <p class="da-lede">A legtöbb AI ágens azt nézi, <em>mi működik</em>. A Devil's Advocate fordítva áll a problémához: kifejezetten azt keresi, <em>mi romolhat el</em>. Stressz-teszteli a tervet, kérdőjelez, kontrázik, vakfoltokat tár fel — és nem győzni akar, hanem feltörni a saját feltételezéseinket.</p>
 
     <div class="da-grid">
       <div class="da-card">
-        <h4>What does it look for?</h4>
-        <p>Logical gaps, hidden assumptions, missing edge cases, over-optimistic estimates, hallucinated facts, and risks that aren't yet on the plan.</p>
+        <h4>Mit néz?</h4>
+        <p>Logikai hézagok, rejtett feltételezések, hiányzó edge case-ek, túl optimista becslések, hallucinált tények, és olyan kockázatok, amik nem szerepelnek a tervben.</p>
       </div>
       <div class="da-card">
-        <h4>How does the loop work?</h4>
-        <p>Multiple Devil's Advocate agents attack the artifact (brief, plan, code diff) in parallel. Other agents fix any moderate+ issues. Reruns until no major issues remain.</p>
+        <h4>Hogyan működik a loop?</h4>
+        <p>Több Devil's Advocate ágens párhuzamosan támadja az artefaktot (brief, plan, code diff). Más ágensek a moderate+ szintű issue-kat javítják. Újrafut, amíg nincs major issue.</p>
       </div>
       <div class="da-card">
-        <h4>Why is it cool?</h4>
-        <p>It removes confirmation bias from the pipeline. Your AI stops being just an agreeable partner — you get an internal critic that surfaces what you yourself wouldn't dare to say out loud.</p>
+        <h4>Miért menő?</h4>
+        <p>Ez törli a confirmation bias-t a pipeline-ból. Az AI-d nem csak "egyetértő partner" lesz — kapsz egy belső kritikust is, aki előhívja, amit te magad nem mernél kimondani.</p>
       </div>
       <div class="da-card">
-        <h4>When to use it standalone?</h4>
-        <p>The workflow runs it automatically at steps 3 and 6 (brief and plan). But you can invoke it manually for code review, architecture decisions, or any proposal that looks "too good to be true."</p>
+        <h4>Mikor használd külön?</h4>
+        <p>A workflow-ban a 3. és 6. lépésben (brief és plan) automatikusan fut. De manuálisan is hívhatod kód review-ra, architektúrai döntésekre, vagy bármilyen "túl szépnek tűnő" ajánlatra.</p>
       </div>
     </div>
 
     <div class="da-quote">
-      <strong>Devil's Advocate philosophy:</strong> "I'm not looking for what works — I'm looking for what can break." Good criticism is cheaper than a bad implementation.
+      <strong>Devil's Advocate filozófia:</strong> "Nem azt keresem, ami működik — azt keresem, ami elromolhat." A jó kritika olcsóbb, mint a rossz implementáció.
     </div>
   </section>
 
   <footer>
-    <div>Source: <em>Claude Code in Practice</em> · Gergely Mancz · GDM MIT · 2026</div>
+    <div>Forrás: <em>Claude Code in Practice</em> · Mancz Gergely · GDM MIT · 2026</div>
     <div class="principle">human-in-the-loop · agentic-development · not vibe coding</div>
   </footer>
 </div>
@@ -806,119 +821,119 @@
 const STEPS = [
   {
     n: 1, kind: 'ai', cmd: '/feature-refinement',
-    type: 'AI command',
+    type: 'AI parancs',
     title: 'Feature refinement',
-    short: 'Clarify the idea',
+    short: 'Tisztázza az ötletet',
     out: 'brief.md',
     badge: 'suggested',
-    desc: 'The AI first reads the code and existing docs, then asks questions — each with pro/con options. You decide, it recommends.',
-    inputs: ['Detailed feature description in prose', 'Context directory (e.g. @docs)'],
-    outputs: ['Structured brief md file', 'Problem · Goal · Scope · Edge cases · Open questions'],
-    tips: ['If you already have a detailed spec, you can skip — but specs are rarely as good as we think.'],
+    desc: 'Az AI először megnézi a kódot és a meglévő dokumentációt, csak utána tesz fel kérdéseket – és minden kérdéshez pro/kontrákat ad. Te döntesz, ő javasol.',
+    inputs: ['Részletes feature leírás szövegesen', 'Kontextus könyvtár (pl. @docs)'],
+    outputs: ['Strukturált brief md fájl', 'Problem · Goal · Scope · Edge cases · Open questions'],
+    tips: ['Ha már van részletes spec-ed, ki is hagyhatod – de ritkán van olyan jó, amilyennek hisszük.'],
     tipKind: 'ai'
   },
   {
     n: 2, kind: 'human',
     type: 'Human review',
-    title: 'Brief skim (quick)',
-    short: 'Optional first read',
-    out: 'revised brief',
+    title: 'Brief átnézése (gyors)',
+    short: 'Opcionális első olvasat',
+    out: 'javított brief',
     badge: 'optional',
-    desc: 'A fast pass if you want one. The next iterative-review will catch issues anyway, but a human eye catches whole-misunderstanding errors here.',
+    desc: 'Ha akarod, gyors átfutás. A következő iterative-review úgyis ki fogja szúrni a hibákat, de szemmel itt kapod el a teljes félreértést.',
     inputs: ['brief.md'],
-    outputs: ['Notes / direct edits'],
-    tips: ['Worth it when the refinement session felt uncertain or had many open questions.'],
+    outputs: ['Megjegyzések / direkt edit'],
+    tips: ['Akkor érdemes, ha a refinement során sok bizonytalanságot érzékeltél.'],
     tipKind: 'human'
   },
   {
     n: 3, kind: 'ai', cmd: '/iterative-review',
-    type: 'AI command',
+    type: 'AI parancs',
     title: 'Brief iterative review',
-    short: 'Devil\'s Advocate attacks',
-    out: 'revised brief',
+    short: 'Devil\'s Advocate támad',
+    out: 'javított brief',
     badge: 'must',
-    desc: 'Multiple <a href="#da" class="da-link">Devil\'s Advocate</a> agents search for gaps in parallel, other agents fix them. Loops until no major/critical issues remain.',
+    desc: 'Több <a href="#da" class="da-link">Devil\'s Advocate</a> ágens párhuzamosan keresi a réseket, más ágensek javítják. Ismétlődik, amíg nincs major/critical issue.',
     inputs: ['brief.md'],
-    outputs: ['Revised brief.md', 'Summary: what changed, any feature loss'],
-    tips: ['It hunts for what can break, not what works. Always run it.'],
+    outputs: ['Javított brief.md', 'Összefoglaló: mit változtatott, lesz-e feature loss'],
+    tips: ['Nem azt keresi, ami működik – azt, ami elromolhat. Mindig fusson le.'],
     tipKind: 'ai'
   },
   {
     n: 4, kind: 'human',
     type: 'Human review',
-    title: 'Final brief review',
-    short: 'You sign it off',
-    out: 'approved brief',
+    title: 'Brief végleges review',
+    short: 'Te döntesz a végén',
+    out: 'jóváhagyott brief',
     badge: 'must',
-    desc: 'The last cheap point to change direction. After the plan it gets expensive. Inspect what the AI changed.',
-    inputs: ['revised brief.md', 'iterative-review summary'],
-    outputs: ['Approved brief — the source of truth'],
-    tips: ['Good context here saves tokens later. One sentence of clarification can save 1000 tokens downstream.'],
+    desc: 'Ez az utolsó pont, ahol olcsón változtathatsz az iránynak. A plan után már drágább. Nézd meg az AI által változtatott részeket.',
+    inputs: ['javított brief.md', 'iterative-review összefoglaló'],
+    outputs: ['Jóváhagyott brief – ez lesz az igazság forrása'],
+    tips: ['A jó kontextus itt token spórolás később. Egy mondatnyi pontosítás 1000 tokent menthet.'],
     tipKind: 'human'
   },
   {
     n: 5, kind: 'ai', cmd: '/plan-maker',
-    type: 'AI command',
+    type: 'AI parancs',
     title: 'Detailed plan',
-    short: 'Architecture + tasks',
+    short: 'Architektúra + taszkok',
     out: 'plan.md',
     badge: 'must',
-    desc: 'The longest planning step — intentionally. Architecture, releasable phases, tests, acceptance criteria, detailed tasks.',
-    inputs: ['Approved brief.md'],
-    outputs: ['plan.md — often 1000+ lines', 'Split into phases, each e2e testable', 'TDD-based task list'],
-    tips: ['Run it in a new session. A detailed plan kills implementation-time improvisation.'],
+    desc: 'A leghosszabb tervezési lépés és szándékosan az. Architektúra, fázisok (mindegyik releasable), tesztek, acceptance criteria, részletes taszkok.',
+    inputs: ['Jóváhagyott brief.md'],
+    outputs: ['plan.md – akár 1000+ sor', 'Fázisokra bontva, e2e tesztelhető', 'TDD-alapú taszk lista'],
+    tips: ['Új sessionben futtasd. A részletes plan az implementáció improvizálását szünteti meg.'],
     tipKind: 'ai'
   },
   {
     n: 6, kind: 'ai', cmd: '/iterative-review',
-    type: 'AI command',
+    type: 'AI parancs',
     title: 'Plan iterative review',
-    short: 'Devil\'s Advocate on the plan too',
-    out: 'revised plan',
+    short: 'Devil\'s Advocate a tervre is',
+    out: 'javított plan',
     badge: 'must',
-    desc: 'Same <a href="#da" class="da-link">Devil\'s Advocate</a> loop, now applied to the plan. Catches missing edge cases, badly-phased tasks, missing tests.',
+    desc: 'Ugyanaz a <a href="#da" class="da-link">Devil\'s Advocate</a> loop, de most a planre. Itt szűri ki a hiányzó edge case-eket, a rosszul fázisolt taszkokat, a hiányzó teszteket.',
     inputs: ['plan.md'],
-    outputs: ['Revised plan.md', 'Issue summary'],
-    tips: ['Expensive — but cheaper than an off-the-rails implementation.'],
+    outputs: ['Javított plan.md', 'Issue összefoglaló'],
+    tips: ['Drága, de olcsóbb, mint egy elszállt implementáció.'],
     tipKind: 'ai'
   },
   {
     n: 7, kind: 'human',
     type: 'Human review',
-    title: 'Final plan review',
-    short: 'Last cheap change point',
-    out: 'approved plan',
+    title: 'Plan végleges review',
+    short: 'Az utolsó olcsó változtatás',
+    out: 'jóváhagyott plan',
     badge: 'suggested',
-    desc: 'This decides what the AI will code in the coming hours. If something doesn\'t fit your mental model, stop here.',
-    inputs: ['revised plan.md'],
-    outputs: ['Approved plan'],
-    tips: ['Too big to read in one go? Have the AI split it into phases and review phase-by-phase.'],
+    desc: 'Itt eldől, hogy a következő órákban mit fog kódolni az AI. Ha valami nem fér bele a fejedbe – most állítsd meg.',
+    inputs: ['javított plan.md'],
+    outputs: ['Jóváhagyott plan'],
+    tips: ['Ha túl nagy ahhoz, hogy átolvasd: kérd meg az AI-t, hogy szedje fázisokra és review-zd fázisonként.'],
     tipKind: 'human'
   },
   {
     n: 8, kind: 'ai', cmd: '/implement-next',
-    type: 'AI command',
+    type: 'AI parancs',
     title: 'Implement next task',
-    short: 'One task from backlog',
-    out: 'code + commit',
+    short: 'Egy taszk a backlogból',
+    out: 'kód + commit',
     badge: 'must',
-    desc: 'The heart of the pipeline. Only the next single task — nothing else. Internal iterative-review fixes issues. Ends with a commit.',
-    inputs: ['plan.md', 'current codebase'],
-    outputs: ['Implementation + tests', 'Internal review summary', 'Git commit'],
-    tips: ['/implement-all also exists — walks the whole backlog. Only if you trust the plan and accept less control.'],
+    desc: 'A pipeline szíve. Csak a következő egyetlen taszk – semmi más. Belső iterative-review fixeli az issue-kat. Végén commit.',
+    inputs: ['plan.md', 'aktuális kódbázis'],
+    outputs: ['Implementáció + tesztek', 'Belső review összefoglaló', 'Git commit'],
+    tips: ['/implement-all is van: az egész backlogon végigmegy. Csak ha senior vagy és bízol a planben.'],
     tipKind: 'ai'
   },
   {
     n: 9, kind: 'human',
     type: 'Human review',
     title: 'Implementation review',
-    short: 'You are the last gate',
-    out: 'mergeable PR',
+    short: 'Te vagy az utolsó gate',
+    out: 'merge-elhető PR',
     badge: 'suggested',
-    desc: 'The code is in front of you. Fix it yourself, ask the AI to fix it, or commit. Green type-check + tests ≠ feature done.',
-    inputs: ['New commit', 'Tests + lint output'],
-    outputs: ['Mergeable change'],
-    tips: ['If you skip this on every task, expect drift to accumulate by end of phase.'],
+    desc: 'A kód előtted van. Te döntesz: javítod magad, javíttatod, vagy commitálod. A type-check és teszt zöld nem egyenlő a feature kész.',
+    inputs: ['Új commit', 'Tesztek + lint output'],
+    outputs: ['Merge-elhető változás'],
+    tips: ['Ha kihagyod ezt minden taszknál, ne lepődj meg, ha drift jelenik meg fázis végére.'],
     tipKind: 'human'
   }
 ];
@@ -929,9 +944,9 @@ const MODE_KEEP = {
   max: ['must', 'suggested', 'optional']
 };
 const MODE_HINT = {
-  min: 'Only mandatory gates active. Fast, but riskier.',
-  bal: 'Mandatory + recommended gates. The senior default.',
-  max: 'Every review active, including optional ones. Slow, but safe.'
+  min: 'Csak a kötelező gate-ek aktívak. Gyors, kockázatosabb.',
+  bal: 'Kötelező + ajánlott gate-ek. Senior alapértelmezett.',
+  max: 'Minden review aktív, beleértve az opcionálisat is. Lassú, biztos.'
 };
 
 const flowEl = document.getElementById('flow');
@@ -946,7 +961,7 @@ function renderFlow() {
     el.className = `node ${s.kind}`;
     el.dataset.n = s.n;
     el.dataset.badge = s.badge;
-    el.setAttribute('aria-label', `Step ${s.n}: ${s.title}`);
+    el.setAttribute('aria-label', `${s.n}. lépés: ${s.title}`);
     el.innerHTML = `
       <span class="node-num">${String(s.n).padStart(2,'0')}</span>
       <div class="node-type">${s.type}</div>
@@ -979,14 +994,14 @@ function selectStep(n) {
     <div class="detail-desc">${s.desc}</div>
     <div class="detail-grid">
       <div class="detail-block ${s.kind}">
-        <h4>Input</h4>
+        <h4>Bemenet</h4>
         <ul>${s.inputs.map(i=>`<li>${i}</li>`).join('')}</ul>
       </div>
       <div class="detail-block ${s.kind}">
-        <h4>Output</h4>
+        <h4>Kimenet</h4>
         <ul>${s.outputs.map(i=>`<li>${i}</li>`).join('')}</ul>
       </div>
-      ${s.tips.map(t => `<div class="detail-tip ${s.tipKind}"><strong>Tip:</strong> ${t}</div>`).join('')}
+      ${s.tips.map(t => `<div class="detail-tip ${s.tipKind}"><strong>Tipp:</strong> ${t}</div>`).join('')}
     </div>
   `;
 }
@@ -1019,7 +1034,7 @@ document.addEventListener('keydown', e => {
     activeStep = null;
     document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
     detailEl.classList.remove('open');
-    detailEl.innerHTML = `<div class="detail-empty">Click a step for details · or navigate with <span class="kbd">←</span> <span class="kbd">→</span> arrow keys</div>`;
+    detailEl.innerHTML = `<div class="detail-empty">Kattints egy lépésre a részletekért · vagy navigálj a <span class="kbd">←</span> <span class="kbd">→</span> billentyűkkel</div>`;
   }
 });
 

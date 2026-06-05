@@ -144,7 +144,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
   - Checkpoint: open both files in browser and visually compare at 1280×800; confirm badge colors, font, header layout are unchanged
 
 #### Task 1.3 — Create `card.css`
-- [ ] **File**: `handout/card.css`
+- [x] **File**: `handout/card.css`
 - **Depends on**: Task 1.1
 - **Description**:
   - Write `card.css` with these rules only (no overlap with `styles.css`):

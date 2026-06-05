@@ -1,0 +1,77 @@
+/* card.css — card layout for individual handout pages */
+/* Depends on: styles.css (must be imported before this file) */
+
+.card-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--line2);
+}
+
+.back-link {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+
+section + section {
+  border-top: 1px solid var(--line);
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+pre, code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  background: var(--bg-grid);
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.example {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin: 1rem 0;
+}
+
+footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--line2);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Responsive: 375px — full-width single column, reduced padding */
+@media (max-width: 375px) {
+  .card-page {
+    padding: 1rem 1rem 2rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+/* Responsive: 1280px — centered at 860px (already default via max-width) */
+@media (min-width: 1280px) {
+  .card-page {
+    max-width: 860px;
+  }
+}

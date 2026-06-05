@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/implement-next — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/implement-next.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/implement-next</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Reads a plan file, implements the next uncompleted task using agents with strict TDD, runs parallel DA reviews and fixes all issues, checks off the completed task, and commits — one task, one commit.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/implement-next</code> when you want to implement exactly one task from a plan file with full quality gates: TDD cycle, DA review loop, test suite pass, and a clean commit. It is the atomic unit invoked by <code>/implement-all</code> in a loop.</p>
+      <ul>
+        <li>You have a plan file with one or more <code>[ ]</code> tasks and want to implement only the next one.</li>
+        <li>You want automated TDD enforcement: tests written first (red), then implementation (green), then full suite pass before committing.</li>
+        <li>You want a DA review loop to catch issues before the commit lands.</li>
+        <li>You are stepping through a plan manually, one task at a time, to inspect output between tasks.</li>
+        <li>You are debugging a failed <code>/implement-all</code> run and want to re-run a single task in isolation.</li>
+      </ul>
+      <p><strong>Relationship to <code>/implement-all</code>:</strong> <code>/implement-all</code> delegates to <code>/implement-next</code> for every uncompleted task in the plan. You can invoke <code>/implement-next</code> directly to implement one task at a time, or let <code>/implement-all</code> drive the loop automatically.</p>
+      <p><strong>Relationship to <code>scripts-plan</code>:</strong> <code>/implement-next</code> calls <code>plan-progress.sh</code> in Step 1 to identify the next task and display progress, and calls <code>check-task-commit.sh</code> via <code>/implement-all</code>'s verify step to confirm commit granularity.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Pass the path to the plan file as the sole argument.</p>
+      <pre><code>/implement-next [plan-file-path]</code></pre>
+      <p><strong>Parameters:</strong></p>
+      <ul>
+        <li><code>[plan-file-path]</code> — (required) Relative path to the plan Markdown file, e.g. <code>plans/FEAT-001-my-feature.md</code>.</li>
+      </ul>
+      <p><strong>Steps executed for each task:</strong></p>
+      <ol>
+        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion percentage and identify the next uncompleted task. If all tasks are complete (exit 1), stops and reports completion.</li>
+        <li><strong>Step 2 — Implement (TDD):</strong> Spawns the most appropriate agent to implement only this task. For code tasks: writes failing tests first (red), confirms they fail, implements enough code to pass (green), confirms all tests pass. For non-code tasks (docs, config): implements directly without a TDD cycle.</li>
+        <li><strong>Step 3 — DA review loop:</strong> Invokes <code>/iterative-review</code> with <code>git diff HEAD</code> and the task spec. DA agents review against acceptance criteria. All fixes stay as uncommitted working-tree changes — no DA commits.</li>
+        <li><strong>Step 4 — Run tests:</strong> Runs the full test suite. Spawns a fix agent for any failures; retries up to 3 times. Stops if the suite is not green after 3 attempts.</li>
+        <li><strong>Step 5 — Check off:</strong> Marks the implemented task and all completed sub-items <code>[x]</code> in the plan file.</li>
+        <li><strong>Step 6 — Commit:</strong> Stages implementation files and the updated plan file; commits with a message derived from the task content. <code>--no-verify</code> is forbidden.</li>
+        <li><strong>Step 7 — Report:</strong> Outputs a concise summary: what was implemented, test results, any deviations, and what was checked off.</li>
+      </ol>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Implement the next task in a feature plan <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/implement-next plans/FEAT-001-skill-command-script-handouts.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Progress   : [████████░░░░] 68%  (13/19 tasks, 2/6 phases)
+Next task  : 3.4  **File**: `handout/cmd-implement-next.html`
+
+NEXT_TASK_NAME=**File**: `handout/cmd-implement-next.html`
+NEXT_TASK_PHASE=3
+NEXT_TASK_NUMBER=4
+
+[Step 2] Spawning implementation agent for Task 3.4…
+  → Reads commands/implement-next.md
+  → Writes handout/cmd-implement-next.html with 7 sections and 2 examples
+  → Pre-check tests pass (section count=7, source comment present, etc.)
+
+[Step 3] Invoking /iterative-review…
+  → DA agent: no critical/major/moderate issues found (PASS)
+
+[Step 4] Full test suite: 14 structural checks pass (CLEAN)
+
+[Step 5] Plan updated: Task 3.4 marked [x]
+
+[Step 6] Commit: feat(handout): Task 3.4 — cmd-implement-next.html
+  → 1 file changed: handout/cmd-implement-next.html (new)
+  → 1 file changed: plans/FEAT-001-skill-command-script-handouts.md (task checked off)
+
+[Step 7] Report: Task 3.4 complete. 7 sections, 2 examples, forward references noted
+  (cmd-iterative-review.html, scripts-plan.html not yet created — will resolve by Task 6.1).</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — All tasks complete, command halts early <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/implement-next plans/FEAT-002-api-refactor.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>plan-progress.sh exit code: 1
+
+All tasks in plans/FEAT-002-api-refactor.md are complete.
+Nothing to implement.
+
+Summary: 0 tasks implemented. Plan is fully checked off.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-implement-all.html">/implement-all</a> — Drives the full plan loop by invoking <code>/implement-next</code> once per uncompleted task; use this when you want fully automated hands-off execution of all remaining tasks.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — The DA review loop invoked in Step 3 of every <code>/implement-next</code> run; spawns parallel DA agents and fix agents until no critical/major/moderate issues remain. <em>(Forward reference — page not yet created; will resolve by Task 6.1.)</em></li>
+        <li><a href="scripts-plan.html">scripts-plan</a> — The <code>plan-progress.sh</code> and <code>check-task-commit.sh</code> scripts used by <code>/implement-next</code> in Steps 1 and verify phases to track progress and enforce commit granularity. <em>(Forward reference — page not yet created; will resolve by Task 6.1.)</em></li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

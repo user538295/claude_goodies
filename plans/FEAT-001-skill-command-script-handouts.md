@@ -338,7 +338,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
   - Checkpoint: open in browser; 7 sections; 2+ examples; delegation to implement-next described
 
 #### Task 3.4 — `cmd-implement-next.html`
-- [ ] **File**: `handout/cmd-implement-next.html`
+- [x] **File**: `handout/cmd-implement-next.html`
 - **Depends on**: Task 1.2, Task 1.3, Task 1.4
 - **Description**:
   - Copy `_template.html` and fill in the sections.

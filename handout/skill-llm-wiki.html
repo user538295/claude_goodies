@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/llm-wiki — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/llm-wiki/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/llm-wiki</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Set up or operate a <strong>general-domain</strong> LLM Wiki (Karpathy pattern) — a persistent, LLM-maintained markdown knowledge base for research, personal knowledge management, book reading, course notes, competitive analysis, or any non-product domain.</p>
+      <p><em>Note: For wikis covering features, specs, roadmaps, and decisions in a software project, use <a href="skill-llm-wiki-product.html">/llm-wiki-product</a> instead. The two skills are mutually exclusive on a project.</em></p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/llm-wiki</code> for any <strong>general-domain</strong> knowledge management need that is not tied to building a product. It applies the Karpathy wiki pattern with a flat <code>raw/</code> directory and page categories of <code>wiki/topics/</code> and <code>wiki/decisions/</code>.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"set up an LLM wiki"</code></li>
+        <li><code>"apply the Karpathy wiki pattern"</code></li>
+        <li><code>"build a persistent knowledge base"</code></li>
+        <li><code>"ingest into the wiki"</code></li>
+        <li><code>"create a topic page"</code></li>
+        <li><code>"draft a document from the wiki"</code></li>
+        <li><code>"lint the wiki"</code></li>
+        <li>Any task involving the <code>llm-wiki/</code> directory with <code>raw/</code>, <code>wiki/</code>, <code>drafts/</code> layers</li>
+      </ul>
+      <h3>When to use this skill vs. <code>/llm-wiki-product</code></h3>
+      <ul>
+        <li><strong><code>/llm-wiki</code> (this skill)</strong> — generic, any <em>non-product</em> domain: research, personal knowledge, book reading, course notes, competitive analysis, learning, hobby deep-dives. Uses flat <code>raw/</code> and page categories <code>wiki/topics/</code>, <code>wiki/decisions/</code>.</li>
+        <li><strong><code>/llm-wiki-product</code></strong> — software-project wiki for features, specs, code notes, and competitor docs. Uses bucketed <code>raw/</code> and categories <code>wiki/features/</code>, <code>wiki/decisions/</code>.</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Invoke as a slash command. The skill routes to <strong>Setup</strong>, <strong>Operate</strong>, or <strong>Repair</strong> automatically based on the state of <code>llm-wiki/</code>:</p>
+      <pre><code>/llm-wiki</code></pre>
+      <p>The skill determines which mode to run:</p>
+      <ul>
+        <li><strong>No <code>llm-wiki/</code> directory exists</strong> → runs <strong>Setup</strong> (Step 1): creates the full directory tree, copies templates, adapts <code>schema.md</code> to the project, and offers pointer injection into <code>CLAUDE.md</code>/<code>AGENTS.md</code>.</li>
+        <li><strong><code>llm-wiki/</code> exists and is complete</strong> (contains <code>schema.md</code> and full layer tree) → runs the requested <strong>Operation</strong> (Step 2): ingest, create topic page, draft, query, lint, archive, evolve schema, or watcher commands.</li>
+        <li><strong><code>llm-wiki/</code> exists but is incomplete</strong> → runs <strong>Repair</strong> (Step 1b): fills in missing pieces without overwriting existing files.</li>
+      </ul>
+      <p>Operations available once the wiki is set up:</p>
+      <ul>
+        <li><code>ingest</code> — read a source, update wiki pages, update <code>index.md</code>, append to <code>log.md</code></li>
+        <li><code>create a topic page</code> — synthesize a <code>wiki/topics/&lt;name&gt;.md</code></li>
+        <li><code>draft a document</code> — write a <code>drafts/&lt;name&gt;.md</code></li>
+        <li><code>query</code> — read <code>index.md</code>, find pages, synthesize answer with citations</li>
+        <li><code>lint</code> — health-check the wiki (orphans, missing citations, contradictions)</li>
+        <li><code>start-watch</code> / <code>stop-watch</code> / <code>watch-status</code> — filesystem watcher for <code>raw/</code></li>
+        <li><code>check-pending</code> — review the pending ingest queue</li>
+      </ul>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Setting up a new wiki for a research project</h2>
+      <div class="example">
+        <p><em>Illustrative example</em></p>
+        <p><strong>Input:</strong></p>
+        <pre><code>/llm-wiki
+Set up an LLM wiki for my machine learning research project.</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>No llm-wiki/ directory found. Running Setup (Step 1).
+
+Created:
+  llm-wiki/
+    karpathy-llm-wiki.md   ← reference copy
+    schema.md              ← adapted to project (docs/ and papers/ detected as external roots)
+    index.md
+    log.md
+    raw/
+    wiki/
+      overview.md
+      glossary.md
+      topics/
+      decisions/
+    drafts/
+
+Detected external documentation roots:
+  | Path      | Note                                                     |
+  |-----------|----------------------------------------------------------|
+  | docs/     | Read-only literature corpus — cite as docs/&lt;f&gt;.          |
+  | papers/   | Research papers — read for context, never modify.        |
+
+Log entry appended: [2026-06-05] init | wiki created | schema.md, index.md, wiki/overview.md, wiki/glossary.md
+
+Offer: Inject llm-wiki pointer into CLAUDE.md? (yes/no)</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Ingesting a source into an existing wiki</h2>
+      <div class="example">
+        <p><em>Illustrative example</em></p>
+        <p><strong>Input:</strong></p>
+        <pre><code>/llm-wiki
+Ingest this paper abstract into the wiki as a topic page on "attention mechanisms":
+[paste of paper abstract on transformer attention]</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Running Operation: Ingest
+
+1. Saved raw source to: llm-wiki/raw/attention-mechanisms-vaswani-2017.md
+   (Provenance header added: source = "pasted abstract", date = 2026-06-05)
+
+2. Updated wiki page: llm-wiki/wiki/topics/attention-mechanisms.md
+   - Added section: "Scaled dot-product attention (Vaswani et al., 2017)"
+   - No conflicts detected with existing content.
+
+3. Updated index.md: added entry for "attention mechanisms"
+
+4. Appended to log.md:
+   ## [2026-06-05] ingest | attention-mechanisms-vaswani-2017.md | wiki/topics/attention-mechanisms.md
+
+Next recommended operation: query or lint to verify the wiki state.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-llm-wiki-product.html">/llm-wiki-product</a> — Product-team variant of this skill for wikis covering features, specs, roadmaps, and decisions. Mutually exclusive with <code>/llm-wiki</code> on a project — choose the one that matches your domain.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

@@ -231,7 +231,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
   - Checkpoint: open in browser; 7 sections; 2+ examples; related link to `skill-skill-packager.html`
 
 #### Task 2.3 — `skill-llm-wiki.html`
-- [ ] **File**: `handout/skill-llm-wiki.html`
+- [x] **File**: `handout/skill-llm-wiki.html`
 - **Depends on**: Task 1.2, Task 1.3, Task 1.4
 - **Description**:
   - Copy `_template.html` and fill in the sections.

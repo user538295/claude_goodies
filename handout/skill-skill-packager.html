@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/skill-packager — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/skill-packager/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/skill-packager</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Packages a Claude Code skill folder as an upload-ready ZIP file for Claude Desktop or claude.ai, ensuring the ZIP's top-level folder name matches the skill's <code>name:</code> frontmatter field (a hard requirement of the Anthropic uploader).</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/skill-packager</code> when you need to deliver a Claude Code skill to Claude Desktop or claude.ai via the Settings → Customize → Skills → Create skill → Upload flow. It is also the <strong>mandatory auto-follow-up</strong> after creating any new Claude Code skill — the Desktop ZIP is built alongside the Code version automatically.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"package this skill"</code></li>
+        <li><code>"zip this skill for Desktop"</code></li>
+        <li><code>"make the Desktop version"</code></li>
+        <li><code>"bundle the skill for upload"</code></li>
+        <li><code>"produce the Desktop ZIP"</code></li>
+      </ul>
+      <p>Also triggers automatically as the follow-up step after any new Claude Code skill is created, so the Desktop version is built without prompting.</p>
+      <p><strong>Note:</strong> Code execution must be enabled in Claude settings, or the Skills section in the UI is hidden and the upload will fail.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Invoke as a slash command, optionally naming the skill folder to package:</p>
+      <pre><code>/skill-packager [skill-folder-path]</code></pre>
+      <p><strong>Parameters:</strong></p>
+      <ul>
+        <li><strong>Skill folder path</strong> — absolute or <code>~</code>-anchored path to the skill folder (e.g. <code>~/.claude/skills/my-skill/</code>). If omitted, the skill asks which skill to package — it never guesses.</li>
+        <li><strong>Output path</strong> (optional) — if named, the ZIP is written there; otherwise defaults to <code>~/.claude/dist/&lt;name&gt;.zip</code>.</li>
+      </ul>
+      <p>The skill verifies the folder contains <code>SKILL.md</code>, reads the <code>name:</code> frontmatter, confirms the folder basename matches, builds the ZIP excluding OS noise / build artefacts / secrets / editor backups, then reports the path, size, file count, and three-step install instructions.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Package an existing skill (illustrative example)</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/skill-packager ~/.claude/skills/aaa/</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Packaging skill: aaa
+Source folder : ~/.claude/skills/aaa/
+Output ZIP    : ~/.claude/dist/aaa.zip
+
+Building ZIP (excluding __pycache__, .git, .env, .DS_Store, node_modules)...
+Done.
+
+ZIP path  : /Users/you/.claude/dist/aaa.zip
+Size      : 14 KB
+Files     : 2 (SKILL.md, references/)
+
+Install steps:
+1. Open Settings → Customize → Skills in Claude Desktop or claude.ai.
+2. Click + Create skill → Upload a skill.
+3. Select /Users/you/.claude/dist/aaa.zip</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Mismatch rejection (illustrative example)</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/skill-packager ~/.claude/skills/my-aaa-skill/</code></pre>
+        <p><em>(The folder is named <code>my-aaa-skill</code> but <code>SKILL.md</code> has <code>name: aaa</code>)</em></p>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>ERROR: Folder name mismatch.
+  Folder basename : my-aaa-skill
+  SKILL.md name:  : aaa
+
+The Anthropic uploader requires the ZIP's top-level entry to equal the skill's
+name: field. Please either:
+  (a) Rename the folder to "aaa", or
+  (b) Change name: in SKILL.md to "my-aaa-skill".
+
+No ZIP was created.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-documentation-standard.html">/documentation-standard</a> — Governs how skills and commands are documented; use it to ensure a skill's <code>SKILL.md</code> is complete before packaging.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

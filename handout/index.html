@@ -112,20 +112,21 @@
     display: flex;
     gap: 0;
     overflow-x: auto;
-    padding-bottom: 1.2rem;
+    padding-top: 14px;   /* room for the -9px absolute badge */
+    padding-bottom: 0.5rem;
     cursor: pointer;
     -webkit-overflow-scrolling: touch;
   }
   .fp-node {
     position: relative;
-    flex: 0 0 auto;
-    width: 108px;
+    flex: 1 1 0;         /* grow equally to fill available width */
+    min-width: 72px;
     border: 1.5px solid var(--line);
     border-radius: 10px;
-    padding: 0.7rem 0.6rem 0.6rem;
+    padding: 0.55rem 0.5rem 0.5rem;
     display: flex;
     flex-direction: column;
-    min-height: 120px;
+    min-height: 110px;
     transition: transform 0.18s ease, box-shadow 0.18s ease;
     text-decoration: none;
     color: inherit;
@@ -164,15 +165,15 @@
   .fp-node.human .fp-type { color: var(--human); }
   .fp-cmd {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 9.5px;
+    font-size: 8.5px;
     font-weight: 600;
     color: var(--ink);
     line-height: 1.25;
-    margin-bottom: 0.25rem;
-    word-break: break-word;
+    margin-bottom: 0.2rem;
+    word-break: break-all;
   }
   .fp-title {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 600;
     color: var(--ink);
     line-height: 1.3;
@@ -181,13 +182,13 @@
   .fp-arrow {
     display: flex;
     align-items: center;
-    padding: 0 4px;
+    padding: 0 3px;
     color: var(--line2);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 700;
     flex-shrink: 0;
     align-self: center;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.5rem;
   }
   .workflow-lang {
     margin-top: 0.5rem;
@@ -219,7 +220,7 @@
       </div>
       <h1>Handout <span class="accent">Directory</span></h1>
     </div>
-    <p class="dir-subtitle">Quick-reference pages for every skill, command, and script group. Click any entry to see what it does, when to use it, and concrete examples.</p>
+    <p class="dir-subtitle">Real workflows for real problems. Click any entry to see what it solves, when to reach for it, and how it actually works.</p>
 
     <!-- Agentic workflow card row -->
     <div class="workflow-section">
@@ -253,27 +254,27 @@
       <div class="tool-list">
         <a class="tool-item" href="skill-aaa.html">
           <span class="tool-name">/aaa</span>
-          <span class="tool-desc">Evaluate and improve ideas, features, architecture, and code with evidence, gap analysis, and 3–4 world-class options.</span>
+          <span class="tool-desc">When "looks good to me" isn't enough. Stress-tests an idea, feature, or design against real-world best practices and hands you 3–4 concrete ways to make it world-class.</span>
         </a>
         <a class="tool-item" href="skill-documentation-standard.html">
           <span class="tool-name">/documentation-standard</span>
-          <span class="tool-desc">Create, update, and refactor architecture docs, ADRs, user manuals, and development guides following enforced structure and naming conventions.</span>
+          <span class="tool-desc">Docs your team will actually find again. Creates and refactors architecture notes, ADRs, manuals, and dev guides with enforced structure — nothing gets lost in a folder.</span>
         </a>
         <a class="tool-item" href="skill-llm-wiki.html">
           <span class="tool-name">/llm-wiki</span>
-          <span class="tool-desc">Set up or operate a general-domain LLM Wiki — a persistent, LLM-maintained markdown knowledge base for research, personal knowledge, or any non-product domain.</span>
+          <span class="tool-desc">You've done the research — but Claude keeps forgetting it. Captures your notes, sources, and decisions in one place; future chats search it first → sharper answers, fewer tokens.</span>
         </a>
         <a class="tool-item" href="skill-llm-wiki-product.html">
           <span class="tool-name">/llm-wiki-product</span>
-          <span class="tool-desc">Set up or operate a product-team LLM Wiki for software-project content: features, specs, roadmaps, architectural decisions, and code notes.</span>
+          <span class="tool-desc">Know exactly where you lose to competitors. Add rivals to your project wiki; Claude finds the gaps in your product and hands back a prioritized backlog ranked by value vs. effort.</span>
         </a>
         <a class="tool-item" href="skill-plan-maker.html">
           <span class="tool-name">/plan-maker</span>
-          <span class="tool-desc">Creates and updates detailed, actionable implementation plans with the smallest possible tasks, full test specifications, and explicit dependency chains.</span>
+          <span class="tool-desc">Stop staring at a ticket wondering where to start. Breaks a feature into the smallest tasks with tests and dependencies — ready for /implement-next to chew through.</span>
         </a>
         <a class="tool-item" href="skill-skill-packager.html">
           <span class="tool-name">/skill-packager</span>
-          <span class="tool-desc">Packages a Claude Code skill folder as an upload-ready ZIP for Claude Desktop or claude.ai, ensuring the ZIP's top-level folder matches the skill's name frontmatter.</span>
+          <span class="tool-desc">Built a Claude Code skill? Make it work in Claude Desktop too. Packages your skill folder into an upload-ready ZIP for Desktop and claude.ai — names, paths, and frontmatter handled.</span>
         </a>
       </div>
     </div>
@@ -284,23 +285,34 @@
       <div class="tool-list">
         <a class="tool-item" href="cmd-da-review.html">
           <span class="tool-name">/da-review</span>
-          <span class="tool-desc">Single-pass devil's advocate review that finds every flaw in a target — code, plan, diff, or design — without applying any fixes.</span>
+          <span class="tool-desc">A second opinion that actually pushes back. Runs a one-pass devil's-advocate review of your code, plan, or design and lists every flaw it can find — no auto-fixes, just honest verdicts.</span>
         </a>
         <a class="tool-item" href="cmd-feature-refinement.html">
           <span class="tool-name">/feature-refinement</span>
-          <span class="tool-desc">An interactive senior product thinker that guides you from a rough feature idea to a well-scoped Feature Brief ready for /plan-maker.</span>
+          <span class="tool-desc">Turn a rough idea into a brief you can hand off. A senior product thinker walks you through the questions you'd otherwise skip, and lands you with a scoped Feature Brief ready for /plan-maker.</span>
         </a>
         <a class="tool-item" href="cmd-implement-all.html">
           <span class="tool-name">/implement-all</span>
-          <span class="tool-desc">Repeatedly delegates to /implement-next — one task at a time — until every uncompleted task in a plan file is implemented, verified, and committed.</span>
+          <span class="tool-desc">Have a finished plan? Walk away and let it ship. Runs /implement-next in a loop — one task, one commit at a time — until every item in the plan is built, reviewed, and checked off.</span>
         </a>
         <a class="tool-item" href="cmd-implement-next.html">
           <span class="tool-name">/implement-next</span>
-          <span class="tool-desc">Reads a plan file, implements the next uncompleted task with strict TDD, runs parallel DA reviews, fixes all issues, checks off the task, and commits.</span>
+          <span class="tool-desc">Stop juggling the whole plan in your head. Picks the next unchecked task in a plan file, builds it test-first, runs parallel reviews, fixes what they flag, then commits — one task, done.</span>
         </a>
         <a class="tool-item" href="cmd-iterative-review.html">
           <span class="tool-name">/iterative-review</span>
-          <span class="tool-desc">Spawns multiple DA agents in parallel to review a target, then spawns fix agents for all moderate+ issues; loops until no critical, major, or moderate issues remain.</span>
+          <span class="tool-desc">A review that doesn't stop at finding problems. Multiple devil's-advocate agents stress-test your work in parallel; fix agents patch every major issue; loops until the pass is clean.</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Agents -->
+    <div class="cat-section">
+      <h2>Agents</h2>
+      <div class="tool-list">
+        <a class="tool-item" href="agentic-workflow-en.html#da">
+          <span class="tool-name">devils-advocate</span>
+          <span class="tool-desc">The agent that hunts for what can break. Stress-tests a plan, code, or recommendation by attacking assumptions and exposing blind spots — used inside /da-review and /iterative-review.</span>
         </a>
       </div>
     </div>
@@ -311,11 +323,11 @@
       <div class="tool-list">
         <a class="tool-item" href="scripts-logging.html">
           <span class="tool-name">scripts-logging</span>
-          <span class="tool-desc">Three shell scripts that automatically capture every prompt submitted to Claude Code into per-project Markdown log files, organized by session.</span>
+          <span class="tool-desc">Never lose a Claude conversation again. Every prompt you submit is quietly saved into per-project Markdown logs, organized by session — searchable, shareable, yours to keep.</span>
         </a>
         <a class="tool-item" href="scripts-plan.html">
           <span class="tool-name">scripts-plan</span>
-          <span class="tool-desc">Five shell scripts that track plan progress, enforce one-commit-per-task discipline, and audit completed plan runs.</span>
+          <span class="tool-desc">Keep plan execution honest, one commit at a time. Tracks progress through a plan file, enforces one-commit-per-task discipline, and audits a finished run end-to-end.</span>
         </a>
       </div>
     </div>

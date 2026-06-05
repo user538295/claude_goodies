@@ -295,7 +295,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
 > **Releasable**: after each task — the individual command handout page is complete and browsable. All 5 tasks are independent.
 
 #### Task 3.1 — `cmd-da-review.html`
-- [ ] **File**: `handout/cmd-da-review.html`
+- [x] **File**: `handout/cmd-da-review.html`
 - **Depends on**: Task 1.2, Task 1.3, Task 1.4
 - **Description**:
   - Copy `_template.html` and fill in the sections.

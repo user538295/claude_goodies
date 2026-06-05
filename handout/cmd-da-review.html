@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/da-review — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/da-review.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/da-review</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Single-pass devil's advocate review that finds every flaw in a target — code, plan, diff, or design — without applying any fixes.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/da-review</code> when you want an adversarial critical read of something and a prioritised list of problems to act on yourself. It reviews once and stops — it does not loop, does not spawn fix agents, and does not modify any files.</p>
+      <p><strong>Key distinction from <code>/iterative-review</code>:</strong> <code>/da-review</code> <em>identifies</em> problems; <code>/iterative-review</code> identifies <em>and fixes</em> them in a loop until no critical, major, or moderate issues remain. Choose <code>/da-review</code> when you want to stay in control of the fixes; choose <code>/iterative-review</code> when you want problems resolved automatically.</p>
+      <p>Typical trigger situations:</p>
+      <ul>
+        <li>You just finished implementing a task and want a quick adversarial sanity check before committing.</li>
+        <li>You want to review a plan or spec for gaps before starting implementation.</li>
+        <li>You want findings grouped by severity without any code being changed.</li>
+        <li>You need a fast, single-pass review as input for a manual fix session.</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Pass a target to review as the argument. If no argument is supplied, the current plan or code in context is reviewed.</p>
+      <pre><code>/da-review [target]</code></pre>
+      <p><strong>Parameters:</strong></p>
+      <ul>
+        <li><code>[target]</code> — (optional) what to review: a file path, a <code>git diff</code> snippet, a plan file path, or a description. If empty, the command reviews the current plan/code/work in context.</li>
+      </ul>
+      <p><strong>Allowed tools (read-only):</strong> <code>Read</code>, <code>Grep</code>, <code>Glob</code>. The agent cannot write files or run shell commands.</p>
+      <p><strong>Severity rubric</strong> (same as <code>/iterative-review</code> — kept in sync):</p>
+      <ul>
+        <li><span class="badge must">Critical</span> — blocks correctness, security, or safety</li>
+        <li><span class="badge suggested">Major</span> — significant design flaw, missing requirement, or likely bug</li>
+        <li><span class="badge optional">Moderate</span> — suboptimal but workable</li>
+        <li>Minor — style, naming, or nitpick</li>
+      </ul>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Review a git diff before committing <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/da-review $(git diff HEAD)</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>## Critical
+- C1: `process_payment()` calls `charge_card()` without checking the return value.
+  If charge fails silently, the order is marked paid without actual payment.
+
+## Major
+- M1: No transaction rollback if `save_order()` throws after `charge_card()` succeeds.
+  A crash here leaves the customer charged but orderless.
+
+## Moderate
+- Mo1: `MAX_RETRY` is hardcoded to 3; should be configurable via env var.
+
+## Minor
+- N1: Variable `tmp` in line 47 — rename to `pending_charge` for clarity.
+
+Overall: Critical issue C1 must be fixed before this diff is safe to commit.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Review a plan file for gaps <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/da-review plans/FEAT-042-auth-redesign.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>## Critical
+(none)
+
+## Major
+- M1: Task 3.2 adds a new `/logout` endpoint but no task covers session token invalidation on the server side.
+  Users who log out remain authenticated until the token expires.
+- M2: No rollback plan defined. If the migration in Task 4.1 fails in production, the
+  previous auth tables are gone.
+
+## Moderate
+- Mo1: Acceptance criteria for Task 2.1 do not mention rate-limiting the login endpoint.
+
+## Minor
+- N1: Task numbering jumps from 3.4 to 3.6 — likely a copy-paste error.
+
+Overall: Two major gaps that could cause a security regression — recommend addressing before implementation begins.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — Multi-agent review loop that both finds <em>and fixes</em> moderate-or-above issues automatically; use when you want problems resolved, not just listed.</li>
+        <li><a href="skill-aaa.html">/aaa</a> — Evaluates quality against world-class standards with research and gap analysis; use when you want an excellence benchmark, not just a flaw list.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

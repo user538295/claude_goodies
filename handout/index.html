@@ -3,120 +3,231 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claude Code in Practice · Handout</title>
+<title>Claude Code Handout Directory</title>
+<link rel="stylesheet" href="styles.css">
+<!-- Source: directory — links to all 13 handout pages -->
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background:
-      linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px) 0 0 / 24px 24px,
-      linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px) 0 0 / 24px 24px,
-      #f7f6f1;
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    color: #1a1a1f;
-    padding: 1.5rem;
+    padding: 2rem 1.5rem 4rem;
   }
-  .card {
-    background: white;
-    border: 1px solid #d8d6cc;
-    border-radius: 18px;
-    padding: 2.5rem 2.75rem;
-    max-width: 540px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 24px 60px -32px rgba(0,0,0,0.18);
+  .dir-page {
+    max-width: 860px;
+    margin: 0 auto;
   }
-  .brand {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    color: #797982;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
+  .dir-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed var(--line2);
   }
-  h1 {
-    font-size: clamp(1.6rem, 4vw, 2.1rem);
+  .dir-header h1 {
+    font-size: clamp(1.4rem, 3.5vw, 1.9rem);
     font-weight: 800;
     letter-spacing: -0.025em;
-    line-height: 1.15;
-    margin-bottom: 0.65rem;
+    line-height: 1.2;
   }
-  h1 .a { color: #4f46e5; }
-  p {
-    color: #3d3d45;
-    font-size: 0.97rem;
-    margin-bottom: 1.75rem;
-    line-height: 1.65;
+  .dir-header h1 .accent { color: var(--ai); }
+  .dir-subtitle {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 2rem;
+    margin-top: 0.4rem;
   }
-  .picker {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.65rem;
-    margin-bottom: 1.5rem;
+  .cat-section {
+    margin-bottom: 2.5rem;
   }
-  .picker a {
-    text-decoration: none;
-    color: #1a1a1f;
-    background: #f7f6f1;
-    border: 1.5px solid #d8d6cc;
-    border-radius: 12px;
-    padding: 1.1rem 1rem 1rem;
-    transition: all 0.2s cubic-bezier(.2,.7,.2,1);
-    display: block;
+  .cat-section + .cat-section {
+    border-top: 1px solid var(--line);
+    padding-top: 2rem;
   }
-  .picker a:hover {
-    transform: translateY(-2px);
-    border-color: #4f46e5;
-    box-shadow: 0 8px 22px -14px rgba(79,70,229,0.4);
-  }
-  .picker .flag {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+  .cat-section h2 {
+    font-size: 0.75rem;
     font-weight: 600;
-    color: #4f46e5;
-    letter-spacing: 0.1em;
-    margin-bottom: 4px;
-  }
-  .picker .name {
-    font-size: 1.05rem;
-    font-weight: 700;
-    margin-bottom: 2px;
-  }
-  .picker .meta {
-    font-size: 0.78rem;
-    color: #797982;
-  }
-  .foot {
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: #797982;
-    letter-spacing: 0.1em;
+  }
+  .tool-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .tool-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--ink);
+    transition: all 0.15s ease;
+  }
+  .tool-item:hover {
+    background: var(--paper);
+    border-color: var(--line);
+    box-shadow: 0 2px 8px -4px rgba(0,0,0,0.1);
+  }
+  .tool-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ai);
+    white-space: nowrap;
+    min-width: 13rem;
+    flex-shrink: 0;
+  }
+  .tool-desc {
+    font-size: 0.88rem;
+    color: var(--ink2);
+    line-height: 1.45;
+  }
+  .workflow-section {
+    border-top: 1px dashed var(--line2);
+    padding-top: 1.5rem;
+    margin-top: 2.5rem;
+  }
+  .workflow-section h2 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .workflow-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .workflow-links a {
+    font-size: 0.88rem;
+    color: var(--ai);
+    text-decoration: none;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--paper);
+    transition: border-color 0.15s ease;
+  }
+  .workflow-links a:hover {
+    border-color: var(--ai);
+  }
+  .dir-footer {
+    margin-top: 2rem;
     padding-top: 1rem;
-    border-top: 1px dashed #c0bdb1;
+    border-top: 1px dashed var(--line2);
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+  }
+  @media (max-width: 600px) {
+    .tool-item { flex-direction: column; gap: 0.2rem; }
+    .tool-name { min-width: unset; }
   }
 </style>
 </head>
 <body>
-  <div class="card">
-    <div class="brand">Claude Code · in Practice</div>
-    <h1>Agentic development<br><span class="a">workflow handout</span></h1>
-    <p>Interactive mindmap of the 9-step workflow. Five commands, four human review gates, one decision matrix.</p>
-    <div class="picker">
-      <a href="hu.html">
-        <div class="flag">HU</div>
-        <div class="name">Magyar</div>
-        <div class="meta">Hungarian version</div>
-      </a>
-      <a href="en.html">
-        <div class="flag">EN</div>
-        <div class="name">English</div>
-        <div class="meta">English version</div>
-      </a>
+  <div class="dir-page">
+    <div class="dir-header">
+      <div class="brand-row">
+        <span class="brand">Claude Code · in Practice</span>
+      </div>
+      <h1>Handout <span class="accent">Directory</span></h1>
     </div>
-    <div class="foot">human-in-the-loop · gdm mit · 2026</div>
+    <p class="dir-subtitle">Quick-reference pages for every skill, command, and script group. Click any entry to see what it does, when to use it, and concrete examples.</p>
+
+    <!-- Skills -->
+    <div class="cat-section">
+      <h2>Skills</h2>
+      <div class="tool-list">
+        <a class="tool-item" href="skill-aaa.html">
+          <span class="tool-name">/aaa</span>
+          <span class="tool-desc">Evaluate and improve ideas, features, architecture, and code with evidence, gap analysis, and 3–4 world-class options.</span>
+        </a>
+        <a class="tool-item" href="skill-documentation-standard.html">
+          <span class="tool-name">/documentation-standard</span>
+          <span class="tool-desc">Create, update, and refactor architecture docs, ADRs, user manuals, and development guides following enforced structure and naming conventions.</span>
+        </a>
+        <a class="tool-item" href="skill-llm-wiki.html">
+          <span class="tool-name">/llm-wiki</span>
+          <span class="tool-desc">Set up or operate a general-domain LLM Wiki — a persistent, LLM-maintained markdown knowledge base for research, personal knowledge, or any non-product domain.</span>
+        </a>
+        <a class="tool-item" href="skill-llm-wiki-product.html">
+          <span class="tool-name">/llm-wiki-product</span>
+          <span class="tool-desc">Set up or operate a product-team LLM Wiki for software-project content: features, specs, roadmaps, architectural decisions, and code notes.</span>
+        </a>
+        <a class="tool-item" href="skill-plan-maker.html">
+          <span class="tool-name">/plan-maker</span>
+          <span class="tool-desc">Creates and updates detailed, actionable implementation plans with the smallest possible tasks, full test specifications, and explicit dependency chains.</span>
+        </a>
+        <a class="tool-item" href="skill-skill-packager.html">
+          <span class="tool-name">/skill-packager</span>
+          <span class="tool-desc">Packages a Claude Code skill folder as an upload-ready ZIP for Claude Desktop or claude.ai, ensuring the ZIP's top-level folder matches the skill's name frontmatter.</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Commands -->
+    <div class="cat-section">
+      <h2>Commands</h2>
+      <div class="tool-list">
+        <a class="tool-item" href="cmd-da-review.html">
+          <span class="tool-name">/da-review</span>
+          <span class="tool-desc">Single-pass devil's advocate review that finds every flaw in a target — code, plan, diff, or design — without applying any fixes.</span>
+        </a>
+        <a class="tool-item" href="cmd-feature-refinement.html">
+          <span class="tool-name">/feature-refinement</span>
+          <span class="tool-desc">An interactive senior product thinker that guides you from a rough feature idea to a well-scoped Feature Brief ready for /plan-maker.</span>
+        </a>
+        <a class="tool-item" href="cmd-implement-all.html">
+          <span class="tool-name">/implement-all</span>
+          <span class="tool-desc">Repeatedly delegates to /implement-next — one task at a time — until every uncompleted task in a plan file is implemented, verified, and committed.</span>
+        </a>
+        <a class="tool-item" href="cmd-implement-next.html">
+          <span class="tool-name">/implement-next</span>
+          <span class="tool-desc">Reads a plan file, implements the next uncompleted task with strict TDD, runs parallel DA reviews, fixes all issues, checks off the task, and commits.</span>
+        </a>
+        <a class="tool-item" href="cmd-iterative-review.html">
+          <span class="tool-name">/iterative-review</span>
+          <span class="tool-desc">Spawns multiple DA agents in parallel to review a target, then spawns fix agents for all moderate+ issues; loops until no critical, major, or moderate issues remain.</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <div class="cat-section">
+      <h2>Scripts</h2>
+      <div class="tool-list">
+        <a class="tool-item" href="scripts-logging.html">
+          <span class="tool-name">scripts-logging</span>
+          <span class="tool-desc">Three shell scripts that automatically capture every prompt submitted to Claude Code into per-project Markdown log files, organized by session.</span>
+        </a>
+        <a class="tool-item" href="scripts-plan.html">
+          <span class="tool-name">scripts-plan</span>
+          <span class="tool-desc">Five shell scripts that track plan progress, enforce one-commit-per-task discipline, and audit completed plan runs.</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Workflow Handouts (demoted) -->
+    <div class="workflow-section">
+      <h2>Workflow Handouts</h2>
+      <div class="workflow-links">
+        <a href="en.html">9-Step Workflow (English)</a>
+        <a href="hu.html">9-Step Workflow (Hungarian)</a>
+      </div>
+    </div>
+
+    <div class="dir-footer">human-in-the-loop · gdm mit · 2026</div>
   </div>
 </body>
 </html>

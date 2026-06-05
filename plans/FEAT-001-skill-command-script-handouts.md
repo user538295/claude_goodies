@@ -416,7 +416,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
 ### Phase 5 — Index Redesign
 
 #### Task 5.1 — Redesign `index.html` as categorized directory
-- [ ] **File**: `handout/index.html`
+- [x] **File**: `handout/index.html`
 - **Depends on**: Task 1.2, Task 1.3 (CSS foundation). One-line descriptions are written directly from source files (`SKILL.md` / `commands/*.md` / scripts), not from the finished HTML pages. All 13 handout pages should ideally exist before this task runs, but the index can be drafted from source content and linked pages verified at checkpoint.
 - **Description**:
   - Rewrite `index.html` as a categorized directory page with three sections: **Skills**, **Commands**, **Scripts**

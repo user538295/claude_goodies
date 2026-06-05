@@ -54,7 +54,7 @@ Process each task pair sequentially. For each pair:
 2. Run `git rev-parse HEAD` and write the result to `.git/claude-implement-all-sha-before`:
    `git rev-parse HEAD > "$(git rev-parse --git-dir)/claude-implement-all-sha-before"`
    This persists `sha_before` in the worktree's own `.git/` directory (one invocation at a time per worktree).
-3. Use the **Skill tool** to run `/implement-next $ARGUMENTS`.
+3. Spawn an **Agent** with the prompt: `Use the /implement-next skill (via the Skill tool) to implement the next unfinished task in file $ARGUMENTS. Complete all steps: TDD implementation, DA review loop, test run, check off plan items, and commit.`
 4. Mark the task `completed` (TaskUpdate).
 
 #### `[VERIFY]` task

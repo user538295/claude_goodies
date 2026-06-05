@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scripts-logging — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>scripts-logging</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Three shell scripts (<code>prompt_log_lib.sh</code>, <code>prompt_log_new_session.sh</code>, <code>prompt_log_save.sh</code>) that automatically capture every prompt submitted to Claude Code into per-project Markdown log files, organized by session.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>These scripts run automatically — you do not invoke them manually during normal use. They are wired to Claude Code hooks in <code>settings.json</code>:</p>
+      <ul>
+        <li><code>prompt_log_new_session.sh</code> — called by the <strong>SessionStart</strong> hook whenever a new Claude Code session begins</li>
+        <li><code>prompt_log_save.sh</code> — called by the <strong>UserPromptSubmit</strong> hook each time you submit a prompt</li>
+        <li><code>prompt_log_lib.sh</code> — an internal shared library; sourced by the two scripts above, never invoked directly</li>
+      </ul>
+      <p>Invoke them manually only when debugging the logging setup or when writing a script that needs to create or append to a session log file programmatically.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <h3><code>prompt_log_new_session.sh</code> — Session initialiser</h3>
+      <p>Called automatically by the <strong>SessionStart</strong> hook. Reads a JSON payload from stdin.</p>
+      <pre><code>echo '{"session_id":"abc123","cwd":"/path/to/project"}' | bash prompt_log_new_session.sh</code></pre>
+      <p>Creates a new timestamped session log file under <code>~/.claude/prompt-logs/&lt;project-slug&gt;/session_YYYY-MM-DD_HH-MM-SS.md</code> and writes a session map entry to <code>~/.claude/session-maps/&lt;session_id&gt;</code>.</p>
+
+      <h3><code>prompt_log_save.sh</code> — Prompt appender</h3>
+      <p>Called automatically by the <strong>UserPromptSubmit</strong> hook. Reads a JSON payload from stdin.</p>
+      <pre><code>echo '{"session_id":"abc123","prompt":"your prompt text","cwd":"/path/to/project"}' | bash prompt_log_save.sh</code></pre>
+      <p>Appends the prompt text with a <code>HH:MM:SS</code> timestamp heading to the session log file. If no session map exists yet, calls <code>create_session_file</code> internally (graceful late-init).</p>
+
+      <h3><code>prompt_log_lib.sh</code> — Shared library (internal)</h3>
+      <p>Not invoked directly. Provides the <code>create_session_file(session_id, cwd)</code> function. Sourced at the top of both scripts above.</p>
+      <pre><code>source "$HOME/.claude/scripts/prompt_log_lib.sh"</code></pre>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — New session initialization</h2>
+      <div class="example">
+        <p><strong>Trigger:</strong> A new Claude Code session starts in a project directory (automatic via <code>SessionStart</code> hook).</p>
+        <p><strong>Effective input (JSON payload sent to stdin by the hook):</strong></p>
+        <pre><code>{
+  "session_id": "a1b2c3d4e5f6",
+  "cwd": "/Users/alice/projects/my-app"
+}</code></pre>
+        <p><strong>Result:</strong></p>
+        <pre><code># Prompts — 2026-06-05 09:14:32
+
+**Session ID:** a1b2c3d4e5f6
+**Resume:** `claude --resume a1b2c3d4e5f6`
+**Session file:** `~/.claude/projects/Users-alice-projects-my-app/a1b2c3d4e5f6.jsonl`
+
+---</code></pre>
+        <p>The file is written to <code>~/.claude/prompt-logs/projects-my-app/session_2026-06-05_09-14-32.md</code> (slug = last two path segments joined by <code>-</code>). The session map entry at <code>~/.claude/session-maps/a1b2c3d4e5f6</code> records the path to this file with permissions <code>600</code>.</p>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Prompt save</h2>
+      <div class="example">
+        <p><strong>Trigger:</strong> You submit a prompt in an active Claude Code session (automatic via <code>UserPromptSubmit</code> hook).</p>
+        <p><strong>Effective input (JSON payload sent to stdin by the hook):</strong></p>
+        <pre><code>{
+  "session_id": "a1b2c3d4e5f6",
+  "prompt": "Implement the next uncompleted task in plans/FEAT-001.md",
+  "cwd": "/Users/alice/projects/my-app"
+}</code></pre>
+        <p><strong>Result appended to the session log file:</strong></p>
+        <pre><code>## 09:15:44
+
+Implement the next uncompleted task in plans/FEAT-001.md
+
+---</code></pre>
+        <p>Each subsequent prompt appends a new <code>## HH:MM:SS</code> section to the same file, building a full chronological record of the session's prompts.</p>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="en.html">Agentic workflow pipeline (en.html)</a> — The logging hooks support the overall agentic workflow; <code>en.html</code> documents the full 9-step pipeline in which these hooks operate.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="en.html">Agentic workflow pipeline (en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

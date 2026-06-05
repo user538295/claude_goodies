@@ -392,7 +392,7 @@ Multi-source `<!-- Source: ... -->` comments use space-separated paths on one li
   - Checkpoint: open in browser; 7 sections; table present; 2+ examples with real CLI syntax
 
 #### Task 4.2 — `scripts-logging.html`
-- [ ] **File**: `handout/scripts-logging.html`
+- [x] **File**: `handout/scripts-logging.html`
 - **Depends on**: Task 1.2, Task 1.3, Task 1.4
 - **Description**:
   - Copy `_template.html` and fill in the sections.

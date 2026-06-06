@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/iterative-review — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/iterative-review.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/iterative-review</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Több devil's advocate ágenst indít párhuzamosan, hogy átvizsgálják a célt, majd javító ágenseket indít az összes közepes vagy súlyosabb probléma orvoslására, minden javítási kör után újrafuttatja a teszteket, és addig ismétli a folyamatot, amíg egyetlen kritikus, súlyos vagy közepes probléma sem marad.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd a <code>/iterative-review</code> parancsot, ha nemcsak átvizsgálást szeretnél, <em>hanem</em> a javításokat is automatikusan, ciklusban alkalmazva — nem csak egy hibalistát. Addig forog a ciklus, amíg minden kritikus, súlyos és közepes probléma eltűnik.</p>
+      <p><strong>Lényeges különbség a <code>/da-review</code>-hoz képest:</strong> a <code>/da-review</code> csak <em>azonosítja</em> a problémákat, majd megáll — magad javítod őket. A <code>/iterative-review</code> automatikusan <em>azonosítja és kijavítja</em> az összes közepes vagy súlyosabb problémát, és minden kör között újrafuttatja a teszteket. Válaszd a <code>/da-review</code>-ot, ha kézben szeretnéd tartani a javításokat; válaszd a <code>/iterative-review</code>-ot, ha azt szeretnéd, hogy a problémák automatikusan megoldódjanak.</p>
+      <p>Tipikus kiváltó helyzetek:</p>
+      <ul>
+        <li>Miután egy taskot megvalósítottál a <code>/implement-next</code> paranccsal — hogy commit előtt elcsípd és kijavítsd a hibákat.</li>
+        <li>Ha egy diffben több gyanús probléma is van, és egy menetben szeretnéd mindet rendezni.</li>
+        <li>Ha biztos akarsz lenni abban, hogy merge előtt egyetlen kritikus, súlyos vagy közepes probléma sem marad.</li>
+        <li>Több taskos terv-végrehajtási ciklus részeként (az <code>/implement-all</code> belsőleg ezt hívja).</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Add át a célt argumentumként. Ha nem adsz meg argumentumot, a parancs az aktuális, commitálatlan változtatásokat vizsgálja (<code>git diff HEAD</code>).</p>
+      <pre><code>/iterative-review [target]</code></pre>
+      <p><strong>Paraméterek:</strong></p>
+      <ul>
+        <li><code>[target]</code> — (opcionális) mit vizsgáljon: egy fájl elérési útja, egy plan-fájl elérési útja, egy <code>git diff</code> részlet, vagy egy leírás. Ha üres, a <code>git diff HEAD</code> az alapértelmezett.</li>
+      </ul>
+      <p><strong>Ciklus viselkedése:</strong> Minden kör legalább 3 DA ágenst indít, akik különböző szempontok szerint vizsgálnak (helyesség / peremesetek, architektúra / tervezés, tesztlefedettségi hiányok). A problémákat súlyossággal és ciklus-prefixes azonosítóval címkézi (pl. <code>C1-I-1</code>). A javító ágensek minden Kritikus, Súlyos és Közepes találatot orvosolnak. A ciklus akkor áll meg, ha az összevont problémalistán nincs egyetlen Kritikus, Súlyos vagy Közepes elem sem — vagy ha ugyanazok a gyökérokú problémák körről körre változatlanul újra megjelennek (megoldhatatlan oszcilláció).</p>
+      <p><strong>Súlyossági rubrika:</strong></p>
+      <ul>
+        <li><span class="badge must">Kritikus</span> — helyességet, biztonságot vagy védettséget akadályoz</li>
+        <li><span class="badge suggested">Súlyos</span> — komoly tervezési hiba, hiányzó követelmény vagy valószínű bug</li>
+        <li><span class="badge optional">Közepes</span> — nem optimális, de működőképes</li>
+        <li>Apró — stílus, elnevezés vagy szőrszálhasogatás (jelzi, de nem javítja automatikusan)</li>
+      </ul>
+      <p><strong>Megjegyzés:</strong> A javító ágensek NEM hoznak létre git commitokat — minden változtatás commitálatlan working-tree módosításként marad.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Hibák automatikus javítása egy feature diffben <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/iterative-review $(git diff HEAD)</code></pre>
+        <p><strong>Kimenet / Eredmény (2 kör után):</strong></p>
+        <pre><code>## Cycle 1 — DA findings (3 agents)
+Critical C1-I-1: `save_order()` called before payment confirmed — order can be
+  saved without charge.
+Major    C1-I-2: No rollback on partial failure between charge and order save.
+Moderate C1-I-3: Retry count hardcoded to 3; should be env-configurable.
+
+## Cycle 1 — Fixes applied
+C1-I-1 fixed: moved `save_order()` call after payment confirmation check.
+C1-I-2 fixed: added try/finally block with rollback on charge success + save failure.
+C1-I-3 fixed: replaced magic number with MAX_RETRY env var (default 3).
+
+Tests: 42 passed, 0 failed.
+
+## Cycle 2 — DA findings (3 agents)
+(no Critical, Major, or Moderate issues found)
+
+## Review Summary
+### Verdict
+No critical, major or moderate issues remain.
+### Remaining Open Issues
+- Minor N1: variable `tmp` in line 47 could be renamed for clarity (not auto-fixed).</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Egy plan-fájl átvizsgálása és a hiányok pótlása <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/iterative-review plans/FEAT-007-payments.md</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>## Cycle 1 — DA findings
+Major C1-I-1: Task 3.2 adds a `/refund` endpoint but no task covers updating
+  ledger records on refund — creates an inconsistency in accounting reports.
+Major C1-I-2: No rollback task defined if the DB migration in Task 4.1 fails.
+Moderate C1-I-3: Acceptance criteria for Task 2.3 omit rate-limiting the
+  charge endpoint.
+
+## Cycle 1 — Fixes applied
+C1-I-1 fixed: added Task 3.3 "Update ledger on refund" to the plan.
+C1-I-2 fixed: added Task 4.2 "Rollback plan for DB migration failure".
+C1-I-3 fixed: added rate-limit acceptance criterion to Task 2.3.
+
+## Cycle 2 — DA findings
+(no Critical, Major, or Moderate issues found)
+
+## Review Summary
+### Verdict
+No critical, major or moderate issues remain.
+### Changes Made
+- C1-I-1 → Major → added Task 3.3 to plan
+- C1-I-2 → Major → added Task 4.2 to plan
+- C1-I-3 → Moderate → tightened Task 2.3 acceptance criteria</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-da-review-hu.html">/da-review</a> — Egymenetes review, amely megtalálja a problémákat, de nem javítja őket; akkor használd, ha kézben szeretnéd tartani a javításokat.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Végigviszi egy plan-task megvalósítását elejétől a végéig, és belsőleg hívja az <code>/iterative-review</code>-ot a DA review ciklusa részeként.</li>
+        <li><a href="cmd-implement-all-hu.html">/implement-all</a> — Addig futtatja ismételten az <code>/implement-next</code> parancsot, amíg minden plan-task el nem készül; minden task review ciklusa az <code>/iterative-review</code>-ot használja.</li>
+        <li><a href="skill-aaa-hu.html">/aaa</a> — A minőséget világszínvonalú standardokhoz méri kutatással és gap-elemzéssel; nem csak hibákat jelez, hanem iparági kiválósághoz viszonyítva benchmark-ol, így kiegészíti a review-t.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes handout</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scripts-plan — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>scripts-plan</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Öt shell scriptből álló csomag, amely követi a terv előrehaladását, kikényszeríti az egy-feladat-egy-commit fegyelmet, és auditálja a befejezett terv-futásokat — közvetlenül a fejlesztők, illetve automatikusan az <code>/implement-next</code> és <code>/implement-all</code> használja.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd ezeket a scripteket, amikor olyan Markdown terv-fájlokkal dolgozol, amelyek <code>- [ ]</code> / <code>- [x]</code> feladat-checkboxokat tartalmaznak:</p>
+      <ul>
+        <li>Ha látni szeretnéd, melyik a következő feladat és mennyi az aktuális készültségi százalék — használd a <code>plan-progress.sh</code> scriptet.</li>
+        <li>Ha meg akarod számolni, hány feladat van még hátra egy futás indítása előtt — használd a <code>count-uncompleted-tasks.sh</code> scriptet.</li>
+        <li>Egy ciklusban minden <code>/implement-next</code> hívás után — a <code>check-task-commit.sh</code> ellenőrzi, hogy pontosan egy commit készült.</li>
+        <li>Egy teljes <code>/implement-all</code> vagy <code>/implement-next</code> futás befejezése után — használd a <code>verify-run-commits.sh</code> scriptet, hogy megerősítsd: a commitok száma megegyezik a feladatok számával.</li>
+        <li>Bármikor később, egy korábbi futás független auditálásához — használd az <code>audit-plan-run.sh</code> scriptet.</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+
+      <h3>Felhasználó által hívható scriptek</h3>
+
+      <h4><code>plan-progress.sh</code></h4>
+      <p>Formázott haladás-fejlécet nyomtat a következő befejezetlen feladathoz. A <code>progress-header-phased.template</code> (fázisokra bontott tervek) vagy a <code>progress-header-flat.template</code> (lapos tervek) sablont használja.</p>
+      <pre><code>bash ~/.claude/scripts/plan-progress.sh &lt;plan_file&gt;</code></pre>
+      <p><strong>Kilépési kódok:</strong> 0 = fejléc kinyomtatva + <code>NEXT_TASK_*</code> gépileg olvasható sorok; 1 = minden feladat kész; 2 = használati hiba vagy fájl nem található; 3 = nincs felismerhető feladat-szakasz fejléc.</p>
+
+      <h4><code>count-uncompleted-tasks.sh</code></h4>
+      <p>Megszámolja a felső szintű <code>- [ ]</code> sorokat a felismert feladat-szakaszon belül. Kiírja: <code>number_of_uncompleted_tasks=&lt;N&gt;</code>.</p>
+      <pre><code>bash ~/.claude/scripts/count-uncompleted-tasks.sh &lt;plan_file&gt;</code></pre>
+      <p><strong>Kilépési kódok:</strong> 0 = siker; 2 = használati hiba vagy fájl nem található.</p>
+
+      <h4><code>audit-plan-run.sh</code></h4>
+      <p>Önálló, futás utáni audit. Ellenőrzi, hogy a <code>&lt;sha_start&gt;</code> óta keletkezett nem-merge commitok száma megegyezik-e a futásban befejezett feladatok számával (jelenlegi befejezett mínusz futás előtti befejezett).</p>
+      <pre><code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan_file&gt; &lt;sha_start&gt;</code></pre>
+      <p><strong>Kilépési kódok:</strong> 0 = PASS; 1 = VIOLATION vagy eltérés; 2 = használati vagy git hiba.</p>
+
+      <h4><code>verify-run-commits.sh</code></h4>
+      <p>Ellenőrzi, hogy pontosan <code>&lt;expected_count&gt;</code> darab nem-merge commit készült a <code>&lt;sha_start&gt;</code> óta. Könnyebb, mint az <code>audit-plan-run.sh</code> — nem diffeli a terv-fájlt.</p>
+      <pre><code>bash ~/.claude/scripts/verify-run-commits.sh &lt;sha_start&gt; &lt;expected_count&gt;</code></pre>
+      <p><strong>Kilépési kódok:</strong> 0 = PASS; 1 = VIOLATION; 2 = használati vagy git hiba.</p>
+
+      <h4><code>check-task-commit.sh</code></h4>
+      <p>Ellenőrzi, hogy pontosan <strong>egy</strong> nem-merge commit készült, nem üres fájlváltozásokkal, a <code>&lt;sha_before&gt;</code> óta. Cikluson belül minden <code>/implement-next</code> hívás után futtasd.</p>
+      <pre><code>bash ~/.claude/scripts/check-task-commit.sh &lt;sha_before&gt;</code></pre>
+      <p><strong>Kilépési kódok:</strong> 0 = PASS; 1 = VIOLATION; 2 = használati vagy git hiba.</p>
+
+      <h3>Belső függőségek (a felhasználó által hívható scriptek hívják — közvetlenül nem indítandók)</h3>
+      <ul>
+        <li><code>task_section.awk</code> — AWK töredék, amely akkor aktiválódik, amikor a parser belép egy felismert feladat-szakasz fejlécbe (<code>## Tasks</code>, <code>## Task</code> vagy <code>## Task breakdown</code>). Hívja a <code>plan-progress.sh</code>, a <code>count-uncompleted-tasks.sh</code> és az <code>audit-plan-run.sh</code>.</li>
+        <li><code>progress-header-phased.template</code> — Mustache-stílusú sablon fázisokra bontott tervekhez (azaz olyanokhoz, ahol vannak <code>###</code> fázis-fejlécek). Hívja a <code>plan-progress.sh</code>.</li>
+        <li><code>progress-header-flat.template</code> — Mustache-stílusú sablon lapos tervekhez (nincsenek fázis-fejlécek). Hívja a <code>plan-progress.sh</code>.</li>
+      </ul>
+
+      <h3>Függőségi táblázat</h3>
+      <table class="dep-table">
+        <colgroup>
+          <col class="col-script">
+          <col class="col-type">
+          <col class="col-deps">
+          <col class="col-caller">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Script</th>
+            <th>Típus</th>
+            <th>Belső függőségek</th>
+            <th>Automatikusan hívja</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>plan-progress.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td><code>task_section.awk</code>, sablonok</td>
+            <td><code>/implement-next</code> 1. lépés</td>
+          </tr>
+          <tr>
+            <td><code>count-uncompleted-tasks.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td><code>task_section.awk</code></td>
+            <td><code>/implement-all</code> inicializálás</td>
+          </tr>
+          <tr>
+            <td><code>audit-plan-run.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td><code>task_section.awk</code></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><code>verify-run-commits.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td>—</td>
+            <td><code>/implement-all</code> záró lépés</td>
+          </tr>
+          <tr>
+            <td><code>check-task-commit.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td>—</td>
+            <td><code>/implement-all</code> feladatonkénti ellenőrzés</td>
+          </tr>
+          <tr>
+            <td><code>task_section.awk</code></td>
+            <td><span class="badge suggested">internal</span></td>
+            <td>—</td>
+            <td>plan-progress, count-uncompleted, audit-plan-run</td>
+          </tr>
+          <tr>
+            <td><code>progress-header-phased.template</code></td>
+            <td><span class="badge suggested">internal</span></td>
+            <td>—</td>
+            <td><code>plan-progress.sh</code></td>
+          </tr>
+          <tr>
+            <td><code>progress-header-flat.template</code></td>
+            <td><span class="badge suggested">internal</span></td>
+            <td>—</td>
+            <td><code>plan-progress.sh</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Terv-előrehaladás ellenőrzése a <code>plan-progress.sh</code> scripttel</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>bash ~/.claude/scripts/plan-progress.sh plans/FEAT-001-skill-command-script-handouts.md</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Progress   : [█████████░░░] 79%  (15/19 tasks, 3/6 phases)
+Next task  : 4.1  **File**: `handout/scripts-plan.html`
+
+NEXT_TASK_NAME=**File**: `handout/scripts-plan.html`
+NEXT_TASK_PHASE=4
+NEXT_TASK_NUMBER=1</code></pre>
+        <p>Kilépési kód: 0. A <code>NEXT_TASK_*</code> sorok gépileg olvashatók, és az <code>/implement-next</code> az 1. lépésben ezeket parsolja, hogy azonosítsa a megvalósítandó feladatot.</p>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Befejezett futás auditálása az <code>audit-plan-run.sh</code> scripttel</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>bash ~/.claude/scripts/audit-plan-run.sh plans/FEAT-001-skill-command-script-handouts.md abc1234</code></pre>
+        <p><strong>Kimenet / Eredmény (PASS):</strong></p>
+        <pre><code>Plan file : plans/FEAT-001-skill-command-script-handouts.md
+sha_start : abc1234
+Tasks completed in this run (top-level) : 4
+Non-merge commits since sha_start : 4
+
+PASS: 4 commits for 4 completed tasks — counts match</code></pre>
+        <p><strong>Kimenet / Eredmény (VIOLATION):</strong></p>
+        <pre><code>Plan file : plans/FEAT-001-skill-command-script-handouts.md
+sha_start : abc1234
+Tasks completed in this run (top-level) : 4
+Non-merge commits since sha_start : 3
+
+VIOLATION: 3 commits for 4 completed tasks — counts do not match</code></pre>
+        <p>A VIOLATION azt jelenti, hogy legalább két feladat egyetlen commitba lett összevonva, ami megsérti az egy-feladat-egy-commit szabályt. Kilépési kód: 1.</p>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Az 1. lépésben meghívja a <code>plan-progress.sh</code> scriptet, és minden commit után a <code>check-task-commit.sh</code> scriptet, hogy kikényszerítse az egy-feladat-egy-commit szabályt; ezek a scriptek az elsődleges felhasználói.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

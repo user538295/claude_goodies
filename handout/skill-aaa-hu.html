@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/aaa — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/aaa/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/aaa</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Ötletek, termékfunkciók, architektúra és kód értékelése és továbbfejlesztése bizonyítékok, iparági legjobb gyakorlatok, kutatás, hézagelemzés és 3–4 világszínvonalú opció segítségével.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd az <code>/aaa</code> parancsot, ha tudni szeretnéd, hogy egy ötlet, funkció, architektúra, munkafolyamat, stratégia vagy kódrészlet kiváló-e — vagy hogyan emelhető a lehető legmagasabb gyakorlati minőségi szintre. Szigorú termék-, UX-, technikai, architektúra- vagy kódbírálatot ad, amelyet kutatás és közvetlen ítéletalkotás támaszt alá.</p>
+      <p>Triggerkifejezések (a SKILL.md-ből):</p>
+      <ul>
+        <li><code>"is this excellent?"</code></li>
+        <li><code>"is this world-class?"</code></li>
+        <li><code>"AAA quality"</code></li>
+        <li><code>"worth building?"</code></li>
+        <li><code>"how do I improve this?"</code></li>
+        <li><code>"rigorous review of this feature / architecture / code"</code></li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Hívd meg közvetlenül slash parancsként, opcionálisan az értékelendő dolog leírását követve:</p>
+      <pre><code>/aaa [description or paste of the idea / feature / code / architecture to evaluate]</code></pre>
+      <p>A skill bármilyen artefaktumot elfogad: egy rövid ötletet, egy funkcióspecifikációt, egy kódrészletet, egy architektúradiagram leírását vagy egy teljes fájlt. Ha további kontextus (követelmények, stack, versenytársak) elérhető, vedd bele — a skill fel fogja használni.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Ötletminőség értékelése</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/aaa We want to build an AI-powered note-taking app that auto-links related notes and surfaces forgotten ideas at the right moment. Is this AAA quality?</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Initial classification: Promising but underdeveloped
+
+The core idea (auto-linking + surfacing) is validated by tools like Roam, Obsidian, and Mem.
+Differentiation is low without a clear edge on timing or context.
+
+Gap analysis:
+- Problem intensity: high (note retrieval is a known pain)
+- Differentiation: weak — Mem.ai already does this with LLMs
+- Feasibility: medium (embedding-based retrieval is mature)
+
+3 world-class options:
+1. Lean/elegant — Obsidian plugin, no new app, ship fast
+2. AI-native — real-time bidirectional linking with semantic drift detection
+3. Enterprise — team knowledge graph with access controls
+
+Recommendation: Option 1 to validate, Option 2 if differentiation from Mem is confirmed.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Kódbírálat</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/aaa
+```python
+def get_user(id):
+    result = db.execute(f"SELECT * FROM users WHERE id = {id}")
+    return result.fetchone()
+```
+Is this world-class code?</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Classification: Weak
+
+Blockers:
+- SQL injection: f-string interpolation directly into a query is a critical security vulnerability.
+  Fix: use parameterized queries — db.execute("SELECT * FROM users WHERE id = ?", (id,))
+- No error handling: db failures silently return None
+
+Improvements:
+- Type hints: def get_user(id: int) -> Optional[User]
+- Limit columns: SELECT id, name, email instead of SELECT *
+- Use an ORM if available (SQLAlchemy, Django ORM)
+
+Recommendation: Fix the injection blocker immediately; add type hints and column specificity next.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-da-review-hu.html">/da-review</a> — Egymenetes ördög ügyvédje bírálat, amely megtalálja a hibákat anélkül, hogy javításokat alkalmazna; jó egy gyors kritikus átolvasáshoz az <code>/aaa</code> előtt.</li>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — Több ügynökös bírálati hurok, amely a közepes vagy súlyosabb problémákat egyszerre megtalálja és javítja; akkor használd, ha azt szeretnéd, hogy a problémák automatikusan megoldódjanak, ne csak felsorolva legyenek.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Ügynöki munkafolyamat-pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

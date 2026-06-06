@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/plan-maker — Claude Code összefoglaló</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/plan-maker/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/plan-maker</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Részletes, végrehajtható implementációs terveket készít és frissít: a lehető legkisebb feladatokra bontva, teljes teszt-specifikációval és világos függőségi láncokkal.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd a <code>/plan-maker</code>-t, amikor a munkát strukturált, megvalósítható feladatokra kell bontanod. Mielőtt bármit is leírnál, lefuttat egy architekturális kihívás-kört, így a döntések explicit módon születnek meg, és a határesetek még az implementáció előtt felszínre kerülnek.</p>
+      <p>Trigger kifejezések (a SKILL.md-ből):</p>
+      <ul>
+        <li><code>"make a plan for"</code></li>
+        <li><code>"create a plan"</code></li>
+        <li><code>"plan this out"</code></li>
+        <li><code>"write up a plan"</code></li>
+        <li><code>"update the plan for"</code></li>
+        <li><code>"add tasks to the plan"</code></li>
+        <li><code>"how should we implement X"</code></li>
+      </ul>
+      <p>Bármilyen kérésre is triggerelődik, amely egy feature, javítás, refaktor vagy kezdeményezés végrehajtható lépésekre bontását kéri — még rövid vagy lazán megfogalmazott tervezési kérésekre is.</p>
+      <p><strong>Munkafolyamatbeli kontextus:</strong> a <code>/plan-maker</code> a 9 lépéses agentic workflow pipeline egyik kulcsfontosságú belépési pontja. Lásd <a href="agentic-workflow-hu.html">agentic-workflow-hu.html</a>, amely bemutatja, hogyan illeszkedik a <code>/feature-refinement</code>, <code>/implement-next</code> és <code>/implement-all</code> mellé.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Slash parancsként hívd meg, opcionálisan egy rövid leírással arról, hogy mit kell megtervezni:</p>
+      <pre><code>/plan-maker [feature description or goal]</code></pre>
+      <p>A skill interaktívan összegyűjti a kontextust, lefuttatja az architekturális kihívás-köröket (az aggályokat opciókként veti fel, előnyökkel/hátrányokkal és egy ajánlással), majd kiírja a tervet a projekt tervkönyvtárába.</p>
+      <p><strong>Paraméterek:</strong> egy sem kötelező. Ha megadsz egy leírást, az a kontextusgyűjtés kiindulópontja lesz; ha nem, akkor a skill rákérdez.</p>
+      <p><strong>Meglévő terv frissítése:</strong> mondd azt, hogy <code>"update the plan for X"</code> — a skill megkeresi a meglévő fájlt, és új feladatokat fűz hozzá ahelyett, hogy duplikátumot hozna létre.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Új feature terv</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/plan-maker Add OAuth2 login to the API so users can sign in with Google or GitHub</code></pre>
+        <p><strong>Kimenet / eredmény:</strong></p>
+        <pre><code># FEAT-012 — OAuth2 Login
+**Purpose**: Allow users to authenticate via Google or GitHub instead of email/password
+**Audience**: API consumers and end users
+**Status**: To Do
+
+## Background
+The current auth system requires email/password accounts. Adding OAuth2 removes signup
+friction and delegates credential management to trusted providers.
+
+## Goal
+Users can initiate OAuth2 login, exchange the callback code for a session token, and
+access protected endpoints — with no change to the existing password-login path.
+
+## Scope
+### In Scope
+- Google and GitHub OAuth2 providers
+- Token exchange endpoint, session creation, user upsert
+
+### Out of Scope
+- OAuth2 for admin accounts (separate system)
+- Mobile deep-link callbacks (deferred)
+
+## Task breakdown
+
+### Phase 1 — OAuth2 core
+#### Task 1.1 — OAuth2 provider config loader
+- [ ] **File**: `src/auth/oauth_config.py`
+...
+#### Task 1.2 — Callback endpoint
+...
+#### Task 1.N — Final verification &amp; documentation update
+...</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Meglévő terv frissítése</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>update the plan for FEAT-012 — we also need to support Apple Sign In</code></pre>
+        <p><strong>Kimenet / eredmény:</strong></p>
+        <pre><code>Found existing plan: plans/FEAT-012-oauth2-login.md
+
+Architectural concern raised:
+  Apple Sign In uses a different token format (JWT, not opaque) and requires
+  client-secret rotation every 6 months.
+  - Option A: reuse the existing provider abstraction — Pro: minimal change;
+    Con: abstraction leaks Apple-specific JWT handling
+  - Option B: add an AppleProvider subclass with dedicated JWT validation —
+    Pro: clean separation; Con: slightly more code
+  - Recommendation: Option B — cleaner long-term
+
+New tasks appended to Phase 1:
+  Task 1.5 — AppleProvider JWT validator
+  Task 1.6 — Apple client-secret rotation script
+  Task N.N — Final verification updated with Apple AC
+
+Plan saved: plans/FEAT-012-oauth2-login.md (6 tasks, 2 new)</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-feature-refinement-hu.html">/feature-refinement</a> — Egy nyers feature-ötletet strukturált rövid leírássá finomít a tervezés előtt; akkor használd a <code>/plan-maker</code> előtt, amikor a hatókör még bizonytalan.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes összefoglaló</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/llm-wiki — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/llm-wiki/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/llm-wiki</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Állíts össze vagy üzemeltess egy <strong>általános témájú</strong> LLM wikit (Karpathy-minta) — egy tartós, LLM által karbantartott markdown tudásbázist kutatáshoz, személyes tudásmenedzsmenthez, könyvolvasáshoz, kurzusjegyzetekhez, versenytárselemzéshez vagy bármilyen, nem termékhez kötődő területhez.</p>
+      <p><em>Megjegyzés: Ha a wiki egy szoftverprojekt funkcióit, specifikációit, ütemtervét és döntéseit fedi le, helyette használd a <a href="skill-llm-wiki-product-hu.html">/llm-wiki-product</a> skillt. A két skill egy projekten belül kölcsönösen kizárja egymást.</em></p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd a <code>/llm-wiki</code>-t, ha bármilyen <strong>általános témájú</strong> tudásmenedzsment feladatod van, ami nem termékfejlesztéshez kötődik. A Karpathy-féle wiki-mintát alkalmazza lapos <code>raw/</code> könyvtárral, valamint <code>wiki/topics/</code> és <code>wiki/decisions/</code> oldalkategóriákkal.</p>
+      <p>Indító kifejezések (a SKILL.md alapján):</p>
+      <ul>
+        <li><code>"set up an LLM wiki"</code></li>
+        <li><code>"apply the Karpathy wiki pattern"</code></li>
+        <li><code>"build a persistent knowledge base"</code></li>
+        <li><code>"ingest into the wiki"</code></li>
+        <li><code>"create a topic page"</code></li>
+        <li><code>"draft a document from the wiki"</code></li>
+        <li><code>"lint the wiki"</code></li>
+        <li>Bármilyen feladat, ami a <code>llm-wiki/</code> könyvtárat érinti <code>raw/</code>, <code>wiki/</code>, <code>drafts/</code> rétegekkel</li>
+      </ul>
+      <h3>Mikor ezt a skillt használd a <code>/llm-wiki-product</code> helyett</h3>
+      <ul>
+        <li><strong><code>/llm-wiki</code> (ez a skill)</strong> — általános, bármilyen <em>nem termékhez kötődő</em> téma: kutatás, személyes tudás, könyvolvasás, kurzusjegyzetek, versenytárselemzés, tanulás, hobbielmélyülés. Lapos <code>raw/</code> könyvtárat és <code>wiki/topics/</code>, <code>wiki/decisions/</code> oldalkategóriákat használ.</li>
+        <li><strong><code>/llm-wiki-product</code></strong> — szoftverprojekthez tartozó wiki funkciókhoz, specifikációkhoz, kódjegyzetekhez és versenytárs-dokumentumokhoz. Vödrökre bontott <code>raw/</code> könyvtárat és <code>wiki/features/</code>, <code>wiki/decisions/</code> kategóriákat használ.</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Slash parancsként hívd meg. A skill automatikusan a <strong>Setup</strong>, <strong>Operate</strong> vagy <strong>Repair</strong> útra terel a <code>llm-wiki/</code> állapota alapján:</p>
+      <pre><code>/llm-wiki</code></pre>
+      <p>A skill maga dönti el, melyik módban fusson:</p>
+      <ul>
+        <li><strong>Nincs <code>llm-wiki/</code> könyvtár</strong> → <strong>Setup</strong> fut (1. lépés): létrehozza a teljes könyvtárfát, bemásolja a sablonokat, a <code>schema.md</code>-t hozzáigazítja a projekthez, és felajánlja a pointer beillesztését a <code>CLAUDE.md</code>/<code>AGENTS.md</code> fájlba.</li>
+        <li><strong>Létezik a <code>llm-wiki/</code> és teljes</strong> (tartalmaz <code>schema.md</code>-t és a teljes rétegfát) → a kért <strong>Operation</strong> fut (2. lépés): ingest, topic page létrehozása, draft, query, lint, archiválás, séma evolúció vagy watcher parancsok.</li>
+        <li><strong>Létezik a <code>llm-wiki/</code>, de hiányos</strong> → <strong>Repair</strong> fut (1b. lépés): a hiányzó részeket pótolja a meglévő fájlok felülírása nélkül.</li>
+      </ul>
+      <p>A wiki beállítása után elérhető műveletek:</p>
+      <ul>
+        <li><code>ingest</code> — beolvas egy forrást, frissíti a wiki oldalakat, frissíti az <code>index.md</code>-t, hozzáfűz a <code>log.md</code>-hez</li>
+        <li><code>create a topic page</code> — összeszintetizál egy <code>wiki/topics/&lt;name&gt;.md</code> oldalt</li>
+        <li><code>draft a document</code> — megír egy <code>drafts/&lt;name&gt;.md</code> dokumentumot</li>
+        <li><code>query</code> — beolvassa az <code>index.md</code>-t, megkeresi az oldalakat, hivatkozásokkal együtt szintetizál választ</li>
+        <li><code>lint</code> — egészségellenőrzést végez a wikin (árva oldalak, hiányzó hivatkozások, ellentmondások)</li>
+        <li><code>start-watch</code> / <code>stop-watch</code> / <code>watch-status</code> — fájlrendszer-figyelő a <code>raw/</code>-hoz</li>
+        <li><code>check-pending</code> — átnézi a függőben lévő ingest sort</li>
+      </ul>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Új wiki összeállítása egy kutatási projekthez</h2>
+      <div class="example">
+        <p><em>Szemléltető példa</em></p>
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/llm-wiki
+Set up an LLM wiki for my machine learning research project.</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>No llm-wiki/ directory found. Running Setup (Step 1).
+
+Created:
+  llm-wiki/
+    karpathy-llm-wiki.md   ← reference copy
+    schema.md              ← adapted to project (docs/ and papers/ detected as external roots)
+    index.md
+    log.md
+    raw/
+    wiki/
+      overview.md
+      glossary.md
+      topics/
+      decisions/
+    drafts/
+
+Detected external documentation roots:
+  | Path      | Note                                                     |
+  |-----------|----------------------------------------------------------|
+  | docs/     | Read-only literature corpus — cite as docs/&lt;f&gt;.          |
+  | papers/   | Research papers — read for context, never modify.        |
+
+Log entry appended: [2026-06-05] init | wiki created | schema.md, index.md, wiki/overview.md, wiki/glossary.md
+
+Offer: Inject llm-wiki pointer into CLAUDE.md? (yes/no)</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Forrás beillesztése (ingest) egy meglévő wikibe</h2>
+      <div class="example">
+        <p><em>Szemléltető példa</em></p>
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/llm-wiki
+Ingest this paper abstract into the wiki as a topic page on "attention mechanisms":
+[paste of paper abstract on transformer attention]</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Running Operation: Ingest
+
+1. Saved raw source to: llm-wiki/raw/attention-mechanisms-vaswani-2017.md
+   (Provenance header added: source = "pasted abstract", date = 2026-06-05)
+
+2. Updated wiki page: llm-wiki/wiki/topics/attention-mechanisms.md
+   - Added section: "Scaled dot-product attention (Vaswani et al., 2017)"
+   - No conflicts detected with existing content.
+
+3. Updated index.md: added entry for "attention mechanisms"
+
+4. Appended to log.md:
+   ## [2026-06-05] ingest | attention-mechanisms-vaswani-2017.md | wiki/topics/attention-mechanisms.md
+
+Next recommended operation: query or lint to verify the wiki state.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="skill-llm-wiki-product-hu.html">/llm-wiki-product</a> — A skill termékcsapatokra szabott változata olyan wikikhez, amelyek funkciókat, specifikációkat, ütemterveket és döntéseket fednek le. Egy projekten belül kölcsönösen kizárja a <code>/llm-wiki</code>-t — válaszd azt, amelyik a területedhez illik.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentikus munkafolyamat pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

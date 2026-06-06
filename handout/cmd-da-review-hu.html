@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/da-review — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/da-review.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/da-review</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Egymenetes ördög ügyvédje (devil's advocate) jellegű felülvizsgálat, amely megtalálja az adott célpont — kód, terv, diff vagy design — minden hibáját, anélkül, hogy bármilyen javítást alkalmazna.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd a <code>/da-review</code> parancsot, ha valamiről kritikus, ellenpárti olvasatot szeretnél, és egy prioritizált problémalistát, amellyel utána magad dolgozol tovább. Egyszer fut le, és megáll — nem ciklusol, nem indít javító ügynököket, és nem módosít semmilyen fájlt.</p>
+      <p><strong>Lényeges különbség az <code>/iterative-review</code>-hoz képest:</strong> a <code>/da-review</code> <em>azonosítja</em> a problémákat; az <code>/iterative-review</code> ezzel szemben <em>azonosítja és ki is javítja</em> őket ciklusban mindaddig, amíg nem marad kritikus, súlyos vagy közepes probléma. Akkor válaszd a <code>/da-review</code>-t, ha kézben akarod tartani a javításokat; akkor válaszd az <code>/iterative-review</code>-t, ha automatikusan szeretnéd elhárítani a problémákat.</p>
+      <p>Tipikus kiváltó helyzetek:</p>
+      <ul>
+        <li>Épp befejeztél egy feladat implementálását, és gyors ellenpárti józanságellenőrzést akarsz commit előtt.</li>
+        <li>Egy tervet vagy specifikációt akarsz átvizsgálni hiányosságok után kutatva, mielőtt belevágsz a megvalósításba.</li>
+        <li>Súlyosság szerint csoportosított megállapításokat akarsz anélkül, hogy bármi a kódban változna.</li>
+        <li>Gyors, egymenetes felülvizsgálatra van szükséged, amelyet egy kézi javítási menet bemenetéül használsz.</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Add át a felülvizsgálandó célpontot argumentumként. Ha nincs argumentum, akkor a kontextusban éppen lévő tervet vagy kódot vizsgálja át.</p>
+      <pre><code>/da-review [target]</code></pre>
+      <p><strong>Paraméterek:</strong></p>
+      <ul>
+        <li><code>[target]</code> — (opcionális) mit vizsgáljon: fájl elérési útja, egy <code>git diff</code> részlet, egy tervfájl elérési útja vagy egy leírás. Ha üres, a parancs az aktuális kontextusban lévő tervet/kódot/munkát vizsgálja.</li>
+      </ul>
+      <p><strong>Engedélyezett eszközök (csak olvasás):</strong> <code>Read</code>, <code>Grep</code>, <code>Glob</code>. Az ügynök nem írhat fájlokat, és nem futtathat shell parancsokat.</p>
+      <p><strong>Súlyossági rubrika</strong> (megegyezik az <code>/iterative-review</code>-ban használttal — szinkronban tartva):</p>
+      <ul>
+        <li><span class="badge must">Kritikus</span> — helyesség, biztonság vagy üzembiztonság szempontjából blokkoló</li>
+        <li><span class="badge suggested">Súlyos</span> — jelentős tervezési hiba, hiányzó követelmény vagy valószínű bug</li>
+        <li><span class="badge optional">Közepes</span> — nem optimális, de működőképes</li>
+        <li>Apró — stílus, elnevezés vagy kötözködés</li>
+      </ul>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — git diff felülvizsgálata commit előtt <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/da-review $(git diff HEAD)</code></pre>
+        <p><strong>Kimenet / eredmény:</strong></p>
+        <pre><code>## Critical
+- C1: `process_payment()` calls `charge_card()` without checking the return value.
+  If charge fails silently, the order is marked paid without actual payment.
+
+## Major
+- M1: No transaction rollback if `save_order()` throws after `charge_card()` succeeds.
+  A crash here leaves the customer charged but orderless.
+
+## Moderate
+- Mo1: `MAX_RETRY` is hardcoded to 3; should be configurable via env var.
+
+## Minor
+- N1: Variable `tmp` in line 47 — rename to `pending_charge` for clarity.
+
+Overall: Critical issue C1 must be fixed before this diff is safe to commit.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — tervfájl felülvizsgálata hiányosságok után kutatva <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/da-review plans/FEAT-042-auth-redesign.md</code></pre>
+        <p><strong>Kimenet / eredmény:</strong></p>
+        <pre><code>## Critical
+(none)
+
+## Major
+- M1: Task 3.2 adds a new `/logout` endpoint but no task covers session token invalidation on the server side.
+  Users who log out remain authenticated until the token expires.
+- M2: No rollback plan defined. If the migration in Task 4.1 fails in production, the
+  previous auth tables are gone.
+
+## Moderate
+- Mo1: Acceptance criteria for Task 2.1 do not mention rate-limiting the login endpoint.
+
+## Minor
+- N1: Task numbering jumps from 3.4 to 3.6 — likely a copy-paste error.
+
+Overall: Two major gaps that could cause a security regression — recommend addressing before implementation begins.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — Több ügynökös felülvizsgálati ciklus, amely a közepes vagy súlyosabb problémákat automatikusan <em>megtalálja és ki is javítja</em>; akkor használd, ha a problémák megoldását akarod, nem csak felsorolását.</li>
+        <li><a href="skill-aaa-hu.html">/aaa</a> — A minőséget világszínvonalú mércékhez méri kutatás és hiányosságelemzés alapján; akkor használd, ha kiválósági mérőszámot akarsz, nem pusztán hibalistát.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Ügynöki munkafolyamat pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

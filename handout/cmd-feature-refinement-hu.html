@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/feature-refinement — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/feature-refinement.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/feature-refinement</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Interaktív, senior termékstratéga gondolkodásmódú segéd, amely egy nyers feature-ötlettől eljuttat egy jól körülhatárolt Feature Brief dokumentumig, amelyet a projektbe ment, és készen áll a <code>/plan-maker</code> futtatására.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd a <code>/feature-refinement</code> parancsot, ha van egy feature-ötleted, de még nincs tiszta scope-od, felhasználói folyamatod vagy döntési naplód. A parancs feltérképezi a kódbázist, megkérdőjelezi a feltételezéseidet, és célzott kérdéseket tesz fel addig, amíg a feature pontosan körülhatárolt nem lesz — majd egy strukturált Feature Brief fájlt állít elő.</p>
+      <p>Az <a href="agentic-workflow-hu.html">agentic workflow pipeline (agentic-workflow-hu.html)</a> is ismerteti, mint a tervezést és implementációt megelőző upstream lépést.</p>
+      <p>Tipikus helyzetek, amikor érdemes elindítani:</p>
+      <ul>
+        <li>Van egy nyers feature-ötleted, és scope-olnod kell, mielőtt tervet írnál.</li>
+        <li>Szeretnél egy ördögügyvéd szerepben gondolkodó terméktervezőt, aki megkérdőjelezi a feltételezéseidet, mielőtt elköteleződsz egy irány mellett.</li>
+        <li>Szükséged van egy Feature Brief fájlra (<code>Documentation/Backlog/…-brief.md</code>), amely a <code>/plan-maker</code> bemenete lesz.</li>
+        <li>Szeretnéd felszínre hozni a kódbázisban rejlő ütközéseket, kockázatokat vagy korábbi döntéseket, mielőtt megoldást tervezel.</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Add át a feature-ötletedet argumentumként. A parancs először feltérképezi a kódbázist, majd iteratív tisztázási körökbe lép.</p>
+      <pre><code>/feature-refinement [feature idea or description]</code></pre>
+      <p><strong>Paraméterek:</strong></p>
+      <ul>
+        <li><code>[feature idea or description]</code> — (kötelező) Rövid leírás a finomítani kívánt feature-ről. Lehet egy mondat, egy nyers user story vagy néhány felsorolásponti gondolat.</li>
+      </ul>
+      <p><strong>Kimenet:</strong> Egy Feature Brief Markdown fájl a <code>Documentation/Backlog/[feature-name-kebab-case]-brief.md</code> útvonalon (vagy a projekt gyökerében, ha ez a könyvtár nem létezik). A brief a következőket fedi le: Probléma, Cél, Felhasználók és kontextus, Fő folyamat, Scope-ban, Scope-on kívül, Kulcsdöntések, Határesetek és korlátok, Nyitott kérdések, Jövőbeli iterációk, valamint egy Ajánlás.</p>
+      <p><strong>Folyamat fázisai:</strong></p>
+      <ol>
+        <li><strong>1. fázis — Feltérképezés:</strong> Elindít egy Explore ágenst, amely átolvassa az összes kapcsolódó kódot, dokumentációt és ADR-t.</li>
+        <li><strong>2. fázis — Tisztázás, kihívás és ötletelés:</strong> Iteratív körök — minden kör megkérdőjelezi a feltételezéseket, és legfeljebb 3, jól megfogalmazott kérdést tesz fel, amíg a scope, a folyamat és a határesetek nem tisztázódnak.</li>
+        <li><strong>3. fázis — Feature Brief:</strong> Elkészíti és elmenti a strukturált briefet, majd javasolja a <code>/plan-maker [path]</code> futtatását.</li>
+      </ol>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Új értesítési feature finomítása <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/feature-refinement Add email notifications when a task is assigned to a user</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Investigating the codebase before we start...
+
+Found: existing User model, Task model with assignee_id FK, no email infrastructure yet,
+a TODO comment in task_service.py referencing future notifications.
+
+**[Concern: Scope]**
+- Option A: Email only — simple, ships fast. Con: will need rework when push notifications arrive.
+- Option B: Generic notification system with email as first channel — more upfront work, extensible.
+- Recommendation: Option A for now; design the interface to be swappable. Agree?
+
+Q1: Should the assignee receive an email immediately on assignment, or in a daily digest?
+  A) Immediate — users get context faster. Con: noisy for high-volume projects.
+  B) Configurable per-user — best UX. Con: adds a settings screen to scope.
+  C) Immediate for now, configurable later — pragmatic. Recommendation: C.
+
+[After user responds...]
+
+Saved: Documentation/Backlog/task-assignment-notifications-brief.md
+Run `/plan-maker Documentation/Backlog/task-assignment-notifications-brief.md` to create an implementation plan.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Keresési feature scope-olása ütköző korlátokkal <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/feature-refinement Full-text search across all project documents</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Investigating the codebase before we start...
+
+Found: PostgreSQL 15, 3 document types (notes, tasks, files), existing ILIKE queries in search_service.py,
+no full-text index, ~50k rows in production. Prior ADR-007 deferred search to "Phase 2".
+
+**[Concern: Risk]**
+- ADR-007 deferred this — do you know why? Options:
+  A) Performance concern — full-text on 50k rows is fine for pg_trgm; address it.
+  B) Scope concern — previous team wanted to ship faster; now it's time.
+  Recommendation: Clarify before scoping to avoid repeating the same decision.
+
+Q1: Which document types must be searched in v1?
+  A) All three (notes, tasks, files) — complete but more complex.
+  B) Notes and tasks only, files deferred — ships faster, covers 90% of use cases.
+  Recommendation: B.
+
+[After 2 rounds...]
+
+Saved: Documentation/Backlog/full-text-search-brief.md
+Run `/plan-maker Documentation/Backlog/full-text-search-brief.md` to create an implementation plan.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="skill-plan-maker-hu.html">/plan-maker</a> — A <code>/feature-refinement</code> által előállított Feature Briefet fázisokra bontott implementációs tervvé alakítja, feladatokkal, elfogadási kritériumokkal és TDD al-tételekkel.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Linkek</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

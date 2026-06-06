@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>scripts-logging — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>scripts-logging</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Három shell szkript (<code>prompt_log_lib.sh</code>, <code>prompt_log_new_session.sh</code>, <code>prompt_log_save.sh</code>), amelyek automatikusan rögzítenek minden, a Claude Code-nak elküldött promptot projektenkénti Markdown naplófájlokba, sessionönként rendezve.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Ezek a szkriptek automatikusan futnak — normál használat során nem kell kézzel meghívni őket. A <code>settings.json</code>-ban Claude Code hookokhoz vannak bekötve:</p>
+      <ul>
+        <li><code>prompt_log_new_session.sh</code> — a <strong>SessionStart</strong> hook hívja minden új Claude Code session indulásakor</li>
+        <li><code>prompt_log_save.sh</code> — a <strong>UserPromptSubmit</strong> hook hívja minden alkalommal, amikor promptot küldesz</li>
+        <li><code>prompt_log_lib.sh</code> — belső, megosztott függvénykönyvtár; a fenti két szkript source-olja, közvetlenül soha nem hívod</li>
+      </ul>
+      <p>Kézzel csak akkor indítsd őket, ha a logging beállítást debugolod, vagy ha olyan szkriptet írsz, amelynek programozottan kell létrehoznia vagy bővítenie egy session naplófájlt.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <h3><code>prompt_log_new_session.sh</code> — Session inicializáló</h3>
+      <p>A <strong>SessionStart</strong> hook automatikusan hívja. JSON payloadot olvas a stdin-ről.</p>
+      <pre><code>echo '{"session_id":"abc123","cwd":"/path/to/project"}' | bash prompt_log_new_session.sh</code></pre>
+      <p>Új, időbélyeggel ellátott session naplófájlt hoz létre a <code>~/.claude/prompt-logs/&lt;project-slug&gt;/session_YYYY-MM-DD_HH-MM-SS.md</code> alatt, és session map bejegyzést ír a <code>~/.claude/session-maps/&lt;session_id&gt;</code> útvonalra.</p>
+
+      <h3><code>prompt_log_save.sh</code> — Prompt hozzáfűző</h3>
+      <p>A <strong>UserPromptSubmit</strong> hook automatikusan hívja. JSON payloadot olvas a stdin-ről.</p>
+      <pre><code>echo '{"session_id":"abc123","prompt":"your prompt text","cwd":"/path/to/project"}' | bash prompt_log_save.sh</code></pre>
+      <p>A prompt szövegét egy <code>HH:MM:SS</code> időbélyeges címsorral fűzi hozzá a session naplófájlhoz. Ha még nincs session map, belsőleg meghívja a <code>create_session_file</code> függvényt (elegáns késői inicializálás).</p>
+
+      <h3><code>prompt_log_lib.sh</code> — Megosztott függvénykönyvtár (belső)</h3>
+      <p>Közvetlenül nem hívod. A <code>create_session_file(session_id, cwd)</code> függvényt biztosítja. A fenti két szkript tetején source-olva van.</p>
+      <pre><code>source "$HOME/.claude/scripts/prompt_log_lib.sh"</code></pre>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Új session inicializálása</h2>
+      <div class="example">
+        <p><strong>Trigger:</strong> egy új Claude Code session indul egy projektkönyvtárban (automatikus a <code>SessionStart</code> hookon keresztül).</p>
+        <p><strong>Tényleges bemenet (a hook által stdin-re küldött JSON payload):</strong></p>
+        <pre><code>{
+  "session_id": "a1b2c3d4e5f6",
+  "cwd": "/Users/alice/projects/my-app"
+}</code></pre>
+        <p><strong>Eredmény:</strong></p>
+        <pre><code># Prompts — 2026-06-05 09:14:32
+
+**Session ID:** a1b2c3d4e5f6
+**Resume:** `claude --resume a1b2c3d4e5f6`
+**Session file:** `~/.claude/projects/Users-alice-projects-my-app/a1b2c3d4e5f6.jsonl`
+
+---</code></pre>
+        <p>A fájl a <code>~/.claude/prompt-logs/projects-my-app/session_2026-06-05_09-14-32.md</code> útvonalra íródik (a slug = az útvonal utolsó két szegmense <code>-</code> jellel összefűzve). A <code>~/.claude/session-maps/a1b2c3d4e5f6</code> alatti session map bejegyzés rögzíti ennek a fájlnak az útvonalát, <code>600</code> jogosultsággal.</p>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Prompt mentése</h2>
+      <div class="example">
+        <p><strong>Trigger:</strong> egy aktív Claude Code sessionben promptot küldesz (automatikus az <code>UserPromptSubmit</code> hookon keresztül).</p>
+        <p><strong>Tényleges bemenet (a hook által stdin-re küldött JSON payload):</strong></p>
+        <pre><code>{
+  "session_id": "a1b2c3d4e5f6",
+  "prompt": "Implement the next uncompleted task in plans/FEAT-001.md",
+  "cwd": "/Users/alice/projects/my-app"
+}</code></pre>
+        <p><strong>A session naplófájlhoz hozzáfűzött eredmény:</strong></p>
+        <pre><code>## 09:15:44
+
+Implement the next uncompleted task in plans/FEAT-001.md
+
+---</code></pre>
+        <p>Minden további prompt egy új <code>## HH:MM:SS</code> szakaszt fűz ugyanahhoz a fájlhoz, így a session promptjairól teljes, időrendi feljegyzés épül.</p>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a> — a logging hookok a teljes agentic workflow-t támogatják; az <code>agentic-workflow-hu.html</code> dokumentálja a teljes 9 lépéses pipeline-t, amelyben ezek a hookok működnek.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Linkek</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

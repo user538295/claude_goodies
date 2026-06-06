@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/skill-packager — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/skill-packager/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/skill-packager</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Egy Claude Code skill mappát feltöltésre kész ZIP fájlba csomagol a Claude Desktop vagy a claude.ai számára, ügyelve arra, hogy a ZIP legfelső szintű mappájának neve megegyezzen a skill <code>name:</code> frontmatter mezőjével (ez az Anthropic feltöltő kötelező követelménye).</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd a <code>/skill-packager</code>-t, ha egy Claude Code skillt a Claude Desktopra vagy a claude.aira kell eljuttatnod a Settings → Customize → Skills → Create skill → Upload útvonalon. Ez egyben a <strong>kötelező automatikus utólépés</strong> is bármely új Claude Code skill létrehozása után — a Desktop ZIP automatikusan elkészül a Code változat mellett.</p>
+      <p>Kiváltó kifejezések (a SKILL.md-ből):</p>
+      <ul>
+        <li><code>"package this skill"</code></li>
+        <li><code>"zip this skill for Desktop"</code></li>
+        <li><code>"make the Desktop version"</code></li>
+        <li><code>"bundle the skill for upload"</code></li>
+        <li><code>"produce the Desktop ZIP"</code></li>
+      </ul>
+      <p>Automatikusan is kiváltódik utólépésként minden új Claude Code skill létrehozása után, így a Desktop verzió külön kérés nélkül elkészül.</p>
+      <p><strong>Megjegyzés:</strong> a Claude beállításaiban engedélyezni kell a kódfuttatást, különben a Skills szekció rejtett marad a felületen, és a feltöltés meghiúsul.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Slash parancsként hívd meg, opcionálisan megadva a csomagolandó skill mappáját:</p>
+      <pre><code>/skill-packager [skill-folder-path]</code></pre>
+      <p><strong>Paraméterek:</strong></p>
+      <ul>
+        <li><strong>Skill mappa útvonala</strong> — abszolút vagy <code>~</code>-kezdetű útvonal a skill mappához (pl. <code>~/.claude/skills/my-skill/</code>). Ha kihagyod, a skill rákérdez, melyiket csomagolja — soha nem találgat.</li>
+        <li><strong>Kimeneti útvonal</strong> (opcionális) — ha megadod, oda írja a ZIP-et; egyébként az alapértelmezett <code>~/.claude/dist/&lt;name&gt;.zip</code>.</li>
+      </ul>
+      <p>A skill ellenőrzi, hogy a mappa tartalmaz-e <code>SKILL.md</code>-t, kiolvassa a <code>name:</code> frontmatter értékét, megerősíti, hogy a mappa neve egyezik vele, majd felépíti a ZIP-et az OS-zaj, build-melléktermékek, titkok és szerkesztői mentések kihagyásával, végül kiírja az útvonalat, méretet, fájlszámot és a három lépéses telepítési útmutatót.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Meglévő skill csomagolása (szemléltető példa)</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/skill-packager ~/.claude/skills/aaa/</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Packaging skill: aaa
+Source folder : ~/.claude/skills/aaa/
+Output ZIP    : ~/.claude/dist/aaa.zip
+
+Building ZIP (excluding __pycache__, .git, .env, .DS_Store, node_modules)...
+Done.
+
+ZIP path  : /Users/you/.claude/dist/aaa.zip
+Size      : 14 KB
+Files     : 2 (SKILL.md, references/)
+
+Install steps:
+1. Open Settings → Customize → Skills in Claude Desktop or claude.ai.
+2. Click + Create skill → Upload a skill.
+3. Select /Users/you/.claude/dist/aaa.zip</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Név-eltérés elutasítása (szemléltető példa)</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/skill-packager ~/.claude/skills/my-aaa-skill/</code></pre>
+        <p><em>(A mappa neve <code>my-aaa-skill</code>, de a <code>SKILL.md</code>-ben <code>name: aaa</code> szerepel.)</em></p>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>ERROR: Folder name mismatch.
+  Folder basename : my-aaa-skill
+  SKILL.md name:  : aaa
+
+The Anthropic uploader requires the ZIP's top-level entry to equal the skill's
+name: field. Please either:
+  (a) Rename the folder to "aaa", or
+  (b) Change name: in SKILL.md to "my-aaa-skill".
+
+No ZIP was created.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="skill-documentation-standard-hu.html">/documentation-standard</a> — Meghatározza, hogyan dokumentáljuk a skilleket és parancsokat; használd, hogy a skill <code>SKILL.md</code>-je csomagolás előtt teljes legyen.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

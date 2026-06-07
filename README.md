@@ -51,15 +51,15 @@ Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.g
 
 ---
 
-## Install
+## Install · Update
 
-Paste this into Claude Code:
+Paste this into Claude Code — works for both fresh installs and updates:
 
 ```
 Fetch https://raw.githubusercontent.com/user538295/claude_goodies/main/install-prompt.md and follow the installation instructions it contains.
 ```
 
-Claude fetches the installer, clones the repo, installs everything into `~/.claude/`, and cleans up after itself. Restart Claude Code (or start a new session) for everything to load.
+Claude fetches the installer, clones the latest repo, copies everything into `~/.claude/`, and cleans up after itself. For updates, existing files are overwritten with the latest versions; your `CLAUDE.md` is never touched without showing a diff and asking for your approval first. Restart Claude Code (or start a new session) for changes to load.
 
 ---
 

@@ -73,7 +73,8 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 When executing any plan (task list, backlog item, feature spec) via a slash command:
 - Each task gets its own commit with non-empty file changes. Never bundle multiple tasks into one commit.
-- When a command delegates to a sub-command in a loop (e.g. `/implement-all` → `/implement-next`), ALWAYS invoke the sub-command via the `Skill` tool, one task at a time. NEVER spawn a single agent for all tasks.
+- When a command delegates to a sub-command in a loop (e.g. `/implement-all` → `/implement-next`), ALWAYS spawn a **background Agent** per task (to preserve the orchestrator's context window), wait for its completion notification, then spawn the next one. NEVER invoke the sub-command via the Skill tool directly in the main conversation. NEVER spawn a single agent for all tasks at once.
+- Each spawned agent must call the Skill tool (e.g. `implement-next`) with the plan file as its argument.
 - These rules apply to ALL plan-based workflows and ALL delegation commands.
 - After any run, independent verification (no Claude cooperation needed): `bash ~/.claude/scripts/audit-plan-run.sh <plan_file> <sha_start>`
 

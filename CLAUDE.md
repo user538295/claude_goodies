@@ -25,7 +25,18 @@ Before implementing:
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-## 3. Surgical Changes
+## 3. Documentation Must Stay Current
+
+**Every code or behavior change requires a documentation update in the same session. No exceptions.**
+
+Before closing any task:
+- Identify all docs that describe the changed behavior (handouts, README, CLAUDE.md, install-prompt.md, inline comments, HTML pages).
+- Update every affected file to match the new reality.
+- If you added a new command, skill, or script: add it to every place that lists or describes similar items.
+
+This is not optional. Outdated documentation is a bug. Treat it as one.
+
+## 4. Surgical Changes (code)
 
 **Touch only what you must. Clean up only your own mess.**
 
@@ -41,7 +52,7 @@ When your changes create orphans:
 
 The test: Every changed line should trace directly to the user's request.
 
-## 4. Goal-Driven Execution
+## 5. Goal-Driven Execution
 
 **Define success criteria. Loop until verified.**
 
@@ -73,7 +84,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 When executing any plan (task list, backlog item, feature spec) via a slash command:
 - Each task gets its own commit with non-empty file changes. Never bundle multiple tasks into one commit.
-- When a command delegates to a sub-command in a loop (e.g. `/implement-all` → `/implement-next`), ALWAYS spawn a **background Agent** per task (to preserve the orchestrator's context window), wait for its completion notification, then spawn the next one. NEVER invoke the sub-command via the Skill tool directly in the main conversation. NEVER spawn a single agent for all tasks at once.
+- `/implement-all` uses a `/goal` loop: each iteration runs `plan-progress.sh` to check remaining tasks, then spawns a **background Agent** that calls `/implement-next` for one task. NEVER invoke `/implement-next` via the Skill tool directly in the main conversation. NEVER spawn a single agent for all tasks at once.
 - Each spawned agent must call the Skill tool (e.g. `implement-next`) with the plan file as its argument.
 - These rules apply to ALL plan-based workflows and ALL delegation commands.
 - After any run, independent verification (no Claude cooperation needed): `bash ~/.claude/scripts/audit-plan-run.sh <plan_file> <sha_start>`

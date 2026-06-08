@@ -18,24 +18,22 @@
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p>Ismételten átadja a vezérlést a <code>/implement-next</code> parancsnak — egyszerre egy feladatot véve — amíg a tervfájl minden befejezetlen feladata implementálva, ellenőrizve és commitolva nem lesz.</p>
+      <p>Egy <code>/goal</code> ciklust futtat, amely egyszerre egy feladatot delegál a <code>/implement-next</code> parancsnak — addig, amíg a tervfájl minden befejezetlen feladata implementálva és commitolva nem lesz.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>Mikor használd</h2>
-      <p>Akkor használd a <code>/implement-all</code> parancsot, ha van egy tervfájlod több befejezetlen feladattal, és a teljes implementációs ciklust kézi beavatkozás nélkül szeretnéd lefuttatni. A parancs az egész ciklust kezeli — feladatlistát épít, implementációs ügynököket indít, ellenőriz minden commitot, lefuttat egy záró auditot, és kijavít minden teszthibát — anélkül, hogy a feladatok között manuálisan be kellene avatkoznod.</p>
+      <p>Akkor használd a <code>/implement-all</code> parancsot, ha van egy tervfájlod több befejezetlen feladattal, és a teljes implementációs ciklust kézi beavatkozás nélkül szeretnéd lefuttatni. A parancs addig léptet, amíg a terv el nem készül — feladatonként egy-egy ügynököt indít, amelyek mindegyike a <code>/implement-next</code> parancsra delegál.</p>
       <ul>
         <li>Van egy tervfájlod (pl. <code>plans/FEAT-001.md</code>) egy vagy több <code>[ ]</code> feladattal, és sorban mindet implementálni szeretnéd.</li>
-        <li>Azt akarod, hogy minden feladat saját, nem üres fájlváltozásokat tartalmazó commitot kapjon, automatikusan kikényszerítve.</li>
-        <li>Záró auditot (<code>verify-run-commits.sh</code>) szeretnél, amely az összes feladat befejezése után megerősíti a commit-granularitást.</li>
+        <li>Azt akarod, hogy minden feladat saját, nem üres fájlváltozásokat tartalmazó commitot kapjon (ezt a <code>/implement-next</code> kényszeríti ki).</li>
         <li>Egy részben befejezett futást folytatsz, és a következő befejezetlen feladatnál akarsz továbblépni.</li>
       </ul>
       <p><strong>Kritikus megszorítások (a parancs maga kényszeríti ki):</strong></p>
       <ul>
         <li>NEM indít egyetlen ügynököt az összes feladatra — minden feladat külön-külön megy át a <code>/implement-next</code> parancson.</li>
         <li>NEM ír közvetlenül kódot — minden implementáció delegálva van.</li>
-        <li>NEM hagyja ki és NEM vonja össze a verify feladatokat.</li>
-        <li>NEM lép tovább, ha a terv <code>## Tasks</code> vagy <code>## Task breakdown</code> címsora hiányzik (WARNING-ot dob és megáll).</li>
+        <li>NEM lép tovább, ha a terv feladatszakaszának fejléce hiányzik (WARNING-ot dob és megáll).</li>
       </ul>
     </section>
 
@@ -47,15 +45,18 @@
       <ul>
         <li><code>[plan-file-path]</code> — (kötelező) A terv Markdown-fájljának relatív elérési útja, pl. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
-      <p><strong>Folyamat fázisai:</strong></p>
+      <p><strong>Folyamat (</strong><code>/goal</code> ciklus<strong>):</strong></p>
       <ol>
-        <li><strong>Setup:</strong> Rögzíti a <code>sha_start</code> értéket (jelenlegi HEAD), és lefuttatja a <code>count-uncompleted-tasks.sh</code> szkriptet a pontos feladatszám lekérdezéséhez. Azonnal leáll, ha WARNING jelenik meg.</li>
-        <li><strong>Feladatlista építése:</strong> <code>2 × N</code> feladatot hoz létre — váltakozó <code>[IMPLEMENT]</code> / <code>[VERIFY]</code> párokat, egy párt minden befejezetlen tervfeladathoz.</li>
-        <li><strong>Párok végrehajtása:</strong> Minden párhoz indít egy implementációs ügynököt (a <code>/implement-next</code> parancson keresztül), majd egy ellenőrző ügynököt, amely megnézi: létezik új commit, a <code>check-task-commit.sh</code> sikeresen lefut, a tervtétel <code>[x]</code>-szel van jelölve, és a checkpoint tesztek átmennek.</li>
-        <li><strong>Záró audit:</strong> Lefuttatja a <code>verify-run-commits.sh &lt;sha_start&gt; &lt;N&gt;</code> parancsot és a teljes tesztcsomagot. Bármely bukó teszthez fix ügynököt indít (legfeljebb 3 próbálkozással).</li>
+        <li><strong>Haladás ellenőrzése:</strong> Lefuttatja a <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> parancsot.
+          <ul>
+            <li>Exit 1 → minden feladat kész — a cél teljesült, megáll.</li>
+            <li>Exit 2 vagy 3 → megáll és jelenti a hibát.</li>
+            <li>Exit 0 → vannak még feladatok, folytatódik a 2. lépéssel.</li>
+          </ul>
+        </li>
+        <li><strong>Delegálás:</strong> Indít egy ügynököt, amely a <code>/implement-next</code> parancsot hívja a tervfájlon.</li>
+        <li><strong>Ciklus:</strong> Visszatér az 1. lépésre, amíg minden feladat el nem készül.</li>
       </ol>
-      <p><strong>Nulla feladat:</strong> Ha a <code>count-uncompleted-tasks.sh</code> <code>0</code>-t ad vissza (és nincs WARNING), a feladatlista-építés kimarad, és a parancs közvetlenül a záró auditra ugrik.</p>
-      <p><strong>Részleges futás folytatása:</strong> Vedd fel újra a <code>sha_start</code> értéket a jelenlegi HEAD-en, és futtasd újra — a <code>count-uncompleted-tasks.sh</code> csak a megmaradt <code>[ ]</code> feladatokat számolja. A teljes futás elejétől való auditálásához használd: <code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan-file&gt; &lt;original_sha_start&gt;</code>.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -64,26 +65,18 @@
         <p><strong>Bemenet:</strong></p>
         <pre><code>/implement-all plans/FEAT-001-skill-command-script-handouts.md</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>sha_start = a3f9c12
+        <pre><code>Goal: All tasks in plans/FEAT-001-skill-command-script-handouts.md are marked complete.
 
-count-uncompleted-tasks.sh output: number_of_uncompleted_tasks=7
+[1. iteráció] plan-progress.sh → 0/7 kész, következő: Task 3.3 — cmd-implement-all.html
+  → /implement-next ügynök indítása… kész (commit b1d2e3f)
 
-Building task list (14 tasks):
-  [IMPLEMENT] Task 3.3 — cmd-implement-all.html
-  [VERIFY]    Task 3.3 — cmd-implement-all.html
-  [IMPLEMENT] Task 3.4 — cmd-implement-next.html
-  [VERIFY]    Task 3.4 — cmd-implement-next.html
-  …
+[2. iteráció] plan-progress.sh → 1/7 kész, következő: Task 3.4 — cmd-implement-next.html
+  → /implement-next ügynök indítása… kész (commit c2e3f40)
 
-[IMPLEMENT Task 3.3] → spawning /implement-next agent…
-[VERIFY Task 3.3]    → new commit b1d2e3f detected; check-task-commit.sh: PASS; plan [x]: PASS → PASS
+… (5 további iteráció) …
 
-… (6 more pairs) …
-
-Final audit: verify-run-commits.sh a3f9c12 7 → EXIT 0 (PASS)
-Full test suite: all 42 tests green (CLEAN)
-
-Summary: 7 tasks implemented, 7 commits, audit PASS, suite CLEAN.</code></pre>
+[8. iteráció] plan-progress.sh → Minden feladat kész. (exit 1)
+Cél teljesítve.</code></pre>
       </div>
     </section>
 
@@ -93,27 +86,20 @@ Summary: 7 tasks implemented, 7 commits, audit PASS, suite CLEAN.</code></pre>
         <p><strong>Bemenet:</strong></p>
         <pre><code>/implement-all plans/FEAT-002-api-refactor.md</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>sha_start = d4e5f60  (current HEAD — partial run already advanced the branch)
+        <pre><code>Goal: All tasks in plans/FEAT-002-api-refactor.md are marked complete.
+(4 feladat már [x]-szel jelölve egy korábbi futásból)
 
-count-uncompleted-tasks.sh output: number_of_uncompleted_tasks=3
-  (4 tasks already marked [x] from a prior session)
+[1. iteráció] plan-progress.sh → 4/7 kész, következő: Task 2.3 — Extract AuthService
+  → /implement-next ügynök indítása… kész (commit d4e5f60)
 
-Building task list (6 tasks):
-  [IMPLEMENT] Task 2.3 — Extract AuthService
-  [VERIFY]    Task 2.3 — Extract AuthService
-  [IMPLEMENT] Task 2.4 — Wire new AuthService into routes
-  [VERIFY]    Task 2.4 — Wire new AuthService into routes
-  [IMPLEMENT] Task 2.5 — Update integration tests
-  [VERIFY]    Task 2.5 — Update integration tests
+[2. iteráció] plan-progress.sh → 5/7 kész, következő: Task 2.4 — Wire new AuthService
+  → /implement-next ügynök indítása… kész (commit e5f6071)
 
-… (executing 3 pairs) …
+[3. iteráció] plan-progress.sh → 6/7 kész, következő: Task 2.5 — Update integration tests
+  → /implement-next ügynök indítása… kész (commit f607182)
 
-Final audit: verify-run-commits.sh d4e5f60 3 → EXIT 0 (PASS)
-Full test suite: 1 test failing → spawning fix agent…
-Fix agent applied: updated mock in auth_test.py
-Re-running suite: all 38 tests green (CLEAN after 1 fix)
-
-Summary: 3 tasks implemented, 3 commits, audit PASS, suite CLEAN.</code></pre>
+[4. iteráció] plan-progress.sh → Minden feladat kész. (exit 1)
+Cél teljesítve.</code></pre>
       </div>
     </section>
 

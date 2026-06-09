@@ -67,14 +67,19 @@ Claude fetches the installer, clones the latest repo, copies everything into `~/
 
 ---
 
-## The opinions baked in
+## Why this repo has opinions
 
-Everything ships with a `CLAUDE.md` that Claude Code loads at the start of every session. It encodes four principles:
+Unconstrained AI coding produces verbose, coupled code that accumulates fast and is hard to reverse. Constraints aren't slow — they're the thing that makes the output trustworthy enough to ship.
+
+Everything ships with a `CLAUDE.md` that Claude Code loads at the start of every session. It encodes five principles:
 
 1. **Think before coding.** State assumptions, surface tradeoffs, push back when warranted.
 2. **Simplicity first.** Minimum code that solves the problem; nothing speculative.
-3. **Surgical changes.** Touch only what the task requires.
-4. **Goal-driven execution.** Define success upfront and loop until verified.
+3. **Documentation must stay current.** Every code change updates the docs in the same session. Outdated documentation is treated as a bug.
+4. **Surgical changes.** Touch only what the task requires.
+5. **Goal-driven execution.** Define success upfront and loop until verified.
+
+Four of these five principles are adapted from [Andrej Karpathy's guidelines](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md); "Documentation must stay current" is an original addition.
 
 And enforces: tests before code (85%+ coverage), warning-free codebase at all times, one commit per plan task, no batching multiple tasks into a single agent run.
 

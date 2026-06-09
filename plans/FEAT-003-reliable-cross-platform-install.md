@@ -252,7 +252,7 @@ IMPORTANT: `set -euo pipefail` MUST be placed inside `main()` (or inside the `[[
 > **Releasable**: after this phase — feature is fully verified, all documentation current
 
 #### Task 3.1 — Final verification & documentation update
-- [ ] **File**: N/A (agent task)
+- [x] **File**: N/A (agent task)
 - **Depends on**: Task 2.1 (all prior tasks)
 - **Description**:
   - Spawn an agent to discover all documentation in the project (README.md, CLAUDE.md, handout HTML pages, install-prompt.md, any other docs that reference the install path) and update every file whose content is affected by the changes delivered in this plan. The agent must not update docs that are unrelated.

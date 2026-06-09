@@ -3,7 +3,7 @@
 Output assets/demo.gif
 Set Shell "zsh"
 Set Theme "Dracula"
-Set Width 1000
+Set Width 900
 Set Height 600
 Set FontSize 14
 Set TypingSpeed 40ms

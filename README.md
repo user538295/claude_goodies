@@ -8,11 +8,11 @@ Skills, commands, and one adversarial review agent. Every piece explained with a
 
 ## The shape of it
 
-| Your part | Claude's part |
-|---|---|
-| Approve the brief | Refine the idea, challenge it, write the brief |
-| Approve the plan | Decompose into smallest tasks, sequence them, choose tests |
-| Review the diff | Implement test-first, review itself adversarially, commit one task at a time |
+```mermaid
+flowchart LR
+    A((Idea)) --> B[Brief] --> G1([You ✓]):::gate --> C[Plan] --> G2([You ✓]):::gate --> D[Code] --> G3([You ✓]):::gate --> E((Ship))
+    classDef gate fill:#f59e0b,color:#000,stroke:#d97706
+```
 
 Three human gates, everything else automated. The full 9-step pipeline lives in the handout: [agentic-workflow-en.html](https://user538295.github.io/claude_goodies/handout/agentic-workflow-en.html) · [agentic-workflow-hu.html](https://user538295.github.io/claude_goodies/handout/agentic-workflow-hu.html).
 

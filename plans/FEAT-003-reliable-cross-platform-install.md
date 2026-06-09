@@ -225,7 +225,7 @@ IMPORTANT: `set -euo pipefail` MUST be placed inside `main()` (or inside the `[[
 > **Releasable**: after this phase — README reflects the new shell install path; old Claude-mediated path is removed
 
 #### Task 2.1 — Replace README install section with shell one-liner
-- [ ] **File**: `README.md`
+- [x] **File**: `README.md`
 - **Depends on**: Task 1.3
 - **Description**:
   - Replace the `## Install · Update` section content with:

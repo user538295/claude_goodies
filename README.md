@@ -57,13 +57,21 @@ Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.g
 
 ## Install · Update
 
-Paste this into Claude Code — works for both fresh installs and updates:
+Run this in any terminal — works for both fresh installs and updates. Also works in Claude Code CLI with the `! ` prefix:
 
-```
-Fetch https://raw.githubusercontent.com/user538295/claude_goodies/main/install-prompt.md and follow the installation instructions it contains.
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/user538295/claude_goodies/main/install.sh)
 ```
 
-Claude fetches the installer, clones the latest repo, copies everything into `~/.claude/`, and cleans up after itself. For updates, existing files are overwritten with the latest versions; your `CLAUDE.md` is never touched without showing a diff and asking for your approval first. Restart Claude Code (or start a new session) for changes to load.
+The script clones the repo, copies `scripts/*` and `install.sh` into `~/.claude/`, and cleans up after itself. On a fresh install, `CLAUDE.md` is also copied; on updates, the existing `CLAUDE.md` is left untouched unless you pass `--overwrite`. Restart Claude Code (or start a new session) for changes to load.
+
+**Prerequisites**: bash, git, curl.
+
+**Windows**: use WSL. Git Bash is not supported.
+
+**Flags**:
+- `--overwrite` — overwrite all files including `CLAUDE.md`; shows a diff and asks for confirmation in interactive terminals; overwrites without prompting in non-interactive contexts
+- `--keep-claude-md` — overwrite all files except `CLAUDE.md`, no prompt
 
 ---
 
@@ -83,7 +91,7 @@ Four of these five principles are adapted from [Andrej Karpathy's guidelines](ht
 
 And enforces: tests before code (85%+ coverage), warning-free codebase at all times, one commit per plan task, no batching multiple tasks into a single agent run.
 
-The installer diffs your existing `~/.claude/CLAUDE.md` against this one and asks before merging — it will never overwrite without approval.
+The installer leaves your existing `~/.claude/CLAUDE.md` untouched by default. Pass `--overwrite` to update it: in a terminal, it shows a diff and asks for confirmation; in a non-interactive context (CI, scripts), it overwrites silently.
 
 If that's not your speed, this repo isn't for you. If it is — install in 30 seconds.
 
@@ -92,8 +100,8 @@ If that's not your speed, this repo isn't for you. If it is — install in 30 se
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) (CLI, desktop app, or IDE extension).
-- macOS or Linux (shell scripts use bash and awk).
-- Git (used by the commit-verification scripts).
+- macOS or Linux — or Windows via WSL. (Shell scripts use bash and awk.)
+- bash, git, curl (for the installer).
 
 No MCP servers required.
 

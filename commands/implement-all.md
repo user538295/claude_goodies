@@ -14,8 +14,6 @@ Run `test -f "$ARGUMENTS"`.
   - Multiple matches → stop and ask the user to choose: "Found multiple matching plan files: [list them]. Please provide the full path to the one you want."
   - No match → stop and ask the user: "Could not find a plan file matching '$ARGUMENTS'. Please provide the full path."
 
-/goal All tasks in the plan file are marked complete (plan-progress.sh returns exit 1).
-
 ### Loop body
 
 Track `previous_task_name` (initially empty) and `iteration_count` (initially 0) across iterations. Increment `iteration_count` at the start of each iteration. If `iteration_count` exceeds 50, stop and report: "Loop has exceeded 50 iterations without completing — possible infinite loop. Please investigate."

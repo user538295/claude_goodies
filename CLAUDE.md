@@ -84,7 +84,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 When executing any plan (task list, backlog item, feature spec) via a slash command:
 - Each task gets its own commit with non-empty file changes. Never bundle multiple tasks into one commit.
-- `/implement-all` uses a `/goal` loop: each iteration runs `plan-progress.sh` to check remaining tasks, then spawns a **background Agent** that calls `/implement-next` for one task. NEVER invoke `/implement-next` via the Skill tool directly in the main conversation. NEVER spawn a single agent for all tasks at once.
+- `/implement-all` runs an explicit loop: each iteration runs `plan-progress.sh` to check remaining tasks, then spawns a **background Agent** that calls `/implement-next` for one task. NEVER invoke `/implement-next` via the Skill tool directly in the main conversation. NEVER spawn a single agent for all tasks at once.
 - Each spawned agent must call the Skill tool (e.g. `implement-next`) with the plan file as its argument.
 - These rules apply to ALL plan-based workflows and ALL delegation commands.
 - After any run, independent verification (no Claude cooperation needed): `bash ~/.claude/scripts/audit-plan-run.sh <plan_file> <sha_start>`
@@ -112,11 +112,14 @@ When executing any plan (task list, backlog item, feature spec) via a slash comm
 4. **CITE** - Reference the exact file and location in your answer
 5. **SAVE** - Use the available memory system to persist verified facts for future conversations
 
-# Code Style
+# Coding Standards
 
+- Follow Clean Architecture layer separation strictly; all dependencies must point inward
+- SOLID principles and Clean Code — no smelling code
+- Use protocol-based abstractions for cross-layer communication
+- Implement constructor-based dependency injection
 - **ALWAYS write tests first (TDD is a MUST)** — start with happy paths, then edge cases
-- Maintain 85%+ test coverage minimum
-- If you find a failing test, don't move on, fix it first.
-- **ALWAYS resolve all warnings** — the codebase must be warning-free at all times
+- Maintain 85%+ test coverage minimum; if you find a failing test, fix it before moving on
+- **ALWAYS resolve all compiler warnings** — the codebase must be warning-free at all times
+- **Avoid magic numbers** — use descriptive `private static let` constants instead of hardcoded values
 - Avoid backward compatibility
-- No smelling code

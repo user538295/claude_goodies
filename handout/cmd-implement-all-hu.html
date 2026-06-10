@@ -18,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p>Egy <code>/goal</code> ciklust futtat, amely egyszerre egy feladatot delegál a <code>/implement-next</code> parancsnak — addig, amíg a tervfájl minden befejezetlen feladata implementálva és commitolva nem lesz.</p>
+      <p>Explicit ciklust futtat, amely egyszerre egy feladatot delegál a <code>/implement-next</code> parancsnak — addig, amíg a tervfájl minden befejezetlen feladata implementálva és commitolva nem lesz.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -45,11 +45,11 @@
       <ul>
         <li><code>[plan-file-path]</code> — (kötelező) A terv Markdown-fájljának relatív elérési útja, pl. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
-      <p><strong>Folyamat (</strong><code>/goal</code> ciklus<strong>):</strong></p>
+      <p><strong>Folyamat (explicit ciklus):</strong></p>
       <ol>
         <li><strong>Haladás ellenőrzése:</strong> Lefuttatja a <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> parancsot.
           <ul>
-            <li>Exit 1 → minden feladat kész — a cél teljesült, megáll.</li>
+            <li>Exit 1 → minden feladat kész — megáll.</li>
             <li>Exit 2 vagy 3 → megáll és jelenti a hibát.</li>
             <li>Exit 0 → vannak még feladatok, folytatódik a 2. lépéssel.</li>
           </ul>
@@ -65,9 +65,7 @@
         <p><strong>Bemenet:</strong></p>
         <pre><code>/implement-all plans/FEAT-001-skill-command-script-handouts.md</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>Goal: All tasks in plans/FEAT-001-skill-command-script-handouts.md are marked complete.
-
-[1. iteráció] plan-progress.sh → 0/7 kész, következő: Task 3.3 — cmd-implement-all.html
+        <pre><code>[1. iteráció] plan-progress.sh → 0/7 kész, következő: Task 3.3 — cmd-implement-all.html
   → /implement-next ügynök indítása… kész (commit b1d2e3f)
 
 [2. iteráció] plan-progress.sh → 1/7 kész, következő: Task 3.4 — cmd-implement-next.html
@@ -76,7 +74,7 @@
 … (5 további iteráció) …
 
 [8. iteráció] plan-progress.sh → Minden feladat kész. (exit 1)
-Cél teljesítve.</code></pre>
+Minden feladat kész.</code></pre>
       </div>
     </section>
 
@@ -86,8 +84,7 @@ Cél teljesítve.</code></pre>
         <p><strong>Bemenet:</strong></p>
         <pre><code>/implement-all plans/FEAT-002-api-refactor.md</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>Goal: All tasks in plans/FEAT-002-api-refactor.md are marked complete.
-(4 feladat már [x]-szel jelölve egy korábbi futásból)
+        <pre><code>(4 feladat már [x]-szel jelölve egy korábbi futásból)
 
 [1. iteráció] plan-progress.sh → 4/7 kész, következő: Task 2.3 — Extract AuthService
   → /implement-next ügynök indítása… kész (commit d4e5f60)
@@ -99,7 +96,7 @@ Cél teljesítve.</code></pre>
   → /implement-next ügynök indítása… kész (commit f607182)
 
 [4. iteráció] plan-progress.sh → Minden feladat kész. (exit 1)
-Cél teljesítve.</code></pre>
+Minden feladat kész.</code></pre>
       </div>
     </section>
 

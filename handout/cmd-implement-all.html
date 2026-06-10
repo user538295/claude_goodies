@@ -18,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p>Runs a <code>/goal</code> loop that delegates to <code>/implement-next</code> — one task at a time — until every uncompleted task in a plan file is implemented and committed.</p>
+      <p>Runs an explicit loop that delegates to <code>/implement-next</code> — one task at a time — until every uncompleted task in a plan file is implemented and committed.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -45,11 +45,11 @@
       <ul>
         <li><code>[plan-file-path]</code> — (required) Relative path to the plan Markdown file, e.g. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
-      <p><strong>Process (</strong><code>/goal</code> loop<strong>):</strong></p>
+      <p><strong>Process (explicit loop):</strong></p>
       <ol>
         <li><strong>Check progress:</strong> Runs <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code>.
           <ul>
-            <li>Exit 1 → all tasks complete — goal achieved, stop.</li>
+            <li>Exit 1 → all tasks complete — stop.</li>
             <li>Exit 2 or 3 → stop and report the error.</li>
             <li>Exit 0 → tasks remain, continue to step 2.</li>
           </ul>
@@ -65,9 +65,7 @@
         <p><strong>Input:</strong></p>
         <pre><code>/implement-all plans/FEAT-001-skill-command-script-handouts.md</code></pre>
         <p><strong>Output / Result:</strong></p>
-        <pre><code>Goal: All tasks in plans/FEAT-001-skill-command-script-handouts.md are marked complete.
-
-[Iteration 1] plan-progress.sh → 0/7 complete, next: Task 3.3 — cmd-implement-all.html
+        <pre><code>[Iteration 1] plan-progress.sh → 0/7 complete, next: Task 3.3 — cmd-implement-all.html
   → spawning /implement-next agent… done (commit b1d2e3f)
 
 [Iteration 2] plan-progress.sh → 1/7 complete, next: Task 3.4 — cmd-implement-next.html
@@ -76,7 +74,7 @@
 … (5 more iterations) …
 
 [Iteration 8] plan-progress.sh → All tasks complete. (exit 1)
-Goal achieved.</code></pre>
+All tasks complete.</code></pre>
       </div>
     </section>
 
@@ -86,8 +84,7 @@ Goal achieved.</code></pre>
         <p><strong>Input:</strong></p>
         <pre><code>/implement-all plans/FEAT-002-api-refactor.md</code></pre>
         <p><strong>Output / Result:</strong></p>
-        <pre><code>Goal: All tasks in plans/FEAT-002-api-refactor.md are marked complete.
-(4 tasks already marked [x] from a prior session)
+        <pre><code>(4 tasks already marked [x] from a prior session)
 
 [Iteration 1] plan-progress.sh → 4/7 complete, next: Task 2.3 — Extract AuthService
   → spawning /implement-next agent… done (commit d4e5f60)
@@ -99,7 +96,7 @@ Goal achieved.</code></pre>
   → spawning /implement-next agent… done (commit f607182)
 
 [Iteration 4] plan-progress.sh → All tasks complete. (exit 1)
-Goal achieved.</code></pre>
+All tasks complete.</code></pre>
       </div>
     </section>
 

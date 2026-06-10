@@ -121,5 +121,5 @@ When executing any plan (task list, backlog item, feature spec) via a slash comm
 - **ALWAYS write tests first (TDD is a MUST)** — start with happy paths, then edge cases
 - Maintain 85%+ test coverage minimum; if you find a failing test, fix it before moving on
 - **ALWAYS resolve all compiler warnings** — the codebase must be warning-free at all times
-- **Avoid magic numbers** — use descriptive `private static let` constants instead of hardcoded values
+- **Avoid magic numbers** — use descriptive named constants instead of hardcoded values
 - Avoid backward compatibility

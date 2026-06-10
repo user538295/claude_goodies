@@ -18,13 +18,15 @@ Run `test -f "$ARGUMENTS"`.
 
 Track `previous_task_name` (initially empty) and `iteration_count` (initially 0) across iterations. Increment `iteration_count` at the start of each iteration. If `iteration_count` exceeds 50, stop and report: "Loop has exceeded 50 iterations without completing — possible infinite loop. Please investigate."
 
-Each iteration toward the goal:
+**Termination condition:** All tasks in the plan file are marked complete (plan-progress.sh returns exit 1). Repeat steps 1–2 until this condition is met.
+
+Each iteration:
 
 1. Run the following, replacing `<plan-path>` with the actual resolved file path from Step 0 (the literal path string):
    ```
    bash ~/.claude/scripts/plan-progress.sh "<plan-path>"
    ```
-   - Exit 1 → all tasks complete — goal achieved, stop.
+   - Exit 1 → all tasks complete — stop.
    - Exit 2 or 3 → stop and report the error.
    - Any other exit code → stop and report the unexpected exit code.
    - Exit 0 → tasks remain, note the reported NEXT_TASK_NAME and continue to step 2.
@@ -33,3 +35,5 @@ Each iteration toward the goal:
 
 2. Spawn a background agent with the prompt (replacing `<plan-path>` with the actual resolved file path — the literal path string):
    > Call the Skill tool with skill `implement-next` and args `<plan-path>`.
+
+   After the agent completes, return to step 1 for the next iteration.

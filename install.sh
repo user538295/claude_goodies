@@ -19,7 +19,7 @@ usage() {
 Usage: install.sh [OPTIONS]
 
 Options:
-  --overwrite        Overwrite existing installation
+  --overwrite        Overwrite existing installation (discards your local CLAUDE.md changes)
   --keep-claude-md   Keep existing CLAUDE.md (do not overwrite)
   --dry-run          Preview actions without writing any files
   --help             Show this help message and exit
@@ -297,20 +297,21 @@ handle_claude_md() {
     return
   fi
 
-  # Default (no flags): attempt 3-way merge if base exists
-  if [ -f "$CLAUDE_BASE_FILE" ]; then
-    if diff -q "$dest" "$staged" >/dev/null 2>&1; then
-      # Identical — nothing to do
-      return
-    fi
+  # Default (no flags): check for changes first, then attempt 3-way merge if base exists
+  if diff -q "$dest" "$staged" >/dev/null 2>&1; then
+    # Identical — nothing to merge
+    echo "CLAUDE.md is already up to date, nothing to merge."
+    return
+  fi
 
+  if [ -f "$CLAUDE_BASE_FILE" ]; then
     if [[ "$DRY_RUN" -eq 1 ]]; then
       local tmp_merged
       tmp_merged="$(mktemp)"
       if git merge-file -p "$dest" "$CLAUDE_BASE_FILE" "$staged" > "$tmp_merged" 2>/dev/null; then
-        echo "[DRY RUN] Would auto-merge CLAUDE.md (clean)"
+        echo "[DRY RUN] Would update CLAUDE.md (merging new changes with your modifications)"
       else
-        echo "[DRY RUN] Would merge CLAUDE.md (conflicts — editor required)"
+        echo "[DRY RUN] Would open editor to resolve CLAUDE.md conflicts"
       fi
       rm -f "$tmp_merged"
       WRITE_COUNT=$(( WRITE_COUNT + 1 ))
@@ -323,13 +324,13 @@ handle_claude_md() {
       cp "$tmp_merged" "$dest" || { echo "Error: failed to write merged CLAUDE.md" >&2; rm -f "$tmp_merged"; exit 1; }
       rm -f "$tmp_merged"
       save_claude_base "$dest"
-      echo "CLAUDE.md auto-merged cleanly."
+      echo "CLAUDE.md updated — new changes merged with your modifications."
     else
-      # Conflicts — open editor
+      # Conflicts — write markers to dest, open editor for resolution
       cp "$tmp_merged" "$dest" || { echo "Error: failed to write CLAUDE.md with conflict markers" >&2; rm -f "$tmp_merged"; exit 1; }
       rm -f "$tmp_merged"
       local editor="${VISUAL:-${EDITOR:-vi}}"
-      echo "CLAUDE.md has merge conflicts. Opening $editor for resolution..."
+      echo "CLAUDE.md has merge conflicts. Opening $editor to resolve..."
       "$editor" "$dest"
       save_claude_base "$dest"
       echo "CLAUDE.md saved."
@@ -337,12 +338,12 @@ handle_claude_md() {
     return
   fi
 
-  # No base — skip with hint
+  # No base — cannot merge, skip with hint
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "[DRY RUN] Would skip CLAUDE.md (use --overwrite to replace)"
+    echo "[DRY RUN] Would skip CLAUDE.md (no merge base — use --overwrite to replace)"
     return
   fi
-  echo "CLAUDE.md already exists. Re-run with --overwrite to update it."
+  echo "CLAUDE.md already exists and cannot be auto-merged (no base file). Re-run with --overwrite to replace it."
 }
 
 # ---------------------------------------------------------------------------

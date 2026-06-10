@@ -166,7 +166,7 @@ The following exact strings must be used by the implementation and matched by te
   - Checkpoint: `cd /Users/manczg/.claude && bats tests/test_install_dry_run.bats --filter "recognized|valid|exits_1|help"`
 
 #### Task 2.2 — Implement `dry_mkdir()`, `dry_mv()`, `dry_cp()` wrapper functions
-- [ ] **File**: `install.sh`
+- [x] **File**: `install.sh`
 - **Depends on**: Task 2.1
 - **Description**:
   - Insert the three functions after `set_permissions()` and before `move_files()`:

@@ -211,6 +211,56 @@ handle_claude_md() {
 }
 
 # ---------------------------------------------------------------------------
+# dry_mkdir DIR — guard for mkdir -p to INSTALL_DEST
+#   DRY_RUN=1: print "[DRY RUN] Would create directory DIR"; no I/O; WRITE_COUNT unchanged
+#   DRY_RUN=0: mkdir -p DIR
+# ---------------------------------------------------------------------------
+dry_mkdir() {
+  local dir="$1"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY RUN] Would create directory $dir"
+    return 0
+  fi
+  mkdir -p "$dir"
+}
+
+# ---------------------------------------------------------------------------
+# dry_mv SRC DST — guard for mv (with cp fallback) to INSTALL_DEST
+#   DRY_RUN=1: print "[DRY RUN] Would install BASENAME(DST)"; WRITE_COUNT++; no I/O
+#   DRY_RUN=0: mv SRC DST; on failure, cp SRC DST; on cp failure, exit 1 with error
+# ---------------------------------------------------------------------------
+dry_mv() {
+  local src="$1" dst="$2"
+  local fname
+  fname="$(basename "$dst")"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY RUN] Would install $fname"
+    WRITE_COUNT=$(( WRITE_COUNT + 1 ))
+    return 0
+  fi
+  if ! mv "$src" "$dst" 2>/dev/null; then
+    cp "$src" "$dst" || { echo "Error: failed to install $dst" >&2; exit 1; }
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# dry_cp SRC DST — guard for cp to INSTALL_DEST
+#   DRY_RUN=1: print "[DRY RUN] Would install BASENAME(DST)"; WRITE_COUNT++; no I/O
+#   DRY_RUN=0: cp SRC DST; on failure, exit 1 with error
+# ---------------------------------------------------------------------------
+dry_cp() {
+  local src="$1" dst="$2"
+  local fname
+  fname="$(basename "$dst")"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY RUN] Would install $fname"
+    WRITE_COUNT=$(( WRITE_COUNT + 1 ))
+    return 0
+  fi
+  cp "$src" "$dst" || { echo "Error: failed to install $dst" >&2; exit 1; }
+}
+
+# ---------------------------------------------------------------------------
 # move_files
 # Safe sequential move of all staged files (except CLAUDE.md) to DEST_DIR.
 # Falls back to cp+rm on cross-device link failure.

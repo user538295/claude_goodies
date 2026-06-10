@@ -63,7 +63,7 @@ Run this in any terminal — works for both fresh installs and updates. Also wor
 bash <(curl -fsSL https://raw.githubusercontent.com/user538295/claude_goodies/main/install.sh)
 ```
 
-The script clones the repo, copies `scripts/*` and `install.sh` into `~/.claude/`, and cleans up after itself. On a fresh install, `CLAUDE.md` is also copied; on updates, the existing `CLAUDE.md` is left untouched unless you pass `--overwrite`. Restart Claude Code (or start a new session) for changes to load.
+The script clones the repo, copies everything — skills, commands, agents, scripts, and handout pages — into `~/.claude/`, and cleans up after itself. On a fresh install, `CLAUDE.md` is also copied; on updates, the existing `CLAUDE.md` is left untouched unless you pass `--overwrite`. Restart Claude Code (or start a new session) for changes to load.
 
 **Prerequisites**: bash, git, curl.
 

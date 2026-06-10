@@ -227,7 +227,7 @@ The following exact strings must be used by the implementation and matched by te
   - Checkpoint: `cd /Users/manczg/.claude && bats tests/test_install_dry_run.bats --filter "dry_mv|dry_cp|dry_mkdir"`
 
 #### Task 2.3 — Update `move_files()` to use wrapper functions
-- [ ] **File**: `install.sh`
+- [x] **File**: `install.sh`
 - **Depends on**: Task 2.2
 - **Description**:
   - Replace `mkdir -p "$DEST_DIR/scripts"` with `dry_mkdir "$DEST_DIR/scripts"`
@@ -262,7 +262,7 @@ The following exact strings must be used by the implementation and matched by te
     *(The `$fixture_dir` variable is created by the test's `setup()` function; the checkpoint runs the whole filtered subset of the test file.)*
 
 #### Task 2.4 — Update `handle_claude_md()` for dry-run output
-- [ ] **File**: `install.sh`
+- [x] **File**: `install.sh`
 - **Depends on**: Task 2.2
 - **Description**:
   - Apply the full decision table from the Architecture section. Each branch:
@@ -328,7 +328,7 @@ The following exact strings must be used by the implementation and matched by te
     *(The `$fixture_dir` variable is created by the test's `setup()` function; the checkpoint runs the whole filtered subset of the test file.)*
 
 #### Task 2.5 — Update `main()` to print dry-run summary instead of success messages
-- [ ] **File**: `install.sh`
+- [x] **File**: `install.sh`
 - **Depends on**: Task 2.3, Task 2.4
 - **Description**:
   - After `handle_claude_md`, add the conditional summary block:

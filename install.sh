@@ -167,6 +167,11 @@ handle_claude_md() {
 
   # Fresh install — no existing CLAUDE.md: always copy
   if [ ! -f "$dest" ]; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "[DRY RUN] Would copy CLAUDE.md"
+      WRITE_COUNT=$(( WRITE_COUNT + 1 ))
+      return
+    fi
     cp "$staged" "$dest" || { echo "Error: failed to install CLAUDE.md" >&2; exit 1; }
     return
   fi
@@ -187,6 +192,13 @@ handle_claude_md() {
     fi
 
     if [ "$is_tty" -eq 1 ]; then
+      if [[ "$DRY_RUN" -eq 1 ]]; then
+        local pager="${_INSTALL_PAGER:-less}"
+        diff -u "$dest" "$staged" 2>/dev/null | "$pager" || true
+        echo "[DRY RUN] Would prompt: Overwrite CLAUDE.md? [y/N]"
+        WRITE_COUNT=$(( WRITE_COUNT + 1 ))
+        return
+      fi
       # Interactive: show diff, prompt
       local pager="${_INSTALL_PAGER:-less}"
       diff -u "$dest" "$staged" 2>/dev/null | "$pager" || true
@@ -199,6 +211,11 @@ handle_claude_md() {
         echo "CLAUDE.md left unchanged."
       fi
     else
+      if [[ "$DRY_RUN" -eq 1 ]]; then
+        echo "[DRY RUN] Would overwrite CLAUDE.md"
+        WRITE_COUNT=$(( WRITE_COUNT + 1 ))
+        return
+      fi
       # Non-interactive: overwrite without prompting
       cp "$staged" "$dest" || { echo "Error: failed to install CLAUDE.md" >&2; exit 1; }
       echo "Non-interactive: CLAUDE.md overwritten."
@@ -207,6 +224,10 @@ handle_claude_md() {
   fi
 
   # Default (no flags): skip and print hint
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY RUN] Would skip CLAUDE.md (use --overwrite to replace)"
+    return
+  fi
   echo "CLAUDE.md already exists. Re-run with --overwrite to update it."
 }
 
@@ -263,31 +284,19 @@ dry_cp() {
 # ---------------------------------------------------------------------------
 # move_files
 # Safe sequential move of all staged files (except CLAUDE.md) to DEST_DIR.
-# Falls back to cp+rm on cross-device link failure.
+# Falls back to cp+rm on cross-device link failure (via dry_mv).
 # ---------------------------------------------------------------------------
 move_files() {
-  mkdir -p "$DEST_DIR/scripts"
+  dry_mkdir "$DEST_DIR/scripts"
 
-  # Move scripts/*
-  # Use mv; fall back to cp on cross-device failure (e.g. mv across filesystems).
-  # The staged copy lives in a temp dir cleaned by the EXIT trap — no need to rm on fallback.
   for src in "$STAGE_DIR/scripts/"*; do
     [[ -e "$src" ]] || continue
     local fname
     fname="$(basename "$src")"
-    local dst="$DEST_DIR/scripts/$fname"
-    if ! mv "$src" "$dst" 2>/dev/null; then
-      cp "$src" "$dst" || { echo "Error: failed to install scripts/$fname" >&2; exit 1; }
-    fi
+    dry_mv "$src" "$DEST_DIR/scripts/$fname"
   done
 
-  # Move install.sh
-  if ! mv "$STAGE_DIR/install.sh" "$DEST_DIR/install.sh" 2>/dev/null; then
-    cp "$STAGE_DIR/install.sh" "$DEST_DIR/install.sh" || {
-      echo "Error: failed to install install.sh" >&2
-      exit 1
-    }
-  fi
+  dry_mv "$STAGE_DIR/install.sh" "$DEST_DIR/install.sh"
 }
 
 # ---------------------------------------------------------------------------
@@ -324,6 +333,12 @@ main() {
   set_permissions
   move_files
   handle_claude_md
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo ""
+    echo "$WRITE_COUNT file(s) would be installed."
+    return
+  fi
 
   echo ""
   echo "Claude Goodies installed successfully to $DEST_DIR"

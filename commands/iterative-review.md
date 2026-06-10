@@ -12,7 +12,7 @@ Severity rubric — use this consistently across all agents:
 
 **Loop — repeat until no Critical, Major or Moderate issues remain:**
 
-1. **Spawn multiple `devils-advocate` agents in parallel** (minimum 3), each reviewing independently from a different angle: one focuses on correctness and edge cases, one on architecture and design, one on test coverage gaps. Pass each agent:
+1. **Use the Agent tool to spawn multiple `devils-advocate` agents in parallel** (minimum 3), each reviewing independently from a different angle: one focuses on correctness and edge cases, one on architecture and design, one on test coverage gaps. **You MUST use the Agent tool — never simulate reviews with Bash commands, heredocs, inline text, or any other method. Only actual Agent tool invocations count.** Pass each agent:
    - The current state of the target (diff / changed files / plan)
    - The full findings and fix history from all prior cycles (if any)
    - Instruction to label every issue with severity and a short ID prefixed by the current cycle number (`C1-I-1`, `C1-I-2`, …). Do not soften findings.
@@ -23,7 +23,7 @@ Severity rubric — use this consistently across all agents:
 
 4. **Spawn the most appropriate agent(s) to fix** all Critical, Major and Moderate issues. Choose agent type based on the nature of the issues. Pass the full consolidated findings. Apply fixes to the actual files. Note which issue ID each fix resolves. **Fix agents must NOT create git commits** — all changes stay as uncommitted working tree modifications.
 
-5. **Re-run the full automated test suite.** All tests must pass before the next cycle. If tests fail, spawn a fix agent to resolve them first.
+5. **Re-run the full automated test suite using a blocking (foreground) Bash call — never `run_in_background`.** All tests must pass before the next cycle. If tests fail, spawn a fix agent to resolve them first.
 
 6. **Convergence check**: if the same Critical/Major/Moderate issues (same root cause) reappear that were already fixed in a prior cycle, mark them as **unresolvable oscillations**, stop the loop, and report them.
 
@@ -42,3 +42,7 @@ All fixes applied across all cycles: issue ID → severity → what changed.
 
 ### Verdict
 "No critical, major or moderate issues remain" OR "The following issues could not be resolved: [list]"
+
+---
+
+**⚠️ THIS IS A SUB-STEP, NOT TASK COMPLETION.** If this review was invoked from `implement-next`, outputting the Review Summary above does NOT complete the task. Return to `implement-next` and proceed immediately to **Step 4** (run the full test suite). Do not stop here.

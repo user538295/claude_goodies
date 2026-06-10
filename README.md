@@ -72,6 +72,7 @@ The script clones the repo, copies `scripts/*` and `install.sh` into `~/.claude/
 **Flags**:
 - `--overwrite` — overwrite all files including `CLAUDE.md`; shows a diff and asks for confirmation in interactive terminals; overwrites without prompting in non-interactive contexts
 - `--keep-claude-md` — overwrite all files except `CLAUDE.md`, no prompt
+- `--dry-run` — preview every action without writing any files; combinable with `--overwrite` or `--keep-claude-md`; prints a summary count and exits 0
 
 ---
 

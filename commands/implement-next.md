@@ -27,9 +27,9 @@ Spawn the most appropriate agent to implement **only this task** — do not touc
 If the task produces testable code output, follow strict TDD:
 
 1. **Write tests first** — unit tests, integration tests, and live/end-to-end tests that cover the new behaviour and acceptance criteria. Tests must fail at this point (red).
-2. **Run the tests** — confirm they fail for the right reasons.
+2. **Run the tests** — confirm they fail for the right reasons. **Always blocking — never backgrounded.**
 3. **Implement the functionality** — write only enough code to make the tests pass (green).
-4. **Run the tests again** — all new and existing tests must pass before continuing.
+4. **Run the tests again** — all new and existing tests must pass before continuing. **Always blocking — never backgrounded.**
 
 If the task has no testable code output (documentation, configuration, CI changes, diagrams), skip the TDD cycle and implement directly.
 
@@ -43,9 +43,13 @@ Invoke `/iterative-review` passing the output of `git diff HEAD` followed by the
 
 The DA review must NOT create its own commits — all fixes stay as uncommitted working tree changes.
 
+**⚠️ MANDATORY CONTINUATION — DO NOT STOP HERE.** The `## Review Summary` and `### Verdict` produced by `/iterative-review` mark the end of the *review sub-step only*. They do NOT mean the task is complete. You MUST proceed to Step 4 immediately after the review verdict, regardless of what the verdict says. Any text that says "Proceeding to Step 4" is a declaration of intent — you still must actually execute Step 4 yourself. Do not end your turn after Step 3.
+
 ---
 
 ### Step 4: Run tests
+
+**IMPORTANT: Run all test commands as blocking (foreground) calls — never use `run_in_background`. The commit step cannot proceed until the test result is known. This rule overrides the general "use background agents" guidance in CLAUDE.md, which applies to sub-agent delegation, not to test commands.**
 
 Run the full test suite. If any tests fail:
 

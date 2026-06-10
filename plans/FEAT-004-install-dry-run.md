@@ -358,7 +358,7 @@ The following exact strings must be used by the implementation and matched by te
 ### Phase 3 — Verification & Documentation
 
 #### Task 3.1 — Final verification & documentation update
-- [ ] **File**: N/A (agent task)
+- [x] **File**: N/A (agent task)
 - **Depends on**: Task 2.5
 - **Description**:
   - Spawn an agent to discover all documentation in the project (README, CLAUDE.md, install-prompt.md if still present, any ADRs, plan files, inline comments in `install.sh`) and update every file whose content is affected by this change. At minimum:

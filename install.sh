@@ -9,6 +9,7 @@ DEST_DIR="${INSTALL_DEST:-${HOME}/.claude}"
 REPO_URL="${INSTALL_REPO_URL:-https://github.com/user538295/claude_goodies.git}"
 DRY_RUN=0
 WRITE_COUNT=0
+CLAUDE_BASE_FILE="${INSTALL_CLAUDE_BASE:-}"  # overridable for tests; defaults to $DEST_DIR/.claude-base.md in main()
 
 # ---------------------------------------------------------------------------
 # usage
@@ -132,18 +133,77 @@ do_clone() {
 # Copies the file manifest from CLONE_DIR into STAGE_DIR.
 # ---------------------------------------------------------------------------
 stage_files() {
-  # Stage CLAUDE.md
+  local dirs=(
+    agents assets commands handout scripts
+    skills/aaa skills/aaa/references
+    skills/documentation-standard skills/documentation-standard/references skills/documentation-standard/scripts
+    skills/llm-wiki skills/llm-wiki/reference skills/llm-wiki/templates skills/llm-wiki/tests
+    skills/llm-wiki-product skills/llm-wiki-product/reference skills/llm-wiki-product/templates
+    skills/plan-maker skills/skill-packager
+  )
+  local files=(
+    agents/devils-advocate.md
+    assets/demo.gif
+    commands/da-review.md commands/feature-refinement.md commands/implement-all.md
+    commands/implement-next.md commands/iterative-review.md commands/options.md
+    handout/_template.html handout/agentic-workflow-en.html handout/agentic-workflow-hu.html
+    handout/card.css
+    handout/cmd-da-review-hu.html handout/cmd-da-review.html
+    handout/cmd-feature-refinement-hu.html handout/cmd-feature-refinement.html
+    handout/cmd-implement-all-hu.html handout/cmd-implement-all.html
+    handout/cmd-implement-next-hu.html handout/cmd-implement-next.html
+    handout/cmd-iterative-review-hu.html handout/cmd-iterative-review.html
+    handout/index-hu.html handout/index.html
+    handout/scripts-logging-hu.html handout/scripts-logging.html
+    handout/scripts-plan-hu.html handout/scripts-plan.html
+    handout/skill-aaa-hu.html handout/skill-aaa.html
+    handout/skill-documentation-standard-hu.html handout/skill-documentation-standard.html
+    handout/skill-llm-wiki-hu.html handout/skill-llm-wiki-product-hu.html
+    handout/skill-llm-wiki-product.html handout/skill-llm-wiki.html
+    handout/skill-plan-maker-hu.html handout/skill-plan-maker.html
+    handout/skill-skill-packager-hu.html handout/skill-skill-packager.html
+    handout/styles.css
+    README.md
+    scripts/audit-plan-run.sh scripts/check-task-commit.sh scripts/count-uncompleted-tasks.sh
+    scripts/plan-progress.sh scripts/progress-header-flat.template scripts/progress-header-phased.template
+    scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh
+    scripts/task_section.awk scripts/verify-run-commits.sh
+    skills/aaa/references/aaa-rubric.md skills/aaa/references/code-review-protocol.md
+    skills/aaa/references/evaluation-prompts.md skills/aaa/references/output-templates.md
+    skills/aaa/references/product-feature-protocol.md skills/aaa/references/research-protocol.md
+    skills/aaa/SKILL.md
+    skills/documentation-standard/references/markdown_quality.md
+    skills/documentation-standard/references/mermaid_examples.md
+    skills/documentation-standard/references/templates.md
+    skills/documentation-standard/scripts/validate_docs.py
+    skills/documentation-standard/SKILL.md
+    skills/llm-wiki/reference/karpathy-llm-wiki.md
+    skills/llm-wiki/SKILL.md
+    skills/llm-wiki/templates/glossary.md skills/llm-wiki/templates/index.md
+    skills/llm-wiki/templates/log.md skills/llm-wiki/templates/overview.md
+    skills/llm-wiki/templates/schema.md
+    skills/llm-wiki/tests/__init__.py skills/llm-wiki/tests/test_watcher.py
+    skills/llm-wiki/watcher.py
+    skills/llm-wiki-product/reference/karpathy-llm-wiki.md
+    skills/llm-wiki-product/SKILL.md
+    skills/llm-wiki-product/templates/glossary.md skills/llm-wiki-product/templates/index.md
+    skills/llm-wiki-product/templates/log.md skills/llm-wiki-product/templates/overview.md
+    skills/llm-wiki-product/templates/schema.md
+    skills/llm-wiki-product/watcher.py
+    skills/plan-maker/SKILL.md
+    skills/skill-packager/SKILL.md
+  )
+
   cp "$CLONE_DIR/CLAUDE.md" "$STAGE_DIR/CLAUDE.md"
 
-  # Stage scripts/ (ALL files, not just .sh)
-  mkdir -p "$STAGE_DIR/scripts"
-  if ls "$CLONE_DIR/scripts/"* >/dev/null 2>&1; then
-    cp "$CLONE_DIR/scripts/"* "$STAGE_DIR/scripts/"
-  else
-    echo "Warning: scripts/ is empty"
-  fi
+  for d in "${dirs[@]}"; do
+    mkdir -p "$STAGE_DIR/$d"
+  done
 
-  # Stage install.sh itself
+  for f in "${files[@]}"; do
+    cp "$CLONE_DIR/$f" "$STAGE_DIR/$f"
+  done
+
   cp "$CLONE_DIR/install.sh" "$STAGE_DIR/install.sh"
 }
 
@@ -152,14 +212,29 @@ stage_files() {
 # Makes .sh files executable; leaves .awk, .template, etc. unchanged.
 # ---------------------------------------------------------------------------
 set_permissions() {
-  find "$STAGE_DIR/scripts" -name "*.sh" -exec chmod +x {} \;
+  find "$STAGE_DIR" -name "*.sh" -exec chmod +x {} \;
+  find "$STAGE_DIR" -name "*.py" -exec chmod +x {} \;
   chmod +x "$STAGE_DIR/install.sh"
+}
+
+# ---------------------------------------------------------------------------
+# save_claude_base DST
+# Saves a copy of the installed CLAUDE.md as the merge base for future runs.
+# ---------------------------------------------------------------------------
+save_claude_base() {
+  local dst="$1"
+  cp "$dst" "$CLAUDE_BASE_FILE" 2>/dev/null || true
 }
 
 # ---------------------------------------------------------------------------
 # handle_claude_md
 # Conditionally copies staged CLAUDE.md to DEST_DIR based on flags and
 # existing state. Implements the CLAUDE.md decision table.
+#
+# Default (no flags, base exists): 3-way merge via git merge-file.
+#   Clean merge  → apply automatically, update base.
+#   Conflicts    → open $EDITOR for resolution, update base after save.
+#   No base      → skip with hint.
 # ---------------------------------------------------------------------------
 handle_claude_md() {
   local staged="$STAGE_DIR/CLAUDE.md"
@@ -173,17 +248,16 @@ handle_claude_md() {
       return
     fi
     cp "$staged" "$dest" || { echo "Error: failed to install CLAUDE.md" >&2; exit 1; }
+    save_claude_base "$dest"
     return
   fi
 
   # Existing CLAUDE.md present — apply decision table
   if [ "$KEEP_CLAUDE_MD" -eq 1 ]; then
-    # --keep-claude-md: skip silently
     return
   fi
 
   if [ "$OVERWRITE" -eq 1 ]; then
-    # Determine TTY state
     local is_tty=0
     if [ -n "${_INSTALL_IS_TTY:-}" ]; then
       is_tty="$_INSTALL_IS_TTY"
@@ -199,7 +273,6 @@ handle_claude_md() {
         WRITE_COUNT=$(( WRITE_COUNT + 1 ))
         return
       fi
-      # Interactive: show diff, prompt
       local pager="${_INSTALL_PAGER:-less}"
       diff -u "$dest" "$staged" 2>/dev/null | "$pager" || true
       printf "Overwrite CLAUDE.md? [y/N] "
@@ -207,6 +280,7 @@ handle_claude_md() {
       read -r answer
       if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
         cp "$staged" "$dest" || { echo "Error: failed to install CLAUDE.md" >&2; exit 1; }
+        save_claude_base "$dest"
       else
         echo "CLAUDE.md left unchanged."
       fi
@@ -216,14 +290,54 @@ handle_claude_md() {
         WRITE_COUNT=$(( WRITE_COUNT + 1 ))
         return
       fi
-      # Non-interactive: overwrite without prompting
       cp "$staged" "$dest" || { echo "Error: failed to install CLAUDE.md" >&2; exit 1; }
+      save_claude_base "$dest"
       echo "Non-interactive: CLAUDE.md overwritten."
     fi
     return
   fi
 
-  # Default (no flags): skip and print hint
+  # Default (no flags): attempt 3-way merge if base exists
+  if [ -f "$CLAUDE_BASE_FILE" ]; then
+    if diff -q "$dest" "$staged" >/dev/null 2>&1; then
+      # Identical — nothing to do
+      return
+    fi
+
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      local tmp_merged
+      tmp_merged="$(mktemp)"
+      if git merge-file -p "$dest" "$CLAUDE_BASE_FILE" "$staged" > "$tmp_merged" 2>/dev/null; then
+        echo "[DRY RUN] Would auto-merge CLAUDE.md (clean)"
+      else
+        echo "[DRY RUN] Would merge CLAUDE.md (conflicts — editor required)"
+      fi
+      rm -f "$tmp_merged"
+      WRITE_COUNT=$(( WRITE_COUNT + 1 ))
+      return
+    fi
+
+    local tmp_merged
+    tmp_merged="$(mktemp)"
+    if git merge-file -p "$dest" "$CLAUDE_BASE_FILE" "$staged" > "$tmp_merged" 2>/dev/null; then
+      cp "$tmp_merged" "$dest" || { echo "Error: failed to write merged CLAUDE.md" >&2; rm -f "$tmp_merged"; exit 1; }
+      rm -f "$tmp_merged"
+      save_claude_base "$dest"
+      echo "CLAUDE.md auto-merged cleanly."
+    else
+      # Conflicts — open editor
+      cp "$tmp_merged" "$dest" || { echo "Error: failed to write CLAUDE.md with conflict markers" >&2; rm -f "$tmp_merged"; exit 1; }
+      rm -f "$tmp_merged"
+      local editor="${VISUAL:-${EDITOR:-vi}}"
+      echo "CLAUDE.md has merge conflicts. Opening $editor for resolution..."
+      "$editor" "$dest"
+      save_claude_base "$dest"
+      echo "CLAUDE.md saved."
+    fi
+    return
+  fi
+
+  # No base — skip with hint
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "[DRY RUN] Would skip CLAUDE.md (use --overwrite to replace)"
     return
@@ -252,10 +366,8 @@ dry_mkdir() {
 # ---------------------------------------------------------------------------
 dry_mv() {
   local src="$1" dst="$2"
-  local fname
-  fname="$(basename "$dst")"
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "[DRY RUN] Would install $fname"
+    echo "[DRY RUN] Would install $dst"
     WRITE_COUNT=$(( WRITE_COUNT + 1 ))
     return 0
   fi
@@ -271,10 +383,8 @@ dry_mv() {
 # ---------------------------------------------------------------------------
 dry_cp() {
   local src="$1" dst="$2"
-  local fname
-  fname="$(basename "$dst")"
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "[DRY RUN] Would install $fname"
+    echo "[DRY RUN] Would install $dst"
     WRITE_COUNT=$(( WRITE_COUNT + 1 ))
     return 0
   fi
@@ -287,13 +397,73 @@ dry_cp() {
 # Falls back to cp+rm on cross-device link failure (via dry_mv).
 # ---------------------------------------------------------------------------
 move_files() {
-  dry_mkdir "$DEST_DIR/scripts"
+  local dirs=(
+    agents assets commands handout scripts
+    skills/aaa skills/aaa/references
+    skills/documentation-standard skills/documentation-standard/references skills/documentation-standard/scripts
+    skills/llm-wiki skills/llm-wiki/reference skills/llm-wiki/templates skills/llm-wiki/tests
+    skills/llm-wiki-product skills/llm-wiki-product/reference skills/llm-wiki-product/templates
+    skills/plan-maker skills/skill-packager
+  )
+  local files=(
+    agents/devils-advocate.md
+    assets/demo.gif
+    commands/da-review.md commands/feature-refinement.md commands/implement-all.md
+    commands/implement-next.md commands/iterative-review.md commands/options.md
+    handout/_template.html handout/agentic-workflow-en.html handout/agentic-workflow-hu.html
+    handout/card.css
+    handout/cmd-da-review-hu.html handout/cmd-da-review.html
+    handout/cmd-feature-refinement-hu.html handout/cmd-feature-refinement.html
+    handout/cmd-implement-all-hu.html handout/cmd-implement-all.html
+    handout/cmd-implement-next-hu.html handout/cmd-implement-next.html
+    handout/cmd-iterative-review-hu.html handout/cmd-iterative-review.html
+    handout/index-hu.html handout/index.html
+    handout/scripts-logging-hu.html handout/scripts-logging.html
+    handout/scripts-plan-hu.html handout/scripts-plan.html
+    handout/skill-aaa-hu.html handout/skill-aaa.html
+    handout/skill-documentation-standard-hu.html handout/skill-documentation-standard.html
+    handout/skill-llm-wiki-hu.html handout/skill-llm-wiki-product-hu.html
+    handout/skill-llm-wiki-product.html handout/skill-llm-wiki.html
+    handout/skill-plan-maker-hu.html handout/skill-plan-maker.html
+    handout/skill-skill-packager-hu.html handout/skill-skill-packager.html
+    handout/styles.css
+    README.md
+    scripts/audit-plan-run.sh scripts/check-task-commit.sh scripts/count-uncompleted-tasks.sh
+    scripts/plan-progress.sh scripts/progress-header-flat.template scripts/progress-header-phased.template
+    scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh
+    scripts/task_section.awk scripts/verify-run-commits.sh
+    skills/aaa/references/aaa-rubric.md skills/aaa/references/code-review-protocol.md
+    skills/aaa/references/evaluation-prompts.md skills/aaa/references/output-templates.md
+    skills/aaa/references/product-feature-protocol.md skills/aaa/references/research-protocol.md
+    skills/aaa/SKILL.md
+    skills/documentation-standard/references/markdown_quality.md
+    skills/documentation-standard/references/mermaid_examples.md
+    skills/documentation-standard/references/templates.md
+    skills/documentation-standard/scripts/validate_docs.py
+    skills/documentation-standard/SKILL.md
+    skills/llm-wiki/reference/karpathy-llm-wiki.md
+    skills/llm-wiki/SKILL.md
+    skills/llm-wiki/templates/glossary.md skills/llm-wiki/templates/index.md
+    skills/llm-wiki/templates/log.md skills/llm-wiki/templates/overview.md
+    skills/llm-wiki/templates/schema.md
+    skills/llm-wiki/tests/__init__.py skills/llm-wiki/tests/test_watcher.py
+    skills/llm-wiki/watcher.py
+    skills/llm-wiki-product/reference/karpathy-llm-wiki.md
+    skills/llm-wiki-product/SKILL.md
+    skills/llm-wiki-product/templates/glossary.md skills/llm-wiki-product/templates/index.md
+    skills/llm-wiki-product/templates/log.md skills/llm-wiki-product/templates/overview.md
+    skills/llm-wiki-product/templates/schema.md
+    skills/llm-wiki-product/watcher.py
+    skills/plan-maker/SKILL.md
+    skills/skill-packager/SKILL.md
+  )
 
-  for src in "$STAGE_DIR/scripts/"*; do
-    [[ -e "$src" ]] || continue
-    local fname
-    fname="$(basename "$src")"
-    dry_mv "$src" "$DEST_DIR/scripts/$fname"
+  for d in "${dirs[@]}"; do
+    dry_mkdir "$DEST_DIR/$d"
+  done
+
+  for f in "${files[@]}"; do
+    dry_mv "$STAGE_DIR/$f" "$DEST_DIR/$f"
   done
 
   dry_mv "$STAGE_DIR/install.sh" "$DEST_DIR/install.sh"
@@ -307,6 +477,11 @@ main() {
 
   parse_flags "$@"
   check_prereqs
+
+  # Set base file path now that DEST_DIR is final
+  if [ -z "$CLAUDE_BASE_FILE" ]; then
+    CLAUDE_BASE_FILE="$DEST_DIR/.claude-base.md"
+  fi
 
   # Initialize temp dir vars before the trap so cleanup always has defined vars under set -u
   STAGE_DIR=""

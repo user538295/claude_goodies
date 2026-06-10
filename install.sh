@@ -7,6 +7,8 @@
 # ---------------------------------------------------------------------------
 DEST_DIR="${INSTALL_DEST:-${HOME}/.claude}"
 REPO_URL="${INSTALL_REPO_URL:-https://github.com/user538295/claude_goodies.git}"
+DRY_RUN=0
+WRITE_COUNT=0
 
 # ---------------------------------------------------------------------------
 # usage
@@ -18,6 +20,7 @@ Usage: install.sh [OPTIONS]
 Options:
   --overwrite        Overwrite existing installation
   --keep-claude-md   Keep existing CLAUDE.md (do not overwrite)
+  --dry-run          Preview actions without writing any files
   --help             Show this help message and exit
 
 Options --overwrite and --keep-claude-md are mutually exclusive.
@@ -26,12 +29,14 @@ EOF
 
 # ---------------------------------------------------------------------------
 # parse_flags [args...]
-# Sets global variables OVERWRITE and KEEP_CLAUDE_MD.
+# Sets global variables OVERWRITE, KEEP_CLAUDE_MD, DRY_RUN, and WRITE_COUNT.
 # Exits 1 on unknown flags or conflicting flags; exits 0 on --help.
 # ---------------------------------------------------------------------------
 parse_flags() {
   OVERWRITE=0
   KEEP_CLAUDE_MD=0
+  DRY_RUN=0
+  WRITE_COUNT=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -40,6 +45,9 @@ parse_flags() {
         ;;
       --keep-claude-md)
         KEEP_CLAUDE_MD=1
+        ;;
+      --dry-run)
+        DRY_RUN=1
         ;;
       --help)
         usage

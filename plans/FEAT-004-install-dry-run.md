@@ -142,7 +142,7 @@ The following exact strings must be used by the implementation and matched by te
 > **Releasable**: after Task 2.5 — the full dry-run feature is functional in `install.sh` and all Phase 1 tests pass.
 
 #### Task 2.1 — Add `DRY_RUN` and `WRITE_COUNT` to module level, `parse_flags()`, and update `usage()`
-- [ ] **File**: `install.sh`
+- [x] **File**: `install.sh`
 - **Depends on**: Task 1.1 (test infrastructure exists)
 - **Description**:
   - At **module level** (alongside `DEST_DIR` and `REPO_URL`, lines 8–9), add:

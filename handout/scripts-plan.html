@@ -6,7 +6,7 @@
   <title>scripts-plan — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh -->
+  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh scripts/implement-next-state-clear.sh (last synced: 2026-06-11) -->
 </head>
 <body>
   <div class="card-page">
@@ -18,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p>A group of five shell scripts that track plan progress, enforce one-commit-per-task discipline, and audit completed plan runs — used directly by developers and automatically by <code>/implement-next</code> and <code>/implement-all</code>.</p>
+      <p>A group of shell scripts that track plan progress, enforce one-commit-per-task discipline, audit completed plan runs, and (in the Claude Code <code>-cc</code> variant) gate subagent turn-end on a commit via the <code>SubagentStop</code> hook — used directly by developers and automatically by <code>/implement-next</code>, <code>/implement-all</code>, <code>/implement-next-cc</code>, and <code>/implement-all-cc</code>.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -27,9 +27,9 @@
       <ul>
         <li>To see which task is next and the current completion percentage — use <code>plan-progress.sh</code>.</li>
         <li>To count how many tasks remain before starting a run — use <code>count-uncompleted-tasks.sh</code>.</li>
-        <li>After each <code>/implement-next</code> invocation in a loop — <code>check-task-commit.sh</code> verifies exactly one commit was made.</li>
-        <li>After completing a full <code>/implement-all</code> or <code>/implement-next</code> run — use <code>verify-run-commits.sh</code> to confirm commit count matches task count.</li>
+        <li>Inside <code>/implement-next</code> Step 7's self-verification — <code>check-task-commit.sh</code> verifies at least one non-merge commit was made.</li>
         <li>At any later time, to audit a historical run independently — use <code>audit-plan-run.sh</code>.</li>
+        <li>The <code>-cc</code> variant scripts (<code>implement-next-stop-gate.sh</code>, <code>implement-next-state-write.sh</code>, <code>implement-next-state-clear.sh</code>) are invoked by <code>/implement-all-cc</code> and the <code>SubagentStop</code> hook — you don't call them by hand.</li>
       </ul>
     </section>
 
@@ -53,15 +53,28 @@
       <pre><code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan_file&gt; &lt;sha_start&gt;</code></pre>
       <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION or mismatch; 2 = usage or git error.</p>
 
-      <h4><code>verify-run-commits.sh</code></h4>
-      <p>Verifies exactly <code>&lt;expected_count&gt;</code> non-merge commits were created since <code>&lt;sha_start&gt;</code>. Lighter than <code>audit-plan-run.sh</code> — does not diff the plan file.</p>
+      <h4><code>verify-run-commits.sh</code> <span style="font-size:0.75em;color:var(--muted);">(deprecated)</span></h4>
+      <p>Verifies exactly <code>&lt;expected_count&gt;</code> non-merge commits were created since <code>&lt;sha_start&gt;</code>. Lighter than <code>audit-plan-run.sh</code> — does not diff the plan file. <strong>Deprecated</strong> — replaced by <code>audit-plan-run.sh</code>; still shipped for backwards compatibility.</p>
       <pre><code>bash ~/.claude/scripts/verify-run-commits.sh &lt;sha_start&gt; &lt;expected_count&gt;</code></pre>
       <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION; 2 = usage or git error.</p>
 
       <h4><code>check-task-commit.sh</code></h4>
-      <p>Verifies exactly <strong>one</strong> non-merge commit with non-empty file changes was created since <code>&lt;sha_before&gt;</code>. Run after each <code>/implement-next</code> invocation inside a loop.</p>
+      <p>Verifies <strong>at least one</strong> non-merge commit with non-empty file changes was created since <code>&lt;sha_before&gt;</code>. Auto-called by <code>/implement-next</code> Step 7 (portable) or by <code>/implement-next-cc</code> parent-level checks.</p>
       <pre><code>bash ~/.claude/scripts/check-task-commit.sh &lt;sha_before&gt;</code></pre>
       <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION; 2 = usage or git error.</p>
+
+      <h3>Claude Code <code>-cc</code> variant scripts (hook + sentinel — not user-invoked)</h3>
+
+      <h4><code>implement-next-stop-gate.sh</code></h4>
+      <p><code>SubagentStop</code> hook script used by <code>/implement-all-cc</code>. Reads the sentinel file at <code>$CWD/.claude/implement-next-state.json</code>, filters on <code>agentId</code> (so nested sub-sub-agents pass through), and refuses to let the outer <code>/implement-next-cc</code> subagent end its turn until a new commit exists since <code>START_SHA</code>. Registered in <code>~/.claude/settings.json</code> under <code>hooks.SubagentStop</code>.</p>
+
+      <h4><code>implement-next-state-write.sh</code></h4>
+      <p>Sentinel writer invoked by <code>/implement-all-cc</code> Step 4 (arm the gate). Writes <code>$CWD/.claude/implement-next-state.json</code> with the start SHA, plan path, next task name, and agent ID, so the hook can read it.</p>
+      <pre><code>bash ~/.claude/scripts/implement-next-state-write.sh &lt;cwd&gt; &lt;start_sha&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;agent_id&gt;</code></pre>
+
+      <h4><code>implement-next-state-clear.sh</code></h4>
+      <p>Sentinel cleaner invoked by <code>/implement-all-cc</code> Step 6 (always, after recovery check). Removes <code>$CWD/.claude/implement-next-state.json</code> so the hook does not gate the next iteration's subagent prematurely.</p>
+      <pre><code>bash ~/.claude/scripts/implement-next-state-clear.sh &lt;cwd&gt;</code></pre>
 
       <h3>Internal dependencies (called by user-invocable scripts — not invoked directly)</h3>
       <ul>
@@ -97,7 +110,7 @@
             <td><code>count-uncompleted-tasks.sh</code></td>
             <td><span class="badge must">user</span></td>
             <td><code>task_section.awk</code></td>
-            <td><code>/implement-all</code> init</td>
+            <td>—  (manual pre-run sanity check)</td>
           </tr>
           <tr>
             <td><code>audit-plan-run.sh</code></td>
@@ -107,15 +120,33 @@
           </tr>
           <tr>
             <td><code>verify-run-commits.sh</code></td>
-            <td><span class="badge must">user</span></td>
+            <td><span class="badge optional">deprecated</span></td>
             <td>—</td>
-            <td><code>/implement-all</code> final step</td>
+            <td>—  (replaced by <code>audit-plan-run.sh</code>; shipped for back-compat)</td>
           </tr>
           <tr>
             <td><code>check-task-commit.sh</code></td>
             <td><span class="badge must">user</span></td>
             <td>—</td>
-            <td><code>/implement-all</code> per-task verify</td>
+            <td><code>/implement-next</code> Step 7 (portable) or <code>/implement-next-cc</code> parent-level checks</td>
+          </tr>
+          <tr>
+            <td><code>implement-next-stop-gate.sh</code></td>
+            <td><span class="badge suggested">hook (cc)</span></td>
+            <td>sentinel json</td>
+            <td><code>SubagentStop</code> hook in <code>~/.claude/settings.json</code> (gates <code>/implement-all-cc</code>)</td>
+          </tr>
+          <tr>
+            <td><code>implement-next-state-write.sh</code></td>
+            <td><span class="badge suggested">internal (cc)</span></td>
+            <td>—</td>
+            <td><code>/implement-all-cc</code> Step 4 (arm gate)</td>
+          </tr>
+          <tr>
+            <td><code>implement-next-state-clear.sh</code></td>
+            <td><span class="badge suggested">internal (cc)</span></td>
+            <td>—</td>
+            <td><code>/implement-all-cc</code> Step 6 (always, after recovery check)</td>
           </tr>
           <tr>
             <td><code>task_section.awk</code></td>
@@ -181,7 +212,10 @@ VIOLATION: 3 commits for 4 completed tasks — counts do not match</code></pre>
     <section data-section="6-related-tools">
       <h2>Related tools</h2>
       <ul>
-        <li><a href="cmd-implement-next.html">/implement-next</a> — Calls <code>plan-progress.sh</code> in Step 1 and <code>check-task-commit.sh</code> after each commit to enforce the one-task-one-commit rule; these scripts are its primary consumers.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> (portable) — Calls <code>plan-progress.sh</code> in Step 1 and <code>check-task-commit.sh</code> in Step 7's self-verification.</li>
+        <li><a href="cmd-implement-next-cc.html">/implement-next-cc</a> (Claude Code) — Same caller pattern; additionally gated by the <code>SubagentStop</code> hook (<code>implement-next-stop-gate.sh</code>) when invoked from <code>/implement-all-cc</code>.</li>
+        <li><a href="cmd-implement-all.html">/implement-all</a> (portable) — Calls <code>plan-progress.sh</code> per iteration and <code>audit-plan-run.sh</code> as a final audit.</li>
+        <li><a href="cmd-implement-all-cc.html">/implement-all-cc</a> (Claude Code) — Same callers plus the sentinel pair <code>implement-next-state-write.sh</code> / <code>implement-next-state-clear.sh</code> around each subagent spawn.</li>
       </ul>
     </section>
 

@@ -5,7 +5,7 @@
 # non-merge commits since sha_start matches the number of completed tasks
 # (- [x]) in the plan file.
 #
-# Run this after /implement-all to verify the run without relying on Claude.
+# Run this after /implement-all or /implement-all-cc to verify the run without relying on Claude.
 # Can also be run at any time to audit a historical run.
 #
 # Exit 0 = PASS

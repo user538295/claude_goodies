@@ -18,7 +18,7 @@ flowchart LR
     classDef gate fill:#f59e0b,color:#000,stroke:#d97706
 ```
 
-Three human gates, everything else automated. The full 9-step pipeline lives in the handout: [agentic-workflow-en.html](https://user538295.github.io/claude_goodies/handout/agentic-workflow-en.html) · [agentic-workflow-hu.html](https://user538295.github.io/claude_goodies/handout/agentic-workflow-hu.html).
+Three human gates, everything else automated (simplified default view; see the full handout for the 4-gate detailed pipeline). The full 9-step pipeline lives in the handout: [agentic-workflow-en.html](https://user538295.github.io/claude_goodies/handout/agentic-workflow-en.html) · [agentic-workflow-hu.html](https://user538295.github.io/claude_goodies/handout/agentic-workflow-hu.html).
 
 ---
 
@@ -32,6 +32,12 @@ Each entry links to its handout page with a worked example.
 - [**`/plan-maker`**](https://user538295.github.io/claude_goodies/handout/skill-plan-maker.html) — Stop staring at a ticket wondering where to start. Breaks the brief into the smallest tasks with tests and dependencies.
 - [**`/implement-all`**](https://user538295.github.io/claude_goodies/handout/cmd-implement-all.html) — Have a finished plan? Walk away and let it ship. Runs `/implement-next` in a loop — one task, one commit at a time.
 - [**`/implement-next`**](https://user538295.github.io/claude_goodies/handout/cmd-implement-next.html) — Or just do the next task and stop. Builds test-first, reviews itself, commits.
+
+**Two variants exist — start with the portable default.**
+- `/implement-all` + `/implement-next` (portable) — runs in any harness. Halts and tells you if a task finishes without committing.
+- `/implement-all-cc` + `/implement-next-cc` (Claude Code only) — same flow, with a runtime-level gate that won't let the agent stop without committing, plus a parent loop that recovers if it ever slips through. Pick this when you're in Claude Code and want the safety net.
+
+See `CLAUDE.md` § "Plan execution and commit granularity" for the design rationale.
 
 ### Get a second opinion
 

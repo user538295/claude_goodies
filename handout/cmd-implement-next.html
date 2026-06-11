@@ -3,22 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>/implement-next — Claude Code Handout</title>
+  <title>/implement-next (portable) — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-next.md -->
+  <!-- Source: commands/implement-next.md (last synced: 2026-06-11) -->
 </head>
 <body>
   <div class="card-page">
 
     <div class="page-header">
-      <h1><code>/implement-next</code></h1>
+      <h1><code>/implement-next</code> <span style="font-size:0.6em;color:var(--muted);font-weight:500;">(portable variant)</span></h1>
       <a class="back-link" href="index.html">← Back to index</a>
     </div>
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p>Reads a plan file, implements the next uncompleted task using agents with strict TDD, runs parallel DA reviews and fixes all issues, checks off the completed task, and commits — one task, one commit.</p>
+      <p>Portable runtime-agnostic command that reads a plan file, implements the next uncompleted task with strict TDD, an optional critical review, runs tests blocking, checks off the completed task, commits, and self-verifies the commit before ending — one task, one commit. Works in any harness without hook dependencies.</p>
+      <div class="example" style="border-left:3px solid var(--ai);padding:0.6rem 0.9rem;margin-top:0.8rem;">
+        <p style="margin:0;"><strong>Two variants exist.</strong> This page describes the portable variant. For Claude Code's hook-enforced variant (paired with <a href="cmd-implement-all-cc.html"><code>/implement-all-cc</code></a> and gated by the <code>SubagentStop</code> hook), see <a href="cmd-implement-next-cc.html"><code>/implement-next-cc</code></a>.</p>
+      </div>
+      <p><strong>Using in Cursor:</strong> Cursor reads commands from <code>.cursor/commands/</code>, not <code>~/.claude/commands/</code>. See the <a href="cmd-implement-all.html#section-1-summary">Cursor setup section in <code>cmd-implement-all.html</code></a> for the one-time symlink instructions.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -32,7 +36,7 @@
         <li>You are debugging a failed <code>/implement-all</code> run and want to re-run a single task in isolation.</li>
       </ul>
       <p><strong>Relationship to <code>/implement-all</code>:</strong> <code>/implement-all</code> delegates to <code>/implement-next</code> for every uncompleted task in the plan. You can invoke <code>/implement-next</code> directly to implement one task at a time, or let <code>/implement-all</code> drive the loop automatically.</p>
-      <p><strong>Relationship to <code>scripts-plan</code>:</strong> <code>/implement-next</code> calls <code>plan-progress.sh</code> in Step 1 to identify the next task and display progress, and calls <code>check-task-commit.sh</code> via <code>/implement-all</code>'s verify step to confirm commit granularity.</p>
+      <p><strong>Relationship to <code>scripts-plan</code>:</strong> <code>/implement-next</code> calls <code>plan-progress.sh</code> in Step 1 to identify the next task and display progress, and calls <code>check-task-commit.sh</code> in Step 7 as part of its self-verification (the portable substitute for the <code>SubagentStop</code> hook used in the <code>-cc</code> variant).</p>
     </section>
 
     <section data-section="3-invocation">
@@ -43,15 +47,16 @@
       <ul>
         <li><code>[plan-file-path]</code> — (required) Relative path to the plan Markdown file, e.g. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
-      <p><strong>Steps executed for each task:</strong></p>
+      <p><strong>Steps executed for each task (8 steps total):</strong></p>
       <ol>
-        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion percentage and identify the next uncompleted task. If all tasks are complete (exit 1), stops and reports completion.</li>
-        <li><strong>Step 2 — Implement (TDD):</strong> Spawns the most appropriate agent to implement only this task. For code tasks: writes failing tests first (red), confirms they fail, implements enough code to pass (green), confirms all tests pass. For non-code tasks (docs, config): implements directly without a TDD cycle.</li>
-        <li><strong>Step 3 — DA review loop:</strong> Invokes <code>/iterative-review</code> with <code>git diff HEAD</code> and the task spec. DA agents review against acceptance criteria. All fixes stay as uncommitted working-tree changes — no DA commits.</li>
-        <li><strong>Step 4 — Run tests:</strong> Runs the full test suite. Spawns a fix agent for any failures; retries up to 3 times. Stops if the suite is not green after 3 attempts.</li>
+        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion and identify the next uncompleted task. Records <code>START_SHA</code> and <code>START_CHECKED</code> for Step 7's self-verification. If all tasks are complete (exit 1), stops and reports completion.</li>
+        <li><strong>Step 2 — Implement (TDD):</strong> Spawns a focused subagent (or proceeds inline if the runtime has no subagent primitive) to implement only this task. For code tasks: failing tests first (red), then implementation (green), then full pass. For non-code tasks (docs, config): implements directly.</li>
+        <li><strong>Step 3 — Critical review (optional):</strong> Invokes <code>/iterative-review</code> on <code>git diff HEAD</code> plus the task spec, or spawns one critic subagent if the slash command is unavailable. Includes the loud "MANDATORY CONTINUATION — do not stop here" warning: the portable variant has no <code>SubagentStop</code> hook to catch this, so the prompt is the only defense against the subagent ending its turn at the review verdict.</li>
+        <li><strong>Step 4 — Run tests:</strong> Runs the full test suite as a blocking foreground command, timeout under the runtime's foreground ceiling (Claude Code's <code>Bash</code> ≤ 600,000 ms). If the full suite cannot complete in one blocking call, runs only the task-relevant subset and reports the partial scope in Step 8. Fix agents retry up to 3 times.</li>
         <li><strong>Step 5 — Check off:</strong> Marks the implemented task and all completed sub-items <code>[x]</code> in the plan file.</li>
-        <li><strong>Step 6 — Commit:</strong> Stages implementation files and the updated plan file; commits with a message derived from the task content. <code>--no-verify</code> is forbidden.</li>
-        <li><strong>Step 7 — Report:</strong> Outputs a concise summary: what was implemented, test results, any deviations, and what was checked off.</li>
+        <li><strong>Step 6 — Commit:</strong> Stages implementation files and the updated plan file; commits with a message derived from the task content. <code>--no-verify</code> is forbidden. Includes recovery on commit failure (unstage, restore plan file, fix the underlying issue, redo Steps 5–6).</li>
+        <li><strong>Step 7 — Self-verification (portable substitute for hook enforcement):</strong> Programmatically verifies before ending the turn: (1) <code>check-task-commit.sh "$START_SHA"</code> confirms a new commit exists; (2) plan's checked-task count grew by at least 1; (3) the new commit's diff includes both the plan file AND implementation files. If any check fails, does NOT end the turn — diagnoses the gap and returns to the appropriate earlier step.</li>
+        <li><strong>Step 8 — Report:</strong> Outputs a concise summary: what was implemented, test results, any deviations, what was checked off, Step 7's self-verification result.</li>
       </ol>
     </section>
 
@@ -107,9 +112,11 @@ Summary: 0 tasks implemented. Plan is fully checked off.</code></pre>
     <section data-section="6-related-tools">
       <h2>Related tools</h2>
       <ul>
-        <li><a href="cmd-implement-all.html">/implement-all</a> — Drives the full plan loop by invoking <code>/implement-next</code> once per uncompleted task; use this when you want fully automated hands-off execution of all remaining tasks.</li>
-        <li><a href="cmd-iterative-review.html">/iterative-review</a> — The DA review loop invoked in Step 3 of every <code>/implement-next</code> run; spawns parallel DA agents and fix agents until no critical/major/moderate issues remain. <em>(Forward reference — page not yet created; will resolve by Task 6.1.)</em></li>
-        <li><a href="scripts-plan.html">scripts-plan</a> — The <code>plan-progress.sh</code> and <code>check-task-commit.sh</code> scripts used by <code>/implement-next</code> in Steps 1 and verify phases to track progress and enforce commit granularity. <em>(Forward reference — page not yet created; will resolve by Task 6.1.)</em></li>
+        <li><a href="cmd-implement-next-cc.html">/implement-next-cc</a> — Claude Code variant of this command, paired with <code>/implement-all-cc</code> and gated by the <code>SubagentStop</code> hook; Case B rescue is handled by the separate <a href="cmd-implement-next-cc-resume.html"><code>/implement-next-cc-resume</code></a> skill.</li>
+        <li><a href="cmd-implement-all.html">/implement-all</a> — Portable parent loop that invokes <code>/implement-next</code> once per uncompleted task; use this when you want fully automated hands-off execution of all remaining tasks.</li>
+        <li><a href="cmd-implement-all-cc.html">/implement-all-cc</a> — Claude Code parent loop with hook-enforced commit gate and Case A/B/C/D recovery.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — The optional critical-review loop invoked in Step 3; spawns parallel DA agents and fix agents until no critical/major/moderate issues remain.</li>
+        <li><a href="scripts-plan.html">scripts-plan</a> — The <code>plan-progress.sh</code> (Step 1) and <code>check-task-commit.sh</code> (Step 7) scripts used by this command.</li>
       </ul>
     </section>
 

@@ -6,7 +6,7 @@
   <title>/iterative-review — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/iterative-review.md -->
+  <!-- Source: commands/iterative-review.md (last synced: 2026-06-11) -->
 </head>
 <body>
   <div class="card-page">
@@ -51,6 +51,7 @@
         <li>Apró — stílus, elnevezés vagy szőrszálhasogatás (jelzi, de nem javítja automatikusan)</li>
       </ul>
       <p><strong>Megjegyzés:</strong> A javító ágensek NEM hoznak létre git commitokat — minden változtatás commitálatlan working-tree módosításként marad.</p>
+      <p><strong>Megjegyzés a folytatásról:</strong> Amikor az <code>/implement-next</code> vagy <code>/implement-next-cc</code> hívja meg, a hívó skill maga tartalmazza a "ne állj meg a review verdiktnél" emlékeztetőt a 3. lépésében — az <code>/iterative-review</code> önmaga már nem nyomtat kötelező-folytatás figyelmeztetést az összefoglaló végén.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -118,8 +119,9 @@ No critical, major or moderate issues remain.
       <h2>Kapcsolódó eszközök</h2>
       <ul>
         <li><a href="cmd-da-review-hu.html">/da-review</a> — Egymenetes review, amely megtalálja a problémákat, de nem javítja őket; akkor használd, ha kézben szeretnéd tartani a javításokat.</li>
-        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Végigviszi egy plan-task megvalósítását elejétől a végéig, és belsőleg hívja az <code>/iterative-review</code>-ot a DA review ciklusa részeként.</li>
-        <li><a href="cmd-implement-all-hu.html">/implement-all</a> — Addig futtatja ismételten az <code>/implement-next</code> parancsot, amíg minden plan-task el nem készül; minden task review ciklusa az <code>/iterative-review</code>-ot használja.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> (portable) — Végigviszi egy plan-task megvalósítását elejétől a végéig, és belsőleg hívja az <code>/iterative-review</code>-ot a 3. lépés kritikai review-ja részeként.</li>
+        <li><a href="cmd-implement-next-cc-hu.html">/implement-next-cc</a> (Claude Code) — Ugyanaz a hívásmód, hook-gátolt.</li>
+        <li><a href="cmd-implement-all-hu.html">/implement-all</a> / <a href="cmd-implement-all-cc-hu.html">/implement-all-cc</a> — Addig futtatják ismételten az <code>/implement-next</code> (vagy <code>-cc</code>) parancsot, amíg minden plan-task el nem készül; minden task review ciklusa az <code>/iterative-review</code>-ot használja.</li>
         <li><a href="skill-aaa-hu.html">/aaa</a> — A minőséget világszínvonalú standardokhoz méri kutatással és gap-elemzéssel; nem csak hibákat jelez, hanem iparági kiválósághoz viszonyítva benchmark-ol, így kiegészíti a review-t.</li>
       </ul>
     </section>

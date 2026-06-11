@@ -6,7 +6,7 @@
   <title>scripts-plan — Claude Code segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh -->
+  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh scripts/implement-next-state-clear.sh (last synced: 2026-06-11) -->
 </head>
 <body>
   <div class="card-page">
@@ -18,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p>Öt shell scriptből álló csomag, amely követi a terv előrehaladását, kikényszeríti az egy-feladat-egy-commit fegyelmet, és auditálja a befejezett terv-futásokat — közvetlenül a fejlesztők, illetve automatikusan az <code>/implement-next</code> és <code>/implement-all</code> használja.</p>
+      <p>Shell scriptek csomagja, amely követi a terv előrehaladását, kikényszeríti az egy-feladat-egy-commit fegyelmet, auditálja a befejezett terv-futásokat, és (a Claude Code <code>-cc</code> változatban) <code>SubagentStop</code> hookon keresztül gátolja a subagent turn-end-jét commit nélkül — közvetlenül a fejlesztők, illetve automatikusan az <code>/implement-next</code>, <code>/implement-all</code>, <code>/implement-next-cc</code> és <code>/implement-all-cc</code> használja.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -27,9 +27,9 @@
       <ul>
         <li>Ha látni szeretnéd, melyik a következő feladat és mennyi az aktuális készültségi százalék — használd a <code>plan-progress.sh</code> scriptet.</li>
         <li>Ha meg akarod számolni, hány feladat van még hátra egy futás indítása előtt — használd a <code>count-uncompleted-tasks.sh</code> scriptet.</li>
-        <li>Egy ciklusban minden <code>/implement-next</code> hívás után — a <code>check-task-commit.sh</code> ellenőrzi, hogy pontosan egy commit készült.</li>
-        <li>Egy teljes <code>/implement-all</code> vagy <code>/implement-next</code> futás befejezése után — használd a <code>verify-run-commits.sh</code> scriptet, hogy megerősítsd: a commitok száma megegyezik a feladatok számával.</li>
+        <li>Az <code>/implement-next</code> 7. lépésének self-verification ellenőrzésén belül — a <code>check-task-commit.sh</code> ellenőrzi, hogy legalább egy nem-merge commit készült.</li>
         <li>Bármikor később, egy korábbi futás független auditálásához — használd az <code>audit-plan-run.sh</code> scriptet.</li>
+        <li>A <code>-cc</code> változat szkriptjeit (<code>implement-next-stop-gate.sh</code>, <code>implement-next-state-write.sh</code>, <code>implement-next-state-clear.sh</code>) az <code>/implement-all-cc</code> és a <code>SubagentStop</code> hook hívja — kézzel nem hívod őket.</li>
       </ul>
     </section>
 
@@ -53,15 +53,28 @@
       <pre><code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan_file&gt; &lt;sha_start&gt;</code></pre>
       <p><strong>Kilépési kódok:</strong> 0 = PASS; 1 = VIOLATION vagy eltérés; 2 = használati vagy git hiba.</p>
 
-      <h4><code>verify-run-commits.sh</code></h4>
-      <p>Ellenőrzi, hogy pontosan <code>&lt;expected_count&gt;</code> darab nem-merge commit készült a <code>&lt;sha_start&gt;</code> óta. Könnyebb, mint az <code>audit-plan-run.sh</code> — nem diffeli a terv-fájlt.</p>
+      <h4><code>verify-run-commits.sh</code> <span style="font-size:0.75em;color:var(--muted);">(elavult)</span></h4>
+      <p>Ellenőrzi, hogy pontosan <code>&lt;expected_count&gt;</code> darab nem-merge commit készült a <code>&lt;sha_start&gt;</code> óta. Könnyebb, mint az <code>audit-plan-run.sh</code> — nem diffeli a terv-fájlt. <strong>Elavult</strong> — az <code>audit-plan-run.sh</code> váltotta le; visszafelé kompatibilitás miatt marad a csomagban.</p>
       <pre><code>bash ~/.claude/scripts/verify-run-commits.sh &lt;sha_start&gt; &lt;expected_count&gt;</code></pre>
       <p><strong>Kilépési kódok:</strong> 0 = PASS; 1 = VIOLATION; 2 = használati vagy git hiba.</p>
 
       <h4><code>check-task-commit.sh</code></h4>
-      <p>Ellenőrzi, hogy pontosan <strong>egy</strong> nem-merge commit készült, nem üres fájlváltozásokkal, a <code>&lt;sha_before&gt;</code> óta. Cikluson belül minden <code>/implement-next</code> hívás után futtasd.</p>
+      <p>Ellenőrzi, hogy <strong>legalább egy</strong> nem-merge commit készült, nem üres fájlváltozásokkal, a <code>&lt;sha_before&gt;</code> óta. Automatikusan hívja az <code>/implement-next</code> 7. lépése (portable) vagy az <code>/implement-next-cc</code> szülő-szintű ellenőrzései.</p>
       <pre><code>bash ~/.claude/scripts/check-task-commit.sh &lt;sha_before&gt;</code></pre>
       <p><strong>Kilépési kódok:</strong> 0 = PASS; 1 = VIOLATION; 2 = használati vagy git hiba.</p>
+
+      <h3>Claude Code <code>-cc</code> változat szkriptjei (hook + sentinel — felhasználó nem hívja)</h3>
+
+      <h4><code>implement-next-stop-gate.sh</code></h4>
+      <p>Az <code>/implement-all-cc</code> által használt <code>SubagentStop</code> hook szkript. Olvassa a <code>$CWD/.claude/implement-next-state.json</code> sentinelt, az <code>agentId</code>-re szűr (így a beágyazott sub-sub-agentek átmennek), és nem engedi lezárni a külső <code>/implement-next-cc</code> subagent turnjét, amíg új commit nem létezik a <code>START_SHA</code> óta. A <code>~/.claude/settings.json</code> <code>hooks.SubagentStop</code> alatt regisztrálva.</p>
+
+      <h4><code>implement-next-state-write.sh</code></h4>
+      <p>Sentinel-író, amelyet az <code>/implement-all-cc</code> 4. lépése (gate felfegyverzése) hív. Kiír egy <code>$CWD/.claude/implement-next-state.json</code> fájlt a start SHA-val, terv-úttal, következő task névvel és agent ID-vel, hogy a hook olvashassa.</p>
+      <pre><code>bash ~/.claude/scripts/implement-next-state-write.sh &lt;cwd&gt; &lt;start_sha&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;agent_id&gt;</code></pre>
+
+      <h4><code>implement-next-state-clear.sh</code></h4>
+      <p>Sentinel-tisztító, amelyet az <code>/implement-all-cc</code> 6. lépése (mindig, a recovery check után) hív. Törli a <code>$CWD/.claude/implement-next-state.json</code> fájlt, hogy a hook ne gátolja idő előtt a következő iteráció subagentjét.</p>
+      <pre><code>bash ~/.claude/scripts/implement-next-state-clear.sh &lt;cwd&gt;</code></pre>
 
       <h3>Belső függőségek (a felhasználó által hívható scriptek hívják — közvetlenül nem indítandók)</h3>
       <ul>
@@ -97,7 +110,7 @@
             <td><code>count-uncompleted-tasks.sh</code></td>
             <td><span class="badge must">user</span></td>
             <td><code>task_section.awk</code></td>
-            <td><code>/implement-all</code> inicializálás</td>
+            <td>—  (kézi pre-run sanity check)</td>
           </tr>
           <tr>
             <td><code>audit-plan-run.sh</code></td>
@@ -107,15 +120,33 @@
           </tr>
           <tr>
             <td><code>verify-run-commits.sh</code></td>
-            <td><span class="badge must">user</span></td>
+            <td><span class="badge optional">elavult</span></td>
             <td>—</td>
-            <td><code>/implement-all</code> záró lépés</td>
+            <td>—  (az <code>audit-plan-run.sh</code> váltotta le; backwards compat miatt)</td>
           </tr>
           <tr>
             <td><code>check-task-commit.sh</code></td>
             <td><span class="badge must">user</span></td>
             <td>—</td>
-            <td><code>/implement-all</code> feladatonkénti ellenőrzés</td>
+            <td><code>/implement-next</code> 7. lépés (portable) vagy <code>/implement-next-cc</code> szülő-szintű ellenőrzések</td>
+          </tr>
+          <tr>
+            <td><code>implement-next-stop-gate.sh</code></td>
+            <td><span class="badge suggested">hook (cc)</span></td>
+            <td>sentinel json</td>
+            <td><code>SubagentStop</code> hook a <code>~/.claude/settings.json</code>-ban (gátolja az <code>/implement-all-cc</code>-t)</td>
+          </tr>
+          <tr>
+            <td><code>implement-next-state-write.sh</code></td>
+            <td><span class="badge suggested">internal (cc)</span></td>
+            <td>—</td>
+            <td><code>/implement-all-cc</code> 4. lépés (gate felfegyverzése)</td>
+          </tr>
+          <tr>
+            <td><code>implement-next-state-clear.sh</code></td>
+            <td><span class="badge suggested">internal (cc)</span></td>
+            <td>—</td>
+            <td><code>/implement-all-cc</code> 6. lépés (mindig, recovery check után)</td>
           </tr>
           <tr>
             <td><code>task_section.awk</code></td>
@@ -181,7 +212,10 @@ VIOLATION: 3 commits for 4 completed tasks — counts do not match</code></pre>
     <section data-section="6-related-tools">
       <h2>Kapcsolódó eszközök</h2>
       <ul>
-        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Az 1. lépésben meghívja a <code>plan-progress.sh</code> scriptet, és minden commit után a <code>check-task-commit.sh</code> scriptet, hogy kikényszerítse az egy-feladat-egy-commit szabályt; ezek a scriptek az elsődleges felhasználói.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> (portable) — Az 1. lépésben meghívja a <code>plan-progress.sh</code>-t, a 7. lépés self-verification részében pedig a <code>check-task-commit.sh</code>-t.</li>
+        <li><a href="cmd-implement-next-cc-hu.html">/implement-next-cc</a> (Claude Code) — Ugyanaz a hívásmód; ráadásul a <code>SubagentStop</code> hook (<code>implement-next-stop-gate.sh</code>) gátolja, amikor az <code>/implement-all-cc</code>-ből hívják.</li>
+        <li><a href="cmd-implement-all-hu.html">/implement-all</a> (portable) — Iterációnként hívja a <code>plan-progress.sh</code>-t és záró auditként az <code>audit-plan-run.sh</code>-t.</li>
+        <li><a href="cmd-implement-all-cc-hu.html">/implement-all-cc</a> (Claude Code) — Ugyanazok a hívók, plusz a sentinel-pár <code>implement-next-state-write.sh</code> / <code>implement-next-state-clear.sh</code> minden subagent indítás körül.</li>
       </ul>
     </section>
 

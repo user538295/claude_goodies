@@ -3,22 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>/implement-all — Claude Code segédlet</title>
+  <title>/implement-all (portable) — Claude Code segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-all.md -->
+  <!-- Source: commands/implement-all.md (last synced: 2026-06-11) -->
 </head>
 <body>
   <div class="card-page">
 
     <div class="page-header">
-      <h1><code>/implement-all</code></h1>
+      <h1><code>/implement-all</code> <span style="font-size:0.6em;color:var(--muted);font-weight:500;">(portable változat)</span></h1>
       <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
     </div>
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p>Explicit ciklust futtat, amely egyszerre egy feladatot delegál a <code>/implement-next</code> parancsnak — addig, amíg a tervfájl minden befejezetlen feladata implementálva és commitolva nem lesz.</p>
+      <p>Runtime-független portable ciklus, amely egyszerre egy feladatot delegál a <code>/implement-next</code> parancsnak — addig, amíg a tervfájl minden befejezetlen feladata implementálva és commitolva nem lesz. Bármilyen harness-ben (Claude Code, Cursor, <code>claude -p</code>) működik, hook-függőség nélkül.</p>
+      <div class="example" style="border-left:3px solid var(--ai);padding:0.6rem 0.9rem;margin-top:0.8rem;">
+        <p style="margin:0;"><strong>Két változat létezik.</strong> Ez az oldal a portable változatot írja le. A Claude Code hook-kényszerített, auto-rescue képes változatáért (Case A/B/C/D recovery + <code>SubagentStop</code> gate) lásd a <a href="cmd-implement-all-cc-hu.html"><code>/implement-all-cc</code></a> parancsot.</p>
+      </div>
+      <h3>Használat Cursorban (egyszeri beállítás)</h3>
+      <p>A Cursor a projekten belüli <code>.cursor/commands/</code> könyvtárból olvassa a custom parancsokat, nem a <code>~/.claude/commands/</code>-ból. Ahhoz, hogy ezt a skill-t Cursorban használd, másold vagy szimlinkeld a portable command-fájlokat:</p>
+      <pre><code>mkdir -p .cursor/commands
+ln -s ~/.claude/commands/implement-all.md .cursor/commands/implement-all.md
+ln -s ~/.claude/commands/implement-next.md .cursor/commands/implement-next.md</code></pre>
+      <p>A Cursor <code>Task</code> tool primitívje a Claude Code <code>Agent</code> tooljával egyenértékűen működik. A portable változat NEM használ hook-okat — nincs további teendő.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -45,18 +54,26 @@
       <ul>
         <li><code>[plan-file-path]</code> — (kötelező) A terv Markdown-fájljának relatív elérési útja, pl. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
-      <p><strong>Folyamat (explicit ciklus):</strong></p>
+      <p><strong>Folyamat (0. lépés + 5 ciklus-lépés):</strong></p>
+      <ol start="0">
+        <li><strong>0. lépés — Tervfájl feloldása:</strong> Ha az argumentum egy létező fájl elérési útja, azt használja. Egyébként a <code>**/*.md</code> mintára illesztett kulcsszó-egyezést keres olyan jelöltek között, amelyek tartalmaznak legalább egy be nem pipált taskot. Megáll, ha egyértelműség nélkül több vagy egy találat sincs.</li>
+      </ol>
+      <p><strong>Ciklustörzs (iterációs felső korlát: 50; megakadt-feladat őr: ugyanaz a <code>NEXT_TASK_NAME</code> két iterációban → megáll):</strong></p>
       <ol>
-        <li><strong>Haladás ellenőrzése:</strong> Lefuttatja a <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> parancsot.
+        <li><strong>Haladás + megakadt-feladat őr:</strong> Lefuttatja a <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> parancsot. Exit 1 → minden kész, megáll. Exit 2/3 → hibajelentéssel megáll. Exit 0 → megjegyzi a <code>NEXT_TASK_NAME</code>-et és folytatódik.</li>
+        <li><strong>Pre-state mentése:</strong> rögzíti a <code>START_SHA</code> és <code>CWD</code> értékeket. Csak az 1. iterációban a start SHA-t kiírja a <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> fájlba is, hogy az 5. lépés auditja ne függjön egy ideiglenes változótól. Minden tervhez saját SHA-horgonyfájl tartozik (a terv elérési útjának hash-éval névterezve), így különböző tervek nem ütköznek halt-and-resume esetén.</li>
+        <li><strong>Subagent indítása:</strong> a runtime saját subagent-primitívjével (Claude Code <code>Agent</code> tool, Cursor <code>Task</code> tool, vagy headless harness-ben inline <code>/implement-next</code>) ezzel a prompttal: <em>"Run /implement-next on plan file &lt;plan-path&gt;."</em> Megvárja a visszatérést.</li>
+        <li><strong>Recovery check — landolt-e a feladat:</strong> a hook-kényszerítés portable helyettesítője. Bármely hibamódra megáll (nem auto-rescue):
           <ul>
-            <li>Exit 1 → minden feladat kész — megáll.</li>
-            <li>Exit 2 vagy 3 → megáll és jelenti a hibát.</li>
-            <li>Exit 0 → vannak még feladatok, folytatódik a 2. lépéssel.</li>
+            <li><code>END_SHA != START_SHA</code> &amp; tiszta munkamásolat → valószínűleg commitolva; újra <code>plan-progress.sh</code>, és folytatódik (vagy megáll, ha a task nincs kipipálva).</li>
+            <li><code>END_SHA == START_SHA</code> &amp; commitolatlan változások → a subagent megakadt menet közben (a domináns hibatípus); diagnosztikával megáll. Javasolja a Claude Code <code>/implement-all-cc</code> változatát.</li>
+            <li><code>END_SHA == START_SHA</code> &amp; tiszta munkamásolat → a subagent semmit sem csinált láthatóan (hálózat, OOM, kvóta). Megáll.</li>
+            <li><code>END_SHA != START_SHA</code> &amp; commitolatlan változások → anomália; megáll.</li>
           </ul>
         </li>
-        <li><strong>Delegálás:</strong> Indít egy ügynököt, amely a <code>/implement-next</code> parancsot hívja a tervfájlon.</li>
-        <li><strong>Ciklus:</strong> Visszatér az 1. lépésre, amíg minden feladat el nem készül.</li>
+        <li><strong>Audit:</strong> a ciklus rendes lezárása után lefuttatja a <code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan-path&gt; &lt;FIRST_START_SHA&gt;</code> parancsot, majd takarítja a <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> fájlt. Exit 0 = tiszta futás; exit 1 = eltérés.</li>
       </ol>
+      <p><strong>Miért kevésbé megbízható ez, mint a <code>-cc</code> változat:</strong> arra támaszkodik, hogy a subagent kövesse az <code>/implement-next</code> markdown utasításait a commit elvégzéséhez a turn vége előtt. Az archon-search projekt korábbi tranzakcióiban a <code>/implement-next</code> subagentek ~7,6%-a soha nem commitolt (ez a fő hibamód, amelyre ez a skill reagál). A Plan-and-Solve tanulmány (<a href="https://arxiv.org/abs/2305.04091">arxiv.org/abs/2305.04091</a>, hozzáférve: 2026-06-11) minőségileg nevezi meg a "missing-step" hibákat mint ismert hibakategóriát prompt-vezérelt többlépéses flow-knál — a mi mérésünk ennek egy konkrét megnyilvánulása. A megállás korlátozza a kárt, de nem auto-recovery.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -103,8 +120,11 @@ Minden feladat kész.</code></pre>
     <section data-section="6-related-tools">
       <h2>Kapcsolódó eszközök</h2>
       <ul>
-        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Az egyfeladatos implementációs parancs, amelynek a <code>/implement-all</code> minden feladatot átad; egyszerre egy feladatra futtatja a TDD-t, a DA review-t, a teszteket, a kipipálást és a commitot.</li>
-        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — Devil's advocate review-ciklus, amelyet a <code>/implement-next</code> hív meg minden feladat implementációja során; párhuzamos DA ügynököket és fix ügynököket indít, amíg nem marad critical/major/moderate probléma.</li>
+        <li><a href="cmd-implement-all-cc-hu.html">/implement-all-cc</a> — Claude Code változat <code>SubagentStop</code> hook-kényszerítéssel és Case A/B/C/D parent-szintű recovery-vel; használd Claude Code-ban a nagyobb megbízhatóságért.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — A portable egyfeladatos implementációs parancs, amelynek az <code>/implement-all</code> minden feladatot átad; egyszerre egy feladatra futtatja a TDD-t, az opcionális kritikai review-t, a teszteket, a kipipálást, a commitot és a self-verification ellenőrzést.</li>
+        <li><a href="cmd-implement-next-cc-hu.html">/implement-next-cc</a> — Az <code>/implement-next</code> Claude Code változata; az <code>/implement-all-cc</code> párja, a <code>SubagentStop</code> hook gátolja a commit nélküli turn-end-et.</li>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — Devil's advocate review-ciklus, amelyet az <code>/implement-next</code> hív meg minden feladat implementációja során.</li>
+        <li><a href="scripts-plan-hu.html">scripts-plan</a> — A <code>plan-progress.sh</code> és <code>audit-plan-run.sh</code> szkriptek, amelyeket ez a parancs hív.</li>
       </ul>
     </section>
 

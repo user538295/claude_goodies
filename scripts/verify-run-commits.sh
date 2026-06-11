@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # verify-run-commits.sh <sha_start> <expected_count>
 #
+# Standalone audit utility — historically called by /implement-all but no longer
+# invoked by either variant. Use audit-plan-run.sh for new work; this is kept
+# for users who want a simpler count-only check.
+#
 # Verifies exactly N non-merge commits were created since sha_start.
-# Run as the final audit step in /implement-all.
 #
 # Exit 0 = PASS
 # Exit 1 = VIOLATION

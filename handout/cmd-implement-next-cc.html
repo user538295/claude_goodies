@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/implement-next-cc (Claude Code) — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/implement-next-cc.md (last synced: 2026-06-11) -->
+  <!-- Rescue mode source: commands/implement-next-cc-resume.md (last synced: 2026-06-11) -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/implement-next-cc</code> <span style="font-size:0.6em;color:var(--muted);font-weight:500;">(Claude Code variant)</span></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Claude Code variant of <code>/implement-next</code>: implements one task from a plan file with TDD, parallel DA reviews, blocking tests, check-off, and commit. Paired with <code>/implement-all-cc</code> whose <code>SubagentStop</code> hook blocks turn-end until a commit lands. Case B rescue at the parent level is handled by the dedicated <a href="cmd-implement-next-cc-resume.html"><code>/implement-next-cc-resume</code></a> skill — never invoke that skill directly.</p>
+      <div class="example" style="border-left:3px solid var(--ai);padding:0.6rem 0.9rem;margin-top:0.8rem;">
+        <p style="margin:0;"><strong>Two variants exist.</strong> This page describes the Claude Code variant. For a portable runtime-agnostic version without hook dependency, see <a href="cmd-implement-next.html"><code>/implement-next</code></a>.</p>
+      </div>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/implement-next-cc</code> when you are running inside Claude Code and want one task implemented with full quality gates (TDD, DA review, test pass, commit) and protected by the <code>SubagentStop</code> hook that blocks turn-end before a commit. This is the atomic unit invoked by <code>/implement-all-cc</code>.</p>
+      <ul>
+        <li>You have a plan file and want to implement only the next task in Claude Code.</li>
+        <li>You want hook-enforced commit-before-turn-end behavior.</li>
+        <li>You are stepping through a plan manually inside Claude Code, one task at a time.</li>
+        <li>You are debugging a failed <code>/implement-all-cc</code> run and want to re-run a single task in isolation.</li>
+      </ul>
+      <p><strong>Relationship to <code>/implement-all-cc</code>:</strong> <code>/implement-all-cc</code> spawns one <code>/implement-next-cc</code> background agent per uncompleted task and arms the <code>SubagentStop</code> hook with a sentinel filtered by <code>agentId</code>. The hook blocks the subagent's turn-end until a new commit exists since <code>START_SHA</code>. Failures that bypass the hook (OOM, transport errors, quota hits) are caught by the parent's Case A/B/C/D recovery.</p>
+      <p><strong>Rescue mode:</strong> when <code>/implement-all-cc</code> detects a stalled subagent (Case B), it invokes the dedicated <a href="cmd-implement-next-cc-resume.html"><code>/implement-next-cc-resume</code></a> skill which performs only check-off + commit on the already-staged work. The rescue skill is a separate command — this skill is no longer flag-driven.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Pass the path to the plan file as the sole argument.</p>
+      <pre><code>/implement-next-cc [plan-file-path]</code></pre>
+      <p><strong>Parameters:</strong></p>
+      <ul>
+        <li><code>[plan-file-path]</code> — (required) Path to the plan Markdown file, e.g. <code>plans/FEAT-001-my-feature.md</code>.</li>
+      </ul>
+      <p><strong>Note on rescue:</strong> For Case B rescue (parent has verified implementation + tests but no commit landed), the parent uses a separate skill, <a href="cmd-implement-next-cc-resume.html"><code>/implement-next-cc-resume</code></a>, which performs only check-off + commit on the already-staged work. Do not pass any "resume" flag to this command — that flag no longer exists.</p>
+      <p><strong>Steps executed for each task (7 steps total):</strong></p>
+      <ol>
+        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion and identify the next uncompleted task.</li>
+        <li><strong>Step 2 — Implement (TDD):</strong> Spawns the most appropriate agent to implement only this task. For code tasks: failing tests first (red), implementation (green), full pass. For non-code tasks: implements directly.</li>
+        <li><strong>Step 3 — DA review loop:</strong> Invokes <code>/iterative-review</code> with <code>git diff HEAD</code> and the task spec. Includes the loud "MANDATORY CONTINUATION — do not stop here" warning to defend against the subagent ending its turn at the review verdict instead of proceeding to Step 4. (The <code>SubagentStop</code> hook is a secondary defense — see Step 4.)</li>
+        <li><strong>Step 4 — Run tests:</strong> Subagent-specific guidance — read carefully:
+          <ul>
+            <li><strong>Tests complete in ≤ 9 minutes (preferred):</strong> run the full suite with <code>Bash</code> foreground, <code>timeout: 540000</code>. Block until it returns.</li>
+            <li><strong>Tests do NOT fit in 9 minutes:</strong> run only the task-relevant subset and end the turn with the working tree uncommitted but the relevant subset green. <code>/implement-all-cc</code>'s Case B recovery at the parent level runs the full suite there (where <code>Monitor</code> works correctly).</li>
+          </ul>
+          <strong>Never</strong> use the <code>Monitor</code> tool inside this subagent to wait for tests — <code>Monitor</code> tells the agent to yield, but a subagent has no future user turn for events to attach to. The run silently dies and the parent sees an empty commit. This was the dominant failure mode of historical implement-next runs.</li>
+        <li><strong>Step 5 — Check off:</strong> Spawns an agent to mark the implemented task and all completed sub-items <code>[x]</code> in the plan file.</li>
+        <li><strong>Step 6 — Commit:</strong> Stages implementation files and the updated plan file; commits with a message derived from the task content. <code>--no-verify</code> is forbidden. The <code>SubagentStop</code> hook (when invoked from <code>/implement-all-cc</code>) reads the sentinel at <code>$CWD/.claude/implement-next-state.json</code> and refuses to let this subagent end its turn until a new commit exists since <code>START_SHA</code>.</li>
+        <li><strong>Step 7 — Report:</strong> Outputs a concise summary: what was implemented, test results, deviations, what was checked off.</li>
+      </ol>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Hook-gated single-task implementation <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input (as invoked by <code>/implement-all-cc</code>):</strong></p>
+        <pre><code>Call the Skill tool with skill `implement-next-cc` and args `plans/FEAT-001-skill-command-script-handouts.md`</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Progress   : [████████░░░░] 68%  (13/19 tasks, 2/6 phases)
+Next task  : 3.4  **File**: `handout/cmd-implement-next-cc.html`
+
+NEXT_TASK_NAME=**File**: `handout/cmd-implement-next-cc.html`
+NEXT_TASK_PHASE=3
+NEXT_TASK_NUMBER=4
+
+[Step 2] Spawning implementation agent for Task 3.4…
+  → Reads commands/implement-next-cc.md
+  → Writes handout/cmd-implement-next-cc.html
+
+[Step 3] Invoking /iterative-review…
+  → DA agent: no critical/major/moderate issues found (PASS)
+
+[Step 4] Full test suite (timeout 540000 ms): all structural checks pass (CLEAN)
+
+[Step 5] Plan updated: Task 3.4 marked [x]
+
+[Step 6] Commit: feat(handout): Task 3.4 — cmd-implement-next-cc.html
+  → SubagentStop hook verified new commit since START_SHA → turn-end allowed
+
+[Step 7] Report: Task 3.4 complete.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Case B rescue via separate <code>/implement-next-cc-resume</code> skill <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input (as invoked by <code>/implement-all-cc</code>'s Case B rescue — not this skill, but the rescue skill):</strong></p>
+        <pre><code>Call the Skill tool with skill `implement-next-cc-resume` and args `plans/FEAT-002-api-refactor.md`</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>[Rescue skill: parent has verified implementation + tests pass — performing only check-off + commit]
+
+[Step 1] Plan updated: Task 2.4 marked [x]
+
+[Step 2] Commit: feat(auth): Task 2.4 — Wire new AuthService
+  → SubagentStop hook verified new commit since START_SHA → turn-end allowed
+
+[Step 3] Report: Rescue commit landed: e5f6071</code></pre>
+        <p>See <a href="cmd-implement-next-cc-resume.html"><code>/implement-next-cc-resume</code></a> for the rescue skill's full documentation.</p>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-implement-next-cc-resume.html">/implement-next-cc-resume</a> — Dedicated rescue skill called by <code>/implement-all-cc</code>'s Case B path; performs only check-off + commit on already-staged work. Replaces the old in-flag rescue mode of this skill.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — Portable runtime-agnostic sibling without hook dependency; use this outside Claude Code.</li>
+        <li><a href="cmd-implement-all-cc.html">/implement-all-cc</a> — The Claude Code parent loop that delegates to this command and arms the <code>SubagentStop</code> gate.</li>
+        <li><a href="cmd-implement-all.html">/implement-all</a> — Portable parent-loop sibling.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — The DA review loop invoked in Step 3.</li>
+        <li><a href="scripts-plan.html">scripts-plan</a> — Includes <code>plan-progress.sh</code> (Step 1) plus the hook + sentinel scripts <code>implement-next-stop-gate.sh</code>, <code>implement-next-state-write.sh</code>, <code>implement-next-state-clear.sh</code>.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

@@ -86,6 +86,10 @@ check_prereqs() {
     missing=1
   fi
 
+  if ! command -v jq > /dev/null 2>&1; then
+    echo "Warning: jq is not installed; SubagentStop hook registration will be skipped (manual instructions will be printed)." >&2
+  fi
+
   if [[ "$missing" -eq 1 ]]; then
     exit 1
   fi
@@ -145,13 +149,19 @@ stage_files() {
     agents/devils-advocate.md
     assets/demo.gif
     commands/da-review.md commands/feature-refinement.md commands/implement-all.md
-    commands/implement-next.md commands/iterative-review.md commands/options.md
+    commands/implement-all-cc.md
+    commands/implement-next.md commands/implement-next-cc.md
+    commands/implement-next-cc-resume.md
+    commands/iterative-review.md commands/options.md
     handout/_template.html handout/agentic-workflow-en.html handout/agentic-workflow-hu.html
     handout/card.css
     handout/cmd-da-review-hu.html handout/cmd-da-review.html
     handout/cmd-feature-refinement-hu.html handout/cmd-feature-refinement.html
     handout/cmd-implement-all-hu.html handout/cmd-implement-all.html
+    handout/cmd-implement-all-cc-hu.html handout/cmd-implement-all-cc.html
     handout/cmd-implement-next-hu.html handout/cmd-implement-next.html
+    handout/cmd-implement-next-cc-hu.html handout/cmd-implement-next-cc.html
+    handout/cmd-implement-next-cc-resume-hu.html handout/cmd-implement-next-cc-resume.html
     handout/cmd-iterative-review-hu.html handout/cmd-iterative-review.html
     handout/index-hu.html handout/index.html
     handout/scripts-logging-hu.html handout/scripts-logging.html
@@ -165,6 +175,8 @@ stage_files() {
     handout/styles.css
     README.md
     scripts/audit-plan-run.sh scripts/check-task-commit.sh scripts/count-uncompleted-tasks.sh
+    scripts/implement-next-state-clear.sh scripts/implement-next-state-write.sh
+    scripts/implement-next-stop-gate.sh
     scripts/plan-progress.sh scripts/progress-header-flat.template scripts/progress-header-phased.template
     scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh
     scripts/task_section.awk scripts/verify-run-commits.sh
@@ -215,6 +227,76 @@ set_permissions() {
   find "$STAGE_DIR" -name "*.sh" -exec chmod +x {} \;
   find "$STAGE_DIR" -name "*.py" -exec chmod +x {} \;
   chmod +x "$STAGE_DIR/install.sh"
+}
+
+# ---------------------------------------------------------------------------
+# register_subagent_stop_hook
+# Idempotently merges the SubagentStop hook entry into ~/.claude/settings.json
+# so /implement-all-cc has its enforcement gate from a fresh install.
+# No-ops cleanly when settings.json is missing, jq is missing, or the hook
+# is already registered.
+# ---------------------------------------------------------------------------
+register_subagent_stop_hook() {
+    local settings="${DEST_DIR}/settings.json"
+    if [ ! -f "$settings" ]; then
+        if ! command -v jq >/dev/null 2>&1; then
+            echo "  Note: ${settings} not found and jq not installed; cannot bootstrap settings.json automatically."
+            echo "  Create ${settings} with this content:"
+            printf '    {"hooks":{"SubagentStop":[{"matcher":"*","hooks":[{"type":"command","command":"$HOME/.claude/scripts/implement-next-stop-gate.sh"}]}]}}\n'
+            return 0
+        fi
+        # Bootstrap minimal settings.json with just the hook
+        mkdir -p "$(dirname "$settings")"
+        jq -n '{
+            hooks: {
+                SubagentStop: [{
+                    matcher: "*",
+                    hooks: [{
+                        type: "command",
+                        command: "$HOME/.claude/scripts/implement-next-stop-gate.sh"
+                    }]
+                }]
+            }
+        }' > "$settings"
+        echo "  Bootstrapped ${settings} with SubagentStop hook."
+        return 0
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "  Note: jq not installed; cannot register SubagentStop hook automatically."
+        echo "  Manually add this to ${settings} under hooks.SubagentStop:"
+        printf '    [{"matcher": "*", "hooks": [{"type": "command", "command": "$HOME/.claude/scripts/implement-next-stop-gate.sh"}]}]\n'
+        return 0
+    fi
+
+    # Idempotency: check if already registered
+    if jq -e '.hooks.SubagentStop[]? | .hooks[]? | select(.command | test("implement-next-stop-gate.sh"))' "$settings" >/dev/null 2>&1; then
+        echo "  SubagentStop hook already registered in ${settings}."
+        return 0
+    fi
+
+    # Merge the hook entry, preserving everything else
+    local tmp
+    tmp=$(mktemp)
+    if jq '
+        .hooks //= {} |
+        .hooks.SubagentStop //= [] |
+        .hooks.SubagentStop += [{
+            "matcher": "*",
+            "hooks": [{
+                "type": "command",
+                "command": "$HOME/.claude/scripts/implement-next-stop-gate.sh"
+            }]
+        }]
+    ' "$settings" > "$tmp" 2>/dev/null; then
+        mv "$tmp" "$settings"
+        echo "  Registered SubagentStop hook in ${settings}."
+    else
+        rm -f "$tmp"
+        echo "  ERROR: ${settings} appears malformed; cannot register hook automatically." >&2
+        echo "  Fix the JSON syntax and re-run install.sh, or add the hook manually:" >&2
+        printf '    {"matcher":"*","hooks":[{"type":"command","command":"$HOME/.claude/scripts/implement-next-stop-gate.sh"}]}\n' >&2
+    fi
 }
 
 # ---------------------------------------------------------------------------
@@ -393,6 +475,28 @@ dry_cp() {
 }
 
 # ---------------------------------------------------------------------------
+# check_cc_variant_integrity
+# Post-install sanity check that the CC variant's required skills are present.
+# Warns to stderr (does not exit) if any are missing. Only meaningful after a
+# real install — caller must gate on DRY_RUN != 1.
+# ---------------------------------------------------------------------------
+check_cc_variant_integrity() {
+    local missing=()
+    for f in commands/implement-next-cc.md commands/implement-next-cc-resume.md commands/implement-all-cc.md \
+             scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh \
+             scripts/implement-next-state-clear.sh; do
+        if [ ! -f "${DEST_DIR}/${f}" ]; then
+            missing+=("$f")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "  WARNING: CC variant is incomplete; missing files:" >&2
+        printf '    - %s\n' "${missing[@]}" >&2
+        echo "  /implement-all-cc will fail at rescue path. Re-run install or use /implement-all (portable) instead." >&2
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # move_files
 # Safe sequential move of all staged files (except CLAUDE.md) to DEST_DIR.
 # Falls back to cp+rm on cross-device link failure (via dry_mv).
@@ -410,13 +514,19 @@ move_files() {
     agents/devils-advocate.md
     assets/demo.gif
     commands/da-review.md commands/feature-refinement.md commands/implement-all.md
-    commands/implement-next.md commands/iterative-review.md commands/options.md
+    commands/implement-all-cc.md
+    commands/implement-next.md commands/implement-next-cc.md
+    commands/implement-next-cc-resume.md
+    commands/iterative-review.md commands/options.md
     handout/_template.html handout/agentic-workflow-en.html handout/agentic-workflow-hu.html
     handout/card.css
     handout/cmd-da-review-hu.html handout/cmd-da-review.html
     handout/cmd-feature-refinement-hu.html handout/cmd-feature-refinement.html
     handout/cmd-implement-all-hu.html handout/cmd-implement-all.html
+    handout/cmd-implement-all-cc-hu.html handout/cmd-implement-all-cc.html
     handout/cmd-implement-next-hu.html handout/cmd-implement-next.html
+    handout/cmd-implement-next-cc-hu.html handout/cmd-implement-next-cc.html
+    handout/cmd-implement-next-cc-resume-hu.html handout/cmd-implement-next-cc-resume.html
     handout/cmd-iterative-review-hu.html handout/cmd-iterative-review.html
     handout/index-hu.html handout/index.html
     handout/scripts-logging-hu.html handout/scripts-logging.html
@@ -430,6 +540,8 @@ move_files() {
     handout/styles.css
     README.md
     scripts/audit-plan-run.sh scripts/check-task-commit.sh scripts/count-uncompleted-tasks.sh
+    scripts/implement-next-state-clear.sh scripts/implement-next-state-write.sh
+    scripts/implement-next-stop-gate.sh
     scripts/plan-progress.sh scripts/progress-header-flat.template scripts/progress-header-phased.template
     scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh
     scripts/task_section.awk scripts/verify-run-commits.sh
@@ -468,6 +580,23 @@ move_files() {
   done
 
   dry_mv "$STAGE_DIR/install.sh" "$DEST_DIR/install.sh"
+
+  # Register the SubagentStop hook.
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    local settings="${DEST_DIR}/settings.json"
+    if [ ! -f "$settings" ]; then
+      echo "[DRY RUN] Would BOOTSTRAP fresh ${settings} with hook block (creates new file)."
+    elif ! command -v jq >/dev/null 2>&1; then
+      echo "[DRY RUN] settings.json exists but jq is not installed; the real install would print manual instructions and skip hook registration."
+    elif jq -e '.hooks.SubagentStop[]? | .hooks[]? | select(.command | test("implement-next-stop-gate.sh"))' "$settings" >/dev/null 2>&1; then
+      echo "[DRY RUN] SubagentStop hook already registered in ${settings}; no changes."
+    else
+      echo "[DRY RUN] Would MERGE hook block into existing ${settings}."
+    fi
+  else
+    register_subagent_stop_hook
+    check_cc_variant_integrity
+  fi
 }
 
 # ---------------------------------------------------------------------------

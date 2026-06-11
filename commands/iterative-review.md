@@ -42,7 +42,3 @@ All fixes applied across all cycles: issue ID → severity → what changed.
 
 ### Verdict
 "No critical, major or moderate issues remain" OR "The following issues could not be resolved: [list]"
-
----
-
-**⚠️ THIS IS A SUB-STEP, NOT TASK COMPLETION.** If this review was invoked from `implement-next`, outputting the Review Summary above does NOT complete the task. Return to `implement-next` and proceed immediately to **Step 4** (run the full test suite). Do not stop here.

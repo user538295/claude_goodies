@@ -3,22 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>/implement-next — Claude Code segédlet</title>
+  <title>/implement-next (portable) — Claude Code segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-next.md -->
+  <!-- Source: commands/implement-next.md (last synced: 2026-06-11) -->
 </head>
 <body>
   <div class="card-page">
 
     <div class="page-header">
-      <h1><code>/implement-next</code></h1>
+      <h1><code>/implement-next</code> <span style="font-size:0.6em;color:var(--muted);font-weight:500;">(portable változat)</span></h1>
       <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
     </div>
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p>Beolvas egy tervfájlt, és ágensekkel, szigorú TDD-vel megvalósítja a következő el nem végzett feladatot, párhuzamos DA review-kat futtat és minden problémát kijavít, kipipálja a kész feladatot, majd commitol — egy feladat, egy commit.</p>
+      <p>Portable, runtime-független parancs, amely beolvas egy tervfájlt, és szigorú TDD-vel megvalósítja a következő el nem végzett feladatot, opcionális kritikai review-t futtat, blokkoló teszteket futtat, kipipálja a kész feladatot, commitol, majd a turn vége előtt programatikusan ellenőrzi, hogy minden landolt — egy feladat, egy commit. Bármilyen harness-ben működik, hook-függőség nélkül.</p>
+      <div class="example" style="border-left:3px solid var(--ai);padding:0.6rem 0.9rem;margin-top:0.8rem;">
+        <p style="margin:0;"><strong>Két változat létezik.</strong> Ez az oldal a portable változatot írja le. A Claude Code hook-kényszerített változatáért (az <a href="cmd-implement-all-cc-hu.html"><code>/implement-all-cc</code></a> párja, a <code>SubagentStop</code> hook gátolja a turn-end-et) lásd a <a href="cmd-implement-next-cc-hu.html"><code>/implement-next-cc</code></a> parancsot.</p>
+      </div>
+      <p><strong>Használat Cursorban:</strong> A Cursor a <code>.cursor/commands/</code>-ból olvas, nem a <code>~/.claude/commands/</code>-ból. Az egyszeri szimlink-beállítás lépéseihez lásd a <a href="cmd-implement-all-hu.html#section-1-summary">Cursor setup szekciót a <code>cmd-implement-all-hu.html</code>-ben</a>.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -32,7 +36,7 @@
         <li>Egy elhasalt <code>/implement-all</code> futást debugolsz, és egyetlen feladatot akarsz izoláltan újrafuttatni.</li>
       </ul>
       <p><strong>Kapcsolat az <code>/implement-all</code> paranccsal:</strong> az <code>/implement-all</code> a tervben szereplő minden el nem végzett feladatra delegál az <code>/implement-next</code> felé. Hívhatod közvetlenül az <code>/implement-next</code>-et, hogy feladatonként haladj, vagy bízhatod az <code>/implement-all</code>-ra a hurok automatikus vezetését.</p>
-      <p><strong>Kapcsolat a <code>scripts-plan</code> szkriptekkel:</strong> az <code>/implement-next</code> az 1. lépésben meghívja a <code>plan-progress.sh</code>-t a következő feladat azonosítására és a haladás kijelzésére, illetve a <code>check-task-commit.sh</code>-t az <code>/implement-all</code> verify lépésén keresztül a commit-granularitás ellenőrzésére.</p>
+      <p><strong>Kapcsolat a <code>scripts-plan</code> szkriptekkel:</strong> az <code>/implement-next</code> az 1. lépésben meghívja a <code>plan-progress.sh</code>-t a következő feladat azonosítására és a haladás kijelzésére, illetve a <code>check-task-commit.sh</code>-t a 7. lépés self-verification részeként (a <code>SubagentStop</code> hook portable helyettesítője, amelyet a <code>-cc</code> változat használ).</p>
     </section>
 
     <section data-section="3-invocation">
@@ -43,15 +47,16 @@
       <ul>
         <li><code>[plan-file-path]</code> — (kötelező) A terv Markdown-fájljának relatív elérési útja, pl. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
-      <p><strong>Minden feladatra végrehajtott lépések:</strong></p>
+      <p><strong>Minden feladatra végrehajtott lépések (8 lépés összesen):</strong></p>
       <ol>
-        <li><strong>1. lépés — Haladás kijelzése:</strong> Lefuttatja a <code>plan-progress.sh</code>-t, hogy megmutassa a jelenlegi készültségi százalékot és azonosítsa a következő el nem végzett feladatot. Ha minden feladat kész (exit 1), megáll és jelzi a befejezést.</li>
-        <li><strong>2. lépés — Implementáció (TDD):</strong> A legalkalmasabb ágenst hívja, hogy kizárólag ezt a feladatot valósítsa meg. Kódfeladatoknál: előbb bukó teszteket ír (red), megerősíti, hogy buknak, annyi kódot ír, hogy átmenjenek (green), majd ellenőrzi, hogy minden teszt fut. Nem kódfeladatoknál (dokumentáció, konfig): TDD-ciklus nélkül, közvetlenül valósítja meg.</li>
-        <li><strong>3. lépés — DA review-hurok:</strong> Meghívja az <code>/iterative-review</code>-t a <code>git diff HEAD</code>-del és a feladat specifikációjával. A DA-ágensek az elfogadási kritériumok mentén vizsgálnak. Minden javítás commitolatlan working-tree változásként marad — nincs DA-commit.</li>
-        <li><strong>4. lépés — Tesztek futtatása:</strong> Lefuttatja a teljes tesztsuite-ot. Bármilyen bukásra javító ágenst indít; legfeljebb 3-szor próbálkozik. Ha 3 próbálkozás után sem zöld a suite, megáll.</li>
+        <li><strong>1. lépés — Haladás kijelzése:</strong> Lefuttatja a <code>plan-progress.sh</code>-t, hogy megmutassa a jelenlegi készültséget és azonosítsa a következő el nem végzett feladatot. Eltárolja a <code>START_SHA</code> és <code>START_CHECKED</code> értékeket a 7. lépés self-verification ellenőrzéséhez. Ha minden feladat kész (exit 1), megáll.</li>
+        <li><strong>2. lépés — Implementáció (TDD):</strong> Egy fókuszált subagentet indít (vagy inline halad, ha a runtime nem támogat subagent-primitívet), hogy kizárólag ezt a feladatot valósítsa meg. Kódfeladatoknál: előbb bukó tesztek (red), aztán implementáció (green), végül teljes pass. Nem kódfeladatoknál: közvetlen megvalósítás.</li>
+        <li><strong>3. lépés — Kritikai review (opcionális):</strong> Meghívja az <code>/iterative-review</code>-t a <code>git diff HEAD</code> és a feladat specifikációja alapján, vagy egy kritikus subagentet indít, ha a slash command nem elérhető. Tartalmazza a hangos "KÖTELEZŐ FOLYTATÁS — ne állj meg itt" figyelmeztetést: a portable változatnál nincs <code>SubagentStop</code> hook ennek elcsípésére, így a prompt az egyetlen védelem az ellen, hogy a subagent a review verdikt után lezárja a turnt.</li>
+        <li><strong>4. lépés — Tesztek futtatása:</strong> A teljes tesztsuite blokkoló foreground parancsként fut, timeout a runtime foreground plafonja alatt (Claude Code <code>Bash</code> ≤ 600 000 ms). Ha a teljes suite nem fér bele egy blokkoló hívásba, csak a feladat-releváns részhalmazt futtatja, és a 8. lépésben jelzi a részleges scope-ot. A javító ágensek 3-szor próbálkoznak.</li>
         <li><strong>5. lépés — Kipipálás:</strong> A megvalósított feladatot és az összes elkészült alpontot <code>[x]</code>-szel jelöli a tervfájlban.</li>
-        <li><strong>6. lépés — Commit:</strong> Stage-eli az implementációs fájlokat és a frissített tervfájlt; a commit üzenete a feladat tartalmából származik. A <code>--no-verify</code> tilos.</li>
-        <li><strong>7. lépés — Riport:</strong> Tömör összefoglalót ad: mit valósított meg, mik a teszteredmények, milyen eltérések voltak, és mit pipált ki.</li>
+        <li><strong>6. lépés — Commit:</strong> Stage-eli az implementációs fájlokat és a frissített tervfájlt; a commit üzenete a feladat tartalmából származik. A <code>--no-verify</code> tilos. Tartalmazza a recovery utat commit hiba esetén (unstage, plan visszaállítása, mögöttes hiba javítása, 5–6. lépés újrafutása).</li>
+        <li><strong>7. lépés — Self-verification (hook-kényszerítés portable helyettesítője):</strong> A turn vége előtt programatikusan ellenőrzi: (1) <code>check-task-commit.sh "$START_SHA"</code> megerősíti, hogy létezik új commit; (2) a plan-en kipipált taskok száma legalább 1-gyel nőtt; (3) az új commit diffje tartalmazza a plan fájlt ÉS az implementációs fájlokat. Ha bármely ellenőrzés hibázik, NEM zárja le a turnt — diagnosztizálja a hiányt és visszamegy a megfelelő korábbi lépésre.</li>
+        <li><strong>8. lépés — Riport:</strong> Tömör összefoglaló: mit valósított meg, mik a teszteredmények, milyen eltérések voltak, mit pipált ki, mi a self-verification eredménye.</li>
       </ol>
     </section>
 
@@ -107,9 +112,11 @@ Summary: 0 tasks implemented. Plan is fully checked off.</code></pre>
     <section data-section="6-related-tools">
       <h2>Kapcsolódó eszközök</h2>
       <ul>
-        <li><a href="cmd-implement-all-hu.html">/implement-all</a> — A teljes terv-hurkot vezeti azzal, hogy minden el nem végzett feladatra egyszer meghívja az <code>/implement-next</code>-et; akkor használd, ha az összes hátralévő feladat teljesen automatizált, kéz nélküli végrehajtását akarod.</li>
-        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — A minden <code>/implement-next</code> futás 3. lépésében meghívott DA review-hurok; párhuzamos DA-ágenseket és javító ágenseket indít, amíg nem marad kritikus/súlyos/közepes probléma. <em>(Előrehivatkozás — az oldal még nem jött létre; a 6.1-es feladatra elkészül.)</em></li>
-        <li><a href="scripts-plan-hu.html">scripts-plan</a> — A <code>plan-progress.sh</code> és <code>check-task-commit.sh</code> szkriptek, amelyeket az <code>/implement-next</code> az 1. és a verify fázisokban használ a haladás követésére és a commit-granularitás kikényszerítésére. <em>(Előrehivatkozás — az oldal még nem jött létre; a 6.1-es feladatra elkészül.)</em></li>
+        <li><a href="cmd-implement-next-cc-hu.html">/implement-next-cc</a> — Ennek a parancsnak a Claude Code változata, az <code>/implement-all-cc</code> párja, a <code>SubagentStop</code> hook gátolja; a Case B rescue-t a külön <a href="cmd-implement-next-cc-resume-hu.html"><code>/implement-next-cc-resume</code></a> skill kezeli.</li>
+        <li><a href="cmd-implement-all-hu.html">/implement-all</a> — Portable szülő ciklus, amely minden el nem végzett feladatra egyszer meghívja az <code>/implement-next</code>-et; akkor használd, ha az összes hátralévő feladat teljesen automatizált végrehajtását akarod.</li>
+        <li><a href="cmd-implement-all-cc-hu.html">/implement-all-cc</a> — Claude Code szülő ciklus hook-kényszerített commit gate-tel és Case A/B/C/D recovery-vel.</li>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — A 3. lépésben meghívott opcionális kritikai review-ciklus; párhuzamos DA-ágenseket és javító ágenseket indít, amíg nem marad kritikus/súlyos/közepes probléma.</li>
+        <li><a href="scripts-plan-hu.html">scripts-plan</a> — A <code>plan-progress.sh</code> (1. lépés) és <code>check-task-commit.sh</code> (7. lépés) szkriptek, amelyeket ez a parancs használ.</li>
       </ul>
     </section>
 

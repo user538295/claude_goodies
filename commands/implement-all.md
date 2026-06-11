@@ -1,6 +1,20 @@
 ---
-description: Repeatedly run /implement-next on a plan file until every task is complete. Accepts an exact file path or a name/keyword — resolves automatically for unique matches, asks for clarification when ambiguous.
+description: Portable runtime-agnostic — repeatedly run /implement-next on a plan file until every task is complete. Works in any harness (Claude Code, Cursor, claude -p, etc.) without hook dependencies. For Claude Code's hook-enforced variant with auto-rescue, use /implement-all-cc.
 ---
+
+### Using in Cursor (one-time setup)
+
+Cursor reads custom commands from `.cursor/commands/` in your project, not from `~/.claude/commands/`. To use this skill in Cursor, copy or symlink the portable command files to your project's Cursor config:
+
+```bash
+mkdir -p .cursor/commands
+ln -s ~/.claude/commands/implement-all.md .cursor/commands/implement-all.md
+ln -s ~/.claude/commands/implement-next.md .cursor/commands/implement-next.md
+```
+
+(Symlinks let you update `~/.claude/commands/*.md` once and have all projects pick up changes.)
+
+Cursor uses a `Task` tool primitive instead of Claude Code's `Agent` tool — the markdown's "spawn a subagent" instructions translate equivalently. The portable variant does NOT use hooks, so there's nothing else to configure.
 
 ### Step 0: Resolve the plan file
 
@@ -8,8 +22,8 @@ description: Repeatedly run /implement-next on a plan file until every task is c
 
 Run `test -f "$ARGUMENTS"`.
 
-- If the file exists: set the resolved path to `$ARGUMENTS` and continue to the Loop body below.
-- If it does not exist: use the Glob tool to search for `**/*.md` files, filter results by keyword match on name or path, then Read each keyword-matched candidate and check it contains at least one unchecked task line (`- [ ]`). Discard any that does not.
+- If the file exists: set the resolved path to `$ARGUMENTS` and continue to the Loop body.
+- If it does not exist: search for `**/*.md` files (your runtime's glob primitive), filter results by keyword match on name or path, then read each keyword-matched candidate and check it contains at least one unchecked task line (`- [ ]`). Discard any that does not.
   - Exactly one match → set the resolved path to that path, note it to the user.
   - Multiple matches → stop and ask the user to choose: "Found multiple matching plan files: [list them]. Please provide the full path to the one you want."
   - No match → stop and ask the user: "Could not find a plan file matching '$ARGUMENTS'. Please provide the full path."
@@ -18,22 +32,67 @@ Run `test -f "$ARGUMENTS"`.
 
 Track `previous_task_name` (initially empty) and `iteration_count` (initially 0) across iterations. Increment `iteration_count` at the start of each iteration. If `iteration_count` exceeds 50, stop and report: "Loop has exceeded 50 iterations without completing — possible infinite loop. Please investigate."
 
-**Termination condition:** All tasks in the plan file are marked complete (plan-progress.sh returns exit 1). Repeat steps 1–2 until this condition is met.
+**Termination condition:** All tasks in the plan file are marked complete (plan-progress.sh returns exit 1). Repeat steps 1–5 until this condition is met.
 
 Each iteration:
 
-1. Run the following, replacing `<plan-path>` with the actual resolved file path from Step 0 (the literal path string):
+1. **Progress + stuck-task guard.** Run, replacing `<plan-path>` with the resolved file path:
    ```
    bash ~/.claude/scripts/plan-progress.sh "<plan-path>"
    ```
    - Exit 1 → all tasks complete — stop.
    - Exit 2 or 3 → stop and report the error.
    - Any other exit code → stop and report the unexpected exit code.
-   - Exit 0 → tasks remain, note the reported NEXT_TASK_NAME and continue to step 2.
+   - Exit 0 → tasks remain, note the reported NEXT_TASK_NAME and continue.
 
    **Stuck-task guard:** If the NEXT_TASK_NAME reported in this iteration is the same as `previous_task_name`, stop and report: "Task '<task-name>' appears to be stuck — it was reported as next in two consecutive iterations. Please investigate before continuing." Otherwise, update `previous_task_name` to the current NEXT_TASK_NAME before proceeding.
 
-2. Spawn a background agent with the prompt (replacing `<plan-path>` with the actual resolved file path — the literal path string):
-   > Call the Skill tool with skill `implement-next` and args `<plan-path>`.
+2. **Capture pre-state.**
+   - `START_SHA = $(git rev-parse HEAD)`
+   - `CWD = $(pwd)`
+   - Write the start sha to a durable file (file-existence guard makes this safe to invoke every iteration). The file is namespaced by a short hash of the plan path so different plans don't collide and a stale file from one halted plan can't poison another run:
+     ```
+     mkdir -p "$CWD/.claude"
+     PLAN_HASH=$(printf '%s' "<plan-path>" | shasum | cut -c1-8)
+     SHA_FILE="$CWD/.claude/implement-all-start-sha-$PLAN_HASH"
+     [ -f "$SHA_FILE" ] || echo "$START_SHA" > "$SHA_FILE"
+     ```
+     This file persists across iterations so Step 5's audit doesn't depend on the LLM remembering a variable.
 
-   After the agent completes, return to step 1 for the next iteration.
+3. **Spawn a subagent to implement this task.** Use whatever subagent primitive your runtime offers:
+   - Claude Code: the `Agent` tool, `subagent_type: general-purpose`, `run_in_background: true`.
+   - Cursor: the `Task` tool.
+   - Headless runtimes without subagent primitives: invoke `/implement-next` inline.
+
+   The subagent's prompt:
+   > Run `/implement-next` on plan file `<plan-path>`.
+
+   Wait for the subagent to return before continuing.
+
+4. **Recovery check — verify the task landed.** This step is the portable substitute for hook enforcement. It does not auto-rescue; on any failure it halts with a diagnostic so a human can intervene.
+
+   Capture `END_SHA = $(git rev-parse HEAD)` and `END_DIRTY = $(git status --porcelain | wc -l)`, then:
+
+   - **`END_SHA != START_SHA` and working tree clean:** Task likely committed. Run `plan-progress.sh` again; if NEXT_TASK_NAME changed → continue to next iteration. If NEXT_TASK_NAME is unchanged → the subagent committed *something* but did not check off the task; halt with the new commit SHA and ask the user to investigate.
+
+   - **`END_SHA == START_SHA` and uncommitted changes exist:** Subagent did work but never committed (the Monitor-stall failure mode, the dominant cause of the original ~7.6% failure rate). Halt with diagnostic: print `git status --short`, the names of changed files, and the NEXT_TASK_NAME. Tell the user: "Subagent stalled mid-flow. The portable variant does not auto-rescue. Inspect the changes and complete the task manually. (If your harness is Claude Code, the `-cc` variant — `/implement-all-cc` — auto-rescues this failure mode.)"
+
+   - **`END_SHA == START_SHA` and working tree clean:** Subagent did nothing visible (network error, OOM, quota hit, or just yielded early). Halt and report: "Subagent for task '<NEXT_TASK_NAME>' returned without making any changes. Please investigate."
+
+   - **`END_SHA != START_SHA` and uncommitted changes exist:** A commit landed but more changes remain. Halt and report the anomaly — often a pre-commit hook left files modified.
+
+5. **Audit.** After the loop terminates normally (all tasks complete), run:
+   ```
+   PLAN_HASH=$(printf '%s' "<plan-path>" | shasum | cut -c1-8)
+   SHA_FILE="$CWD/.claude/implement-all-start-sha-$PLAN_HASH"
+   FIRST_START_SHA=$(cat "$SHA_FILE")
+   bash ~/.claude/scripts/audit-plan-run.sh "<plan-path>" "$FIRST_START_SHA"
+   rm -f "$SHA_FILE"
+   ```
+   This is the same independent audit available for the -cc variant. Exit 0 = clean run, exit 1 = mismatch between commits and checked tasks. The `rm -f` at the end cleans up so subsequent runs don't pick up a stale sha.
+
+### Why this variant has lower reliability than -cc
+
+This variant relies on the subagent following the `/implement-next` markdown instructions to commit before ending its turn. Plan-and-Solve research (arxiv.org/abs/2305.04091, accessed 2026-06-11) identifies missing-step errors as a known failure class for prompt-only multi-step flows. Our archon-search measurement of ~7.6% of `/implement-next` subagents failing to commit is consistent with that qualitative pattern; the paper does not quantify the rate. Halting on each failure bounds the damage to one iteration but does not auto-recover — the user must intervene manually.
+
+For higher reliability when running in Claude Code, use `/implement-all-cc`, which adds a `SubagentStop` hook that blocks turn-end until a commit lands (Anthropic's *"deterministic gate"* pattern — `code.claude.com/docs/en/best-practices` (accessed 2026-06-11)).

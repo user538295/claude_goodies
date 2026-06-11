@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/implement-next-cc (Claude Code) — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/implement-next-cc.md (last synced: 2026-06-11) -->
+  <!-- Rescue mode source: commands/implement-next-cc-resume.md (last synced: 2026-06-11) -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/implement-next-cc</code> <span style="font-size:0.6em;color:var(--muted);font-weight:500;">(Claude Code változat)</span></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Az <code>/implement-next</code> Claude Code változata: egy feladatot valósít meg egy tervfájlból TDD-vel, párhuzamos DA review-kkal, blokkoló tesztekkel, kipipálással és committal. Az <code>/implement-all-cc</code> párja, amelynek <code>SubagentStop</code> hookja gátolja a turn lezárását, amíg egy commit le nem landol. A szülő-szintű Case B rescue-t egy dedikált skill, az <a href="cmd-implement-next-cc-resume-hu.html"><code>/implement-next-cc-resume</code></a> kezeli — azt soha ne hívd közvetlenül.</p>
+      <div class="example" style="border-left:3px solid var(--ai);padding:0.6rem 0.9rem;margin-top:0.8rem;">
+        <p style="margin:0;"><strong>Két változat létezik.</strong> Ez az oldal a Claude Code változatot írja le. Egy hook-függetlenül, runtime-függetlenül működő portable változatért lásd a <a href="cmd-implement-next-hu.html"><code>/implement-next</code></a> parancsot.</p>
+      </div>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd az <code>/implement-next-cc</code> parancsot, ha Claude Code-ban futsz, és egy feladatot szeretnél implementálni teljes minőségi szűrőkkel (TDD, DA review, sikeres tesztsuite, commit), <code>SubagentStop</code> hook védelemmel, amely gátolja a commit nélküli turn-end-et. Ez az az atomi egység, amelyet az <code>/implement-all-cc</code> hív.</p>
+      <ul>
+        <li>Van egy tervfájlod, és csak a következő taskot akarod megvalósítani Claude Code-ban.</li>
+        <li>Hook-kényszerített commit-előtt-turn-end viselkedést akarsz.</li>
+        <li>Kézzel haladsz végig egy terven Claude Code-on belül, feladatonként.</li>
+        <li>Egy elhasalt <code>/implement-all-cc</code> futást debugolsz, és izoláltan újra szeretnél futtatni egy taskot.</li>
+      </ul>
+      <p><strong>Kapcsolat az <code>/implement-all-cc</code> paranccsal:</strong> az <code>/implement-all-cc</code> minden el nem végzett feladatra indít egy <code>/implement-next-cc</code> háttér-agentet, és felfegyverzi a <code>SubagentStop</code> hookot egy <code>agentId</code>-re szűrt sentinellel. A hook gátolja a subagent turn lezárását, amíg új commit nem létezik a <code>START_SHA</code> óta. A hookot megkerülő hibákat (OOM, transport, kvóta) a szülő Case A/B/C/D recovery-je kapja el.</p>
+      <p><strong>Rescue mód:</strong> amikor az <code>/implement-all-cc</code> megakadt subagentet detektál (Case B), meghívja a dedikált <a href="cmd-implement-next-cc-resume-hu.html"><code>/implement-next-cc-resume</code></a> skill-t, amely csak kipipálást + committot hajt végre a már stage-elt munkán. A rescue skill külön parancs — ez a skill már nem flag-vezérelt.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Hívás</h2>
+      <p>Egyetlen argumentumként add át a tervfájl elérési útját.</p>
+      <pre><code>/implement-next-cc [plan-file-path]</code></pre>
+      <p><strong>Paraméterek:</strong></p>
+      <ul>
+        <li><code>[plan-file-path]</code> — (kötelező) A terv Markdown-fájljának elérési útja, pl. <code>plans/FEAT-001-my-feature.md</code>.</li>
+      </ul>
+      <p><strong>Megjegyzés a rescue-ról:</strong> Case B rescue esetén (a szülő ellenőrizte az implementációt + a teszteket, de nem landolt commit) a szülő egy külön skill-t, az <a href="cmd-implement-next-cc-resume-hu.html"><code>/implement-next-cc-resume</code></a>-t használja, amely csak kipipálást + committot hajt végre a már stage-elt munkán. Ne adj át "resume" flag-et ennek a parancsnak — az a flag már nem létezik.</p>
+      <p><strong>Minden feladatra végrehajtott lépések (7 lépés összesen):</strong></p>
+      <ol>
+        <li><strong>1. lépés — Haladás kijelzése:</strong> Lefuttatja a <code>plan-progress.sh</code>-t a jelenlegi készültség kijelzéséhez és a következő feladat azonosításához.</li>
+        <li><strong>2. lépés — Implementáció (TDD):</strong> A legalkalmasabb ágenst indítja, hogy kizárólag ezt a feladatot valósítsa meg. Kódfeladatoknál: előbb bukó tesztek (red), aztán implementáció (green), végül teljes pass. Nem kódfeladatoknál: közvetlen megvalósítás.</li>
+        <li><strong>3. lépés — DA review-hurok:</strong> Meghívja az <code>/iterative-review</code>-t a <code>git diff HEAD</code> és a feladat specifikációjával. Tartalmazza a hangos "KÖTELEZŐ FOLYTATÁS — ne állj meg itt" figyelmeztetést a review verdikt utáni turn-end ellen. (A <code>SubagentStop</code> hook a másodlagos védelem — lásd a 4. lépést.)</li>
+        <li><strong>4. lépés — Tesztek futtatása:</strong> Subagent-specifikus útmutatás — figyelmesen olvasd:
+          <ul>
+            <li><strong>A tesztek 9 perc alatt befejeződnek (preferált):</strong> teljes suite <code>Bash</code> foreground-dal, <code>timeout: 540000</code>. Blokkol, amíg visszatér.</li>
+            <li><strong>A tesztek NEM férnek bele 9 percbe:</strong> csak a feladat-releváns részhalmazt futtasd, és zárd a turnt commitolatlan munkamásolattal, de a releváns részhalmaz zölden. Az <code>/implement-all-cc</code> Case B recovery-je szülő szinten futtatja a teljes suite-ot (ahol a <code>Monitor</code> működik).</li>
+          </ul>
+          <strong>Soha</strong> ne használd a <code>Monitor</code> tool-t ebben a subagent-ben tesztek várására — a <code>Monitor</code> arra utasítja az agentet, hogy yield-eljen, de a subagent-nek nincs jövőbeli user turn, amihez az events kapcsolódhatnának. A futás csendben elhal, és a szülő üres committal találkozik. Ez volt a történelmi implement-next futások domináns hibatípusa.</li>
+          <li><strong>5. lépés — Kipipálás:</strong> Egy ágenst indít, hogy <code>[x]</code>-szel jelölje a feladatot és minden elkészült alpontot a tervfájlban.</li>
+          <li><strong>6. lépés — Commit:</strong> Stage-eli az implementációs fájlokat és a frissített tervfájlt; a commit üzenete a feladat tartalmából származik. A <code>--no-verify</code> tilos. Az <code>/implement-all-cc</code>-ből hívva a <code>SubagentStop</code> hook olvassa a <code>$CWD/.claude/implement-next-state.json</code> sentinelt és nem engedi lezárni a turnt, amíg új commit nem létezik a <code>START_SHA</code> óta.</li>
+          <li><strong>7. lépés — Riport:</strong> Tömör összefoglaló: mit valósított meg, mik a teszteredmények, milyen eltérések voltak, mit pipált ki.</li>
+      </ol>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Hook-gátolt egyfeladatos implementáció <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet (ahogyan az <code>/implement-all-cc</code> hívja):</strong></p>
+        <pre><code>Call the Skill tool with skill `implement-next-cc` and args `plans/FEAT-001-skill-command-script-handouts.md`</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Progress   : [████████░░░░] 68%  (13/19 tasks, 2/6 phases)
+Next task  : 3.4  **File**: `handout/cmd-implement-next-cc.html`
+
+NEXT_TASK_NAME=**File**: `handout/cmd-implement-next-cc.html`
+NEXT_TASK_PHASE=3
+NEXT_TASK_NUMBER=4
+
+[Step 2] Implementációs agent indítása Task 3.4-re…
+  → Olvassa: commands/implement-next-cc.md
+  → Írja: handout/cmd-implement-next-cc.html
+
+[Step 3] /iterative-review meghívása…
+  → DA agent: nincs kritikus/súlyos/közepes találat (PASS)
+
+[Step 4] Teljes tesztsuite (timeout 540000 ms): minden strukturális ellenőrzés átment (CLEAN)
+
+[Step 5] Plan frissítve: Task 3.4 [x]-szel jelölve
+
+[Step 6] Commit: feat(handout): Task 3.4 — cmd-implement-next-cc.html
+  → SubagentStop hook leellenőrizte az új commitot a START_SHA óta → turn-end megengedve
+
+[Step 7] Riport: Task 3.4 kész.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Case B rescue külön <code>/implement-next-cc-resume</code> skill-lel <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet (ahogyan az <code>/implement-all-cc</code> Case B rescue-ja hívja — nem ezt a skill-t, hanem a rescue skill-t):</strong></p>
+        <pre><code>Call the Skill tool with skill `implement-next-cc-resume` and args `plans/FEAT-002-api-refactor.md`</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>[Rescue skill: a szülő ellenőrizte az implementációt + a teszteket — csak kipipálás + commit]
+
+[1. lépés] Plan frissítve: Task 2.4 [x]-szel jelölve
+
+[2. lépés] Commit: feat(auth): Task 2.4 — Wire new AuthService
+  → SubagentStop hook leellenőrizte az új commitot a START_SHA óta → turn-end megengedve
+
+[3. lépés] Riport: Rescue commit landolt: e5f6071</code></pre>
+        <p>A rescue skill teljes dokumentációja: <a href="cmd-implement-next-cc-resume-hu.html"><code>/implement-next-cc-resume</code></a>.</p>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-implement-next-cc-resume-hu.html">/implement-next-cc-resume</a> — Dedikált rescue skill, amelyet az <code>/implement-all-cc</code> Case B útja hív; csak kipipálást + committot végez a már stage-elt munkán. Ennek a skill-nek a régi flag-vezérelt rescue módját váltja le.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Portable runtime-független párja hook-függőség nélkül; Claude Code-on kívül ezt használd.</li>
+        <li><a href="cmd-implement-all-cc-hu.html">/implement-all-cc</a> — A Claude Code szülő ciklus, amely erre a parancsra delegál és felfegyverzi a <code>SubagentStop</code> gate-et.</li>
+        <li><a href="cmd-implement-all-hu.html">/implement-all</a> — Portable szülő-ciklus pár.</li>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — A 3. lépésben meghívott DA review-ciklus.</li>
+        <li><a href="scripts-plan-hu.html">scripts-plan</a> — Tartalmazza a <code>plan-progress.sh</code> (1. lépés) szkriptet, plusz a hook + sentinel szkripteket <code>implement-next-stop-gate.sh</code>, <code>implement-next-state-write.sh</code>, <code>implement-next-state-clear.sh</code>.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Linkek</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

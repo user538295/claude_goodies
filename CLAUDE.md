@@ -5,7 +5,7 @@ Behavioral guidelines to reduce common LLM coding mistakes. **These bias toward 
 
 ## 1. Think Before Coding
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+**You mustn't make assumptions. Don't hide confusion. Surface tradeoffs.**
 
 Before implementing:
 - State your assumptions explicitly. If uncertain, ask.
@@ -30,7 +30,7 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 **Every code or behavior change requires a documentation update in the same session. No exceptions.**
 
 Before closing any task:
-- Identify all docs that describe the changed behavior (handouts, README, CLAUDE.md, install-prompt.md, inline comments, HTML pages).
+- Identify all docs that describe the changed behavior (handouts, README, CLAUDE.md, install.sh, inline comments, HTML pages).
 - Update every affected file to match the new reality.
 - If you added a new command, skill, or script: add it to every place that lists or describes similar items.
 
@@ -84,22 +84,24 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 When executing any plan (task list, backlog item, feature spec) via a slash command:
 - Each task gets its own commit with non-empty file changes. Never bundle multiple tasks into one commit.
-- `/implement-all` runs an explicit loop: each iteration runs `plan-progress.sh` to check remaining tasks, then spawns a **background Agent** that calls `/implement-next` for one task. NEVER invoke `/implement-next` via the Skill tool directly in the main conversation. NEVER spawn a single agent for all tasks at once.
-- Each spawned agent must call the Skill tool (e.g. `implement-next`) with the plan file as its argument.
+
+- Pick the variant by harness: in Claude Code use `/implement-all-cc` + `/implement-next-cc` (hook-enforced commit gate + auto-rescue if a subagent leaves work uncommitted). In Cursor, `claude -p`, or any other harness use the portable `/implement-all` + `/implement-next` (halts on failure, no auto-rescue). See `commands/implement-all-cc.md` for the gate/recovery mechanism.
+- Each spawned subagent calls the Skill tool (`/implement-next` or `/implement-next-cc`) with the plan file as its argument. Never invoke either directly in the main conversation. Never spawn one agent for all tasks.
 - These rules apply to ALL plan-based workflows and ALL delegation commands.
-- After any run, independent verification (no Claude cooperation needed): `bash ~/.claude/scripts/audit-plan-run.sh <plan_file> <sha_start>`
+- After any run, audit independently: `bash ~/.claude/scripts/audit-plan-run.sh <plan_file> <sha_start>` — works for both variants.
 
 # Communication with the User
 
 - Always start with the understanding of the real intention of the user and satisfy it
 - Always be direct, clear, and concise
 - Avoid repetition in your answers
+- **Never soften findings.** State problems and severity directly. Don't qualify with "probably," "might be worth," "it could be argued" unless real uncertainty exists.
 
 # Mandatory Verification Protocol
 
-**CRITICAL — NO EXCEPTIONS**: Never state any fact, file path, function name, configuration value, line number, or behavior as true without first verifying it with tools (Read, Grep, Glob, Bash). This applies unconditionally — **confidence is not verification**.
+**You must fact check everything. NO EXCEPTIONS.** Never state any fact, file path, function name, configuration value, line number, or behavior as true without first verifying it with tools (Read, Grep, Glob, Bash). Confidence is not verification.
 
-- Never assume a file exists, a function is named X, a config has value Y, or a feature behaves a certain way.
+- Verify each file path, function name, configuration value, and behavioral claim before stating it.
 - Never skip verification because the answer "seems obvious" or you "remember" it from earlier context.
 - Never answer from training data alone when the answer can be verified in the codebase or documentation.
 - Always cite where you found the answer: file path + section or line number.

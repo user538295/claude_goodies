@@ -6,7 +6,7 @@
   <title>/iterative-review — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/iterative-review.md -->
+  <!-- Source: commands/iterative-review.md (last synced: 2026-06-11) -->
 </head>
 <body>
   <div class="card-page">
@@ -51,6 +51,7 @@
         <li>Minor — style, naming, or nitpick (reported but not fixed automatically)</li>
       </ul>
       <p><strong>Note:</strong> Fix agents do NOT create git commits — all changes remain as uncommitted working-tree modifications.</p>
+      <p><strong>Note on continuation:</strong> When invoked from <code>/implement-next</code> or <code>/implement-next-cc</code>, the calling skill includes its own "do not stop at the review verdict" reminder in its Step 3 — <code>/iterative-review</code> itself no longer prints a mandatory-continuation warning at the end of its summary.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -118,8 +119,9 @@ No critical, major or moderate issues remain.
       <h2>Related tools</h2>
       <ul>
         <li><a href="cmd-da-review.html">/da-review</a> — Single-pass review that finds issues without fixing them; use when you want to stay in control of the fixes yourself.</li>
-        <li><a href="cmd-implement-next.html">/implement-next</a> — Implements one plan task end-to-end and calls <code>/iterative-review</code> internally as part of its DA review loop.</li>
-        <li><a href="cmd-implement-all.html">/implement-all</a> — Runs <code>/implement-next</code> repeatedly until every plan task is done; each task's review loop uses <code>/iterative-review</code>.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> (portable) — Implements one plan task end-to-end and calls <code>/iterative-review</code> internally as part of its Step 3 critical review.</li>
+        <li><a href="cmd-implement-next-cc.html">/implement-next-cc</a> (Claude Code) — Same caller pattern, hook-gated.</li>
+        <li><a href="cmd-implement-all.html">/implement-all</a> / <a href="cmd-implement-all-cc.html">/implement-all-cc</a> — Run <code>/implement-next</code> (or <code>-cc</code>) repeatedly until every plan task is done; each task's review loop uses <code>/iterative-review</code>.</li>
         <li><a href="skill-aaa.html">/aaa</a> — Evaluates quality against world-class standards with research and gap analysis; complements review by benchmarking against industry excellence, not just flagging flaws.</li>
       </ul>
     </section>

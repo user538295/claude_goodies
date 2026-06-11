@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/implement-all-cc (Claude Code) — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/implement-all-cc.md (last synced: 2026-06-11) -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/implement-all-cc</code> <span style="font-size:0.6em;color:var(--muted);font-weight:500;">(Claude Code változat)</span></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Az <code>/implement-all</code> Claude Code változata, amely ismételten futtatja az <code>/implement-next-cc</code> parancsot egy tervfájlon, amíg minden feladat el nem készül. A <code>SubagentStop</code> hook addig gátolja a turn lezárását, amíg egy commit le nem landol, és a szülő szintű Case A/B/C/D recovery elcsípi azokat a hibákat, amelyek megkerülik a hookot (OOM, transport hibák, kvótafogyás).</p>
+      <div class="example" style="border-left:3px solid var(--ai);padding:0.6rem 0.9rem;margin-top:0.8rem;">
+        <p style="margin:0;"><strong>Két változat létezik.</strong> Ez az oldal a Claude Code változatot írja le. Egy hook-függetlenül, runtime-függetlenül működő portable változatért (Cursor, <code>claude -p</code> stb.) lásd a <a href="cmd-implement-all-hu.html"><code>/implement-all</code></a> parancsot.</p>
+      </div>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd az <code>/implement-all-cc</code> parancsot, ha Claude Code-ban futsz, és a legmagasabb megbízhatóságú kezetlen ciklust akarod egy tervfájlon. A hook gate plusz a szülő-szintű recovery elkapja mind a domináns "subagent mid-flow stall" hibatípust, mind a ritkább OOM / kvóta / transport eseteket.</p>
+      <ul>
+        <li>Van egy tervfájlod (pl. <code>plans/FEAT-001.md</code>) egy vagy több <code>[ ]</code> feladattal, és sorban mindet implementálni szeretnéd Claude Code-ban.</li>
+        <li>Azt akarod, hogy minden feladat saját, nem üres fájlváltozásokat tartalmazó commitot kapjon (a <code>SubagentStop</code> hook kényszeríti ki).</li>
+        <li>Egy részben befejezett futást folytatsz.</li>
+        <li>Korábban találkoztál a "/implement-next stalled mid-flow" hibatípussal, és auto-rescue-re van szükséged.</li>
+      </ul>
+      <p><strong>Kritikus megszorítások:</strong></p>
+      <ul>
+        <li>Megköveteli a <code>SubagentStop</code> hook regisztrációját a <code>~/.claude/settings.json</code> fájlban (a <code>~/.claude/scripts/implement-next-stop-gate.sh</code> hívásával).</li>
+        <li>Megköveteli az <code>implement-next-state-write.sh</code> és <code>implement-next-state-clear.sh</code> sentinel scriptek jelenlétét.</li>
+        <li>NEM indít egyetlen ügynököt az összes feladatra — minden feladat külön-külön megy át az <code>/implement-next-cc</code> parancson.</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Hívás</h2>
+      <p>Egyetlen argumentumként add át a tervfájl elérési útját.</p>
+      <pre><code>/implement-all-cc [plan-file-path]</code></pre>
+      <p><strong>Paraméterek:</strong></p>
+      <ul>
+        <li><code>[plan-file-path]</code> — (kötelező) A terv Markdown-fájljának elérési útja, pl. <code>plans/FEAT-001-my-feature.md</code>. Ha üres vagy nem létezik, a parancs kulcsszó-egyezést keres és megáll egyértelműség nélküli esetekben.</li>
+      </ul>
+      <p><strong>Folyamat (0. lépés + 7 ciklus-lépés + 1 audit):</strong></p>
+      <ol start="0">
+        <li><strong>0. lépés — Tervfájl feloldása:</strong> A <code>Glob</code> tool-lal kulcsszó-egyezett tervfájlt keres, amely legalább egy be nem pipált taskot tartalmaz. Megáll egyértelműség nélkül vagy találat hiányában.</li>
+      </ol>
+      <p><strong>Ciklustörzs (iterációs felső korlát: 50; megakadt-feladat őr: ugyanaz a <code>NEXT_TASK_NAME</code> két iterációban → megáll):</strong></p>
+      <ol>
+        <li><strong>Haladás + megakadt-feladat őr:</strong> Lefuttatja a <code>plan-progress.sh</code>-t. Exit 1 → minden feladat kész. Exit 2/3 → hibával megáll. Exit 0 → folytatódik.</li>
+        <li><strong>Pre-state mentése:</strong> rögzíti a <code>START_SHA</code>, <code>START_DIRTY</code>, <code>CWD</code> értékeket.</li>
+        <li><strong>Háttér <code>Agent</code> indítása:</strong> ezzel a prompttal: <em>"Call the Skill tool with skill <code>implement-next-cc</code> and args &lt;plan-path&gt;."</em> Rögzíti a szinkron <code>agentId</code>-t.</li>
+        <li><strong>A <code>SubagentStop</code> gate felfegyverzése:</strong> az <code>implement-next-state-write.sh</code> kiír egy <code>&lt;CWD&gt;/.claude/implement-next-state.json</code> sentinelt. A hook ezt olvassa és nem engedi lezárni az indított subagent turnjét, amíg új commit nem létezik a <code>START_SHA</code> óta. A hook az <code>agentId</code>-re szűr, így a beágyazott sub-sub-agentek (devils-advocate, fix agents, checkoff agent) átmennek, és csak a külső <code>/implement-next-cc</code> subagent van gátolva.</li>
+        <li><strong>Várakozás az agent visszatérésére.</strong></li>
+        <li><strong>Recovery check — Case A/B/C/D dispatch:</strong> az <code>implement-next-state-clear.sh</code> mindig törli a sentinelt, majd a <code>END_SHA</code>/<code>END_DIRTY</code> alapján dispatch-el:
+          <ul>
+            <li><strong>Case A</strong> — <code>END_SHA != START_SHA</code> &amp; tiszta munkamásolat → valószínűleg commitolva; újra <code>plan-progress.sh</code>, folytatódik.</li>
+            <li><strong>Case B</strong> — <code>END_SHA == START_SHA</code> &amp; commitolatlan változások → a subagent dolgozott, de a hook valamiért megkerülve (OOM, transport, kvóta). Szülő szinten: (1) teljes tesztsuite <code>Bash</code> + <code>Monitor</code> használatával; (2) tesztbukásra fix agent (≤ 2 retry); (3) ha a tesztek mennek, rescue subagent indul a dedikált <a href="cmd-implement-next-cc-resume-hu.html"><code>/implement-next-cc-resume</code></a> skill-lel (csak kipipálás + commit a már stage-elt munkán) friss sentinellel; (4) Case A vs B újraértékelése.</li>
+            <li><strong>Case C</strong> — <code>END_SHA == START_SHA</code> &amp; tiszta munkamásolat → a subagent semmit sem csinált. Diagnosztikával megáll.</li>
+            <li><strong>Case D</strong> — <code>END_SHA != START_SHA</code> &amp; commitolatlan változások → anomália (gyakran pre-commit hook hagyott módosított fájlokat). Megáll.</li>
+          </ul>
+        </li>
+        <li><strong>Vissza az 1. lépéshez.</strong></li>
+      </ol>
+      <p><strong>Recovery-check diagnosztika:</strong> Cases B, C, D megállásakor a jelentés tartalmazza a <code>START_SHA</code>/<code>END_SHA</code>-t, <code>git status --short</code>-ot, a subagent transcript utolsó 40 sorát (a <code>~/.claude/projects/.../subagents/agent-&lt;agentId&gt;.jsonl</code> útvonalon), a felismert esetet, és hogy a <code>SubagentStop</code> hook hányszor blokkolt.</p>
+      <p><strong>Architektúrális megjegyzések:</strong> ez a design implementálja az Anthropic által hivatalosan ajánlott "agent stops mid-flow" mintát — egy determinista gate (Stop hook), amely a turn lezárását blokkolja, amíg egy ellenőrző script át nem megy. Layer 1 (<code>SubagentStop</code> hook) az elsődleges védelem; Layer 2 (szülő-szintű recovery + Case B rescue) a biztonsági háló a hookot megkerülő hibákra. A <code>code.claude.com/docs/en/hooks</code> szerint a <code>SubagentStop</code>-hoz nincs dokumentált consecutive-block cap — a 6. lépés Case B/C/D ágai a menekülő útvonal.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Hook-gátolt teljes futás <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/implement-all-cc plans/FEAT-001-skill-command-script-handouts.md</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>[1. iteráció] plan-progress.sh → 0/7 kész, következő: Task 3.3 — cmd-implement-all.html
+  → /implement-next-cc háttér-agent indítása (agentId: a1b2c3)…
+  → SubagentStop hook felfegyverezve a .claude/implement-next-state.json sentinellel
+  → agent visszatért; END_SHA különbözik; tiszta munkamásolat → Case A
+  → sentinel törölve; commit b1d2e3f rögzítve
+
+[2. iteráció] plan-progress.sh → 1/7 kész, következő: Task 3.4 — cmd-implement-next.html
+  → /implement-next-cc háttér-agent indítása (agentId: d4e5f6)…
+  → Stop hook 1-szer aktivált (megakadályozta a korai turn-end-et), majd a commit landolt
+  → Case A; commit c2e3f40
+
+… (5 további iteráció) …
+
+[8. iteráció] plan-progress.sh → Minden feladat kész. (exit 1)
+Minden feladat kész.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Case B rescue megakadt subagent után <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/implement-all-cc plans/FEAT-002-api-refactor.md</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>[3. iteráció] plan-progress.sh → 5/7 kész, következő: Task 2.4 — Wire new AuthService
+  → /implement-next-cc háttér-agent indítása (agentId: 9z8y7x)…
+  → agent visszatért; END_SHA == START_SHA, de a munkamásolat dirty (3 stage-elt fájl) → Case B
+  → sentinel törölve; teljes tesztsuite futtatása szülő szinten…
+    pytest: 142 passed, 0 failed
+  → rescue subagent indítása: /implement-next-cc-resume &lt;plan&gt;
+  → friss sentinel felfegyverezve (agentId: rescue-1)
+  → rescue agent commitolt; újraértékelés → Case A
+  → commit e5f6071 rögzítve
+
+[4. iteráció] plan-progress.sh → 6/7 kész, következő: Task 2.5 — Update integration tests
+  → … (normálisan folytatódik)</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-implement-all-hu.html">/implement-all</a> — Portable runtime-független változat hook-függőség nélkül; használd Cursor-ban, <code>claude -p</code>-ben vagy bármely nem-Claude-Code harness-ben.</li>
+        <li><a href="cmd-implement-next-cc-hu.html">/implement-next-cc</a> — Az egyfeladatos parancs, amelyre ez a ciklus delegál.</li>
+        <li><a href="cmd-implement-next-cc-resume-hu.html">/implement-next-cc-resume</a> — A dedikált rescue skill, amelyet ennek a ciklusnak a Case B útja hív; csak kipipálást + committot végez a már stage-elt munkán.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Az <code>/implement-next-cc</code> portable párja.</li>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — A DA review-ciklus, amelyet minden <code>/implement-next-cc</code> task implementáció belül használ.</li>
+        <li><a href="scripts-plan-hu.html">scripts-plan</a> — Tartalmazza a <code>plan-progress.sh</code>, <code>audit-plan-run.sh</code>, <code>implement-next-stop-gate.sh</code>, <code>implement-next-state-write.sh</code>, <code>implement-next-state-clear.sh</code> szkripteket.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Linkek</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

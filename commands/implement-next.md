@@ -43,7 +43,7 @@ No assumptions — read all relevant code, documentation, and context first.
 
 ---
 
-### Step 3: Critical review (optional)
+### Step 3: Critical review
 
 If your runtime exposes `/iterative-review` or an equivalent critic, invoke it on `git diff HEAD` plus the task spec. Otherwise, spawn one critic subagent with the same inputs and apply its findings as uncommitted changes.
 

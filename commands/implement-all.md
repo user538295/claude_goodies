@@ -1,21 +1,6 @@
 ---
 description: Portable runtime-agnostic — repeatedly run /implement-next on a plan file until every task is complete. Works in any harness (Claude Code, Cursor, claude -p, etc.) without hook dependencies. For Claude Code's hook-enforced variant with auto-rescue, use /implement-all-cc.
 ---
-
-### Using in Cursor (one-time setup)
-
-Cursor reads custom commands from `.cursor/commands/` in your project, not from `~/.claude/commands/`. To use this skill in Cursor, copy or symlink the portable command files to your project's Cursor config:
-
-```bash
-mkdir -p .cursor/commands
-ln -s ~/.claude/commands/implement-all.md .cursor/commands/implement-all.md
-ln -s ~/.claude/commands/implement-next.md .cursor/commands/implement-next.md
-```
-
-(Symlinks let you update `~/.claude/commands/*.md` once and have all projects pick up changes.)
-
-Cursor uses a `Task` tool primitive instead of Claude Code's `Agent` tool — the markdown's "spawn a subagent" instructions translate equivalently. The portable variant does NOT use hooks, so there's nothing else to configure.
-
 ### Step 0: Resolve the plan file
 
 **First check:** If `$ARGUMENTS` is blank or was not provided, stop and ask the user: "Please provide a plan file path or keyword to search for."

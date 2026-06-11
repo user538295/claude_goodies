@@ -35,8 +35,14 @@ If the topic concerns the current project, read relevant project files before dr
 
 **[Decision or concern, stated plainly]**
 
-- **Option A: [name]** — Pros: [1–3 specific benefits, ordered by importance]. Cons: [1–3 specific costs or risks, ordered by importance].
-- **Option B: [name]** — Pros: ... Cons: ...
+- **Option A: [name]** 
+	- Pros: [1–3 specific benefits, ordered by importance]. 
+	- Cons: [1–3 specific costs or risks, ordered by importance].
+
+- **Option B: [name]** 
+	- Pros: ... 
+	- Cons: ...
+
 - _(add Option C or D only if they represent a materially different path)_
 
 **Recommendation**: [chosen option] — [brief justification: why this over the others, and what you'd be giving up].

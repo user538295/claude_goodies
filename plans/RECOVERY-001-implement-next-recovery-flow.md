@@ -379,7 +379,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 1.4 — `implement-next-triage.sh` classifier script
-- [ ] **File**: `~/.claude/scripts/implement-next-triage.sh` (new)
+- [x] **File**: `~/.claude/scripts/implement-next-triage.sh` (new)
 - **Depends on**: Task 0.1 (CLAUDE.md `rm` carve-out for sentinel files), Task 1.1 (consumes v2 schema breadcrumbs written in tests)
 - **Description**:
   - Bash script following the I/O contract in Architecture.

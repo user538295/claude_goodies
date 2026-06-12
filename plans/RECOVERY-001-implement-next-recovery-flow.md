@@ -491,7 +491,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 1.6 — `implement-next-stop-gate.sh` bats coverage extension (no source change)
-- [ ] **File**: `~/.claude/tests/recovery/test_hook_gate.bats` (new); no source changes to the gate script.
+- [x] **File**: `~/.claude/tests/recovery/test_hook_gate.bats` (new); no source changes to the gate script.
 - **Depends on**: Task 1.1 (uses v2 breadcrumbs in fixtures)
 - **Description**:
   - Pure-shell bats tests exercising `~/.claude/scripts/implement-next-stop-gate.sh` against three state scenarios. The hook gate's source is UNCHANGED — these tests lock in its behavior under the new state ecosystem (empty `expected_agent_id`, breadcrumb absence, mid-turn clear).

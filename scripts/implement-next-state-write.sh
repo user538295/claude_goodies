@@ -2,6 +2,7 @@
 # RECOVERY_SCHEMA_V2
 #
 # implement-next-state-write.sh [--upsert] <cwd> <sha_before> <plan_path> <task_name> <expected_agent_id> [<skill_variant>]
+# implement-next-state-write.sh --increment-review-abort <cwd>
 #
 # Writes the SubagentStop-hook sentinel that armed the /implement-next gate.
 # Called by /implement-all-cc before each per-task subagent spawn (default mode).
@@ -11,6 +12,9 @@
 #
 # --upsert mode signature:
 #   --upsert <cwd> <sha_before> <plan_path> <task_name> <expected_agent_id> [<skill_variant>]
+#
+# --increment-review-abort mode signature:
+#   --increment-review-abort <cwd>
 #
 # Behavior:
 #   - schema_version: 2 (integer) written.
@@ -38,6 +42,19 @@
 #   - If state_file does not exist OR is malformed JSON, behavior matches the
 #     default-mode write minus the empty-agentId guard (fresh breadcrumb).
 #
+# --increment-review-abort mode:
+#   - Reads existing breadcrumb. If missing or unreadable: exit 3 with stderr
+#     diagnostic "breadcrumb required for --increment-review-abort but not
+#     found at $state_file".
+#   - If review_abort_count field absent: treat as 0 and increment to 1.
+#   - If present: increment by 1 (must remain integer in output JSON).
+#   - All other fields preserved verbatim.
+#   - Atomic write applies as before.
+#   - Combining with --upsert or supplying extra positional args → exit 2.
+#   - Malformed existing breadcrumb → exit 3 with stderr diagnostic about
+#     malformed JSON. The mode cannot safely increment a counter that doesn't
+#     exist or whose surrounding fields cannot be preserved verbatim.
+#
 # Test-only hook:
 #   _RECOVERY_TEST_DELAY_BEFORE_MV — if set to a number, sleep that many
 #   seconds between writing the .tmp and the mv. Undocumented in user-facing
@@ -46,18 +63,87 @@
 # Exit codes:
 #   0 = sentinel written.
 #   2 = usage error.
+#   3 = --increment-review-abort failed (missing or malformed breadcrumb).
 
 set -euo pipefail
 
-# Parse flags (before positional args). --upsert must precede <cwd>.
+USAGE="Usage:\n  implement-next-state-write.sh [--upsert] <cwd> <sha_before> <plan_path> <task_name> <expected_agent_id> [<skill_variant>]\n  implement-next-state-write.sh --increment-review-abort <cwd>"
+
+# Parse flags (before positional args). Flags must precede <cwd>.
+# --upsert and --increment-review-abort are mutually exclusive.
 upsert=0
-if [ "${1:-}" = "--upsert" ]; then
-    upsert=1
-    shift
+increment_review_abort=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --upsert)
+            upsert=1
+            shift
+            ;;
+        --increment-review-abort)
+            increment_review_abort=1
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+if [ "$upsert" -eq 1 ] && [ "$increment_review_abort" -eq 1 ]; then
+    printf '%b\n' "$USAGE" >&2
+    echo "ERROR: --upsert and --increment-review-abort are mutually exclusive" >&2
+    exit 2
+fi
+
+# --increment-review-abort mode: takes only <cwd>.
+if [ "$increment_review_abort" -eq 1 ]; then
+    if [ $# -ne 1 ]; then
+        printf '%b\n' "$USAGE" >&2
+        echo "ERROR: --increment-review-abort takes exactly one positional arg <cwd>" >&2
+        exit 2
+    fi
+    cwd="$1"
+    if [ ! -d "$cwd" ]; then
+        echo "ERROR: cwd does not exist: $cwd" >&2
+        exit 2
+    fi
+    state_file="$cwd/.claude/implement-next-state.json"
+    tmp_file="$state_file.tmp"
+    if [ ! -f "$state_file" ]; then
+        echo "ERROR: breadcrumb required for --increment-review-abort but not found at $state_file" >&2
+        exit 3
+    fi
+    if ! jq -e . "$state_file" >/dev/null 2>&1; then
+        echo "ERROR: breadcrumb at $state_file is malformed JSON; cannot --increment-review-abort safely" >&2
+        exit 3
+    fi
+    # Compute new count; treat missing field as 0. Defend against a corrupt
+    # breadcrumb whose review_abort_count is non-integer (string, float, null)
+    # by coercing to integer-or-zero before incrementing. Output is guaranteed
+    # to be an integer.
+    new_count=$(jq -r '
+        def to_int_or_zero:
+            if type == "number" and . == (. | floor) and . >= 0 then .
+            else 0
+            end;
+        ((.review_abort_count // 0) | to_int_or_zero) + 1
+    ' "$state_file")
+    # Round-trip every existing field; only set/overwrite review_abort_count
+    # to the new integer. This preserves any extra fields verbatim.
+    jq --argjson new_count "$new_count" \
+        '.review_abort_count = $new_count' \
+        "$state_file" > "$tmp_file"
+    # Test-only hook: simulate a slow write so a kill -9 can interrupt before mv.
+    if [ -n "${_RECOVERY_TEST_DELAY_BEFORE_MV:-}" ]; then
+        sleep "$_RECOVERY_TEST_DELAY_BEFORE_MV"
+    fi
+    mv "$tmp_file" "$state_file"
+    echo "Sentinel updated: $state_file (review_abort_count=$new_count)"
+    exit 0
 fi
 
 if [ $# -lt 5 ] || [ $# -gt 6 ]; then
-    echo "Usage: implement-next-state-write.sh [--upsert] <cwd> <sha_before> <plan_path> <task_name> <expected_agent_id> [<skill_variant>]" >&2
+    printf '%b\n' "$USAGE" >&2
     exit 2
 fi
 

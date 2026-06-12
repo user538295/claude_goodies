@@ -507,3 +507,317 @@ teardown() {
   [ "$status" -eq 2 ]
   [[ "$output" == *"Usage"* ]]
 }
+
+# ===========================================================================
+# Task 1.3 — --increment-review-abort mode tests
+# ===========================================================================
+
+# Helper: pre-write a canonical v2 breadcrumb with a specific review_abort_count.
+_prewrite_breadcrumb() {
+  local count="$1"
+  local state_file="$TEST_CWD/.claude/implement-next-state.json"
+  mkdir -p "$TEST_CWD/.claude"
+  local now
+  now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  jq -n \
+    --arg started_at "$now" \
+    --argjson count "$count" \
+    '{
+      schema_version: 2,
+      sha_before: "sha-pre",
+      plan_path: "plan-pre.md",
+      task_name: "Task-pre",
+      expected_agent_id: "agent-pre",
+      started_at: $started_at,
+      branch_name: "main",
+      skill_variant: "cc",
+      review_abort_count: $count
+    }' > "$state_file"
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_from_zero_to_one
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_from_zero_to_one" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  _prewrite_breadcrumb 0
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  [ "$status" -eq 0 ]
+
+  # Counter incremented to integer 1.
+  run jq -r '.review_abort_count | tostring + " " + (. | type)' "$state_file"
+  [ "$output" = "1 number" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_from_one_to_two
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_from_one_to_two" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  _prewrite_breadcrumb 1
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  [ "$status" -eq 0 ]
+
+  # Counter incremented to integer 2.
+  run jq -r '.review_abort_count | tostring + " " + (. | type)' "$state_file"
+  [ "$output" = "2 number" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_treats_missing_field_as_zero
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_treats_missing_field_as_zero" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  mkdir -p "$TEST_CWD/.claude"
+
+  # Pre-write a breadcrumb WITHOUT review_abort_count field.
+  now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  jq -n \
+    --arg started_at "$now" \
+    '{
+      schema_version: 2,
+      sha_before: "sha-pre",
+      plan_path: "plan-pre.md",
+      task_name: "Task-pre",
+      expected_agent_id: "agent-pre",
+      started_at: $started_at,
+      branch_name: "main",
+      skill_variant: "cc"
+    }' > "$state_file"
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  [ "$status" -eq 0 ]
+
+  # Missing field treated as 0 then incremented to 1.
+  run jq -r '.review_abort_count | tostring + " " + (. | type)' "$state_file"
+  [ "$output" = "1 number" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_preserves_other_fields
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_preserves_other_fields" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  mkdir -p "$TEST_CWD/.claude"
+
+  # Pre-write a breadcrumb with very specific values.
+  fixed_started_at="2024-12-31T23:59:59Z"
+  jq -n \
+    --arg started_at "$fixed_started_at" \
+    '{
+      schema_version: 2,
+      sha_before: "deadbeef",
+      plan_path: "plans/X.md",
+      task_name: "Specific task name",
+      expected_agent_id: "agent-special-id",
+      started_at: $started_at,
+      branch_name: "feature/special",
+      skill_variant: "portable",
+      review_abort_count: 0
+    }' > "$state_file"
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  [ "$status" -eq 0 ]
+
+  # All non-counter fields preserved byte-identical (schema_version is integer 2).
+  run jq -r '.schema_version | tostring + " " + (. | type)' "$state_file"
+  [ "$output" = "2 number" ]
+  [ "$(jq -r '.sha_before' "$state_file")" = "deadbeef" ]
+  [ "$(jq -r '.plan_path' "$state_file")" = "plans/X.md" ]
+  [ "$(jq -r '.task_name' "$state_file")" = "Specific task name" ]
+  [ "$(jq -r '.expected_agent_id' "$state_file")" = "agent-special-id" ]
+  [ "$(jq -r '.started_at' "$state_file")" = "$fixed_started_at" ]
+  [ "$(jq -r '.branch_name' "$state_file")" = "feature/special" ]
+  [ "$(jq -r '.skill_variant' "$state_file")" = "portable" ]
+  # And counter is now 1.
+  run jq -r '.review_abort_count | tostring + " " + (. | type)' "$state_file"
+  [ "$output" = "1 number" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_missing_breadcrumb_exits_nonzero
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_missing_breadcrumb_exits_nonzero" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  [ ! -f "$state_file" ]
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  # Plan specifies "e.g., exit 3"; implementation uses 3.
+  [ "$status" -eq 3 ]
+  # Stderr / output contains "not found".
+  [[ "$output" == *"not found"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_rejects_upsert_combo
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_rejects_upsert_combo" {
+  # --increment-review-abort + --upsert (in either order) → exit 2.
+  run bash "$SCRIPT" --increment-review-abort --upsert "$TEST_CWD"
+  [ "$status" -eq 2 ]
+
+  run bash "$SCRIPT" --upsert --increment-review-abort "$TEST_CWD"
+  [ "$status" -eq 2 ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_rejects_extra_positional_args
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_rejects_extra_positional_args" {
+  # --increment-review-abort only takes <cwd> as a positional arg. Extras → exit 2.
+  _prewrite_breadcrumb 0
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD" "extra-arg"
+  [ "$status" -eq 2 ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_atomic
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_atomic" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  _prewrite_breadcrumb 1
+
+  # Record the pre-state for the "either pre-existing or fully-incremented"
+  # invariant check.
+  pre_count=$(jq -r '.review_abort_count' "$state_file")
+  [ "$pre_count" = "1" ]
+
+  # Invoke with a delay between .tmp render and mv. Background and kill -9
+  # before the mv lands.
+  _RECOVERY_TEST_DELAY_BEFORE_MV=2 bash "$SCRIPT" \
+    --increment-review-abort "$TEST_CWD" &
+  writer_pid=$!
+
+  sleep 0.5
+  kill -9 "$writer_pid" 2>/dev/null || true
+  wait "$writer_pid" 2>/dev/null || true
+
+  # The final state_file must either be pre-existing content or fully
+  # incremented — never partial. Both 1 and 2 are valid; anything else fails.
+  [ -f "$state_file" ]
+  run jq -r '.review_abort_count' "$state_file"
+  [ "$status" -eq 0 ]
+  case "$output" in
+    1|2) ;;  # Either pre-existing or fully-incremented; both acceptable.
+    *) printf 'unexpected review_abort_count: %s\n' "$output" >&2; false ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_malformed_breadcrumb_exits_nonzero
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_malformed_breadcrumb_exits_nonzero" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  mkdir -p "$TEST_CWD/.claude"
+
+  # Pre-write garbage.
+  printf 'this is not json {{{' > "$state_file"
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  # Exit code 3 lock: the script reserves exit 3 for --increment-review-abort
+  # data-precondition failures (missing or malformed breadcrumb).
+  [ "$status" -eq 3 ]
+  # Output names the malformed JSON.
+  [[ "$output" == *"malformed"* ]] || [[ "$output" == *"JSON"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_no_cwd_arg_exits_2
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_no_cwd_arg_exits_2" {
+  # --increment-review-abort with NO positional arg → exit 2 (usage error).
+  run bash "$SCRIPT" --increment-review-abort
+  [ "$status" -eq 2 ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_nonexistent_cwd_exits_2
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_nonexistent_cwd_exits_2" {
+  # cwd pointing at a path that does not exist → exit 2.
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD/does-not-exist"
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"cwd"* ]]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_output_is_valid_json
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_output_is_valid_json" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  _prewrite_breadcrumb 0
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  [ "$status" -eq 0 ]
+
+  # Resulting file must be valid JSON.
+  run jq -e . "$state_file"
+  [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_coerces_non_integer_counter
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_coerces_non_integer_counter" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  mkdir -p "$TEST_CWD/.claude"
+
+  # Pre-write a breadcrumb whose counter is a JSON string (corruption case).
+  # The implementation must coerce this to 0 then increment to 1, NOT crash
+  # on a type error from jq arithmetic.
+  now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  jq -n \
+    --arg started_at "$now" \
+    '{
+      schema_version: 2,
+      sha_before: "sha1",
+      plan_path: "plan.md",
+      task_name: "T1",
+      expected_agent_id: "agent-1",
+      started_at: $started_at,
+      branch_name: "main",
+      skill_variant: "cc",
+      review_abort_count: "5"
+    }' > "$state_file"
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  [ "$status" -eq 0 ]
+
+  # Counter is now integer 1 (string coerced to 0, then +1).
+  run jq -r '.review_abort_count | tostring + " " + (. | type)' "$state_file"
+  [ "$output" = "1 number" ]
+}
+
+# ---------------------------------------------------------------------------
+# test_increment_review_abort_coerces_float_counter
+# ---------------------------------------------------------------------------
+@test "test_increment_review_abort_coerces_float_counter" {
+  state_file="$TEST_CWD/.claude/implement-next-state.json"
+  mkdir -p "$TEST_CWD/.claude"
+
+  # Float counter is invalid per spec ("must remain integer in output").
+  # Implementation coerces to 0 then increments to 1.
+  now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  jq -n \
+    --arg started_at "$now" \
+    '{
+      schema_version: 2,
+      sha_before: "sha1",
+      plan_path: "plan.md",
+      task_name: "T1",
+      expected_agent_id: "agent-1",
+      started_at: $started_at,
+      branch_name: "main",
+      skill_variant: "cc",
+      review_abort_count: 1.5
+    }' > "$state_file"
+
+  run bash "$SCRIPT" --increment-review-abort "$TEST_CWD"
+  [ "$status" -eq 0 ]
+
+  # Output must be a clean integer.
+  run jq -r '.review_abort_count | tostring + " " + (. | type)' "$state_file"
+  [ "$output" = "1 number" ]
+}

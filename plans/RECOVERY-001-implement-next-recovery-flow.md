@@ -353,7 +353,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 1.3 — `state-write.sh` `--increment-review-abort` flag
-- [ ] **File**: `~/.claude/scripts/implement-next-state-write.sh`
+- [x] **File**: `~/.claude/scripts/implement-next-state-write.sh`
 - **Depends on**: Task 1.1 (atomic write + v2 schema)
 - **Description**:
   - Add `--increment-review-abort` flag; takes only `<cwd>` as positional arg (no other positional args required).

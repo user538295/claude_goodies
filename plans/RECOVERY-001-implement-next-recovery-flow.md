@@ -323,7 +323,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 1.2 — `state-write.sh` `--upsert` flag with empty-`expected_agent_id`-permitted + read-merge semantics
-- [ ] **File**: `~/.claude/scripts/implement-next-state-write.sh`
+- [x] **File**: `~/.claude/scripts/implement-next-state-write.sh`
 - **Depends on**: Task 1.1 (v2 schema baseline + atomic write)
 - **Description**:
   - Add `--upsert` flag, parsed before positional args. Flag must precede `<cwd>`.

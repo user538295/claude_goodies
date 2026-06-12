@@ -460,7 +460,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 1.5 — `audit-plan-run.sh` recognizes `recovery(R-B):` marker + surfaces anomalies-log
-- [ ] **File**: `~/.claude/scripts/audit-plan-run.sh`
+- [x] **File**: `~/.claude/scripts/audit-plan-run.sh`
 - **Depends on**: Task 0.1 (CLAUDE.md `rm` carve-out for sentinel files)
 - **Description**:
   - Add to the script after `commits` is counted (line ~89):

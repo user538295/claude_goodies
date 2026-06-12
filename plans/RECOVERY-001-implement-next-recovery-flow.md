@@ -297,7 +297,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 1.1 — `state-write.sh` default mode: atomic write + v2 schema + 6th positional arg
-- [ ] **File**: `~/.claude/scripts/implement-next-state-write.sh`
+- [x] **File**: `~/.claude/scripts/implement-next-state-write.sh`
 - **Depends on**: nothing
 - **Description**:
   - Change usage to accept 5 OR 6 positional args. The 6th positional arg `<skill_variant>` (`"portable"` | `"cc"`) is OPTIONAL with a default of `"cc"` when omitted. This preserves backward-compat with the existing 5-arg caller at `implement-all-cc.md:55`; that caller is updated to pass the 6th arg explicitly in Task 3.1. Update the usage error message accordingly.

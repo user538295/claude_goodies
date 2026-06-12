@@ -281,7 +281,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 #### Task 0.1 — CLAUDE.md carve-out for machine-managed sentinels (PREREQUISITE)
 **MUST be completed before any other task.** Without this, an implementing agent following CLAUDE.md will refuse to add `rm -f` calls in Tasks 1.4 and 1.5.
 
-- [ ] **File**: `~/.claude/CLAUDE.md`
+- [x] **File**: `~/.claude/CLAUDE.md`
 - **Depends on**: nothing
 - **Description**: Add a sub-bullet to the existing "# File Deletion" section:
   ```

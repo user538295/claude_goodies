@@ -510,7 +510,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 
 #### Task 1.7 — `extract-bash-blocks.sh` helper
 
-- [ ] **File**: `~/.claude/tests/recovery/extract-bash-blocks.sh` (new)
+- [x] **File**: `~/.claude/tests/recovery/extract-bash-blocks.sh` (new)
 - **Depends on**: nothing
 - **Description**: Tiny awk-based filter that reads markdown on stdin and prints the contents of all triple-backtick-fenced code blocks, EXCLUDING the fence lines themselves. Used by Step 7 block-mirror tests in Tasks 2.1/2.2.
   - Implementation: `awk 'BEGIN{inb=0} /^```/{inb=1-inb; next} inb{print}'`

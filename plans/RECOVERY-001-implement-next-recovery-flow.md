@@ -531,7 +531,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 2.1 — `implement-next.md` Step 0 triage + `START_SHA` / `START_CHECKED` capture move
-- [ ] **File**: `~/.claude/commands/implement-next.md`
+- [x] **File**: `~/.claude/commands/implement-next.md`
 - **Depends on**: Task 1.4 (triage script must exist)
 - **Description**:
   - Insert a new section between the frontmatter / "Using in Cursor" preamble and "Step 1: Show progress and identify the next task":

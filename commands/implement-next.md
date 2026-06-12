@@ -2,11 +2,46 @@
 description: Portable runtime-agnostic — read a plan from $ARGUMENTS, implement the next uncompleted task with TDD, optional review, blocking tests, check off, commit. Works in any harness without hook dependencies. For Claude Code's hook-enforced variant use /implement-next-cc.
 ---
 
+<!-- RECOVERY_SCHEMA_V2 -->
+
 ### Using in Cursor
 
 See the "Using in Cursor" section of `/implement-all` — copy or symlink both files to `.cursor/commands/`. No additional setup required for this skill.
 
 Plan file: $ARGUMENTS
+
+### Step 0: Triage prior state
+
+Before anything else, shell out to the triage classifier:
+
+```
+bash ~/.claude/scripts/implement-next-triage.sh "$(pwd)" "$ARGUMENTS" "portable"
+```
+
+Read the exit code FIRST.
+
+- **Non-zero exit**: print the `RECOVERY:` diagnostic line from stdout (and any stderr), then **exit your turn immediately**. Do NOT run Step 1 or any subsequent step.
+- **Exit 0**: parse `KEY=VALUE` lines from stdout. Record:
+  - `CASE` (one of: `R-Fresh`, `R-A`, `R-B`, `R-AB`, `R-C`)
+  - `START_SHA` (use this for Step 7's self-verification)
+  - `START_CHECKED` (use this for Step 7's self-verification)
+  - `SHA_BEFORE` (R-A/R-B/R-AB only)
+  - `BRANCH_NAME` (informational; warnings already printed by triage)
+  - `TASK_NAME` (next task to act on)
+  - `REVIEW_RANGE` (passed to Step 3)
+  - `STEP_2_RESUME` (R-C only)
+  - `REVIEW_ABORT_COUNT` (informational)
+- Print the `RECOVERY:` diagnostic line verbatim so the user sees the case.
+
+**Dispatch on `CASE`:**
+
+- `R-Fresh` → proceed to Step 1 (existing flow).
+- `R-A` → SKIP Step 1 and Step 2; jump to Step 3 with `REVIEW_RANGE=HEAD+worktree`.
+- `R-B` → SKIP Step 1 and Step 2; the breadcrumb's `sha_before` already contains the orphan impl commit. Insert the plan-file checkoff for `TASK_NAME` into the working tree (do not commit yet). Jump to Step 3 with `REVIEW_RANGE=<sha_before>..HEAD`. Step 6's commit message MUST begin with `recovery(R-B): ` followed by a task-derived summary.
+- `R-AB` → SKIP Step 1 and Step 2; jump to Step 3 with `REVIEW_RANGE=<sha_before>..HEAD+worktree`. Step 6's commit message MUST begin with `recovery(R-AB): ` followed by a task-derived summary.
+- `R-C` → SKIP Step 1; resume Step 2 implementing ONLY the sub-items unchecked in `git show HEAD:$ARGUMENTS` (if `git show HEAD:$ARGUMENTS` fails — untracked plan or first-time commit — treat ALL sub-items as unchecked-in-HEAD).
+
+---
 
 ### Step 1: Show progress and identify the next task
 
@@ -22,7 +57,7 @@ bash ~/.claude/scripts/plan-progress.sh "$ARGUMENTS"
 
 **Any other exit code or script not found (fallback):** read the appropriate template from `~/.claude/scripts/` (`progress-header-phased.template` if the plan has `###` headings within the task section (`## Tasks` / `## Task breakdown`), `progress-header-flat.template` otherwise), compute the placeholder values by reading $ARGUMENTS directly, substitute them, and print the result. Then continue as normal — a failed script must not block progress.
 
-Record `START_SHA = $(git rev-parse HEAD)` and `START_CHECKED = $(awk '/^- \[[xX]\]/{c++} END{print c+0}' "$ARGUMENTS")`. These are used by the Step 7 self-verification.
+`START_SHA` and `START_CHECKED` were already captured by Step 0's triage shell-out — reuse those values in Step 7.
 
 ---
 
@@ -47,7 +82,17 @@ No assumptions — read all relevant code, documentation, and context first.
 
 If your runtime exposes `/iterative-review` or an equivalent critic, invoke it on `git diff HEAD` plus the task spec. Otherwise, spawn one critic subagent with the same inputs and apply its findings as uncommitted changes.
 
+If `REVIEW_RANGE` was set by Step 0, use it as the review target (e.g., `git diff <sha_before>..HEAD` or `git diff HEAD` with worktree per the case); otherwise default to `git diff HEAD`.
+
 The review must NOT create its own commits — all fixes stay as uncommitted working-tree changes.
+
+**Review-abort handling.** If the iterative-review (or critic) aborts mid-flow with unresolved findings, restart it ONCE. If the restart also aborts:
+
+```
+bash ~/.claude/scripts/implement-next-state-write.sh --increment-review-abort "$(pwd)"
+```
+
+Then HALT — do NOT commit. Print the unresolved findings, leave the working tree as-is, end your turn with non-zero exit. The next invocation's Step 0 triage will see `review_abort_count >= 2` and dispatch `R-Stuck`.
 
 **⚠️ MANDATORY CONTINUATION — DO NOT STOP HERE.** The `## Review Summary` and `### Verdict` produced by the critic mark the end of the *review sub-step only*. They do NOT mean the task is complete. You MUST proceed to Step 4 immediately after the verdict, regardless of what it says. Text that says "Proceeding to Step 4" is a declaration of intent — you still must actually execute Step 4 yourself. Do not end your turn after Step 3. (The portable variant has no `SubagentStop` hook to catch this; the loud warning here is the only defense.)
 
@@ -81,6 +126,8 @@ Update `$ARGUMENTS`: mark the implemented task and every completed sub-item as d
 
 Commit all changes for this task — implementation files AND the updated plan file — in a single commit with a message derived from the actual task content. Do not skip hooks (`--no-verify` is forbidden). Stage only files relevant to this task.
 
+**Recovery-case commit-subject prefixes.** If Step 0 dispatched `R-B`, the commit subject MUST begin with `recovery(R-B): ` (no other prefix). If Step 0 dispatched `R-AB`, the commit subject MUST begin with `recovery(R-AB): `. `audit-plan-run.sh` matches against these anchored prefixes to downgrade the post-loop VIOLATION to a WARNING.
+
 **If the commit fails:**
 1. `git reset HEAD` — unstage everything.
 2. Restore the plan file:
@@ -110,11 +157,16 @@ Run these checks:
    ```
    The "at least 1" rule accepts task-with-subitems (1 task + N subtasks all checked off in one iteration). If you implemented multiple tasks in one iteration, that's a separate violation caught by the parent's stuck-task guard.
 
-3. **The new commit's diff includes both the plan file AND implementation files** (not plan-only):
+3. **The new commit's diff includes both the plan file AND implementation files** (not plan-only). Wrap this in a self-contained R-B detection — if the latest commit's subject begins with `recovery(R-B):`, the commit is plan-only by design; skip the check:
    ```
-   git show --stat HEAD | grep -q "$(basename "$ARGUMENTS")"
-   git show --stat HEAD | awk 'NR>1 && /\|/ {print $1}' | grep -v "$(basename "$ARGUMENTS")" | grep -q .
+   if git log -1 --format='%s' HEAD | grep -q '^recovery(R-B):'; then
+     echo "Step 7 check 3: SKIPPED (R-B recovery commit is plan-only by design)"
+   else
+     git show --stat HEAD | grep -q "$(basename "$ARGUMENTS")"
+     git show --stat HEAD | awk 'NR>1 && /\|/ {print $1}' | grep -v "$(basename "$ARGUMENTS")" | grep -q .
+   fi
    ```
+   This eliminates LLM-memory dependence on the Step 0 case.
 
 If **any check fails**, do NOT end your turn. Diagnose the gap (missing commit? plan not checked? plan-only commit?) and return to the appropriate earlier step. If the same check fails twice in a row, report the specific failure in plain English ("Step 7 check 2 failed: plan-checked-task count went from N to M, expected N+1") and end the turn with a clear "task incomplete" status so the parent `/implement-all` loop can halt cleanly.
 

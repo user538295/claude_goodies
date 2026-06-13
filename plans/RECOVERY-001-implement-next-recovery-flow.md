@@ -856,7 +856,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 4.3 — Manual Integration Test Catalog execution
-- [ ] **File**: `~/.claude/tests/recovery/MANUAL_TEST_RESULTS.md` (new)
+- [x] **File**: `~/.claude/tests/recovery/MANUAL_TEST_RESULTS.md` (new)
 - **Depends on**: All tasks 1.x–4.2 complete (everything must be in place before exercising end-to-end).
 - **Description**:
   - Execute each scenario in the brief's Manual Integration Test Catalog (fixtures a, b, c, d, e/e.warn, f/f.write, g, h, i, k, l, m/m.write/m.corrupt/m.partial-v2, n, o, o-portable, p, q, r1, r2, s, t, u, v) in a scratch repo (separate clone or branch).

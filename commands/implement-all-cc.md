@@ -57,6 +57,27 @@ Each iteration:
 
 3. **Spawn background Agent.** Spawn a background agent with the prompt (replacing `<plan-path>`):
    > Call the Skill tool with skill `implement-next-cc` and args `<plan-path>`.
+   >
+   > **SCOPE — non-negotiable:**
+   > - Implement EXACTLY ONE task: the first uncompleted task in the plan. Do not preview, prepare, or implement any subsequent task.
+   > - Touch only what THIS task requires: files the task description names, PLUS any minimal side-effect edits the change forces (broken sibling tests, import updates, manifests). No unrelated refactors, cleanups, or "while I'm here" edits on files this task does not require.
+   >
+   > **YOUR TURN ENDS ONLY when ALL of these are true:**
+   > 1. Implementation files modified per the task spec.
+   > 2. Step 4 tests pass — OR, for doc-only tasks where the skill's Step 2 explicitly permits skipping the TDD cycle (documentation, configuration, CI changes, diagrams), the inline verification specified by the task spec succeeded.
+   > 3. Plan file's `- [ ]` for this task flipped to `- [x]`.
+   > 4. A single git commit exists containing the implementation + plan checkoff.
+   > 5. Step 7 self-verification (all three checks) returned PASS.
+   > 6. Step 8 report emitted.
+   >
+   > If any of (1)-(6) cannot be satisfied, do NOT commit anything. Output `TASK INCOMPLETE: <specific reason>` and stop attempting. The `SubagentStop` hook will block your turn-end (no new commit since `START_SHA`) and the parent's recovery check will detect the failure and halt the loop with your diagnostic visible. Do NOT manufacture a junk commit to satisfy the hook; do NOT paper over the gap by writing a positive Step 8 report.
+   >
+   > **FORBIDDEN:**
+   > - Do NOT use `--no-verify`, `--amend`, or any pre-commit hook bypass.
+   > - Do NOT skip Step 6 or Step 7 even if `/iterative-review` returned "no issues remain". Review convergence is a green light to proceed to Step 4 — it is NOT a signal to terminate your turn.
+   > - Do NOT bundle this task with adjacent ones into a single commit.
+   > - Do NOT spawn nested `/implement-all-cc`, `/implement-all`, `/implement-next-cc`, or `/implement-next` invocations from inside your task work. (The parent's Case B rescue path may legitimately spawn `/implement-next-cc-resume`; this restriction applies to YOUR work as the implementing subagent, not to the parent loop.)
+   > - Do NOT modify the plan file beyond toggling THIS task's checkbox.
 
    The Agent tool returns an `agentId` synchronously. **Record this id** — you will need it in step 4.
 
@@ -86,6 +107,23 @@ Each iteration:
    2. If tests fail: spawn one background fix-agent with the failure output. After it returns, re-run tests. Retry at most twice; if still failing, halt with the failures.
    3. If tests pass: spawn a small background agent with the prompt:
       > Call the Skill tool with skill `implement-next-cc-resume` and args `<plan-path>`.
+      >
+      > **SCOPE — non-negotiable:**
+      > - You are the rescue path. The main subagent left implementation work uncommitted. Your job: stage what's there, check off THIS task's plan checkbox, and commit. Nothing else.
+      > - Touch ONLY: the plan file (toggle one `- [ ]` to `- [x]`) and the files the main subagent already modified. Do NOT extend the implementation, add new tests, refactor, or "improve" the diff.
+      >
+      > **YOUR TURN ENDS ONLY when ALL of these are true:**
+      > 1. Plan file's `- [ ]` for THIS task is flipped to `- [x]`.
+      > 2. A single git commit exists containing the main subagent's modifications + the plan checkoff.
+      >
+      > If (1)-(2) cannot be satisfied, do NOT commit. Output `RESCUE INCOMPLETE: <specific reason>` and stop. The `SubagentStop` hook will block your turn-end and the parent will detect Case B persisting and halt the loop with your diagnostic visible. Do NOT manufacture a junk commit to satisfy the hook.
+      >
+      > **FORBIDDEN:**
+      > - Do NOT use `--no-verify`, `--amend`, or any pre-commit hook bypass.
+      > - Do NOT add new implementation work, refactor, or "improve" the main subagent's diff.
+      > - Do NOT bundle multiple tasks into one commit.
+      > - Do NOT modify the plan file beyond toggling THIS task's checkbox.
+      > - Do NOT spawn nested `/implement-all-cc`, `/implement-all`, `/implement-next-cc`, or `/implement-next` invocations from your rescue work.
 
       Before spawning, write a fresh sentinel for this rescue agent (same procedure as step 4, using the new agentId). The hook gates this rescue too.
    4. Re-capture `END_SHA` / `END_DIRTY` and re-evaluate Case A vs Case B once more. If still Case B after the rescue, clear the breadcrumb and halt:

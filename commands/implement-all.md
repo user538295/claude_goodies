@@ -62,6 +62,27 @@ Each iteration:
 
    The subagent's prompt:
    > Run `/implement-next` on plan file `<plan-path>`.
+   >
+   > **SCOPE — non-negotiable:**
+   > - Implement EXACTLY ONE task: the first uncompleted task in the plan. Do not preview, prepare, or implement any subsequent task.
+   > - Touch only what THIS task requires: files the task description names, PLUS any minimal side-effect edits the change forces (broken sibling tests, import updates, manifests). No unrelated refactors, cleanups, or "while I'm here" edits on files this task does not require.
+   >
+   > **YOUR TURN ENDS ONLY when ALL of these are true:**
+   > 1. Implementation files modified per the task spec.
+   > 2. Step 4 tests pass — OR, for doc-only tasks where the skill's Step 2 explicitly permits skipping the TDD cycle (documentation, configuration, CI changes, diagrams), the inline verification specified by the task spec succeeded.
+   > 3. Plan file's `- [ ]` for this task flipped to `- [x]`.
+   > 4. A single git commit exists containing the implementation + plan checkoff.
+   > 5. Step 7 self-verification (all three checks) returned PASS.
+   > 6. Step 8 report emitted.
+   >
+   > If any of (1)-(6) cannot be satisfied, do NOT commit. Output `TASK INCOMPLETE: <specific reason>` and stop. The parent's recovery check will detect the absent commit and halt the loop with your diagnostic visible. Do NOT manufacture a junk commit; do NOT paper over the gap by writing a positive Step 8 report.
+   >
+   > **FORBIDDEN:**
+   > - Do NOT use `--no-verify`, `--amend`, or any pre-commit hook bypass.
+   > - Do NOT skip Step 6 or Step 7 even if `/iterative-review` returned "no issues remain". Review convergence is a green light to proceed to Step 4 — it is NOT a signal to terminate your turn.
+   > - Do NOT bundle this task with adjacent ones into a single commit.
+   > - Do NOT spawn nested `/implement-all-cc`, `/implement-all`, `/implement-next-cc`, or `/implement-next` invocations from inside your task work.
+   > - Do NOT modify the plan file beyond toggling THIS task's checkbox.
 
    Immediately after spawning the subagent, write the recovery breadcrumb (the portable variant has no SubagentStop hook to coordinate with, so use `--upsert` with empty `expected_agent_id`):
 

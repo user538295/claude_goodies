@@ -6,7 +6,8 @@
   <title>scripts-plan — Claude Code segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh scripts/implement-next-state-clear.sh (last synced: 2026-06-11) -->
+  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh scripts/implement-next-state-clear.sh scripts/implement-next-triage.sh (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -69,12 +70,33 @@
       <p>Az <code>/implement-all-cc</code> által használt <code>SubagentStop</code> hook szkript. Olvassa a <code>$CWD/.claude/implement-next-state.json</code> sentinelt, az <code>agentId</code>-re szűr (így a beágyazott sub-sub-agentek átmennek), és nem engedi lezárni a külső <code>/implement-next-cc</code> subagent turnjét, amíg új commit nem létezik a <code>START_SHA</code> óta. A <code>~/.claude/settings.json</code> <code>hooks.SubagentStop</code> alatt regisztrálva.</p>
 
       <h4><code>implement-next-state-write.sh</code></h4>
-      <p>Sentinel-író, amelyet az <code>/implement-all-cc</code> 4. lépése (gate felfegyverzése) hív. Kiír egy <code>$CWD/.claude/implement-next-state.json</code> fájlt a start SHA-val, terv-úttal, következő task névvel és agent ID-vel, hogy a hook olvashassa.</p>
-      <pre><code>bash ~/.claude/scripts/implement-next-state-write.sh &lt;cwd&gt; &lt;start_sha&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;agent_id&gt;</code></pre>
+      <p>Sentinel-író, amelyet az <code>/implement-all-cc</code> 4. lépése (gate felfegyverzése), az <code>/implement-all</code> portable szülő (subagent indítás után), és önállóan az <code>/implement-next-cc</code> gyermek hív, miután a 0. lépés R-Fresh-t detektált. Atomikusan írja a <code>$CWD/.claude/implement-next-state.json</code> fájlt (ideiglenes fájl + <code>mv</code>) a <strong>v2 sémával</strong> (<code>schema_version: 2</code>, plusz <code>branch_name</code>, <code>skill_variant</code>, <code>review_abort_count</code>), hogy a hook és a recovery klasszifikátor olvashassa.</p>
+      <pre><code># Default mód (szülő tulajdonú breadcrumb valós agentId-vel):
+bash ~/.claude/scripts/implement-next-state-write.sh &lt;cwd&gt; &lt;sha_before&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;expected_agent_id&gt; &lt;skill_variant&gt;
+
+# --upsert mód (portable szülő vagy önálló gyermek; üres expected_agent_id megengedett; read-merge megőrzi a meglévő nem-üres mezőket):
+bash ~/.claude/scripts/implement-next-state-write.sh --upsert &lt;cwd&gt; &lt;sha_before&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;expected_agent_id&gt; &lt;skill_variant&gt;
+
+# --increment-review-abort mód (gyermek 3. lépés második review abort; tartósan növeli a review_abort_count-ot):
+bash ~/.claude/scripts/implement-next-state-write.sh --increment-review-abort &lt;cwd&gt;</code></pre>
+      <p>A 6. pozicionális argumentum <code>skill_variant</code> értéke <code>"portable"</code> vagy <code>"cc"</code> (alapértelmezés <code>"cc"</code>, ha elhagyod — visszafelé kompatibilitás miatt a régi recovery előtti hívókkal).</p>
 
       <h4><code>implement-next-state-clear.sh</code></h4>
-      <p>Sentinel-tisztító, amelyet az <code>/implement-all-cc</code> 6. lépése (mindig, a recovery check után) hív. Törli a <code>$CWD/.claude/implement-next-state.json</code> fájlt, hogy a hook ne gátolja idő előtt a következő iteráció subagentjét.</p>
+      <p>Sentinel-tisztító. Sikeres esetben a gyermek 7. lépés self-verification hívja (mindkét változat), az <code>/implement-all-cc</code> szülő a Case B-after-rescue-still-fails / Case C / Case D / stuck-task / iter-count halt-utakon, plusz a záró auditon (defense-in-depth), és az <code>/implement-all</code> portable szülő minden halt-úton. Törli a <code>$CWD/.claude/implement-next-state.json</code> fájlt, hogy a következő iteráció subagentjét ne gátolja idő előtt.</p>
       <pre><code>bash ~/.claude/scripts/implement-next-state-clear.sh &lt;cwd&gt;</code></pre>
+
+      <h4><code>implement-next-triage.sh</code> <span style="font-size:0.75em;color:var(--muted);">(recovery klasszifikátor)</span></h4>
+      <p>0. lépés klasszifikátor, amelyet az <code>/implement-next</code> és az <code>/implement-next-cc</code> minden meghíváskor lefuttat. Olvassa a recovery breadcrumbot és a repo állapotot (HEAD, dirty/clean, branch, terv-fájl checked-task száma), majd hét R-eset egyikére irányít: <strong>R-Fresh</strong> (nincs korábbi megszakítás), <strong>R-A</strong> (nem-committolt részleges impl), <strong>R-B</strong> (committolt, de terv nincs kipipálva), <strong>R-AB</strong> (R-A és R-B kombinálva), <strong>R-C</strong> (pre-impl TDD-piros állapot — folytasd a 2. lépést), <strong>R-Halt</strong> (sérült breadcrumb dirty fán vagy törölt terv; exit 1), <strong>R-Stuck</strong> (review kétszer abortált; exit 1, kézi recovery szükséges). <code>KEY=VALUE</code> sorokat ír ki (CASE, START_SHA, START_CHECKED, SHA_BEFORE, BRANCH_NAME, TASK_NAME, REVIEW_RANGE, STEP_2_RESUME, REVIEW_ABORT_COUNT), valamint egy ember által olvasható <code>RECOVERY:</code> diagnosztikai sort.</p>
+      <pre><code>bash ~/.claude/scripts/implement-next-triage.sh &lt;cwd&gt; &lt;plan_path&gt; &lt;current_skill_variant&gt;</code></pre>
+      <p><strong>Kilépési kódok:</strong> 0 = dispatched (R-Fresh / R-A / R-B / R-AB / R-C); 1 = halt (R-Halt / R-Stuck — sérült breadcrumb dirty fán, hiányzó terv, review double-abort); 2 = használati hiba.</p>
+      <p><strong>Határolt mellékhatások (állapot-higiénia):</strong> törölheti a <code>$cwd/.claude/implement-next-state.json</code> fájlt (a committed-checked és auto-clear sorokon), és írhat a <code>$cwd/.claude/recovery-anomalies.log</code> fájlba (az auto-clear soron, egyszeri stderr üzenettel, amely javasolja a log <code>.gitignore</code>-ba helyezését). Soha nem indít subagentet, nem futtat teszteket, és nem hoz létre committot.</p>
+      <p><strong>Példa:</strong></p>
+      <pre><code>$ bash ~/.claude/scripts/implement-next-triage.sh "$(pwd)" "plans/FEAT-001.md" "cc"
+CASE=R-Fresh
+START_SHA=4f80ce924
+START_CHECKED=14
+TASK_NAME=**File**: `handout/scripts-plan.html`
+RECOVERY: R-Fresh detected. sha_before=, head=4f80ce924, dirty=true. No prior breadcrumb; proceeding to Step 1.</code></pre>
 
       <h3>Belső függőségek (a felhasználó által hívható scriptek hívják — közvetlenül nem indítandók)</h3>
       <ul>
@@ -144,9 +166,15 @@
           </tr>
           <tr>
             <td><code>implement-next-state-clear.sh</code></td>
-            <td><span class="badge suggested">internal (cc)</span></td>
+            <td><span class="badge suggested">internal</span></td>
             <td>—</td>
-            <td><code>/implement-all-cc</code> 6. lépés (mindig, recovery check után)</td>
+            <td>Gyermek 7. lépés siker; <code>/implement-all-cc</code> halt utak; <code>/implement-all</code> halt utak</td>
+          </tr>
+          <tr>
+            <td><code>implement-next-triage.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td>breadcrumb json, terv-fájl</td>
+            <td><code>/implement-next</code> &amp; <code>/implement-next-cc</code> 0. lépés (minden meghíváskor)</td>
           </tr>
           <tr>
             <td><code>task_section.awk</code></td>

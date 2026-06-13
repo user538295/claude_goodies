@@ -822,7 +822,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 4.2 — Handout HTML documentation updates (English + Hungarian)
-- [ ] **File**: see list below (six pairs of HTML files)
+- [x] **File**: see list below (six pairs of HTML files)
 - **Depends on**: Tasks 2.1, 2.2, 2.3, 3.1, 3.2 (the behavior must be settled before documenting it)
 - **Description**:
   - **`~/.claude/handout/scripts-plan.html`** and **`~/.claude/handout/scripts-plan-hu.html`** — add `implement-next-triage.sh` to the script catalog with its purpose ("classifier with bounded state-hygiene side effects — reads breadcrumb + repo state, prints CASE= and ancillary vars"), I/O contract (positional args + stdout/stderr/exit codes), and a one-line example invocation.

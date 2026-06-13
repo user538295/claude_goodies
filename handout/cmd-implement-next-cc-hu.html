@@ -6,8 +6,9 @@
   <title>/implement-next-cc (Claude Code) — Claude Code segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-next-cc.md (last synced: 2026-06-11) -->
-  <!-- Rescue mode source: commands/implement-next-cc-resume.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/implement-next-cc.md (last synced: 2026-06-13) -->
+  <!-- Rescue mode source: commands/implement-next-cc-resume.md (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -47,20 +48,36 @@
         <li><code>[plan-file-path]</code> — (kötelező) A terv Markdown-fájljának elérési útja, pl. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
       <p><strong>Megjegyzés a rescue-ról:</strong> Case B rescue esetén (a szülő ellenőrizte az implementációt + a teszteket, de nem landolt commit) a szülő egy külön skill-t, az <a href="cmd-implement-next-cc-resume-hu.html"><code>/implement-next-cc-resume</code></a>-t használja, amely csak kipipálást + committot hajt végre a már stage-elt munkán. Ne adj át "resume" flag-et ennek a parancsnak — az a flag már nem létezik.</p>
-      <p><strong>Minden feladatra végrehajtott lépések (7 lépés összesen):</strong></p>
-      <ol>
-        <li><strong>1. lépés — Haladás kijelzése:</strong> Lefuttatja a <code>plan-progress.sh</code>-t a jelenlegi készültség kijelzéséhez és a következő feladat azonosításához.</li>
+      <p><strong>Minden feladatra végrehajtott lépések (9 lépés összesen — 0. lépés triage + 8 munka-lépés):</strong></p>
+      <ol start="0">
+        <li><strong>0. lépés — Állapot triage (recovery dispatch):</strong> Meghívja az <code>implement-next-triage.sh "$(pwd)" "$ARGUMENTS" "cc"</code> szkriptet. Exit 0 esetén feldolgozza a <code>CASE=</code>, <code>START_SHA</code>, <code>START_CHECKED</code>, <code>SHA_BEFORE</code>, <code>BRANCH_NAME</code>, <code>TASK_NAME</code>, <code>REVIEW_RANGE</code>, <code>STEP_2_RESUME</code>, <code>REVIEW_ABORT_COUNT</code> értékeket. Exit 1 (R-Halt / R-Stuck) esetén kiírja a diagnosztikát, és azonnal kilép a turnből. Dispatch:
+          <ul>
+            <li><strong>R-Fresh</strong> → 1. lépés; ÉS önálló gyermek breadcrumbot ír az <code>implement-next-state-write.sh --upsert "$(pwd)" "$START_SHA" "$ARGUMENTS" "$TASK_NAME" "" "cc"</code> hívással. Az <code>--upsert</code> módban az üres <code>expected_agent_id</code> megengedett; ha a szülő már írt valódi <code>agentId</code>-t, a read-merge megőrzi azt.</li>
+            <li><strong>R-A</strong> (nem-committolt részleges impl) → KIHAGYJA az 1. és 2. lépést; 3. lépésre ugrik <code>REVIEW_RANGE=HEAD+worktree</code>-vel.</li>
+            <li><strong>R-B</strong> (committolt, de a terv nincs kipipálva) → KIHAGYJA az 1. és 2. lépést; beilleszti a <code>TASK_NAME</code>-re vonatkozó terv-fájl kipipálást a munkamásolatba; review tartomány: <code>&lt;sha_before&gt;..HEAD</code>; a 6. lépés commit subject-jének <code>recovery(R-B):</code>-vel KELL kezdődnie.</li>
+            <li><strong>R-AB</strong> (R-A + R-B hibrid) → KIHAGYJA az 1. és 2. lépést; review tartomány: <code>&lt;sha_before&gt;..HEAD+worktree</code>; a 6. lépés commit subject-jének <code>recovery(R-AB):</code>-vel KELL kezdődnie.</li>
+            <li><strong>R-C</strong> (pre-impl TDD-piros állapot) → KIHAGYJA az 1. lépést; folytatja a 2. lépést a <code>git show HEAD:$ARGUMENTS</code>-ban még nem kipipált alpontokon.</li>
+          </ul>
+        </li>
+        <li><strong>1. lépés — Haladás kijelzése:</strong> Lefuttatja a <code>plan-progress.sh</code>-t a jelenlegi készültség kijelzéséhez és a következő feladat azonosításához. (A <code>START_SHA</code> / <code>START_CHECKED</code> rögzítése átkerült a 0. lépésbe, hogy a recovery-utak, amelyek kihagyják az 1. lépést, is rendelkezésre álljanak a 7. lépés self-verification számára.)</li>
         <li><strong>2. lépés — Implementáció (TDD):</strong> A legalkalmasabb ágenst indítja, hogy kizárólag ezt a feladatot valósítsa meg. Kódfeladatoknál: előbb bukó tesztek (red), aztán implementáció (green), végül teljes pass. Nem kódfeladatoknál: közvetlen megvalósítás.</li>
-        <li><strong>3. lépés — DA review-hurok:</strong> Meghívja az <code>/iterative-review</code>-t a <code>git diff HEAD</code> és a feladat specifikációjával. Tartalmazza a hangos "KÖTELEZŐ FOLYTATÁS — ne állj meg itt" figyelmeztetést a review verdikt utáni turn-end ellen. (A <code>SubagentStop</code> hook a másodlagos védelem — lásd a 4. lépést.)</li>
+        <li><strong>3. lépés — DA review-hurok:</strong> Meghívja az <code>/iterative-review</code>-t a diffel (a 0. lépés <code>REVIEW_RANGE</code> értékét használja, ha be van állítva, egyébként <code>git diff HEAD</code>) és a feladat specifikációjával. Tartalmazza a hangos "KÖTELEZŐ FOLYTATÁS — ne állj meg itt" figyelmeztetést. <strong>Review-abort kezelés:</strong> ha az iterative-review menet közben abortál, EGYSZER indítsd újra. Ha a restart is abortál: futtasd az <code>implement-next-state-write.sh --increment-review-abort "$(pwd)"</code>-t, majd HALT — NE commitolj. A következő meghívás 0. lépése látni fogja a <code>review_abort_count &gt;= 2</code>-t, és R-Stuck-ra dispatch-el.</li>
         <li><strong>4. lépés — Tesztek futtatása:</strong> Subagent-specifikus útmutatás — figyelmesen olvasd:
           <ul>
             <li><strong>A tesztek 9 perc alatt befejeződnek (preferált):</strong> teljes suite <code>Bash</code> foreground-dal, <code>timeout: 540000</code>. Blokkol, amíg visszatér.</li>
             <li><strong>A tesztek NEM férnek bele 9 percbe:</strong> csak a feladat-releváns részhalmazt futtasd, és zárd a turnt commitolatlan munkamásolattal, de a releváns részhalmaz zölden. Az <code>/implement-all-cc</code> Case B recovery-je szülő szinten futtatja a teljes suite-ot (ahol a <code>Monitor</code> működik).</li>
           </ul>
           <strong>Soha</strong> ne használd a <code>Monitor</code> tool-t ebben a subagent-ben tesztek várására — a <code>Monitor</code> arra utasítja az agentet, hogy yield-eljen, de a subagent-nek nincs jövőbeli user turn, amihez az events kapcsolódhatnának. A futás csendben elhal, és a szülő üres committal találkozik. Ez volt a történelmi implement-next futások domináns hibatípusa.</li>
-          <li><strong>5. lépés — Kipipálás:</strong> Egy ágenst indít, hogy <code>[x]</code>-szel jelölje a feladatot és minden elkészült alpontot a tervfájlban.</li>
-          <li><strong>6. lépés — Commit:</strong> Stage-eli az implementációs fájlokat és a frissített tervfájlt; a commit üzenete a feladat tartalmából származik. A <code>--no-verify</code> tilos. Az <code>/implement-all-cc</code>-ből hívva a <code>SubagentStop</code> hook olvassa a <code>$CWD/.claude/implement-next-state.json</code> sentinelt és nem engedi lezárni a turnt, amíg új commit nem létezik a <code>START_SHA</code> óta.</li>
-          <li><strong>7. lépés — Riport:</strong> Tömör összefoglaló: mit valósított meg, mik a teszteredmények, milyen eltérések voltak, mit pipált ki.</li>
+        <li><strong>5. lépés — Kipipálás:</strong> Egy ágenst indít, hogy <code>[x]</code>-szel jelölje a feladatot és minden elkészült alpontot a tervfájlban.</li>
+        <li><strong>6. lépés — Commit:</strong> Stage-eli az implementációs fájlokat és a frissített tervfájlt; a commit üzenete a feladat tartalmából származik. A <code>--no-verify</code> tilos. Az <code>/implement-all-cc</code>-ből hívva a <code>SubagentStop</code> hook olvassa a <code>$CWD/.claude/implement-next-state.json</code> sentinelt és nem engedi lezárni a turnt, amíg új commit nem létezik a <code>START_SHA</code> óta. <strong>Recovery-case prefixek:</strong> ha a 0. lépés R-B-re dispatch-elt, a commit subject-nek <code>recovery(R-B):</code>-vel KELL kezdődnie; R-AB esetén <code>recovery(R-AB):</code>-vel. Az <code>audit-plan-run.sh</code> ezeket az anchorolt prefixeket találja meg és a VIOLATION-t WARNING-ra fokozza le.</li>
+        <li><strong>7. lépés — Self-verification:</strong> A turn lezárása előtt programozottan ellenőrzi, hogy a munka landolt (tükrözi az <code>/implement-next</code> portable változat lépését):
+          <ol>
+            <li><code>check-task-commit.sh "$START_SHA"</code> megerősíti, hogy legalább egy új commit létezik. (R-B esetén a <code>START_SHA</code> a breadcrumb <code>sha_before</code> értéke.)</li>
+            <li>A terv-fájl kipipált feladatszáma legalább 1-gyel nőtt: <code>END_CHECKED - START_CHECKED &gt;= 1</code>.</li>
+            <li>Az új commit diff-je magában foglalja mind a terv-fájlt, MIND az implementációs fájlokat — KIVÉVE, ha a legutóbbi commit subject-je <code>recovery(R-B):</code>-vel kezdődik (az R-B commit by design csak terv-fájlt tartalmaz; az ellenőrzés önmagát átugorja).</li>
+          </ol>
+          Bármely ellenőrzés bukása esetén NEM zárja le a turnt — diagnózist készít és visszatér a megfelelő korábbi lépéshez. Sikeresen: <code>implement-next-state-clear.sh "$(pwd)"</code> hívással törli a breadcrumbot.</li>
+        <li><strong>8. lépés — Riport:</strong> Tömör összefoglaló: mit valósított meg, mik a teszteredmények, milyen eltérések voltak, mit pipált ki, 7. lépés self-verification eredménye.</li>
       </ol>
     </section>
 

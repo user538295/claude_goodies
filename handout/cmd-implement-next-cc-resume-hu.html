@@ -6,7 +6,8 @@
   <title>/implement-next-cc-resume (Claude Code, rescue) — Claude Code segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-next-cc-resume.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/implement-next-cc-resume.md (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -46,7 +47,7 @@
       <p><strong>Lépések (összesen 3):</strong></p>
       <ol>
         <li><strong>1. lépés — A task azonosítása:</strong> Futtatja a <code>plan-progress.sh</code>-t, hogy megkapja a <code>NEXT_TASK_NAME</code>-et. A tervben szereplő első be nem pipált task az, amit ki kell pipálni. (Ez determinisztikus; a dirty fa tartalmazhat kódot a taskhoz, de önmagában a fájllista NEM azonosítja egyértelműen, melyik taskról van szó.)</li>
-        <li><strong>2. lépés — Commit:</strong> Stage-eli az implementációs fájlokat ÉS a frissített tervfájlt, majd a feladat tartalmából származó üzenettel commitol. <strong>NEM ALKUDOZHATÓ: egy task = egy commit.</strong> A pre-commit hookokat NEM lehet kihagyni. Ha a commit elhasal, a skill a szülőnek hibajelentést tesz — a szülő megáll.</li>
+        <li><strong>2. lépés — Commit + breadcrumb törlés:</strong> Stage-eli az implementációs fájlokat ÉS a frissített tervfájlt, majd a feladat tartalmából származó üzenettel commitol. <strong>NEM ALKUDOZHATÓ: egy task = egy commit.</strong> A pre-commit hookokat NEM lehet kihagyni. Sikeres commit után törli a recovery breadcrumbot az <code>implement-next-state-clear.sh "$(pwd)"</code> hívással, hogy a szülő következő iterációjának triage-jét ne mérgezze meg egy elavult breadcrumb. (Ha a commit elhasal, a skill a szülőnek hibajelentést tesz — a szülő megáll, és a szülő halt-úton lévő breadcrumb-törlése elvégzi a takarítást; ez a skill commit-hiba esetén NEM töröl.)</li>
         <li><strong>3. lépés — Riport:</strong> Egysoros jelentés: sikerre <code>Rescue commit landed: &lt;sha&gt;</code>, hibára <code>Rescue failed: &lt;reason&gt;</code>.</li>
       </ol>
       <p><strong>Miért külön skill, miért nem flag az <code>/implement-next-cc</code>-n:</strong> Egy korábbi design egy resume flag-et használt a fő <code>/implement-next-cc</code> skill-en a rescue módba kapcsoláshoz. A C5 refaktor ezt egy dedikált skill-re bontotta szét, hogy a fő implementációs skill egycélú maradjon, és a rescue út flag-elgépeléssel se legyen véletlenül kiváltható.</p>

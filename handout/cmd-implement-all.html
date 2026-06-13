@@ -6,7 +6,8 @@
   <title>/implement-all (portable) — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-all.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/implement-all.md (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -62,16 +63,17 @@ ln -s ~/.claude/commands/implement-next.md .cursor/commands/implement-next.md</c
       <ol>
         <li><strong>Progress + stuck-task guard:</strong> Runs <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code>. Exit 1 → all tasks complete, stop. Exit 2/3 → halt with error. Exit 0 → note <code>NEXT_TASK_NAME</code> and continue.</li>
         <li><strong>Capture pre-state:</strong> records <code>START_SHA</code> and <code>CWD</code>. On iteration 1 only, writes the start SHA to <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> so step 5's audit doesn't depend on a transient variable. Each plan gets its own SHA-anchor file (namespaced by hash of the plan path), so different plans don't collide on halt-and-resume.</li>
-        <li><strong>Spawn subagent:</strong> uses the runtime's subagent primitive (Claude Code <code>Agent</code> tool, Cursor <code>Task</code> tool, or inline <code>/implement-next</code> in headless harnesses) with the prompt: <em>"Run /implement-next on plan file &lt;plan-path&gt;."</em> Waits for return.</li>
-        <li><strong>Recovery check — verify the task landed:</strong> portable substitute for hook enforcement. Halts (does not auto-rescue) on any of these failure modes:
+        <li><strong>Spawn subagent + arm recovery breadcrumb:</strong> uses the runtime's subagent primitive (Claude Code <code>Agent</code> tool, Cursor <code>Task</code> tool, or inline <code>/implement-next</code> in headless harnesses) with the prompt: <em>"Run /implement-next on plan file &lt;plan-path&gt;."</em> Immediately after spawning (and BEFORE the wait), writes the recovery breadcrumb via <code>implement-next-state-write.sh --upsert "$CWD" "$START_SHA" &lt;plan-path&gt; "$NEXT_TASK_NAME" "" "portable"</code>. The portable variant has no <code>SubagentStop</code> hook to coordinate with, so <code>--upsert</code> mode with empty <code>expected_agent_id</code> is used: the breadcrumb still enables the child's Step 0 triage to detect a prior interruption and dispatch to the matching R-case (R-Fresh / R-A / R-B / R-AB / R-C / R-Halt / R-Stuck). See <a href="cmd-implement-next.html"><code>/implement-next</code></a> for the recovery dispatch matrix. Then waits for return.</li>
+        <li><strong>Recovery check — verify the task landed:</strong> portable substitute for hook enforcement. Halts (does not auto-rescue) on any of these failure modes — and <strong>on every halt path, clears the breadcrumb via <code>implement-next-state-clear.sh "$CWD"</code> before the halt</strong>:
           <ul>
-            <li><code>END_SHA != START_SHA</code> &amp; tree clean → likely committed; re-run <code>plan-progress.sh</code> and continue (or halt if task not checked off).</li>
-            <li><code>END_SHA == START_SHA</code> &amp; uncommitted changes → subagent stalled mid-flow (the dominant historical failure mode); halt with diagnostic. Suggests <code>/implement-all-cc</code> for Claude Code.</li>
-            <li><code>END_SHA == START_SHA</code> &amp; tree clean → subagent did nothing visible (network, OOM, quota). Halt.</li>
-            <li><code>END_SHA != START_SHA</code> &amp; uncommitted changes → anomaly; halt.</li>
+            <li><code>END_SHA != START_SHA</code> &amp; tree clean → likely committed (child Step 7 already cleared the breadcrumb); re-run <code>plan-progress.sh</code> and continue (or halt + clear breadcrumb if task not checked off).</li>
+            <li><code>END_SHA == START_SHA</code> &amp; uncommitted changes → subagent stalled mid-flow (the dominant historical failure mode); clear breadcrumb, halt with diagnostic. Suggests <code>/implement-all-cc</code> for Claude Code.</li>
+            <li><code>END_SHA == START_SHA</code> &amp; tree clean → subagent did nothing visible (network, OOM, quota). Clear breadcrumb, halt.</li>
+            <li><code>END_SHA != START_SHA</code> &amp; uncommitted changes → anomaly; clear breadcrumb, halt.</li>
+            <li>Stuck-task guard (same <code>NEXT_TASK_NAME</code> twice) and iteration-count exceeded both clear the breadcrumb before halt.</li>
           </ul>
         </li>
-        <li><strong>Audit:</strong> after the loop terminates, runs <code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan-path&gt; &lt;FIRST_START_SHA&gt;</code>, then cleans up <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code>. Exit 0 = clean run; exit 1 = mismatch.</li>
+        <li><strong>Audit:</strong> after the loop terminates, runs <code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan-path&gt; &lt;FIRST_START_SHA&gt;</code>, then cleans up <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> AND clears the breadcrumb (defense-in-depth). The audit recognizes the new <code>recovery(R-B):</code> and <code>recovery(R-AB):</code> commit-subject prefixes — when these markers explain the commit-count delta, the VIOLATION is downgraded to WARNING. The audit also surfaces the existence and line count of <code>.claude/recovery-anomalies.log</code> if present. Exit 0 = clean run; exit 1 = mismatch.</li>
       </ol>
       <p><strong>Why this variant is less reliable than <code>-cc</code>:</strong> relies on the subagent following the <code>/implement-next</code> markdown instructions to commit before ending its turn. The user's archon-search transcripts measured ~7.6% of <code>/implement-next</code> subagents historically never committing (the dominant failure mode this skill addresses). Plan-and-Solve (<a href="https://arxiv.org/abs/2305.04091">arxiv.org/abs/2305.04091</a>, accessed 2026-06-11) qualitatively names "missing-step errors" as a known failure class for prompt-only multi-step flows — our measurement is a concrete instance of that class. Halting bounds the damage but does not auto-recover.</p>
     </section>

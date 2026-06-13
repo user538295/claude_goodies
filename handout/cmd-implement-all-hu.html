@@ -6,7 +6,8 @@
   <title>/implement-all (portable) — Claude Code segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-all.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/implement-all.md (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -62,16 +63,17 @@ ln -s ~/.claude/commands/implement-next.md .cursor/commands/implement-next.md</c
       <ol>
         <li><strong>Haladás + megakadt-feladat őr:</strong> Lefuttatja a <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> parancsot. Exit 1 → minden kész, megáll. Exit 2/3 → hibajelentéssel megáll. Exit 0 → megjegyzi a <code>NEXT_TASK_NAME</code>-et és folytatódik.</li>
         <li><strong>Pre-state mentése:</strong> rögzíti a <code>START_SHA</code> és <code>CWD</code> értékeket. Csak az 1. iterációban a start SHA-t kiírja a <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> fájlba is, hogy az 5. lépés auditja ne függjön egy ideiglenes változótól. Minden tervhez saját SHA-horgonyfájl tartozik (a terv elérési útjának hash-éval névterezve), így különböző tervek nem ütköznek halt-and-resume esetén.</li>
-        <li><strong>Subagent indítása:</strong> a runtime saját subagent-primitívjével (Claude Code <code>Agent</code> tool, Cursor <code>Task</code> tool, vagy headless harness-ben inline <code>/implement-next</code>) ezzel a prompttal: <em>"Run /implement-next on plan file &lt;plan-path&gt;."</em> Megvárja a visszatérést.</li>
-        <li><strong>Recovery check — landolt-e a feladat:</strong> a hook-kényszerítés portable helyettesítője. Bármely hibamódra megáll (nem auto-rescue):
+        <li><strong>Subagent indítása + recovery breadcrumb felfegyverzése:</strong> a runtime saját subagent-primitívjével (Claude Code <code>Agent</code> tool, Cursor <code>Task</code> tool, vagy headless harness-ben inline <code>/implement-next</code>) ezzel a prompttal: <em>"Run /implement-next on plan file &lt;plan-path&gt;."</em> Közvetlenül az indítás után (és a wait ELŐTT) kiírja a recovery breadcrumbot az <code>implement-next-state-write.sh --upsert "$CWD" "$START_SHA" &lt;plan-path&gt; "$NEXT_TASK_NAME" "" "portable"</code> hívással. A portable változatnak nincs <code>SubagentStop</code> hookja, ezért <code>--upsert</code> mód üres <code>expected_agent_id</code>-vel: a breadcrumb így is engedélyezi a gyermek 0. lépés triage-nek a korábbi megszakítás detektálását, és az illeszkedő R-esetre dispatch-elést (R-Fresh / R-A / R-B / R-AB / R-C / R-Halt / R-Stuck). A recovery dispatch mátrixért lásd: <a href="cmd-implement-next-hu.html"><code>/implement-next</code></a>. Majd megvárja a visszatérést.</li>
+        <li><strong>Recovery check — landolt-e a feladat:</strong> a hook-kényszerítés portable helyettesítője. Bármely hibamódra megáll (nem auto-rescue) — és <strong>minden halt-úton a halt ELŐTT törli a breadcrumbot az <code>implement-next-state-clear.sh "$CWD"</code> hívással</strong>:
           <ul>
-            <li><code>END_SHA != START_SHA</code> &amp; tiszta munkamásolat → valószínűleg commitolva; újra <code>plan-progress.sh</code>, és folytatódik (vagy megáll, ha a task nincs kipipálva).</li>
-            <li><code>END_SHA == START_SHA</code> &amp; commitolatlan változások → a subagent megakadt menet közben (a domináns hibatípus); diagnosztikával megáll. Javasolja a Claude Code <code>/implement-all-cc</code> változatát.</li>
-            <li><code>END_SHA == START_SHA</code> &amp; tiszta munkamásolat → a subagent semmit sem csinált láthatóan (hálózat, OOM, kvóta). Megáll.</li>
-            <li><code>END_SHA != START_SHA</code> &amp; commitolatlan változások → anomália; megáll.</li>
+            <li><code>END_SHA != START_SHA</code> &amp; tiszta munkamásolat → valószínűleg commitolva (a gyermek 7. lépés már törölte a breadcrumbot); újra <code>plan-progress.sh</code>, és folytatódik (vagy megáll + breadcrumb törlés, ha a task nincs kipipálva).</li>
+            <li><code>END_SHA == START_SHA</code> &amp; commitolatlan változások → a subagent megakadt menet közben (a domináns hibatípus); breadcrumb törlés, diagnosztikával megáll. Javasolja a Claude Code <code>/implement-all-cc</code> változatát.</li>
+            <li><code>END_SHA == START_SHA</code> &amp; tiszta munkamásolat → a subagent semmit sem csinált láthatóan (hálózat, OOM, kvóta). Breadcrumb törlés, megáll.</li>
+            <li><code>END_SHA != START_SHA</code> &amp; commitolatlan változások → anomália; breadcrumb törlés, megáll.</li>
+            <li>Megakadt-feladat őr (ugyanaz a <code>NEXT_TASK_NAME</code> kétszer) és iterációs felső korlát is törlik a breadcrumbot, mielőtt megállnak.</li>
           </ul>
         </li>
-        <li><strong>Audit:</strong> a ciklus rendes lezárása után lefuttatja a <code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan-path&gt; &lt;FIRST_START_SHA&gt;</code> parancsot, majd takarítja a <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> fájlt. Exit 0 = tiszta futás; exit 1 = eltérés.</li>
+        <li><strong>Audit:</strong> a ciklus rendes lezárása után lefuttatja a <code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan-path&gt; &lt;FIRST_START_SHA&gt;</code> parancsot, majd takarítja a <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> fájlt ÉS törli a breadcrumbot (defense-in-depth). Az audit felismeri az új <code>recovery(R-B):</code> és <code>recovery(R-AB):</code> commit-subject prefixeket — ha ezek a markerek megmagyarázzák a commit-szám eltérést, a VIOLATION WARNING-ra fokozódik le. Az audit kiírja a <code>.claude/recovery-anomalies.log</code> létezését és sorszámát is, ha létezik. Exit 0 = tiszta futás; exit 1 = eltérés.</li>
       </ol>
       <p><strong>Miért kevésbé megbízható ez, mint a <code>-cc</code> változat:</strong> arra támaszkodik, hogy a subagent kövesse az <code>/implement-next</code> markdown utasításait a commit elvégzéséhez a turn vége előtt. Az archon-search projekt korábbi tranzakcióiban a <code>/implement-next</code> subagentek ~7,6%-a soha nem commitolt (ez a fő hibamód, amelyre ez a skill reagál). A Plan-and-Solve tanulmány (<a href="https://arxiv.org/abs/2305.04091">arxiv.org/abs/2305.04091</a>, hozzáférve: 2026-06-11) minőségileg nevezi meg a "missing-step" hibákat mint ismert hibakategóriát prompt-vezérelt többlépéses flow-knál — a mi mérésünk ennek egy konkrét megnyilvánulása. A megállás korlátozza a kárt, de nem auto-recovery.</p>
     </section>

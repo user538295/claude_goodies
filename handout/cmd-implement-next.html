@@ -6,7 +6,8 @@
   <title>/implement-next (portable) — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-next.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/implement-next.md (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -47,15 +48,24 @@
       <ul>
         <li><code>[plan-file-path]</code> — (required) Relative path to the plan Markdown file, e.g. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
-      <p><strong>Steps executed for each task (8 steps total):</strong></p>
-      <ol>
-        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion and identify the next uncompleted task. Records <code>START_SHA</code> and <code>START_CHECKED</code> for Step 7's self-verification. If all tasks are complete (exit 1), stops and reports completion.</li>
+      <p><strong>Steps executed for each task (9 steps total — Step 0 triage + 8 work steps):</strong></p>
+      <ol start="0">
+        <li><strong>Step 0 — Triage prior state (recovery dispatch):</strong> Shells out to <code>implement-next-triage.sh "$(pwd)" "$ARGUMENTS" "portable"</code>. On exit 0, parses <code>CASE=</code>, <code>START_SHA</code>, <code>START_CHECKED</code>, <code>SHA_BEFORE</code>, <code>BRANCH_NAME</code>, <code>TASK_NAME</code>, <code>REVIEW_RANGE</code>, <code>STEP_2_RESUME</code>, <code>REVIEW_ABORT_COUNT</code>. On exit 1 (R-Halt / R-Stuck), prints the diagnostic and exits the turn immediately. <strong>Note:</strong> <code>START_SHA</code> and <code>START_CHECKED</code> capture has moved from the legacy Step 1 to Step 0 so recovery paths that skip Step 1 still bind these values for Step 7's self-verification. Dispatch:
+          <ul>
+            <li><strong>R-Fresh</strong> → proceed to Step 1.</li>
+            <li><strong>R-A</strong> (uncommitted partial impl) → SKIP Steps 1 &amp; 2; jump to Step 3 with <code>REVIEW_RANGE=HEAD+worktree</code>.</li>
+            <li><strong>R-B</strong> (committed but plan not checked off) → SKIP Steps 1 &amp; 2; insert plan-file checkoff for <code>TASK_NAME</code>; review <code>&lt;sha_before&gt;..HEAD</code>; Step 6's commit subject MUST begin with <code>recovery(R-B):</code>.</li>
+            <li><strong>R-AB</strong> (hybrid R-A + R-B) → SKIP Steps 1 &amp; 2; review <code>&lt;sha_before&gt;..HEAD+worktree</code>; Step 6's commit subject MUST begin with <code>recovery(R-AB):</code>.</li>
+            <li><strong>R-C</strong> (pre-impl TDD-red state) → SKIP Step 1; resume Step 2 on sub-items still unchecked in <code>git show HEAD:$ARGUMENTS</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion and identify the next uncompleted task. If all tasks are complete (exit 1), stops and reports completion. (<code>START_SHA</code> / <code>START_CHECKED</code> capture has moved to Step 0.)</li>
         <li><strong>Step 2 — Implement (TDD):</strong> Spawns a focused subagent (or proceeds inline if the runtime has no subagent primitive) to implement only this task. For code tasks: failing tests first (red), then implementation (green), then full pass. For non-code tasks (docs, config): implements directly.</li>
-        <li><strong>Step 3 — Critical review (optional):</strong> Invokes <code>/iterative-review</code> on <code>git diff HEAD</code> plus the task spec, or spawns one critic subagent if the slash command is unavailable. Includes the loud "MANDATORY CONTINUATION — do not stop here" warning: the portable variant has no <code>SubagentStop</code> hook to catch this, so the prompt is the only defense against the subagent ending its turn at the review verdict.</li>
+        <li><strong>Step 3 — Critical review (optional):</strong> Invokes <code>/iterative-review</code> on the diff (use the <code>REVIEW_RANGE</code> from Step 0 if set, otherwise <code>git diff HEAD</code>) plus the task spec, or spawns one critic subagent if the slash command is unavailable. Includes the loud "MANDATORY CONTINUATION — do not stop here" warning: the portable variant has no <code>SubagentStop</code> hook to catch this, so the prompt is the only defense against the subagent ending its turn at the review verdict. <strong>Review-abort handling:</strong> if the review aborts mid-flow, restart it ONCE. If the restart also aborts: run <code>implement-next-state-write.sh --increment-review-abort "$(pwd)"</code>, then HALT — do NOT commit. Next invocation's Step 0 will see <code>review_abort_count &gt;= 2</code> and dispatch R-Stuck.</li>
         <li><strong>Step 4 — Run tests:</strong> Runs the full test suite as a blocking foreground command, timeout under the runtime's foreground ceiling (Claude Code's <code>Bash</code> ≤ 600,000 ms). If the full suite cannot complete in one blocking call, runs only the task-relevant subset and reports the partial scope in Step 8. Fix agents retry up to 3 times.</li>
         <li><strong>Step 5 — Check off:</strong> Marks the implemented task and all completed sub-items <code>[x]</code> in the plan file.</li>
-        <li><strong>Step 6 — Commit:</strong> Stages implementation files and the updated plan file; commits with a message derived from the task content. <code>--no-verify</code> is forbidden. Includes recovery on commit failure (unstage, restore plan file, fix the underlying issue, redo Steps 5–6).</li>
-        <li><strong>Step 7 — Self-verification (portable substitute for hook enforcement):</strong> Programmatically verifies before ending the turn: (1) <code>check-task-commit.sh "$START_SHA"</code> confirms a new commit exists; (2) plan's checked-task count grew by at least 1; (3) the new commit's diff includes both the plan file AND implementation files. If any check fails, does NOT end the turn — diagnoses the gap and returns to the appropriate earlier step.</li>
+        <li><strong>Step 6 — Commit:</strong> Stages implementation files and the updated plan file; commits with a message derived from the task content. <code>--no-verify</code> is forbidden. Includes recovery on commit failure (unstage, restore plan file, fix the underlying issue, redo Steps 5–6). <strong>Recovery-case prefixes:</strong> if Step 0 dispatched R-B, the commit subject MUST begin with <code>recovery(R-B):</code>; if R-AB, with <code>recovery(R-AB):</code>. <code>audit-plan-run.sh</code> matches these anchored prefixes and downgrades VIOLATION to WARNING.</li>
+        <li><strong>Step 7 — Self-verification (portable substitute for hook enforcement):</strong> Programmatically verifies before ending the turn: (1) <code>check-task-commit.sh "$START_SHA"</code> confirms a new commit exists (for R-B, <code>START_SHA</code> is the breadcrumb's <code>sha_before</code>); (2) plan's checked-task count grew by at least 1; (3) the new commit's diff includes both the plan file AND implementation files — UNLESS the latest commit's subject begins with <code>recovery(R-B):</code> (R-B's commit is plan-only by design; the check self-skips). On success, clears the breadcrumb via <code>implement-next-state-clear.sh "$(pwd)"</code>. If any check fails, does NOT end the turn — diagnoses the gap and returns to the appropriate earlier step.</li>
         <li><strong>Step 8 — Report:</strong> Outputs a concise summary: what was implemented, test results, any deviations, what was checked off, Step 7's self-verification result.</li>
       </ol>
     </section>

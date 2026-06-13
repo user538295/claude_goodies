@@ -6,8 +6,9 @@
   <title>/implement-next-cc (Claude Code) — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-next-cc.md (last synced: 2026-06-11) -->
-  <!-- Rescue mode source: commands/implement-next-cc-resume.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/implement-next-cc.md (last synced: 2026-06-13) -->
+  <!-- Rescue mode source: commands/implement-next-cc-resume.md (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -47,11 +48,20 @@
         <li><code>[plan-file-path]</code> — (required) Path to the plan Markdown file, e.g. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
       <p><strong>Note on rescue:</strong> For Case B rescue (parent has verified implementation + tests but no commit landed), the parent uses a separate skill, <a href="cmd-implement-next-cc-resume.html"><code>/implement-next-cc-resume</code></a>, which performs only check-off + commit on the already-staged work. Do not pass any "resume" flag to this command — that flag no longer exists.</p>
-      <p><strong>Steps executed for each task (7 steps total):</strong></p>
-      <ol>
-        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion and identify the next uncompleted task.</li>
+      <p><strong>Steps executed for each task (9 steps total — Step 0 triage + 8 work steps):</strong></p>
+      <ol start="0">
+        <li><strong>Step 0 — Triage prior state (recovery dispatch):</strong> Shells out to <code>implement-next-triage.sh "$(pwd)" "$ARGUMENTS" "cc"</code>. On exit 0, parses <code>CASE=</code>, <code>START_SHA</code>, <code>START_CHECKED</code>, <code>SHA_BEFORE</code>, <code>BRANCH_NAME</code>, <code>TASK_NAME</code>, <code>REVIEW_RANGE</code>, <code>STEP_2_RESUME</code>, <code>REVIEW_ABORT_COUNT</code>. On exit 1 (R-Halt / R-Stuck), prints the diagnostic and exits the turn immediately. Dispatch:
+          <ul>
+            <li><strong>R-Fresh</strong> → proceed to Step 1; ALSO writes a standalone-child breadcrumb via <code>implement-next-state-write.sh --upsert "$(pwd)" "$START_SHA" "$ARGUMENTS" "$TASK_NAME" "" "cc"</code>. Empty <code>expected_agent_id</code> is permitted in <code>--upsert</code>; if a parent already wrote a real <code>agentId</code>, the read-merge preserves it.</li>
+            <li><strong>R-A</strong> (uncommitted partial impl) → SKIP Steps 1 &amp; 2; jump to Step 3 with <code>REVIEW_RANGE=HEAD+worktree</code>.</li>
+            <li><strong>R-B</strong> (committed but plan not checked off) → SKIP Steps 1 &amp; 2; insert the plan-file checkoff for <code>TASK_NAME</code> into the working tree; review <code>&lt;sha_before&gt;..HEAD</code>; Step 6's commit subject MUST begin with <code>recovery(R-B):</code>.</li>
+            <li><strong>R-AB</strong> (hybrid R-A + R-B) → SKIP Steps 1 &amp; 2; review <code>&lt;sha_before&gt;..HEAD+worktree</code>; Step 6's commit subject MUST begin with <code>recovery(R-AB):</code>.</li>
+            <li><strong>R-C</strong> (pre-impl TDD-red state) → SKIP Step 1; resume Step 2 on sub-items still unchecked in <code>git show HEAD:$ARGUMENTS</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion and identify the next uncompleted task. (<code>START_SHA</code> / <code>START_CHECKED</code> capture has moved to Step 0 so recovery paths that skip Step 1 still bind them for Step 7's self-verification.)</li>
         <li><strong>Step 2 — Implement (TDD):</strong> Spawns the most appropriate agent to implement only this task. For code tasks: failing tests first (red), implementation (green), full pass. For non-code tasks: implements directly.</li>
-        <li><strong>Step 3 — DA review loop:</strong> Invokes <code>/iterative-review</code> with <code>git diff HEAD</code> and the task spec. Includes the loud "MANDATORY CONTINUATION — do not stop here" warning to defend against the subagent ending its turn at the review verdict instead of proceeding to Step 4. (The <code>SubagentStop</code> hook is a secondary defense — see Step 4.)</li>
+        <li><strong>Step 3 — DA review loop:</strong> Invokes <code>/iterative-review</code> with the diff (use the <code>REVIEW_RANGE</code> from Step 0 if set, otherwise <code>git diff HEAD</code>) and the task spec. Includes the loud "MANDATORY CONTINUATION — do not stop here" warning. <strong>Review-abort handling:</strong> if iterative-review aborts mid-flow, restart it ONCE. If the restart also aborts: run <code>implement-next-state-write.sh --increment-review-abort "$(pwd)"</code>, then HALT — do NOT commit. Next invocation's Step 0 will see <code>review_abort_count &gt;= 2</code> and dispatch R-Stuck.</li>
         <li><strong>Step 4 — Run tests:</strong> Subagent-specific guidance — read carefully:
           <ul>
             <li><strong>Tests complete in ≤ 9 minutes (preferred):</strong> run the full suite with <code>Bash</code> foreground, <code>timeout: 540000</code>. Block until it returns.</li>
@@ -59,8 +69,15 @@
           </ul>
           <strong>Never</strong> use the <code>Monitor</code> tool inside this subagent to wait for tests — <code>Monitor</code> tells the agent to yield, but a subagent has no future user turn for events to attach to. The run silently dies and the parent sees an empty commit. This was the dominant failure mode of historical implement-next runs.</li>
         <li><strong>Step 5 — Check off:</strong> Spawns an agent to mark the implemented task and all completed sub-items <code>[x]</code> in the plan file.</li>
-        <li><strong>Step 6 — Commit:</strong> Stages implementation files and the updated plan file; commits with a message derived from the task content. <code>--no-verify</code> is forbidden. The <code>SubagentStop</code> hook (when invoked from <code>/implement-all-cc</code>) reads the sentinel at <code>$CWD/.claude/implement-next-state.json</code> and refuses to let this subagent end its turn until a new commit exists since <code>START_SHA</code>.</li>
-        <li><strong>Step 7 — Report:</strong> Outputs a concise summary: what was implemented, test results, deviations, what was checked off.</li>
+        <li><strong>Step 6 — Commit:</strong> Stages implementation files and the updated plan file; commits with a message derived from the task content. <code>--no-verify</code> is forbidden. The <code>SubagentStop</code> hook (when invoked from <code>/implement-all-cc</code>) reads the sentinel at <code>$CWD/.claude/implement-next-state.json</code> and refuses to let this subagent end its turn until a new commit exists since <code>START_SHA</code>. <strong>Recovery-case prefixes:</strong> if Step 0 dispatched R-B, the commit subject MUST begin with <code>recovery(R-B):</code>; if R-AB, with <code>recovery(R-AB):</code>. <code>audit-plan-run.sh</code> matches these anchored prefixes and downgrades VIOLATION to WARNING.</li>
+        <li><strong>Step 7 — Self-verification:</strong> Before ending the turn, programmatically verifies the work landed (mirrors <code>/implement-next</code> portable):
+          <ol>
+            <li><code>check-task-commit.sh "$START_SHA"</code> confirms at least one new commit exists. (For R-B, <code>START_SHA</code> is the breadcrumb's <code>sha_before</code>.)</li>
+            <li>Plan's checked-task count grew by at least 1: <code>END_CHECKED - START_CHECKED &gt;= 1</code>.</li>
+            <li>The new commit's diff includes both the plan file AND implementation files — UNLESS the latest commit's subject begins with <code>recovery(R-B):</code> (R-B's commit is plan-only by design; the check self-skips).</li>
+          </ol>
+          On any check failure, does NOT end the turn — diagnoses and returns to the appropriate earlier step. On success, clears the breadcrumb via <code>implement-next-state-clear.sh "$(pwd)"</code>.</li>
+        <li><strong>Step 8 — Report:</strong> Outputs a concise summary: what was implemented, test results, deviations, what was checked off, Step 7 self-verification result.</li>
       </ol>
     </section>
 

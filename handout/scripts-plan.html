@@ -6,7 +6,8 @@
   <title>scripts-plan — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh scripts/implement-next-state-clear.sh (last synced: 2026-06-11) -->
+  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh scripts/implement-next-state-clear.sh scripts/implement-next-triage.sh (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -69,12 +70,33 @@
       <p><code>SubagentStop</code> hook script used by <code>/implement-all-cc</code>. Reads the sentinel file at <code>$CWD/.claude/implement-next-state.json</code>, filters on <code>agentId</code> (so nested sub-sub-agents pass through), and refuses to let the outer <code>/implement-next-cc</code> subagent end its turn until a new commit exists since <code>START_SHA</code>. Registered in <code>~/.claude/settings.json</code> under <code>hooks.SubagentStop</code>.</p>
 
       <h4><code>implement-next-state-write.sh</code></h4>
-      <p>Sentinel writer invoked by <code>/implement-all-cc</code> Step 4 (arm the gate). Writes <code>$CWD/.claude/implement-next-state.json</code> with the start SHA, plan path, next task name, and agent ID, so the hook can read it.</p>
-      <pre><code>bash ~/.claude/scripts/implement-next-state-write.sh &lt;cwd&gt; &lt;start_sha&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;agent_id&gt;</code></pre>
+      <p>Sentinel writer invoked by <code>/implement-all-cc</code> Step 4 (arm the gate) and <code>/implement-all</code>'s portable parent (post-spawn), and by the standalone <code>/implement-next-cc</code> child after a Step 0 R-Fresh dispatch. Writes <code>$CWD/.claude/implement-next-state.json</code> atomically (tempfile + <code>mv</code>) using the <strong>v2 schema</strong> (<code>schema_version: 2</code>, plus <code>branch_name</code>, <code>skill_variant</code>, and <code>review_abort_count</code>) so the hook and the recovery classifier can read it.</p>
+      <pre><code># Default mode (parent-owned breadcrumb with real agentId):
+bash ~/.claude/scripts/implement-next-state-write.sh &lt;cwd&gt; &lt;sha_before&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;expected_agent_id&gt; &lt;skill_variant&gt;
+
+# --upsert mode (portable parent or standalone child; empty expected_agent_id permitted; read-merge preserves existing non-empty fields):
+bash ~/.claude/scripts/implement-next-state-write.sh --upsert &lt;cwd&gt; &lt;sha_before&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;expected_agent_id&gt; &lt;skill_variant&gt;
+
+# --increment-review-abort mode (child Step 3 second review abort; bumps review_abort_count durably):
+bash ~/.claude/scripts/implement-next-state-write.sh --increment-review-abort &lt;cwd&gt;</code></pre>
+      <p>The 6th positional arg <code>skill_variant</code> is one of <code>"portable"</code> or <code>"cc"</code> (default <code>"cc"</code> when omitted, for backward compatibility with pre-recovery callers).</p>
 
       <h4><code>implement-next-state-clear.sh</code></h4>
-      <p>Sentinel cleaner invoked by <code>/implement-all-cc</code> Step 6 (always, after recovery check). Removes <code>$CWD/.claude/implement-next-state.json</code> so the hook does not gate the next iteration's subagent prematurely.</p>
+      <p>Sentinel cleaner. Called on success by the child's Step 7 self-verification (both variants), by the <code>/implement-all-cc</code> parent on Case B-after-rescue-still-fails / Case C / Case D / stuck-task / iter-count halt paths plus the final audit (defense-in-depth), and by <code>/implement-all</code>'s portable parent at every halt path. Removes <code>$CWD/.claude/implement-next-state.json</code> so the next iteration's subagent is not gated prematurely.</p>
       <pre><code>bash ~/.claude/scripts/implement-next-state-clear.sh &lt;cwd&gt;</code></pre>
+
+      <h4><code>implement-next-triage.sh</code> <span style="font-size:0.75em;color:var(--muted);">(recovery classifier)</span></h4>
+      <p>Step 0 classifier called by both <code>/implement-next</code> and <code>/implement-next-cc</code> on every invocation. Reads the recovery breadcrumb plus repo state (HEAD, dirty/clean, branch, plan-file checked-task count) and dispatches to one of seven R-cases: <strong>R-Fresh</strong> (no prior interruption), <strong>R-A</strong> (uncommitted partial impl), <strong>R-B</strong> (committed but plan not checked off), <strong>R-AB</strong> (R-A and R-B combined), <strong>R-C</strong> (pre-impl TDD-red state — resume Step 2), <strong>R-Halt</strong> (corrupt breadcrumb in a dirty tree or plan deleted; exit 1), <strong>R-Stuck</strong> (review aborted twice; exit 1, manual recovery required). Prints <code>KEY=VALUE</code> lines (CASE, START_SHA, START_CHECKED, SHA_BEFORE, BRANCH_NAME, TASK_NAME, REVIEW_RANGE, STEP_2_RESUME, REVIEW_ABORT_COUNT) plus a human-readable <code>RECOVERY:</code> diagnostic line.</p>
+      <pre><code>bash ~/.claude/scripts/implement-next-triage.sh &lt;cwd&gt; &lt;plan_path&gt; &lt;current_skill_variant&gt;</code></pre>
+      <p><strong>Exit codes:</strong> 0 = dispatched (R-Fresh / R-A / R-B / R-AB / R-C); 1 = halt (R-Halt / R-Stuck — corrupt breadcrumb in dirty tree, plan missing, review double-abort); 2 = usage error.</p>
+      <p><strong>Bounded side effects (state hygiene):</strong> may delete <code>$cwd/.claude/implement-next-state.json</code> (on the committed-checked and auto-clear rows) and append to <code>$cwd/.claude/recovery-anomalies.log</code> (on the auto-clear row, with a one-time stderr notice suggesting the user add the log to <code>.gitignore</code>). Never spawns subagents, runs tests, or creates commits.</p>
+      <p><strong>Example:</strong></p>
+      <pre><code>$ bash ~/.claude/scripts/implement-next-triage.sh "$(pwd)" "plans/FEAT-001.md" "cc"
+CASE=R-Fresh
+START_SHA=4f80ce924
+START_CHECKED=14
+TASK_NAME=**File**: `handout/scripts-plan.html`
+RECOVERY: R-Fresh detected. sha_before=, head=4f80ce924, dirty=true. No prior breadcrumb; proceeding to Step 1.</code></pre>
 
       <h3>Internal dependencies (called by user-invocable scripts — not invoked directly)</h3>
       <ul>
@@ -144,9 +166,15 @@
           </tr>
           <tr>
             <td><code>implement-next-state-clear.sh</code></td>
-            <td><span class="badge suggested">internal (cc)</span></td>
+            <td><span class="badge suggested">internal</span></td>
             <td>—</td>
-            <td><code>/implement-all-cc</code> Step 6 (always, after recovery check)</td>
+            <td>Child Step 7 success; <code>/implement-all-cc</code> halt paths; <code>/implement-all</code> halt paths</td>
+          </tr>
+          <tr>
+            <td><code>implement-next-triage.sh</code></td>
+            <td><span class="badge must">user</span></td>
+            <td>breadcrumb json, plan file</td>
+            <td><code>/implement-next</code> &amp; <code>/implement-next-cc</code> Step 0 (every invocation)</td>
           </tr>
           <tr>
             <td><code>task_section.awk</code></td>

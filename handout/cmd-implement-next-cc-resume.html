@@ -6,7 +6,8 @@
   <title>/implement-next-cc-resume (Claude Code, rescue) — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-next-cc-resume.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/implement-next-cc-resume.md (last synced: 2026-06-13) -->
+  <!-- RECOVERY_SCHEMA_V2 -->
 </head>
 <body>
   <div class="card-page">
@@ -46,7 +47,7 @@
       <p><strong>Steps executed (3 steps total):</strong></p>
       <ol>
         <li><strong>Step 1 — Identify the task:</strong> Runs <code>plan-progress.sh</code> to get <code>NEXT_TASK_NAME</code>. The first unchecked task in the plan is the one to check off. (This is deterministic; the dirty tree may contain code for the task but the file-list alone does NOT uniquely identify which task it is.)</li>
-        <li><strong>Step 2 — Commit:</strong> Stages implementation files AND the updated plan file, then commits with a message derived from the task content. <strong>NON-NEGOTIABLE: one task = one commit.</strong> Pre-commit hooks must NOT be skipped. If the commit fails, the skill reports failure to the parent — the parent will halt.</li>
+        <li><strong>Step 2 — Commit + breadcrumb clear:</strong> Stages implementation files AND the updated plan file, then commits with a message derived from the task content. <strong>NON-NEGOTIABLE: one task = one commit.</strong> Pre-commit hooks must NOT be skipped. After a successful commit, clears the recovery breadcrumb via <code>implement-next-state-clear.sh "$(pwd)"</code> so the parent's next-iteration triage isn't poisoned by a stale breadcrumb. (If the commit fails, the skill reports failure to the parent — the parent will halt and the parent's halt-path clear handles cleanup; this skill does NOT clear on commit failure.)</li>
         <li><strong>Step 3 — Report:</strong> Emits a single-line report: <code>Rescue commit landed: &lt;sha&gt;</code> on success, or <code>Rescue failed: &lt;reason&gt;</code> on failure.</li>
       </ol>
       <p><strong>Why a separate skill instead of a flag on <code>/implement-next-cc</code>:</strong> An earlier design used a resume flag on the main <code>/implement-next-cc</code> skill to switch into rescue mode. The C5 refactor split this out into a dedicated skill so the main implementation skill stays single-purpose and the rescue path is impossible to trigger by accident from a flag-typo.</p>

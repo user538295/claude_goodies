@@ -728,7 +728,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 3.1 — `implement-all-cc.md` pre-spawn breadcrumb write + remove unconditional clear + halt-path clears
-- [ ] **File**: `~/.claude/commands/implement-all-cc.md`
+- [x] **File**: `~/.claude/commands/implement-all-cc.md`
 - **Depends on**: Task 1.1 (v2 schema + 6-arg signature)
 - **Description**:
   - **Step 4 modification**: change the prose to specify ordering — the writer is called AFTER `Agent` returns the `agentId` and BEFORE the wait. Update the bash snippet:

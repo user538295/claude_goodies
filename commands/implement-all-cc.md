@@ -2,6 +2,8 @@
 description: Claude Code variant — repeatedly run /implement-next-cc on a plan file until every task is complete, with SubagentStop-hook enforcement on each spawned subagent. For a portable runtime-agnostic version without hook dependency, use /implement-all.
 ---
 
+<!-- RECOVERY_SCHEMA_V2 -->
+
 ### Step 0: Resolve the plan file
 
 **First check:** If `$ARGUMENTS` is blank or was not provided, stop and ask the user: "Please provide a plan file path or keyword to search for."
@@ -16,7 +18,11 @@ Run `test -f "$ARGUMENTS"`.
 
 ### Loop body
 
-Track `previous_task_name` (initially empty) and `iteration_count` (initially 0) across iterations. Increment `iteration_count` at the start of each iteration. If `iteration_count` exceeds 50, stop and report: "Loop has exceeded 50 iterations without completing — possible infinite loop. Please investigate."
+Track `previous_task_name` (initially empty) and `iteration_count` (initially 0) across iterations. Increment `iteration_count` at the start of each iteration. If `iteration_count` exceeds 50, clear the recovery breadcrumb and stop:
+```
+bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
+```
+Then report: "Loop has exceeded 50 iterations without completing — possible infinite loop. Please investigate."
 
 **Termination condition:** All tasks in the plan file are marked complete (plan-progress.sh returns exit 1). Repeat steps 1–6 until this condition is met.
 
@@ -31,7 +37,11 @@ Each iteration:
    - Any other exit code → stop and report the unexpected exit code.
    - Exit 0 → tasks remain, note the reported NEXT_TASK_NAME and continue.
 
-   **Stuck-task guard:** If the NEXT_TASK_NAME reported in this iteration is the same as `previous_task_name`, stop and report: "Task '<task-name>' appears to be stuck — it was reported as next in two consecutive iterations. Please investigate before continuing." Otherwise, update `previous_task_name` to the current NEXT_TASK_NAME before proceeding.
+   **Stuck-task guard:** If the NEXT_TASK_NAME reported in this iteration is the same as `previous_task_name`, clear the recovery breadcrumb and stop:
+   ```
+   bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
+   ```
+   Then report: "Task '<task-name>' appears to be stuck — it was reported as next in two consecutive iterations. Please investigate before continuing." Otherwise, update `previous_task_name` to the current NEXT_TASK_NAME before proceeding.
 
 2. **Capture pre-state.**
    - `START_SHA = $(git rev-parse HEAD)`
@@ -50,21 +60,20 @@ Each iteration:
 
    The Agent tool returns an `agentId` synchronously. **Record this id** — you will need it in step 4.
 
-4. **Arm the SubagentStop gate.** Run:
+4. **Arm the SubagentStop gate AND the recovery breadcrumb.** Call the writer AFTER `Agent` returned the `agentId` (Step 3) and BEFORE waiting on the agent (Step 5). Default-mode write (no `--upsert`) — the parent owns the breadcrumb and has a real `agentId` to pin it to. The 6th arg `"cc"` records the skill variant for the child's Step 0 triage:
    ```
-   bash ~/.claude/scripts/implement-next-state-write.sh "<CWD>" "<START_SHA>" "<plan-path>" "<NEXT_TASK_NAME>" "<agentId-from-step-3>"
+   bash ~/.claude/scripts/implement-next-state-write.sh "<CWD>" "<START_SHA>" "<plan-path>" "<NEXT_TASK_NAME>" "<agentId-from-step-3>" "cc"
    ```
 
-   This writes `<CWD>/.claude/implement-next-state.json`. The `SubagentStop` hook configured in `~/.claude/settings.json` (`implement-next-stop-gate.sh`) reads this sentinel and **refuses to let the spawned subagent end its turn until a new commit exists since START_SHA**. The hook filters on `agentId` so nested sub-sub-agents (devils-advocate, fix agents, the check-off agent) are passed through and only the outer `/implement-next-cc` subagent is gated. Per `code.claude.com/docs/en/hooks` (accessed 2026-06-11), no consecutive-block cap is documented for SubagentStop (the 8-block cap is documented only for the `Stop` event). This means a runaway subagent may be blocked indefinitely; the recovery check in Step 6 is the user's escape hatch.
+   This writes `<CWD>/.claude/implement-next-state.json` with the v2 schema (including `expected_agent_id`, `branch_name`, `skill_variant: "cc"`, `review_abort_count: 0`). The `SubagentStop` hook configured in `~/.claude/settings.json` (`implement-next-stop-gate.sh`) reads this sentinel and **refuses to let the spawned subagent end its turn until a new commit exists since START_SHA**. The hook filters on `agentId` so nested sub-sub-agents (devils-advocate, fix agents, the check-off agent) are passed through and only the outer `/implement-next-cc` subagent is gated. Per `code.claude.com/docs/en/hooks` (accessed 2026-06-11), no consecutive-block cap is documented for SubagentStop (the 8-block cap is documented only for the `Stop` event). This means a runaway subagent may be blocked indefinitely; the recovery check in Step 6 is the user's escape hatch.
+
+   The same breadcrumb also feeds the child's Step 0 triage: on any re-invocation (interruption / crash / hook bypass), the child reads this sentinel and dispatches the correct recovery case (R-A / R-B / R-AB / R-C).
 
 5. **Wait for the agent to return.**
 
 6. **Recovery check — verify the task actually landed.** Even with the SubagentStop gate, some failures bypass it: OOM kills (`Exit code 137`), transport errors, and account-quota hits. The recovery check catches all of these.
 
-   Always clear the sentinel after this step regardless of outcome:
-   ```
-   bash ~/.claude/scripts/implement-next-state-clear.sh "<CWD>"
-   ```
+   Do NOT clear the breadcrumb here. The child's Step 7 self-verification clears it on a successful run; on failure paths (Cases B-after-rescue, C, D below), the parent clears it explicitly before halting. This leaves the breadcrumb intact for the child to triage on a subsequent re-invocation.
 
    Capture `END_SHA = $(git rev-parse HEAD)` and `END_DIRTY = $(git status --porcelain | wc -l)`, then dispatch on the four cases:
 
@@ -79,11 +88,23 @@ Each iteration:
       > Call the Skill tool with skill `implement-next-cc-resume` and args `<plan-path>`.
 
       Before spawning, write a fresh sentinel for this rescue agent (same procedure as step 4, using the new agentId). The hook gates this rescue too.
-   4. Re-capture `END_SHA` / `END_DIRTY` and re-evaluate Case A vs Case B once more. If still Case B after the rescue, halt with diagnostic.
+   4. Re-capture `END_SHA` / `END_DIRTY` and re-evaluate Case A vs Case B once more. If still Case B after the rescue, clear the breadcrumb and halt:
+      ```
+      bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
+      ```
+      Then report the diagnostic.
 
-   **Case C — `END_SHA == START_SHA` and working tree clean.** Subagent did nothing visible (network error, OOM before any tool call, quota hit). Halt and report: "Subagent for task '<NEXT_TASK_NAME>' returned without making any changes. Last subagent transcript: <path>. Please investigate."
+   **Case C — `END_SHA == START_SHA` and working tree clean.** Subagent did nothing visible (network error, OOM before any tool call, quota hit). Clear the breadcrumb and halt:
+   ```
+   bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
+   ```
+   Then report: "Subagent for task '<NEXT_TASK_NAME>' returned without making any changes. Last subagent transcript: <path>. Please investigate."
 
-   **Case D — `END_SHA != START_SHA` and uncommitted changes exist.** A commit landed but more changes remain staged/unstaged. Halt and report the anomaly — often indicates a pre-commit hook left files modified.
+   **Case D — `END_SHA != START_SHA` and uncommitted changes exist.** A commit landed but more changes remain staged/unstaged. Clear the breadcrumb and halt:
+   ```
+   bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
+   ```
+   Then report the anomaly — often indicates a pre-commit hook left files modified.
 
 7. Return to step 1.
 
@@ -96,6 +117,11 @@ Each iteration:
    rm -f "$SHA_FILE"
    ```
    Exit 0 = clean run, exit 1 = mismatch between commits and checked tasks (investigate manually). The `FIRST_START_SHA` is read from the durable file written in Step 2 (which uses a file-existence guard so only the first iteration's SHA is captured). The `rm -f` cleans up so subsequent runs don't pick up a stale sha.
+
+   Defense-in-depth — clear the recovery breadcrumb after the audit completes (the child's Step 7 should have cleared it on the final iteration, but a leftover sentinel from any path would poison the next run):
+   ```
+   bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
+   ```
 
 ### Recovery-check diagnostic
 

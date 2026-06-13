@@ -800,7 +800,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 4.1 — `install.sh` manifest + integrity-check additions for `implement-next-triage.sh`
-- [ ] **File**: `~/.claude/install.sh`
+- [x] **File**: `~/.claude/install.sh`
 - **Depends on**: Task 1.4 (triage script must exist on disk)
 - **Description**:
   - **First `files` array** (around `install.sh:177-182`): add `scripts/implement-next-triage.sh` in alphabetical-ish order alongside the other `scripts/implement-next-*` entries. Specifically: change the line `scripts/implement-next-state-clear.sh scripts/implement-next-state-write.sh` and the next line `scripts/implement-next-stop-gate.sh` to include `scripts/implement-next-triage.sh` (grouped with the implement-next family).

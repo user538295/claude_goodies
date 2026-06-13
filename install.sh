@@ -177,6 +177,8 @@ stage_files() {
     scripts/audit-plan-run.sh scripts/check-task-commit.sh scripts/count-uncompleted-tasks.sh
     scripts/implement-next-state-clear.sh scripts/implement-next-state-write.sh
     scripts/implement-next-stop-gate.sh
+    # RECOVERY_SCHEMA_V2 — recovery breadcrumb triage classifier
+    scripts/implement-next-triage.sh
     scripts/plan-progress.sh scripts/progress-header-flat.template scripts/progress-header-phased.template
     scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh
     scripts/task_section.awk scripts/verify-run-commits.sh
@@ -479,12 +481,13 @@ dry_cp() {
 # Post-install sanity check that the CC variant's required skills are present.
 # Warns to stderr (does not exit) if any are missing. Only meaningful after a
 # real install — caller must gate on DRY_RUN != 1.
+# RECOVERY_SCHEMA_V2 — includes scripts/implement-next-triage.sh.
 # ---------------------------------------------------------------------------
 check_cc_variant_integrity() {
     local missing=()
     for f in commands/implement-next-cc.md commands/implement-next-cc-resume.md commands/implement-all-cc.md \
              scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh \
-             scripts/implement-next-state-clear.sh; do
+             scripts/implement-next-state-clear.sh scripts/implement-next-triage.sh; do
         if [ ! -f "${DEST_DIR}/${f}" ]; then
             missing+=("$f")
         fi
@@ -493,6 +496,29 @@ check_cc_variant_integrity() {
         echo "  WARNING: CC variant is incomplete; missing files:" >&2
         printf '    - %s\n' "${missing[@]}" >&2
         echo "  /implement-all-cc will fail at rescue path. Re-run install or use /implement-all (portable) instead." >&2
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# check_portable_variant_integrity
+# RECOVERY_SCHEMA_V2 — Post-install sanity check that the portable variant's
+# required skills/scripts are present. Without this, a portable-only install
+# missing the triage script would fail at Step 0 with a raw "bash: not found"
+# and no diagnostic. Both variants share scripts/implement-next-triage.sh.
+# Warns to stderr (does not exit) if any are missing.
+# ---------------------------------------------------------------------------
+check_portable_variant_integrity() {
+    local missing=()
+    for f in commands/implement-all.md commands/implement-next.md \
+             scripts/implement-next-triage.sh; do
+        if [ ! -f "${DEST_DIR}/${f}" ]; then
+            missing+=("$f")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "  WARNING: portable variant is incomplete; missing files:" >&2
+        printf '    - %s\n' "${missing[@]}" >&2
+        echo "  /implement-all (portable) will fail at Step 0 triage. Re-run install to restore the manifest." >&2
     fi
 }
 
@@ -542,6 +568,8 @@ move_files() {
     scripts/audit-plan-run.sh scripts/check-task-commit.sh scripts/count-uncompleted-tasks.sh
     scripts/implement-next-state-clear.sh scripts/implement-next-state-write.sh
     scripts/implement-next-stop-gate.sh
+    # RECOVERY_SCHEMA_V2 — recovery breadcrumb triage classifier
+    scripts/implement-next-triage.sh
     scripts/plan-progress.sh scripts/progress-header-flat.template scripts/progress-header-phased.template
     scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh
     scripts/task_section.awk scripts/verify-run-commits.sh
@@ -596,6 +624,7 @@ move_files() {
   else
     register_subagent_stop_hook
     check_cc_variant_integrity
+    check_portable_variant_integrity
   fi
 }
 

@@ -702,7 +702,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 2.3 — `implement-next-cc-resume.md` clears breadcrumb after Step 2 commit
-- [ ] **File**: `~/.claude/commands/implement-next-cc-resume.md`
+- [x] **File**: `~/.claude/commands/implement-next-cc-resume.md`
 - **Depends on**: nothing (uses existing `implement-next-state-clear.sh` signature)
 - **Description**:
   - In Step 2, after the successful commit, add a final line (or insert a Step 2.5):

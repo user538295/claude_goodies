@@ -759,7 +759,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 3.2 — `implement-all.md` (portable parent) breadcrumb write + halt-path clears
-- [ ] **File**: `~/.claude/commands/implement-all.md`
+- [x] **File**: `~/.claude/commands/implement-all.md`
 - **Depends on**: Task 1.2 (`--upsert` mode for empty `expected_agent_id`)
 - **Description**:
   - **After Step 3's subagent spawn** (currently around line 53-55: "Wait for the subagent to return before continuing."), add a new step segment BEFORE the wait:

@@ -890,7 +890,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 
 #### Task 4.3b — Shell-invocable end-to-end bats integration test
 
-- [ ] **File**: `~/.claude/tests/recovery/test_integration.bats` (new)
+- [x] **File**: `~/.claude/tests/recovery/test_integration.bats` (new)
 - **Depends on**: Tasks 1.1–1.5 (the shell layer)
 - **Description**: For fixtures that exercise ONLY the shell layer (state-write + triage + audit), automate the full pre→action→post sequence in bats. Specifically: e.warn, k, l, m, m.corrupt, m.partial-v2, r2 (the LLM is not needed because the action is "invoke triage" or "invoke writer", not "drive the skill"). Fixture `a` is EXCLUDED because it requires the full skill flow (commit) which is not bash-only. Fixture `r1`'s "first review double-abort" is EXCLUDED because it requires driving iterative-review which is not bash-only — replaced with `r2` only as the shell-invocable R-Stuck threshold test.
 - For each such fixture: setup tmp repo, write the synthetic breadcrumb, invoke triage, assert exit code + stdout. This is NOT redundant with `test_triage.bats` because the integration test wires triage → writer → re-invocation, exercising the cross-script contract.

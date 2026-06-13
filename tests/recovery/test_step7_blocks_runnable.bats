@@ -64,6 +64,10 @@ EOF
   [ -f "$EXPECTED_PORTABLE" ]
 }
 
+@test "expected-cc.sh exists" {
+  [ -f "$EXPECTED_CC" ]
+}
+
 @test "step7 portable markdown extraction matches expected-portable.sh" {
   # Extract the Step 7 section from implement-next.md (between Step 7 and Step 8 headings),
   # then strip the 3-space list-item indent so column-1 fence detection works.
@@ -77,15 +81,37 @@ EOF
   [ "$extracted" = "$expected" ]
 }
 
-@test "test_step7_blocks_expected_files_are_identical" {
-  # The two skills' Step 7 sections are textually mirrored — the two expected
-  # files MUST be byte-identical. If Task 2.2's expected-cc.sh doesn't exist
-  # yet, skip rather than fail (the invariant becomes enforceable once 2.2
-  # lands).
-  if [ ! -f "$EXPECTED_CC" ]; then
-    skip "expected-cc.sh not yet present (Task 2.2)"
-  fi
-  diff -q "$EXPECTED_PORTABLE" "$EXPECTED_CC"
+@test "step7 cc markdown extraction matches expected-cc.sh" {
+  # Extract the Step 7 section from implement-next-cc.md (between Step 7 and Step 8 headings),
+  # then strip the 3-space list-item indent so column-1 fence detection works.
+  local section
+  section="$(sed -n '/^### Step 7/,/^### Step 8/p' "$MD_CC" | sed -E 's/^   //')"
+  local extracted
+  extracted="$(printf '%s\n' "$section" | bash "$EXTRACTOR")"
+  local expected
+  expected="$(cat "$EXPECTED_CC")"
+  [ "$extracted" = "$expected" ]
+}
+
+@test "test_step7_blocks_expected_files_share_check_blocks" {
+  # The two skills' Step 7 check blocks (checks 1, 2, 3) are textually mirrored.
+  # The cc variant legitimately diverges by appending a final breadcrumb-clear
+  # bash block ("On success, clear the breadcrumb"); this is required by
+  # Task 2.2 because cc Step 7 owns the breadcrumb-clear that portable Step 7
+  # does not need (portable parents already cleared on halt paths).
+  #
+  # Invariant: every line of expected-portable.sh appears verbatim in
+  # expected-cc.sh, and cc has EXACTLY ONE extra line at the end
+  # (the implement-next-state-clear.sh invocation).
+  local portable_lines cc_lines
+  portable_lines="$(wc -l < "$EXPECTED_PORTABLE" | tr -d ' ')"
+  cc_lines="$(wc -l < "$EXPECTED_CC" | tr -d ' ')"
+  # cc has exactly one more line than portable.
+  [ $((cc_lines - portable_lines)) -eq 1 ]
+  # The first $portable_lines lines of cc are byte-identical to portable.
+  diff -q <(head -n "$portable_lines" "$EXPECTED_CC") "$EXPECTED_PORTABLE"
+  # The final line of cc is the breadcrumb-clear invocation.
+  tail -n 1 "$EXPECTED_CC" | grep -qF 'implement-next-state-clear.sh "$(pwd)"'
 }
 
 # ---------------------------------------------------------------------------

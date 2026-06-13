@@ -606,7 +606,7 @@ Per-task releasable means each task's shell-layer change is unit-testable in iso
 ---
 
 #### Task 2.2 — `implement-next-cc.md` Step 0 triage + Step 7 self-verification + START capture move + parent-detect breadcrumb-write rule
-- [ ] **File**: `~/.claude/commands/implement-next-cc.md`
+- [x] **File**: `~/.claude/commands/implement-next-cc.md`
 - **Depends on**: Task 1.4 (triage script), Task 1.2 (`--upsert` mode for standalone child)
 - **Description**:
   - Insert a new Step 0 between the frontmatter and "Step 1", mirroring Task 2.1's Step 0 but with `"cc"` as the third arg to triage:

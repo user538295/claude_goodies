@@ -2,7 +2,7 @@
 description: Portable runtime-agnostic — repeatedly run /implement-next on a plan file until every task is complete. Works in any harness (Claude Code, Cursor, claude -p, etc.) without hook dependencies. For Claude Code's hook-enforced variant with auto-rescue, use /implement-all-cc.
 ---
 
-<!-- RECOVERY_SCHEMA_V2 -->
+**You MUST follow the instructions step-be-step, precisely. You MUSTN'T make shortcuts!**
 
 ### Step 0: Resolve the plan file
 
@@ -18,17 +18,11 @@ Run `test -f "$ARGUMENTS"`.
 
 ### Loop body
 
-Track `previous_task_name` (initially empty) and `iteration_count` (initially 0) across iterations. Increment `iteration_count` at the start of each iteration. If `iteration_count` exceeds 50, clear the recovery breadcrumb and stop:
-```
-bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
-```
-Then report: "Loop has exceeded 50 iterations without completing — possible infinite loop. Please investigate."
-
-**Termination condition:** All tasks in the plan file are marked complete (plan-progress.sh returns exit 1). Repeat steps 1–5 until this condition is met.
+**Termination condition:** All tasks in the plan file are marked complete (plan-progress.sh returns exit 1). Repeat all steps until this condition is met.
 
 Each iteration:
 
-1. **Progress + stuck-task guard.** Run, replacing `<plan-path>` with the resolved file path:
+#### 1. **Progress** Run, replacing `<plan-path>` with the resolved file path:
    ```
    bash ~/.claude/scripts/plan-progress.sh "<plan-path>"
    ```
@@ -37,30 +31,14 @@ Each iteration:
    - Any other exit code → stop and report the unexpected exit code.
    - Exit 0 → tasks remain, note the reported NEXT_TASK_NAME and continue.
 
-   **Stuck-task guard:** If the NEXT_TASK_NAME reported in this iteration is the same as `previous_task_name`, clear the recovery breadcrumb and stop:
-   ```
-   bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
-   ```
-   Then report: "Task '<task-name>' appears to be stuck — it was reported as next in two consecutive iterations. Please investigate before continuing." Otherwise, update `previous_task_name` to the current NEXT_TASK_NAME before proceeding.
+   Always run `plan-progress.sh` script in every new iteration and **show the first two lines of the output of the script to the user**.
 
-2. **Capture pre-state.**
-   - `START_SHA = $(git rev-parse HEAD)`
-   - `CWD = $(pwd)`
-   - Write the start sha to a durable file (file-existence guard makes this safe to invoke every iteration). The file is namespaced by a short hash of the plan path so different plans don't collide and a stale file from one halted plan can't poison another run:
-     ```
-     mkdir -p "$CWD/.claude"
-     PLAN_HASH=$(printf '%s' "<plan-path>" | shasum | cut -c1-8)
-     SHA_FILE="$CWD/.claude/implement-all-start-sha-$PLAN_HASH"
-     [ -f "$SHA_FILE" ] || echo "$START_SHA" > "$SHA_FILE"
-     ```
-     This file persists across iterations so Step 5's audit doesn't depend on the LLM remembering a variable.
-
-3. **Spawn a subagent to implement this task.** Use whatever subagent primitive your runtime offers:
+#### 2. **Spawn a subagent to implement this task.** Use whatever subagent primitive your runtime offers:
    - Claude Code: the `Agent` tool, `subagent_type: general-purpose`, `run_in_background: true`.
    - Cursor: the `Task` tool.
    - Headless runtimes without subagent primitives: invoke `/implement-next` inline.
 
-   The subagent's prompt:
+   You MUST give this prompt to the subagent:
    > Run `/implement-next` on plan file `<plan-path>`.
    >
    > **SCOPE — non-negotiable:**
@@ -68,76 +46,28 @@ Each iteration:
    > - Touch only what THIS task requires: files the task description names, PLUS any minimal side-effect edits the change forces (broken sibling tests, import updates, manifests). No unrelated refactors, cleanups, or "while I'm here" edits on files this task does not require.
    >
    > **YOUR TURN ENDS ONLY when ALL of these are true:**
-   > 1. Implementation files modified per the task spec.
-   > 2. Step 4 tests pass — OR, for doc-only tasks where the skill's Step 2 explicitly permits skipping the TDD cycle (documentation, configuration, CI changes, diagrams), the inline verification specified by the task spec succeeded.
-   > 3. Plan file's `- [ ]` for this task flipped to `- [x]`.
-   > 4. A single git commit exists containing the implementation + plan checkoff.
-   > 5. Step 7 self-verification (all three checks) returned PASS.
-   > 6. Step 8 report emitted.
+   > A. Implementation files modified per the task spec.
+   > B. Step 3 completed, you did run `/iterative-review`.
+   > C. Step 4 tests pass — OR, for doc-only tasks where the skill's Step 2 explicitly permits skipping the TDD cycle (documentation, configuration, CI changes, diagrams), the inline verification specified by the task spec succeeded.
+   > D. Plan file's `- [ ]` for this task flipped to `- [x]`.
+   > E. A single git commit exists containing the implementation + plan checkoff.
+   > F. Step 7 report emitted.
    >
-   > If any of (1)-(6) cannot be satisfied, do NOT commit. Output `TASK INCOMPLETE: <specific reason>` and stop. The parent's recovery check will detect the absent commit and halt the loop with your diagnostic visible. Do NOT manufacture a junk commit; do NOT paper over the gap by writing a positive Step 8 report.
+   > If any of (A)-(F) cannot be satisfied, then **you MUST Re-spawning the full implement-next process for the task.**
    >
    > **FORBIDDEN:**
    > - Do NOT use `--no-verify`, `--amend`, or any pre-commit hook bypass.
-   > - Do NOT skip Step 6 or Step 7 even if `/iterative-review` returned "no issues remain". Review convergence is a green light to proceed to Step 4 — it is NOT a signal to terminate your turn.
+   > - Do NOT skip Step 4, 5, 6, 7 even if `/iterative-review` returned "no issues remain". Review convergence is a green light to proceed to Step 4 — it is NOT a signal to terminate your turn.
    > - Do NOT bundle this task with adjacent ones into a single commit.
-   > - Do NOT spawn nested `/implement-all-cc`, `/implement-all`, `/implement-next-cc`, or `/implement-next` invocations from inside your task work.
+   > - Do NOT spawn nested `/implement-all-cc`, `/implement-all` invocations from inside your task work.
    > - Do NOT modify the plan file beyond toggling THIS task's checkbox.
-
-   Immediately after spawning the subagent, write the recovery breadcrumb (the portable variant has no SubagentStop hook to coordinate with, so use `--upsert` with empty `expected_agent_id`):
-
-   ```
-   bash ~/.claude/scripts/implement-next-state-write.sh --upsert "$CWD" "$START_SHA" "<plan-path>" "$NEXT_TASK_NAME" "" "portable"
-   ```
-
-   The `--upsert` flag is required because portable parents don't have an agentId; the hook fails open on empty `expected_agent_id`, but the child's breadcrumb-based recovery still works.
+   > - MUST NOT make shortcuts! MUST follow the instructions step-by-step precisely.
 
    Then wait for the subagent to return before continuing.
 
-4. **Recovery check — verify the task landed.** This step is the portable substitute for hook enforcement. It does not auto-rescue; on any failure it halts with a diagnostic so a human can intervene.
+#### 3. **Recovery check — verify the task landed.**
 
-   Capture `END_SHA = $(git rev-parse HEAD)` and `END_DIRTY = $(git status --porcelain | wc -l)`, then:
+   - Check that task checked in the plan file, and check that the related files are commited.
+   - If one of them missing, then **you MUST go to the step 3 ("Spawn a subagent to implement this task") again and do all fo the steps again. This is non-negotiable.**
+   - Then report the anomalies (if any) to the user.
 
-   - **`END_SHA != START_SHA` and working tree clean:** Task likely committed. Run `plan-progress.sh` again; if NEXT_TASK_NAME changed → continue to next iteration (the child's Step 7 has cleared the breadcrumb). If NEXT_TASK_NAME is unchanged → the subagent committed *something* but did not check off the task; clear the recovery breadcrumb and halt with the new commit SHA and ask the user to investigate:
-     ```
-     bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
-     ```
-
-   - **`END_SHA == START_SHA` and uncommitted changes exist:** Subagent did work but never committed (the Monitor-stall failure mode, the dominant cause of the original ~7.6% failure rate). Clear the recovery breadcrumb and halt with diagnostic:
-     ```
-     bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
-     ```
-     Print `git status --short`, the names of changed files, and the NEXT_TASK_NAME. Tell the user: "Subagent stalled mid-flow. The portable variant does not auto-rescue. Inspect the changes and complete the task manually. (If your harness is Claude Code, the `-cc` variant — `/implement-all-cc` — auto-rescues this failure mode.)"
-
-   - **`END_SHA == START_SHA` and working tree clean:** Subagent did nothing visible (network error, OOM, quota hit, or just yielded early). Clear the recovery breadcrumb and halt:
-     ```
-     bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
-     ```
-     Then report: "Subagent for task '<NEXT_TASK_NAME>' returned without making any changes. Please investigate."
-
-   - **`END_SHA != START_SHA` and uncommitted changes exist:** A commit landed but more changes remain. Clear the recovery breadcrumb and halt:
-     ```
-     bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
-     ```
-     Then report the anomaly — often a pre-commit hook left files modified.
-
-5. **Audit.** After the loop terminates normally (all tasks complete), run:
-   ```
-   PLAN_HASH=$(printf '%s' "<plan-path>" | shasum | cut -c1-8)
-   SHA_FILE="$CWD/.claude/implement-all-start-sha-$PLAN_HASH"
-   FIRST_START_SHA=$(cat "$SHA_FILE")
-   bash ~/.claude/scripts/audit-plan-run.sh "<plan-path>" "$FIRST_START_SHA"
-   rm -f "$SHA_FILE"
-   ```
-   This is the same independent audit available for the -cc variant. Exit 0 = clean run, exit 1 = mismatch between commits and checked tasks. The `rm -f` at the end cleans up so subsequent runs don't pick up a stale sha.
-
-   Defense-in-depth — clear the recovery breadcrumb after the audit completes (the child's Step 7 should have cleared it on the final iteration, but a leftover sentinel from any path would poison the next run):
-   ```
-   bash ~/.claude/scripts/implement-next-state-clear.sh "$CWD"
-   ```
-
-### Why this variant has lower reliability than -cc
-
-This variant relies on the subagent following the `/implement-next` markdown instructions to commit before ending its turn. Plan-and-Solve research (arxiv.org/abs/2305.04091, accessed 2026-06-11) identifies missing-step errors as a known failure class for prompt-only multi-step flows. Our archon-search measurement of ~7.6% of `/implement-next` subagents failing to commit is consistent with that qualitative pattern; the paper does not quantify the rate. Halting on each failure bounds the damage to one iteration but does not auto-recover — the user must intervene manually.
-
-For higher reliability when running in Claude Code, use `/implement-all-cc`, which adds a `SubagentStop` hook that blocks turn-end until a commit lands (Anthropic's *"deterministic gate"* pattern — `code.claude.com/docs/en/best-practices` (accessed 2026-06-11)).

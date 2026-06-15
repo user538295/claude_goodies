@@ -748,11 +748,11 @@
       </div>
       <div class="cmd-row">
         <div class="cmd-name">/implement-next &lt;plan&gt;</div>
-        <div class="cmd-desc">Implements only the next single task. Internal <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixes issues. In Claude Code, use the <span style="font-family:monospace;font-size:0.92em">-cc</span> variant (<span style="font-family:monospace;font-size:0.92em">/implement-next-cc</span>) for hook-enforced reliability; in other harnesses (Cursor, claude -p), use the portable variant.</div>
+        <div class="cmd-desc">Implements only the next single task. Internal <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixes issues. Works in any harness (Claude Code, Cursor, <span style="font-family:monospace;font-size:0.92em">claude -p</span>).</div>
       </div>
       <div class="cmd-row">
         <div class="cmd-name">/implement-all &lt;plan&gt;</div>
-        <div class="cmd-desc">Walks through every uncompleted task. Same variant rule: <span style="font-family:monospace;font-size:0.92em">/implement-all-cc</span> in Claude Code (adds <span style="font-family:monospace;font-size:0.92em">SubagentStop</span> hook + Case A/B/C/D recovery), portable <span style="font-family:monospace;font-size:0.92em">/implement-all</span> elsewhere. Use only with a well-structured plan and lower-control tolerance.</div>
+        <div class="cmd-desc">Walks through every uncompleted task — one at a time, one commit each. Use only with a well-structured plan and lower-control tolerance.</div>
       </div>
     </div>
 
@@ -902,10 +902,10 @@ const STEPS = [
     short: 'One task from backlog',
     out: 'code + commit',
     badge: 'must',
-    desc: 'The heart of the pipeline. Only the next single task — nothing else. Internal iterative-review fixes issues. Ends with a commit. In Claude Code, use the -cc variant (/implement-next-cc) for hook-enforced reliability; in other harnesses (Cursor, claude -p), use the portable variant.',
+    desc: 'The heart of the pipeline. Only the next single task — nothing else. Internal iterative-review fixes issues. Ends with a commit. Works in any harness (Claude Code, Cursor, claude -p).',
     inputs: ['plan.md', 'current codebase'],
     outputs: ['Implementation + tests', 'Internal review summary', 'Git commit'],
-    tips: ['/implement-all (or /implement-all-cc in Claude Code) also exists — walks the whole backlog. Only if you trust the plan and accept less control.'],
+    tips: ['/implement-all also exists — walks the whole backlog. Only if you trust the plan and accept less control.'],
     tipKind: 'ai'
   },
   {

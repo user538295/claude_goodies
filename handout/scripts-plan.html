@@ -6,8 +6,7 @@
   <title>scripts-plan — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: scripts/plan-progress.sh scripts/audit-plan-run.sh scripts/verify-run-commits.sh scripts/count-uncompleted-tasks.sh scripts/check-task-commit.sh scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh scripts/implement-next-state-clear.sh scripts/implement-next-triage.sh (last synced: 2026-06-13) -->
-  <!-- RECOVERY_SCHEMA_V2 -->
+  <!-- Source: scripts/plan-progress.sh (last synced: 2026-06-15) -->
 </head>
 <body>
   <div class="card-page">
@@ -19,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p>A group of shell scripts that track plan progress, enforce one-commit-per-task discipline, audit completed plan runs, and (in the Claude Code <code>-cc</code> variant) gate subagent turn-end on a commit via the <code>SubagentStop</code> hook — used directly by developers and automatically by <code>/implement-next</code>, <code>/implement-all</code>, <code>/implement-next-cc</code>, and <code>/implement-all-cc</code>.</p>
+      <p>Shell scripts that track plan progress for Markdown plan files with <code>- [ ]</code> / <code>- [x]</code> task checkboxes — used directly by developers and automatically by <code>/implement-next</code> and <code>/implement-all</code>.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -27,82 +26,22 @@
       <p>Use these scripts whenever you are working with Markdown plan files that contain <code>- [ ]</code> / <code>- [x]</code> task checkboxes:</p>
       <ul>
         <li>To see which task is next and the current completion percentage — use <code>plan-progress.sh</code>.</li>
-        <li>To count how many tasks remain before starting a run — use <code>count-uncompleted-tasks.sh</code>.</li>
-        <li>Inside <code>/implement-next</code> Step 7's self-verification — <code>check-task-commit.sh</code> verifies at least one non-merge commit was made.</li>
-        <li>At any later time, to audit a historical run independently — use <code>audit-plan-run.sh</code>.</li>
-        <li>The <code>-cc</code> variant scripts (<code>implement-next-stop-gate.sh</code>, <code>implement-next-state-write.sh</code>, <code>implement-next-state-clear.sh</code>) are invoked by <code>/implement-all-cc</code> and the <code>SubagentStop</code> hook — you don't call them by hand.</li>
       </ul>
     </section>
 
     <section data-section="3-invocation">
       <h2>Invocation</h2>
 
-      <h3>User-invocable scripts</h3>
-
       <h4><code>plan-progress.sh</code></h4>
       <p>Prints a formatted progress header for the next uncompleted task. Uses <code>progress-header-phased.template</code> (phased plans) or <code>progress-header-flat.template</code> (flat plans).</p>
       <pre><code>bash ~/.claude/scripts/plan-progress.sh &lt;plan_file&gt;</code></pre>
       <p><strong>Exit codes:</strong> 0 = header printed + <code>NEXT_TASK_*</code> machine-readable lines; 1 = all tasks complete; 2 = usage error or file not found; 3 = no recognized task section heading.</p>
 
-      <h4><code>count-uncompleted-tasks.sh</code></h4>
-      <p>Counts top-level <code>- [ ]</code> lines within the recognized task section. Prints <code>number_of_uncompleted_tasks=&lt;N&gt;</code>.</p>
-      <pre><code>bash ~/.claude/scripts/count-uncompleted-tasks.sh &lt;plan_file&gt;</code></pre>
-      <p><strong>Exit codes:</strong> 0 = success; 2 = usage error or file not found.</p>
-
-      <h4><code>audit-plan-run.sh</code></h4>
-      <p>Standalone post-run audit. Verifies the number of non-merge commits since <code>&lt;sha_start&gt;</code> matches the number of tasks completed in this run (current completed minus pre-run completed).</p>
-      <pre><code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan_file&gt; &lt;sha_start&gt;</code></pre>
-      <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION or mismatch; 2 = usage or git error.</p>
-
-      <h4><code>verify-run-commits.sh</code> <span style="font-size:0.75em;color:var(--muted);">(deprecated)</span></h4>
-      <p>Verifies exactly <code>&lt;expected_count&gt;</code> non-merge commits were created since <code>&lt;sha_start&gt;</code>. Lighter than <code>audit-plan-run.sh</code> — does not diff the plan file. <strong>Deprecated</strong> — replaced by <code>audit-plan-run.sh</code>; still shipped for backwards compatibility.</p>
-      <pre><code>bash ~/.claude/scripts/verify-run-commits.sh &lt;sha_start&gt; &lt;expected_count&gt;</code></pre>
-      <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION; 2 = usage or git error.</p>
-
-      <h4><code>check-task-commit.sh</code></h4>
-      <p>Verifies <strong>at least one</strong> non-merge commit with non-empty file changes was created since <code>&lt;sha_before&gt;</code>. Auto-called by <code>/implement-next</code> Step 7 (portable) or by <code>/implement-next-cc</code> parent-level checks.</p>
-      <pre><code>bash ~/.claude/scripts/check-task-commit.sh &lt;sha_before&gt;</code></pre>
-      <p><strong>Exit codes:</strong> 0 = PASS; 1 = VIOLATION; 2 = usage or git error.</p>
-
-      <h3>Claude Code <code>-cc</code> variant scripts (hook + sentinel — not user-invoked)</h3>
-
-      <h4><code>implement-next-stop-gate.sh</code></h4>
-      <p><code>SubagentStop</code> hook script used by <code>/implement-all-cc</code>. Reads the sentinel file at <code>$CWD/.claude/implement-next-state.json</code>, filters on <code>agentId</code> (so nested sub-sub-agents pass through), and refuses to let the outer <code>/implement-next-cc</code> subagent end its turn until a new commit exists since <code>START_SHA</code>. Registered in <code>~/.claude/settings.json</code> under <code>hooks.SubagentStop</code>.</p>
-
-      <h4><code>implement-next-state-write.sh</code></h4>
-      <p>Sentinel writer invoked by <code>/implement-all-cc</code> Step 4 (arm the gate) and <code>/implement-all</code>'s portable parent (post-spawn), and by the standalone <code>/implement-next-cc</code> child after a Step 0 R-Fresh dispatch. Writes <code>$CWD/.claude/implement-next-state.json</code> atomically (tempfile + <code>mv</code>) using the <strong>v2 schema</strong> (<code>schema_version: 2</code>, plus <code>branch_name</code>, <code>skill_variant</code>, and <code>review_abort_count</code>) so the hook and the recovery classifier can read it.</p>
-      <pre><code># Default mode (parent-owned breadcrumb with real agentId):
-bash ~/.claude/scripts/implement-next-state-write.sh &lt;cwd&gt; &lt;sha_before&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;expected_agent_id&gt; &lt;skill_variant&gt;
-
-# --upsert mode (portable parent or standalone child; empty expected_agent_id permitted; read-merge preserves existing non-empty fields):
-bash ~/.claude/scripts/implement-next-state-write.sh --upsert &lt;cwd&gt; &lt;sha_before&gt; &lt;plan_path&gt; &lt;task_name&gt; &lt;expected_agent_id&gt; &lt;skill_variant&gt;
-
-# --increment-review-abort mode (child Step 3 second review abort; bumps review_abort_count durably):
-bash ~/.claude/scripts/implement-next-state-write.sh --increment-review-abort &lt;cwd&gt;</code></pre>
-      <p>The 6th positional arg <code>skill_variant</code> is one of <code>"portable"</code> or <code>"cc"</code> (default <code>"cc"</code> when omitted, for backward compatibility with pre-recovery callers).</p>
-
-      <h4><code>implement-next-state-clear.sh</code></h4>
-      <p>Sentinel cleaner. Called on success by the child's Step 7 self-verification (both variants), by the <code>/implement-all-cc</code> parent on Case B-after-rescue-still-fails / Case C / Case D / stuck-task / iter-count halt paths plus the final audit (defense-in-depth), and by <code>/implement-all</code>'s portable parent at every halt path. Removes <code>$CWD/.claude/implement-next-state.json</code> so the next iteration's subagent is not gated prematurely.</p>
-      <pre><code>bash ~/.claude/scripts/implement-next-state-clear.sh &lt;cwd&gt;</code></pre>
-
-      <h4><code>implement-next-triage.sh</code> <span style="font-size:0.75em;color:var(--muted);">(recovery classifier)</span></h4>
-      <p>Step 0 classifier called by both <code>/implement-next</code> and <code>/implement-next-cc</code> on every invocation. Reads the recovery breadcrumb plus repo state (HEAD, dirty/clean, branch, plan-file checked-task count) and dispatches to one of seven R-cases: <strong>R-Fresh</strong> (no prior interruption), <strong>R-A</strong> (uncommitted partial impl), <strong>R-B</strong> (committed but plan not checked off), <strong>R-AB</strong> (R-A and R-B combined), <strong>R-C</strong> (pre-impl TDD-red state — resume Step 2), <strong>R-Halt</strong> (corrupt breadcrumb in a dirty tree or plan deleted; exit 1), <strong>R-Stuck</strong> (review aborted twice; exit 1, manual recovery required). Prints <code>KEY=VALUE</code> lines (CASE, START_SHA, START_CHECKED, SHA_BEFORE, BRANCH_NAME, TASK_NAME, REVIEW_RANGE, STEP_2_RESUME, REVIEW_ABORT_COUNT) plus a human-readable <code>RECOVERY:</code> diagnostic line.</p>
-      <pre><code>bash ~/.claude/scripts/implement-next-triage.sh &lt;cwd&gt; &lt;plan_path&gt; &lt;current_skill_variant&gt;</code></pre>
-      <p><strong>Exit codes:</strong> 0 = dispatched (R-Fresh / R-A / R-B / R-AB / R-C); 1 = halt (R-Halt / R-Stuck — corrupt breadcrumb in dirty tree, plan missing, review double-abort); 2 = usage error.</p>
-      <p><strong>Bounded side effects (state hygiene):</strong> may delete <code>$cwd/.claude/implement-next-state.json</code> (on the committed-checked and auto-clear rows) and append to <code>$cwd/.claude/recovery-anomalies.log</code> (on the auto-clear row, with a one-time stderr notice suggesting the user add the log to <code>.gitignore</code>). Never spawns subagents, runs tests, or creates commits.</p>
-      <p><strong>Example:</strong></p>
-      <pre><code>$ bash ~/.claude/scripts/implement-next-triage.sh "$(pwd)" "plans/FEAT-001.md" "cc"
-CASE=R-Fresh
-START_SHA=4f80ce924
-START_CHECKED=14
-TASK_NAME=**File**: `handout/scripts-plan.html`
-RECOVERY: R-Fresh detected. sha_before=, head=4f80ce924, dirty=true. No prior breadcrumb; proceeding to Step 1.</code></pre>
-
-      <h3>Internal dependencies (called by user-invocable scripts — not invoked directly)</h3>
+      <h3>Internal dependencies (called by <code>plan-progress.sh</code> — not invoked directly)</h3>
       <ul>
-        <li><code>task_section.awk</code> — AWK fragment that activates when the parser enters a recognized task section heading (<code>## Tasks</code>, <code>## Task</code>, or <code>## Task breakdown</code>). Called by <code>plan-progress.sh</code>, <code>count-uncompleted-tasks.sh</code>, and <code>audit-plan-run.sh</code>.</li>
-        <li><code>progress-header-phased.template</code> — Mustache-style template for phased plans (plans with <code>###</code> phase headings). Called by <code>plan-progress.sh</code>.</li>
-        <li><code>progress-header-flat.template</code> — Mustache-style template for flat plans (no phase headings). Called by <code>plan-progress.sh</code>.</li>
+        <li><code>task_section.awk</code> — AWK fragment that activates when the parser enters a recognized task section heading (<code>## Tasks</code>, <code>## Task</code>, or <code>## Task breakdown</code>).</li>
+        <li><code>progress-header-phased.template</code> — Mustache-style template for phased plans (plans with <code>###</code> phase headings).</li>
+        <li><code>progress-header-flat.template</code> — Mustache-style template for flat plans (no phase headings).</li>
       </ul>
 
       <h3>Dependency table</h3>
@@ -126,61 +65,13 @@ RECOVERY: R-Fresh detected. sha_before=, head=4f80ce924, dirty=true. No prior br
             <td><code>plan-progress.sh</code></td>
             <td><span class="badge must">user</span></td>
             <td><code>task_section.awk</code>, templates</td>
-            <td><code>/implement-next</code> Step 1</td>
-          </tr>
-          <tr>
-            <td><code>count-uncompleted-tasks.sh</code></td>
-            <td><span class="badge must">user</span></td>
-            <td><code>task_section.awk</code></td>
-            <td>—  (manual pre-run sanity check)</td>
-          </tr>
-          <tr>
-            <td><code>audit-plan-run.sh</code></td>
-            <td><span class="badge must">user</span></td>
-            <td><code>task_section.awk</code></td>
-            <td>—</td>
-          </tr>
-          <tr>
-            <td><code>verify-run-commits.sh</code></td>
-            <td><span class="badge optional">deprecated</span></td>
-            <td>—</td>
-            <td>—  (replaced by <code>audit-plan-run.sh</code>; shipped for back-compat)</td>
-          </tr>
-          <tr>
-            <td><code>check-task-commit.sh</code></td>
-            <td><span class="badge must">user</span></td>
-            <td>—</td>
-            <td><code>/implement-next</code> Step 7 (portable) or <code>/implement-next-cc</code> parent-level checks</td>
-          </tr>
-          <tr>
-            <td><code>implement-next-stop-gate.sh</code></td>
-            <td><span class="badge suggested">hook (cc)</span></td>
-            <td>sentinel json</td>
-            <td><code>SubagentStop</code> hook in <code>~/.claude/settings.json</code> (gates <code>/implement-all-cc</code>)</td>
-          </tr>
-          <tr>
-            <td><code>implement-next-state-write.sh</code></td>
-            <td><span class="badge suggested">internal (cc)</span></td>
-            <td>—</td>
-            <td><code>/implement-all-cc</code> Step 4 (arm gate)</td>
-          </tr>
-          <tr>
-            <td><code>implement-next-state-clear.sh</code></td>
-            <td><span class="badge suggested">internal</span></td>
-            <td>—</td>
-            <td>Child Step 7 success; <code>/implement-all-cc</code> halt paths; <code>/implement-all</code> halt paths</td>
-          </tr>
-          <tr>
-            <td><code>implement-next-triage.sh</code></td>
-            <td><span class="badge must">user</span></td>
-            <td>breadcrumb json, plan file</td>
-            <td><code>/implement-next</code> &amp; <code>/implement-next-cc</code> Step 0 (every invocation)</td>
+            <td><code>/implement-next</code> Step 1, <code>/implement-all</code> each iteration</td>
           </tr>
           <tr>
             <td><code>task_section.awk</code></td>
             <td><span class="badge suggested">internal</span></td>
             <td>—</td>
-            <td>plan-progress, count-uncompleted, audit-plan-run</td>
+            <td><code>plan-progress.sh</code></td>
           </tr>
           <tr>
             <td><code>progress-header-phased.template</code></td>
@@ -214,36 +105,11 @@ NEXT_TASK_NUMBER=1</code></pre>
       </div>
     </section>
 
-    <section data-section="5-example-2">
-      <h2>Example 2 — Audit a completed run with <code>audit-plan-run.sh</code></h2>
-      <div class="example">
-        <p><strong>Input:</strong></p>
-        <pre><code>bash ~/.claude/scripts/audit-plan-run.sh plans/FEAT-001-skill-command-script-handouts.md abc1234</code></pre>
-        <p><strong>Output / Result (PASS):</strong></p>
-        <pre><code>Plan file : plans/FEAT-001-skill-command-script-handouts.md
-sha_start : abc1234
-Tasks completed in this run (top-level) : 4
-Non-merge commits since sha_start : 4
-
-PASS: 4 commits for 4 completed tasks — counts match</code></pre>
-        <p><strong>Output / Result (VIOLATION):</strong></p>
-        <pre><code>Plan file : plans/FEAT-001-skill-command-script-handouts.md
-sha_start : abc1234
-Tasks completed in this run (top-level) : 4
-Non-merge commits since sha_start : 3
-
-VIOLATION: 3 commits for 4 completed tasks — counts do not match</code></pre>
-        <p>A VIOLATION means at least two tasks were bundled into a single commit, breaking the one-task-one-commit rule. Exit code 1.</p>
-      </div>
-    </section>
-
     <section data-section="6-related-tools">
       <h2>Related tools</h2>
       <ul>
-        <li><a href="cmd-implement-next.html">/implement-next</a> (portable) — Calls <code>plan-progress.sh</code> in Step 1 and <code>check-task-commit.sh</code> in Step 7's self-verification.</li>
-        <li><a href="cmd-implement-next-cc.html">/implement-next-cc</a> (Claude Code) — Same caller pattern; additionally gated by the <code>SubagentStop</code> hook (<code>implement-next-stop-gate.sh</code>) when invoked from <code>/implement-all-cc</code>.</li>
-        <li><a href="cmd-implement-all.html">/implement-all</a> (portable) — Calls <code>plan-progress.sh</code> per iteration and <code>audit-plan-run.sh</code> as a final audit.</li>
-        <li><a href="cmd-implement-all-cc.html">/implement-all-cc</a> (Claude Code) — Same callers plus the sentinel pair <code>implement-next-state-write.sh</code> / <code>implement-next-state-clear.sh</code> around each subagent spawn.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — Calls <code>plan-progress.sh</code> in Step 1.</li>
+        <li><a href="cmd-implement-all.html">/implement-all</a> — Calls <code>plan-progress.sh</code> at the start of each iteration.</li>
       </ul>
     </section>
 

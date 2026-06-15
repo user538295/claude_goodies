@@ -763,11 +763,11 @@
       </div>
       <div class="cmd-row">
         <div class="cmd-name">/implement-next &lt;plan&gt;</div>
-        <div class="cmd-desc">A következő egyetlen taszkot implementálja. Belső <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixeli az issue-kat. Claude Code-ban használd a <span style="font-family:monospace;font-size:0.92em">-cc</span> változatot (<span style="font-family:monospace;font-size:0.92em">/implement-next-cc</span>) hook-kényszerített megbízhatóságért; más harness-ekben (Cursor, claude -p) a portable változatot.</div>
+        <div class="cmd-desc">A következő egyetlen taszkot implementálja. Belső <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixeli az issue-kat. Bármilyen harness-ben (Claude Code, Cursor, <span style="font-family:monospace;font-size:0.92em">claude -p</span>) működik.</div>
       </div>
       <div class="cmd-row">
         <div class="cmd-name">/implement-all &lt;plan&gt;</div>
-        <div class="cmd-desc">Végigmegy minden uncompleted taszkon. Ugyanaz a változat-szabály: <span style="font-family:monospace;font-size:0.92em">/implement-all-cc</span> Claude Code-ban (<span style="font-family:monospace;font-size:0.92em">SubagentStop</span> hook + Case A/B/C/D recovery), portable <span style="font-family:monospace;font-size:0.92em">/implement-all</span> máshol. Csak ha jól strukturált a plan és vállalod a kisebb kontrollt.</div>
+        <div class="cmd-desc">Végigmegy minden uncompleted taszkon — egyszerre egyet, minden taskhoz egy commit. Csak ha jól strukturált a plan és vállalod a kisebb kontrollt.</div>
       </div>
     </div>
 
@@ -917,10 +917,10 @@ const STEPS = [
     short: 'Egy taszk a backlogból',
     out: 'kód + commit',
     badge: 'must',
-    desc: 'A pipeline szíve. Csak a következő egyetlen taszk – semmi más. Belső iterative-review fixeli az issue-kat. Végén commit. Claude Code-ban használd a -cc változatot (/implement-next-cc) hook-kényszerített megbízhatóságért; más harness-ekben (Cursor, claude -p) a portable változatot.',
+    desc: 'A pipeline szíve. Csak a következő egyetlen taszk – semmi más. Belső iterative-review fixeli az issue-kat. Végén commit. Bármilyen harness-ben (Claude Code, Cursor, claude -p) működik.',
     inputs: ['plan.md', 'aktuális kódbázis'],
     outputs: ['Implementáció + tesztek', 'Belső review összefoglaló', 'Git commit'],
-    tips: ['/implement-all (vagy /implement-all-cc Claude Code-ban) is van: az egész backlogon végigmegy. Csak ha senior vagy és bízol a planben.'],
+    tips: ['/implement-all is van: az egész backlogon végigmegy. Csak ha senior vagy és bízol a planben.'],
     tipKind: 'ai'
   },
   {

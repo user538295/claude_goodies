@@ -305,24 +305,12 @@
           <span class="tool-desc">Egy nyers ötletből átadható brief. Egy szenior termékgondolkodó végigvezet a kérdéseken, amiket egyébként átugranál, és lerak eléd egy lehatárolt Feature Brief-et, amit a /plan-maker átvehet.</span>
         </a>
         <a class="tool-item" href="cmd-implement-all-hu.html">
-          <span class="tool-name">/implement-all <span style="font-size:0.7em;opacity:0.6;">(portable)</span></span>
+          <span class="tool-name">/implement-all</span>
           <span class="tool-desc">Kész tervvel a kezedben? Hagyd ott a gépet, és hagyd, hogy szállítson. Az /implement-next-et futtatja loop-ban — egy task, egy commit — amíg a tervben minden elem megépül, átfut review-n, és kipipálódik. Bármilyen harness-ben.</span>
         </a>
-        <a class="tool-item" href="cmd-implement-all-cc-hu.html">
-          <span class="tool-name">/implement-all-cc <span style="font-size:0.7em;opacity:0.6;">(Claude Code)</span></span>
-          <span class="tool-desc">Ugyanaz a ciklus, hook-kényszerítve. SubagentStop gate gátolja a turn-end-et commit nélkül, plusz szülő-szintű Case A/B/C/D recovery OOM, kvóta és transport esetekre. Claude Code-ban ezt használd a legmagasabb megbízhatóságért.</span>
-        </a>
         <a class="tool-item" href="cmd-implement-next-hu.html">
-          <span class="tool-name">/implement-next <span style="font-size:0.7em;opacity:0.6;">(portable)</span></span>
+          <span class="tool-name">/implement-next</span>
           <span class="tool-desc">Ne kelljen az egész tervet a fejedben tartani. Kiveszi a következő kipipálatlan taskot egy plan fájlból, test-first felépíti, párhuzamos review-kat futtat, javítja, amit jeleznek, majd commitol — egy task, kész. Bármilyen harness-ben.</span>
-        </a>
-        <a class="tool-item" href="cmd-implement-next-cc-hu.html">
-          <span class="tool-name">/implement-next-cc <span style="font-size:0.7em;opacity:0.6;">(Claude Code)</span></span>
-          <span class="tool-desc">Ugyanaz az egyfeladatos parancs, hook-gátolt. Az /implement-all-cc párja. A Case B rescue-t a dedikált /implement-next-cc-resume skill kezeli.</span>
-        </a>
-        <a class="tool-item" href="cmd-implement-next-cc-resume-hu.html">
-          <span class="tool-name">/implement-next-cc-resume <span style="font-size:0.7em;opacity:0.6;">(Claude Code, rescue)</span></span>
-          <span class="tool-desc">Rescue skill az /implement-all-cc Case B útjához. Csak a szülő ciklus hívja — közvetlenül soha. Csak kipipálást + committot hajt végre a már stage-elt munkán, miután a szülő ellenőrizte az implementációt és a tesztek átmennek.</span>
         </a>
         <a class="tool-item" href="cmd-iterative-review-hu.html">
           <span class="tool-name">/iterative-review</span>

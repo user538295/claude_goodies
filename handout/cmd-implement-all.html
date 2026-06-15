@@ -3,26 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>/implement-all (portable) — Claude Code Handout</title>
+  <title>/implement-all — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-all.md (last synced: 2026-06-13) -->
-  <!-- RECOVERY_SCHEMA_V2 -->
+  <!-- Source: commands/implement-all.md (last synced: 2026-06-15) -->
 </head>
 <body>
   <div class="card-page">
 
     <div class="page-header">
-      <h1><code>/implement-all</code> <span style="font-size:0.6em;color:var(--muted);font-weight:500;">(portable variant)</span></h1>
+      <h1><code>/implement-all</code></h1>
       <a class="back-link" href="index.html">← Back to index</a>
     </div>
 
     <section data-section="1-summary">
       <h2>Summary</h2>
       <p>Portable runtime-agnostic loop that delegates to <code>/implement-next</code> — one task at a time — until every uncompleted task in a plan file is implemented and committed. Works in any harness (Claude Code, Cursor, <code>claude -p</code>) without hook dependencies.</p>
-      <div class="example" style="border-left:3px solid var(--ai);padding:0.6rem 0.9rem;margin-top:0.8rem;">
-        <p style="margin:0;"><strong>Two variants exist.</strong> This page describes the portable variant. For Claude Code's hook-enforced variant with auto-rescue (Case A/B/C/D recovery + <code>SubagentStop</code> gate), see <a href="cmd-implement-all-cc.html"><code>/implement-all-cc</code></a>.</p>
-      </div>
       <h3>Using in Cursor (one-time setup)</h3>
       <p>Cursor reads custom commands from <code>.cursor/commands/</code> in your project, not from <code>~/.claude/commands/</code>. To use this skill in Cursor, copy or symlink the portable command files:</p>
       <pre><code>mkdir -p .cursor/commands
@@ -55,27 +51,16 @@ ln -s ~/.claude/commands/implement-next.md .cursor/commands/implement-next.md</c
       <ul>
         <li><code>[plan-file-path]</code> — (required) Relative path to the plan Markdown file, e.g. <code>plans/FEAT-001-my-feature.md</code>.</li>
       </ul>
-      <p><strong>Process (Step 0 + 5 loop steps):</strong></p>
+      <p><strong>Process (Step 0 + loop):</strong></p>
       <ol start="0">
         <li><strong>Step 0 — Resolve the plan file:</strong> If the argument is a path to an existing file, use it. Otherwise, glob <code>**/*.md</code> and keyword-match candidates with at least one unchecked task. Halt on ambiguity or no match.</li>
       </ol>
-      <p><strong>Loop body (iteration cap: 50; stuck-task guard: same <code>NEXT_TASK_NAME</code> two iterations in a row halts):</strong></p>
+      <p><strong>Loop body (repeats until all tasks complete):</strong></p>
       <ol>
-        <li><strong>Progress + stuck-task guard:</strong> Runs <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code>. Exit 1 → all tasks complete, stop. Exit 2/3 → halt with error. Exit 0 → note <code>NEXT_TASK_NAME</code> and continue.</li>
-        <li><strong>Capture pre-state:</strong> records <code>START_SHA</code> and <code>CWD</code>. On iteration 1 only, writes the start SHA to <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> so step 5's audit doesn't depend on a transient variable. Each plan gets its own SHA-anchor file (namespaced by hash of the plan path), so different plans don't collide on halt-and-resume.</li>
-        <li><strong>Spawn subagent + arm recovery breadcrumb:</strong> uses the runtime's subagent primitive (Claude Code <code>Agent</code> tool, Cursor <code>Task</code> tool, or inline <code>/implement-next</code> in headless harnesses) with a strict scoped prompt opening <em>"Run /implement-next on plan file &lt;plan-path&gt;."</em> The prompt enforces ONE-task-only, requires Steps 4–8 completion (tests pass — or inline verification for doc-only tasks — plan checked off, single commit, Step 7 self-verification PASS, Step 8 report), and forbids <code>--no-verify</code> / <code>--amend</code> / bundling tasks / nested <code>/implement-all-cc</code>/<code>/implement-all</code>/<code>/implement-next-cc</code>/<code>/implement-next</code> calls / scope creep. On unmet criteria the subagent outputs <code>TASK INCOMPLETE</code> without committing — the parent's recovery check detects the absent commit and halts the loop with the diagnostic visible. See <code>commands/implement-all.md</code> Step 3 for the full prompt. Immediately after spawning (and BEFORE the wait), writes the recovery breadcrumb via <code>implement-next-state-write.sh --upsert "$CWD" "$START_SHA" &lt;plan-path&gt; "$NEXT_TASK_NAME" "" "portable"</code>. The portable variant has no <code>SubagentStop</code> hook to coordinate with, so <code>--upsert</code> mode with empty <code>expected_agent_id</code> is used: the breadcrumb still enables the child's Step 0 triage to detect a prior interruption and dispatch to the matching R-case (R-Fresh / R-A / R-B / R-AB / R-C / R-Halt / R-Stuck). See <a href="cmd-implement-next.html"><code>/implement-next</code></a> for the recovery dispatch matrix. Then waits for return.</li>
-        <li><strong>Recovery check — verify the task landed:</strong> portable substitute for hook enforcement. Halts (does not auto-rescue) on any of these failure modes — and <strong>on every halt path, clears the breadcrumb via <code>implement-next-state-clear.sh "$CWD"</code> before the halt</strong>:
-          <ul>
-            <li><code>END_SHA != START_SHA</code> &amp; tree clean → likely committed (child Step 7 already cleared the breadcrumb); re-run <code>plan-progress.sh</code> and continue (or halt + clear breadcrumb if task not checked off).</li>
-            <li><code>END_SHA == START_SHA</code> &amp; uncommitted changes → subagent stalled mid-flow (the dominant historical failure mode); clear breadcrumb, halt with diagnostic. Suggests <code>/implement-all-cc</code> for Claude Code.</li>
-            <li><code>END_SHA == START_SHA</code> &amp; tree clean → subagent did nothing visible (network, OOM, quota). Clear breadcrumb, halt.</li>
-            <li><code>END_SHA != START_SHA</code> &amp; uncommitted changes → anomaly; clear breadcrumb, halt.</li>
-            <li>Stuck-task guard (same <code>NEXT_TASK_NAME</code> twice) and iteration-count exceeded both clear the breadcrumb before halt.</li>
-          </ul>
-        </li>
-        <li><strong>Audit:</strong> after the loop terminates, runs <code>bash ~/.claude/scripts/audit-plan-run.sh &lt;plan-path&gt; &lt;FIRST_START_SHA&gt;</code>, then cleans up <code>$CWD/.claude/implement-all-start-sha-&lt;8-hex-hash-of-plan-path&gt;</code> AND clears the breadcrumb (defense-in-depth). The audit recognizes the new <code>recovery(R-B):</code> and <code>recovery(R-AB):</code> commit-subject prefixes — when these markers explain the commit-count delta, the VIOLATION is downgraded to WARNING. The audit also surfaces the existence and line count of <code>.claude/recovery-anomalies.log</code> if present. Exit 0 = clean run; exit 1 = mismatch.</li>
+        <li><strong>Progress:</strong> Runs <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> and shows the first two lines of output. Exit 1 → all tasks complete, stop. Exit 2/3 → halt with error. Exit 0 → note <code>NEXT_TASK_NAME</code> and continue.</li>
+        <li><strong>Spawn subagent:</strong> Uses the runtime's subagent primitive (Claude Code <code>Agent</code> tool, Cursor <code>Task</code> tool, or inline <code>/implement-next</code> in headless harnesses) with a strict scoped prompt. The prompt enforces ONE-task-only, requires Steps A–F completion (implementation, <code>/iterative-review</code>, tests pass, plan checked off, single commit, report), and forbids <code>--no-verify</code> / <code>--amend</code> / bundling tasks / nested <code>/implement-all</code> calls / scope creep. Then waits for the subagent to return.</li>
+        <li><strong>Recovery check — verify the task landed:</strong> Checks that the task is checked off in the plan file and that related files are committed. If either is missing, re-spawns the subagent for this task (Step 2) and repeats. Reports any anomalies to the user.</li>
       </ol>
-      <p><strong>Why this variant is less reliable than <code>-cc</code>:</strong> relies on the subagent following the <code>/implement-next</code> markdown instructions to commit before ending its turn. The user's archon-search transcripts measured ~7.6% of <code>/implement-next</code> subagents historically never committing (the dominant failure mode this skill addresses). Plan-and-Solve (<a href="https://arxiv.org/abs/2305.04091">arxiv.org/abs/2305.04091</a>, accessed 2026-06-11) qualitatively names "missing-step errors" as a known failure class for prompt-only multi-step flows — our measurement is a concrete instance of that class. Halting bounds the damage but does not auto-recover.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -122,11 +107,9 @@ All tasks complete.</code></pre>
     <section data-section="6-related-tools">
       <h2>Related tools</h2>
       <ul>
-        <li><a href="cmd-implement-all-cc.html">/implement-all-cc</a> — Claude Code variant with <code>SubagentStop</code> hook enforcement and Case A/B/C/D parent-level recovery; use when running in Claude Code for higher reliability.</li>
-        <li><a href="cmd-implement-next.html">/implement-next</a> — The portable single-task implementation command that <code>/implement-all</code> delegates to for each task; runs TDD, optional critical review, tests, check-off, commit, and self-verification.</li>
-        <li><a href="cmd-implement-next-cc.html">/implement-next-cc</a> — Claude Code variant of <code>/implement-next</code>; paired with <code>/implement-all-cc</code> and gated by the <code>SubagentStop</code> hook.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — The single-task implementation command that <code>/implement-all</code> delegates to for each task; runs TDD, critical review, tests, check-off, and commit.</li>
         <li><a href="cmd-iterative-review.html">/iterative-review</a> — Devil's advocate review loop invoked by <code>/implement-next</code> during each task's implementation; spawns parallel DA agents and fix agents until no critical/major/moderate issues remain.</li>
-        <li><a href="scripts-plan.html">scripts-plan</a> — The <code>plan-progress.sh</code> and <code>audit-plan-run.sh</code> scripts called by this command.</li>
+        <li><a href="scripts-plan.html">scripts-plan</a> — The <code>plan-progress.sh</code> script called by this command.</li>
       </ul>
     </section>
 

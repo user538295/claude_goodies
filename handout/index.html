@@ -305,24 +305,12 @@
           <span class="tool-desc">Turn a rough idea into a brief you can hand off. A senior product thinker walks you through the questions you'd otherwise skip, and lands you with a scoped Feature Brief ready for /plan-maker.</span>
         </a>
         <a class="tool-item" href="cmd-implement-all.html">
-          <span class="tool-name">/implement-all <span style="font-size:0.7em;opacity:0.6;">(portable)</span></span>
+          <span class="tool-name">/implement-all</span>
           <span class="tool-desc">Have a finished plan? Walk away and let it ship. Runs /implement-next in a loop — one task, one commit at a time — until every item in the plan is built, reviewed, and checked off. Works in any harness.</span>
         </a>
-        <a class="tool-item" href="cmd-implement-all-cc.html">
-          <span class="tool-name">/implement-all-cc <span style="font-size:0.7em;opacity:0.6;">(Claude Code)</span></span>
-          <span class="tool-desc">Same loop, hook-enforced. Uses a SubagentStop gate to block turn-end until a commit lands, with parent-level Case A/B/C/D recovery for OOM, quota, and transport edge cases. Use in Claude Code for highest reliability.</span>
-        </a>
         <a class="tool-item" href="cmd-implement-next.html">
-          <span class="tool-name">/implement-next <span style="font-size:0.7em;opacity:0.6;">(portable)</span></span>
+          <span class="tool-name">/implement-next</span>
           <span class="tool-desc">Stop juggling the whole plan in your head. Picks the next unchecked task in a plan file, builds it test-first, runs parallel reviews, fixes what they flag, then commits — one task, done. Works in any harness.</span>
-        </a>
-        <a class="tool-item" href="cmd-implement-next-cc.html">
-          <span class="tool-name">/implement-next-cc <span style="font-size:0.7em;opacity:0.6;">(Claude Code)</span></span>
-          <span class="tool-desc">Same single-task command, hook-gated. Paired with /implement-all-cc. Case B rescue is handled by the dedicated /implement-next-cc-resume skill.</span>
-        </a>
-        <a class="tool-item" href="cmd-implement-next-cc-resume.html">
-          <span class="tool-name">/implement-next-cc-resume <span style="font-size:0.7em;opacity:0.6;">(Claude Code, rescue)</span></span>
-          <span class="tool-desc">Rescue skill for /implement-all-cc's Case B path. Only invoked by the parent loop — never directly by users. Performs only check-off + commit on already-staged work after the parent has verified implementation and tests pass.</span>
         </a>
         <a class="tool-item" href="cmd-iterative-review.html">
           <span class="tool-name">/iterative-review</span>

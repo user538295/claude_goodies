@@ -1,8 +1,27 @@
 ---
-description: Portable runtime-agnostic — repeatedly run /implement-next on a plan file until every task is complete. Works in any harness (Claude Code, Cursor, claude -p, etc.) without hook dependencies. For Claude Code's hook-enforced variant with auto-rescue, use /implement-all-cc.
+description: Portable runtime-agnostic — repeatedly run /implement-next on a plan file until every task is complete. Auto-detects Claude Code version and falls back to inline mode (/implement-all-safe) if the Agent tool is unavailable (CC < 2.1.172, Cursor, claude -p, etc.).
 ---
 
 **You MUST follow the instructions step-be-step, precisely. You MUSTN'T make shortcuts!**
+
+### Step -1: Version check — pick the right execution mode
+
+Run this command and capture stdout:
+```
+bash -c 'ver=$(echo "$CLAUDE_CODE_EXECPATH" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1); echo "${ver:-unknown}"'
+```
+
+- If the output is `unknown` (env var not set — you are in Cursor, `claude -p`, or another non-CC harness): **switch to inline mode** (see below).
+- Otherwise parse the version and compare it to `2.1.172`:
+  ```
+  bash -c 'ver=$(echo "$CLAUDE_CODE_EXECPATH" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1); printf "2.1.172\n%s\n" "$ver" | sort -V -C && echo ok || echo old'
+  ```
+  - Output `ok` → version is sufficient; proceed with **subagent mode** (Loop body below).
+  - Output `old` → version is too old for the `Agent` tool; **switch to inline mode**.
+
+Inform the user which mode was selected and why before continuing.
+
+**Inline mode** — follow the instructions in `/implement-all-safe` verbatim (the plan-file resolution and loop body are identical, but tasks are executed inline instead of via subagents). Do NOT spawn subagents in inline mode.
 
 ### Step 0: Resolve the plan file
 
@@ -59,7 +78,7 @@ Each iteration:
    > - Do NOT use `--no-verify`, `--amend`, or any pre-commit hook bypass.
    > - Do NOT skip Step 4, 5, 6, 7 even if `/iterative-review` returned "no issues remain". Review convergence is a green light to proceed to Step 4 — it is NOT a signal to terminate your turn.
    > - Do NOT bundle this task with adjacent ones into a single commit.
-   > - Do NOT spawn nested `/implement-all-cc`, `/implement-all` invocations from inside your task work.
+   > - Do NOT spawn nested `/implement-all` invocation from inside your task work.
    > - Do NOT modify the plan file beyond toggling THIS task's checkbox.
    > - MUST NOT make shortcuts! MUST follow the instructions step-by-step precisely.
 

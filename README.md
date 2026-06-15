@@ -34,7 +34,8 @@ Each entry links to its handout page with a worked example.
 - [**`/implement-next`**](https://user538295.github.io/claude_goodies/handout/cmd-implement-next.html) — Or just do the next task and stop. Builds test-first, reviews itself, commits.
 
 **Two variants exist — start with the portable default.**
-- `/implement-all` + `/implement-next` (portable) — runs in any harness. Halts and tells you if a task finishes without committing.
+- `/implement-all` + `/implement-next` (portable) — runs in any harness. Halts and tells you if a task finishes without committing. **Requires Claude Code 2.1.172 or later** (it spawns subagents via the `Agent` tool, which was not available in earlier versions). If you are on an older version, use `/implement-all-safe` instead.
+- `/implement-all-safe` + `/implement-next` — identical outcome, but runs inline without spawning subagents. Use this if you are on Claude Code < 2.1.172, in Cursor, or in any headless harness that does not support the `Agent` tool.
 - `/implement-all-cc` + `/implement-next-cc` (Claude Code only) — same flow, with a runtime-level gate that won't let the agent stop without committing, plus a parent loop that recovers if it ever slips through. Pick this when you're in Claude Code and want the safety net.
 
 See `CLAUDE.md` § "Plan execution and commit granularity" for the design rationale.

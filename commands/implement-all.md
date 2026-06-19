@@ -50,7 +50,7 @@ Each iteration:
    - Any other exit code → stop and report the unexpected exit code.
    - Exit 0 → tasks remain, note the reported NEXT_TASK_NAME and continue.
 
-   Always run `plan-progress.sh` script in every new iteration and **show the first two lines of the output of the script to the user**.
+   Always run `plan-progress.sh` script in every new iteration and **copy + show the first two lines of the output of the script to the user. Exactly in the same format, don't reformat it.**
 
 #### 2. **Spawn a subagent to implement this task.** Use whatever subagent primitive your runtime offers:
    - Claude Code: the `Agent` tool, `subagent_type: general-purpose`, `run_in_background: true`.

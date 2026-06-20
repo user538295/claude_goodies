@@ -61,7 +61,9 @@ Assess these read-only:
 4. **Done vs. acceptance criteria** — Walk the ticket's acceptance criteria one by one. Is each genuinely met, or just plausibly met? Flag any AC that's unaddressed or only partially covered.
 5. **Tracker** — Is the issue's status current (e.g. flipped to in-review/done when its ACs are met)? A finished-but-still-to-do ticket is a gap.
 
-Adapt the list to the session: a planning/triage session has no commit/test items; a pure-refactor session may have no ticket. Drop items that genuinely don't apply and say why.
+Adapt the **assessment** items (3–5) to the session: a planning/triage session has no commit item; a pure-refactor session may have no ticket. Drop an assessment item only when it genuinely cannot apply, and say why.
+
+The two verifications (1 tests, 2 devil's advocate) are **never** droppable on these grounds. "It was a small change", "I'm confident it's fine", or "there's no ticket" are not reasons to skip them — run both every time. The only acceptable non-run is a hard block (e.g. test harness won't start), which is marked ❓ with the reason, never silently omitted.
 
 ## Step 4 — Report
 

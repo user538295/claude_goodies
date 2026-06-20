@@ -1,25 +1,11 @@
 ---
-description: Single-pass devil's advocate review. Finds flaws without auto-fixing. Use /iterative-review to also apply fixes.
-allowed-tools: Read, Grep, Glob
+description: Run a devil's advocate review. Scope — quick single pass or full delegated review — is decided by the target, or state it explicitly. Use /iterative-review to also apply fixes.
 ---
 
-Review the following target: $ARGUMENTS (if empty, review the current plan/code/work in context).
+**Your FIRST action MUST be to invoke the Skill tool and load the `devils-advocate` skill.** Do not read files, analyze, or write any part of the review before that call — the skill defines the mandatory method, severity rubric, and output format, and they are not optional. Reading the command text is not a substitute for invoking the skill.
 
-Adopt an adversarial perspective. Your goal is to find every flaw — do not soften findings.
+Then review: $ARGUMENTS (if empty, review the current plan, code, or work in context).
 
-Use the severity rubric defined in `/iterative-review`:
-- **Critical**: blocks correctness, security, or safety
-- **Major**: significant design flaw, missing requirement, or likely bug
-- **Moderate**: suboptimal but workable
-- **Minor**: style, naming, or nitpick
+Let the skill size itself to the target — a small, self-contained target gets a quick inline pass; a larger or higher-stakes one gets the full delegated review. Honor any scope the user states explicitly (e.g. "just a quick look", "full review").
 
-(This rubric is the single source of truth in `iterative-review.md` — keep them in sync if updated.)
-
-For each issue found, provide:
-- Severity label
-- Short description of the problem
-- Why it matters / what could go wrong
-
-Group findings by severity (Critical first). At the end, give a one-sentence overall verdict.
-
-Do not propose fixes — only identify problems.
+**Do not substitute your own format or skip the skill's mandated sections.** Follow the skill's output structure exactly.

@@ -16,6 +16,9 @@ Severity rubric — use this consistently across all agents:
    - The current state of the target (diff / changed files / plan)
    - The full findings and fix history from all prior cycles (if any)
    - Instruction to label every issue with severity and a short ID prefixed by the current cycle number (`C1-I-1`, `C1-I-2`, …). Do not soften findings.
+   - **Lens mode:** "You are one of several parallel reviewers covering *[this agent's angle]*. Return findings plus a one-line dimension verdict for your angle — **no global Ship/Rethink verdict**; the loop consolidates."
+   - **No memory writes** this run — agents run in parallel; don't clobber shared agent-memory.
+   - **Skip live verification** — flag any suspect claim instead of checking it with tools, and don't read the playbook; use your built-in method. (Keeps each agent fast and matches the familiar review style.)
 
 2. **Consolidate** findings across all DA agents, deduplicating by root cause.
 

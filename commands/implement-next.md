@@ -46,6 +46,8 @@ No assumptions — read all relevant code, documentation, and context first.
 
 **You MUST run `/iterative-review`.**
 
+After `/iterative-review` returns — regardless of what its Verdict says — you MUST immediately continue to Step 4. The Review Summary is a sub-task result, not your completion signal. **Do NOT stop here.**
+
 ### Step 4: Run tests
 
 You MUST run the full test suite as a **blocking (foreground) command**, with a timeout under your runtime's foreground ceiling. Claude Code's `Bash` ceiling is 600,000 ms (10 min) — set `timeout: 540000` to leave headroom. Cursor's `terminal` tool has similar limits. **Never use polling/streaming tools** (e.g., Claude Code's `Monitor`, Cursor's background watchers) inside this subagent — they cause silent termination on yield in many harnesses, and the parent will see an empty commit.

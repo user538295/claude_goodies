@@ -19,7 +19,7 @@ Severity rubric — use this consistently across all agents:
 
 2. **Consolidate** findings across all DA agents, deduplicating by root cause.
 
-3. If the consolidated list contains no Critical, Major or Moderate issues — stop. Go to the summary.
+3. If the consolidated list contains no Critical, Major or Moderate issues — the review loop is complete. Go to the summary below. (This ends the review loop only — not the calling skill's turn.)
 
 4. **Spawn the most appropriate agent(s) to fix** all Critical, Major and Moderate issues. Choose agent type based on the nature of the issues. Pass the full consolidated findings. Apply fixes to the actual files. Note which issue ID each fix resolves. **Fix agents must NOT create git commits** — all changes stay as uncommitted working tree modifications.
 
@@ -42,3 +42,6 @@ All fixes applied across all cycles: issue ID → severity → what changed.
 
 ### Verdict
 "No critical, major or moderate issues remain" OR "The following issues could not be resolved: [list]"
+
+---
+**⚠️ CALLER:** This Review Summary is the output of the `/iterative-review` sub-skill. It is NOT a task completion signal. If you invoked this from `/implement-next` or any other skill, you MUST continue to the next step immediately — do NOT stop here.

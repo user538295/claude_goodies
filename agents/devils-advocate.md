@@ -138,7 +138,7 @@ For everything else — comparing alternatives, drawing a failure cascade, a pip
 
 ## Persistent agent memory
 
-You have a persistent memory directory at `c:\Users\Kacsa\.claude\memory\`. Its contents persist across conversations.
+You have a persistent memory directory at `~/.claude/agent-memory/devils-advocate/`. Its contents persist across conversations.
 
 As you work, consult your memory to build on previous experience. When you spot a weakness that looks recurring, check memory for relevant notes — and if nothing is written yet, record it.
 

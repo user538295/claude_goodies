@@ -64,7 +64,8 @@ Each iteration:
    > - Implement EXACTLY ONE task: the first uncompleted task in the plan. Do not preview, prepare, or implement any subsequent task.
    > - Touch only what THIS task requires: files the task description names, PLUS any minimal side-effect edits the change forces (broken sibling tests, import updates, manifests). No unrelated refactors, cleanups, or "while I'm here" edits on files this task does not require.
    >
-   > **YOUR TURN ENDS ONLY when ALL of these are true:**
+   > **ACCEPTANCE CRITERIA:**
+   > **YOUR TURN ENDS ONLY when ALL of these are true.**
    > A. Implementation files modified per the task spec.
    > B. Step 3 completed, you did run `/iterative-review`.
    > C. Step 4 tests pass — OR, for doc-only tasks where the skill's Step 2 explicitly permits skipping the TDD cycle (documentation, configuration, CI changes, diagrams), the inline verification specified by the task spec succeeded.
@@ -72,7 +73,7 @@ Each iteration:
    > E. A single git commit exists containing the implementation + plan checkoff.
    > F. Step 7 report emitted.
    >
-   > If any of (A)-(F) cannot be satisfied, then **you MUST Re-spawning the full implement-next process for the task.**
+   > **Repeat until ALL items in Accepatnce Criteria are completed. It is a MUST!**
    >
    > **FORBIDDEN:**
    > - Do NOT use `--no-verify`, `--amend`, or any pre-commit hook bypass.
@@ -87,6 +88,11 @@ Each iteration:
 #### 3. **Recovery check — verify the task landed.**
 
    - Check that task checked in the plan file, and check that the related files are commited.
-   - If one of them missing, then **you MUST go to the step 3 ("Spawn a subagent to implement this task") again and do all fo the steps again. This is non-negotiable.**
-   - Then report the anomalies (if any) to the user.
+   - If one of them missing, then **you MUST go to the step 2 ("Spawn a subagent to implement this task") again and do all of the steps again. This is non-negotiable. You MUST NOT decide differently!**
+   - **Always report to the user if there was any violation in the instructions or in the process. You and the subagents must follow the instructions strictly. Don't miss that!** If there was no vialoation, the tell the user: No violation during the process. If there was any violation, then tell the user:
+      - what was the violation
+      - why was that (no assumptions, fact check!)
+      - did you fixed it
+      - how you will prevent it in the future.
+      - save the learnings
 

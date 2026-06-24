@@ -6,7 +6,7 @@
   <title>/iterative-review — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/iterative-review.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/iterative-review.md (last synced: 2026-06-24) -->
 </head>
 <body>
   <div class="card-page">
@@ -42,7 +42,7 @@
       <ul>
         <li><code>[target]</code> — (opcionális) mit vizsgáljon: egy fájl elérési útja, egy plan-fájl elérési útja, egy <code>git diff</code> részlet, vagy egy leírás. Ha üres, a <code>git diff HEAD</code> az alapértelmezett.</li>
       </ul>
-      <p><strong>Ciklus viselkedése:</strong> Minden kör legalább 3 DA ágenst indít, akik különböző szempontok szerint vizsgálnak (helyesség / peremesetek, architektúra / tervezés, tesztlefedettségi hiányok). A problémákat súlyossággal és ciklus-prefixes azonosítóval címkézi (pl. <code>C1-I-1</code>). A javító ágensek minden Kritikus, Súlyos és Közepes találatot orvosolnak. A ciklus akkor áll meg, ha az összevont problémalistán nincs egyetlen Kritikus, Súlyos vagy Közepes elem sem — vagy ha ugyanazok a gyökérokú problémák körről körre változatlanul újra megjelennek (megoldhatatlan oszcilláció).</p>
+      <p><strong>Ciklus viselkedése:</strong> Minden kör legalább 3 DA ágenst indít, akik különböző szempontok szerint vizsgálnak (helyesség / peremesetek, architektúra / tervezés, tesztlefedettségi hiányok). A problémákat súlyossággal és ciklus-prefixes azonosítóval címkézi (pl. <code>C1-I-1</code>). A javító ágensek minden Kritikus, Súlyos és Közepes találatot orvosolnak. A ciklus akkor áll meg, ha az összevont problémalistán nincs egyetlen Kritikus, Súlyos vagy Közepes elem sem — vagy ha ugyanazok a gyökérokú problémák körről körre változatlanul újra megjelennek (megoldhatatlan oszcilláció). Ha telepítve van az opcionális <code>/brooks-review</code> parancs (Brooks-Lint), minden kör egy Brooks-Lint vizsgálót is indít, amelynek találatait — <code>C1-B-1</code>, <code>C1-B-2</code>, … címkékkel — a DA találatokkal együtt vonja össze és javítja; a parancs induláskor ellenőrzi, és jelzi, hogy megtalálta-e a <code>/brooks-review</code>-ot, vagy csak a DA ágensekkel folytatja.</p>
       <p><strong>Súlyossági rubrika:</strong></p>
       <ul>
         <li><span class="badge must">Kritikus</span> — helyességet, biztonságot vagy védettséget akadályoz</li>

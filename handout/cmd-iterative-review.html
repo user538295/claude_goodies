@@ -6,7 +6,7 @@
   <title>/iterative-review — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/iterative-review.md (last synced: 2026-06-11) -->
+  <!-- Source: commands/iterative-review.md (last synced: 2026-06-24) -->
 </head>
 <body>
   <div class="card-page">
@@ -42,7 +42,7 @@
       <ul>
         <li><code>[target]</code> — (optional) what to review: a file path, a plan file path, a <code>git diff</code> snippet, or a description. If empty, defaults to <code>git diff HEAD</code>.</li>
       </ul>
-      <p><strong>Loop behavior:</strong> Each cycle spawns a minimum of 3 DA agents reviewing from different angles (correctness/edge cases, architecture/design, test coverage gaps). Issues are labelled with severity and a cycle-prefixed ID (e.g., <code>C1-I-1</code>). Fix agents address all Critical, Major, and Moderate findings. The loop stops when the consolidated issue list contains no Critical, Major, or Moderate items — or when the same root-cause issues reappear unchanged across cycles (unresolvable oscillation).</p>
+      <p><strong>Loop behavior:</strong> Each cycle spawns a minimum of 3 DA agents reviewing from different angles (correctness/edge cases, architecture/design, test coverage gaps). Issues are labelled with severity and a cycle-prefixed ID (e.g., <code>C1-I-1</code>). Fix agents address all Critical, Major, and Moderate findings. The loop stops when the consolidated issue list contains no Critical, Major, or Moderate items — or when the same root-cause issues reappear unchanged across cycles (unresolvable oscillation). When the optional <code>/brooks-review</code> command (Brooks-Lint) is installed, each cycle also spawns one Brooks-Lint reviewer whose findings — labelled <code>C1-B-1</code>, <code>C1-B-2</code>, … — are consolidated and fixed alongside the DA findings; the command checks at startup and tells you whether it found <code>/brooks-review</code> or is proceeding with the DA agents only.</p>
       <p><strong>Severity rubric:</strong></p>
       <ul>
         <li><span class="badge must">Critical</span> — blocks correctness, security, or safety</li>

@@ -73,7 +73,7 @@ Each iteration:
    > E. A single git commit exists containing the implementation + plan checkoff.
    > F. Step 7 report emitted.
    >
-   > **Repeat until ALL items in Accepatnce Criteria are completed. It is a MUST!**
+   > **Repeat until ALL items in Acceptance Criteria are completed. It is a MUST!**
    >
    > **FORBIDDEN:**
    > - Do NOT use `--no-verify`, `--amend`, or any pre-commit hook bypass.
@@ -89,10 +89,10 @@ Each iteration:
 
    - Check that task checked in the plan file, and check that the related files are commited.
    - If one of them missing, then **you MUST go to the step 2 ("Spawn a subagent to implement this task") again and do all of the steps again. This is non-negotiable. You MUST NOT decide differently!**
-   - **Always report to the user if there was any violation in the instructions or in the process. You and the subagents must follow the instructions strictly. Don't miss that!** If there was no vialoation, the tell the user: No violation during the process. If there was any violation, then tell the user:
+   - **Always report to the user if there was any violation in the instructions or in the process. You and the subagents must follow the instructions strictly. Don't miss that!** If there was no violation, then tell the user: No violation during the process. If there was any violation, then tell the user:
       - what was the violation
       - why was that (no assumptions, fact check!)
-      - did you fixed it
+      - did you fix it
       - how you will prevent it in the future.
       - save the learnings
 

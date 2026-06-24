@@ -82,17 +82,6 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 # Tools and agents
 - Prefer multi-agent approaches when the task complexity warrants it
 - Always use background sub-agents for the work and find the appropriate agent type for the task.
-- **`gh` CLI is NOT available on this machine.** Never use `gh` commands. Use standard `git` commands instead (`git commit`, `git diff`, `git log`, etc.).
-
-# Plan execution and commit granularity
-
-When executing any plan (task list, backlog item, feature spec) via a slash command:
-- Each task gets its own commit with non-empty file changes. Never bundle multiple tasks into one commit.
-
-- Pick the variant by harness: in Claude Code use `/implement-all-cc` + `/implement-next-cc` (hook-enforced commit gate + auto-rescue if a subagent leaves work uncommitted). In Cursor, `claude -p`, or any other harness use the portable `/implement-all` + `/implement-next` (halts on failure, no auto-rescue). See `commands/implement-all-cc.md` for the gate/recovery mechanism.
-- Each spawned subagent calls the Skill tool (`/implement-next` or `/implement-next-cc`) with the plan file as its argument. Never invoke either directly in the main conversation. Never spawn one agent for all tasks.
-- These rules apply to ALL plan-based workflows and ALL delegation commands.
-- After any run, audit independently: `bash ~/.claude/scripts/audit-plan-run.sh <plan_file> <sha_start>` — works for both variants.
 
 # Communication with the User
 
@@ -128,4 +117,3 @@ When executing any plan (task list, backlog item, feature spec) via a slash comm
 - Maintain 85%+ test coverage minimum; if you find a failing test, fix it before moving on
 - **ALWAYS resolve all compiler warnings** — the codebase must be warning-free at all times
 - **Avoid magic numbers** — use descriptive named constants instead of hardcoded values
-- Avoid backward compatibility

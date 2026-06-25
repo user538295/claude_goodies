@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/wrap-up — Claude Code összefoglaló</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/wrap-up/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/wrap-up</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p><strong>Megtudhatod, hogy a munkamenet tényleg kész-e — tesztek lefuttatva, commit auditálva, tracker ellenőrizve — mielőtt bezárod a lapot.</strong> Szabadon ellenőriz; commit-ot, javítást vagy tracker-frissítést csak explicit igen után végez — minden egyes műveletre külön.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Órákat kódoltál, és valami mégis motoszkál: tényleg kész van? Lefutottak a tesztek? Commitoltuk? Használd a <code>/wrap-up</code>-ot minden munkamenet végén, hogy őszinte választ kapj — „kész és tiszta", „blokkolja egy hiba", vagy „tiszta, de N lépés maradt" —, mielőtt megállsz.</p>
+      <p>Trigger kifejezések (a SKILL.md-ből):</p>
+      <ul>
+        <li><code>"wrap up"</code></li>
+        <li><code>"are we done"</code></li>
+        <li><code>"what's left"</code></li>
+        <li><code>"did we commit everything"</code></li>
+        <li><code>"close out"</code></li>
+      </ul>
+      <p><strong>A megkerülhetetlen szabály:</strong> a tesztek és a devil's-advocate minden alkalommal lefutnak — „kis változtatás volt" és „biztos vagyok benne, hogy rendben van" nem érvényes kihagyási indok. Az egyetlen elfogadható nem-futtatás a kemény blokk (pl. Docker nem indul), amelyet ❓-ként jelöl, és soha nem hagyja ki csendben.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Mondd ki a trigger kifejezést, vagy hívd meg a skillt közvetlenül:</p>
+      <pre><code>/wrap-up</code></pre>
+      <p>Paraméter nincs. A skill maga olvassa be a munkamenet-állapotot, a git státuszt és a releváns tracker-elemet.</p>
+      <p><strong>Amit automatikusan futtat</strong> (engedélykérés nélkül): tesztcsomag + <code>/da-review</code> az aktuális diff-en.</p>
+      <p><strong>Amit megkérdez, mielőtt csinál</strong>: commit, kódjavítás, tracker-frissítés — bármilyen írás. Műveleteként egy igen szükséges.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Tiszta munkamenet, egy lépés maradt</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>wrap up</code></pre>
+        <p><strong>Kimenet / eredmény:</strong></p>
+        <pre><code>Munkamenet összefoglaló
+───────────────────────
+Mi történt: Rate-limiting middleware hozzáadva (src/middleware/rate_limit.py,
+  tests/test_rate_limit.py). Két commit: a3f1c9b, 9e2d04a.
+Miért: NIM-47 — API-visszaélés megelőzése a /auth végponton.
+
+Ellenőrzés
+───────────────────────
+✅ Tesztek — 42 sikeres, 0 sikertelen (pytest tests/)
+✅ Devil's advocate — nem talált problémát
+✅ Commit-higiénia — az összes munkamenet-változás commitolva, nem keveredtek bele korábban piszkos fájlok
+✅ Elfogadási kritériumok — a NIM-47 mindkét AC-je teljesült (limit érvényesítve; 429 visszaadva túllépéskor)
+⚠️  Tracker — a NIM-47 még „In Progress"-ben van
+
+Kész és tiszta — egy lezárási lépés maradt.
+Átállítsam a NIM-47-et In Review-ra? [ ] igen · [ ] most nem</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Blokkoló találat</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>are we done</code></pre>
+        <p><strong>Kimenet / eredmény:</strong></p>
+        <pre><code>Munkamenet összefoglaló
+───────────────────────
+Mi történt: Token-validáció refaktorálva: src/auth/token.py.
+Miért: NIM-52 — elavult jwt könyvtár eltávolítása.
+
+Ellenőrzés
+───────────────────────
+✅ Tesztek — 38 sikeres, 0 sikertelen
+❌ Devil's advocate — 1 probléma:
+   Az új validátor kihagyja a lejárat-ellenőrzést, ha az `iat` claim hiányzik.
+   Egy `iat` nélküli tokennel rendelkező támadó átjuthat.
+
+Blokkoló találat — lezárás előtt javítani kell.
+Javítsam most a lejárat-ellenőrzési hibát?
+[ ] javítsd · [ ] most nem</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-da-review-hu.html">/da-review</a> — A devil's-advocate átmenet, amelyet a <code>/wrap-up</code> belsőleg futtat; használd önállóan egymenetes adversarial review-hoz munkamenet közben.</li>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — Nehezebb review-loop auto-fix passokkal; akkor nyúlj hozzá, ha a <code>/wrap-up</code> DA-ja egynél több problémát talál.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — A wrap-up előtt futó eszköz: test-first megépíti a következő plan-taskot és commitolja.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes összefoglaló</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Agentic workflow pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

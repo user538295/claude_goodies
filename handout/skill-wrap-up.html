@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/wrap-up — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/wrap-up/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/wrap-up</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>Find out whether the session is actually done — tests run, commit audited, tracker checked — before you close the tab.</strong> Verifies freely; never commits, fixes, or updates anything without an explicit yes to that exact action.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>You've been coding for hours and something nags: did we finish? Did the tests pass? Did we commit? Use <code>/wrap-up</code> at the end of any work session to get an honest answer — "done and clean", "blocked by a defect", or "clean but N steps left" — before you stop.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"wrap up"</code></li>
+        <li><code>"are we done"</code></li>
+        <li><code>"what's left"</code></li>
+        <li><code>"did we commit everything"</code></li>
+        <li><code>"close out"</code></li>
+      </ul>
+      <p><strong>The non-negotiable rule:</strong> tests and devil's-advocate run every time — "it was a small change" and "I'm confident it's fine" are not valid skips. The only acceptable non-run is a hard block (e.g. Docker not up), which is reported as ❓, never silently omitted.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Say the trigger phrase or invoke the skill directly:</p>
+      <pre><code>/wrap-up</code></pre>
+      <p>No parameters. The skill reads session state, git status, and the relevant tracker item itself.</p>
+      <p><strong>What it runs automatically</strong> (no asking): test suite + <code>/da-review</code> on this session's diff.</p>
+      <p><strong>What it asks before doing</strong>: committing, fixing code, updating the tracker — any write. One yes per action.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Clean session, one step left</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>wrap up</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Session summary
+───────────────
+What was done: Added rate-limiting middleware (src/middleware/rate_limit.py,
+  tests/test_rate_limit.py). Two commits: a3f1c9b, 9e2d04a.
+What it was for: NIM-47 — prevent API abuse on the /auth endpoint.
+
+Verification
+───────────────
+✅ Tests — 42 passed, 0 failed (pytest tests/)
+✅ Devil's advocate — no issues found
+✅ Commit hygiene — all session work committed, no pre-existing dirty files mixed in
+✅ Acceptance criteria — both ACs from NIM-47 met (rate limit enforced; 429 returned on breach)
+⚠️  Tracker — NIM-47 still marked "In Progress"
+
+Done and clean — one close-out step left.
+Want me to flip NIM-47 to In Review? [ ] yes · [ ] not now</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Blocker found</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>are we done</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Session summary
+───────────────
+What was done: Refactored token validation in src/auth/token.py.
+What it was for: NIM-52 — remove deprecated jwt library.
+
+Verification
+───────────────
+✅ Tests — 38 passed, 0 failed
+❌ Devil's advocate — 1 issue:
+   The new validator skips expiry check when `iat` claim is missing.
+   An attacker supplying a token without `iat` gets through.
+
+Defects found — must fix before this can be wrapped up.
+Want me to fix the expiry-check issue now?
+[ ] fix it · [ ] not now</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-da-review.html">/da-review</a> — The devil's-advocate pass <code>/wrap-up</code> runs internally; use it standalone for a one-off adversarial review mid-session.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — Heavier review loop with auto-fix passes; reach for it when <code>/wrap-up</code>'s DA finds more than one or two issues.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — The tool that precedes wrap-up: builds the next plan task test-first and commits it.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

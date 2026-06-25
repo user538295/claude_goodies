@@ -64,6 +64,25 @@ Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.g
 
 ## Install · Update
 
+### Option 1 — Claude Code plugin marketplace (recommended)
+
+```bash
+claude plugin marketplace add gergelymancz/claude_goodies
+claude plugin install claude-goodies
+```
+
+Restart Claude Code (or start a new session) for changes to load. To update later:
+
+```bash
+claude plugin update claude-goodies
+```
+
+Works in Claude Code.
+
+---
+
+### Option 2 — shell installer (all environments)
+
 Run this in any terminal — works for both fresh installs and updates. Also works in Claude Code CLI with the `! ` prefix:
 
 ```bash

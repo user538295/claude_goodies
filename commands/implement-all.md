@@ -89,10 +89,14 @@ Each iteration:
 
    - Check that task checked in the plan file, and check that the related files are commited.
    - If one of them missing, then **you MUST go to the step 2 ("Spawn a subagent to implement this task") again and do all of the steps again. This is non-negotiable. You MUST NOT decide differently!**
-   - **Always report to the user if there was any violation in the instructions or in the process. You and the subagents must follow the instructions strictly. Don't miss that!** If there was no violation, then tell the user: No violation during the process. If there was any violation, then tell the user:
-      - what was the violation
-      - why was that (no assumptions, fact check!)
-      - did you fix it
-      - how you will prevent it in the future.
-      - save the learnings
+   - **Always report to the user if there was any violation in the instructions or in the process. You and the subagents must follow the instructions strictly. Don't miss that!** 
+      If there was no violation, then tell the user exactly in this format: 
+         - Task [N.M] ✅ — checked (line [NNN]) and committed ([short-hash]). No violation. 
+      If there was any violation, then tell the user exactly in this format:
+         - Task N.M failed ❌:
+            - **What:** [was the violation]
+            - **Why:** [was that (no assumptions, fact check!)]
+            - **Fix:** [did you fix it?]
+            - **Prevention:** [how you will prevent it in the future.]
+            save the learnings to prevent this next time;
 

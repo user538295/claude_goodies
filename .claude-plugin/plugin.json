@@ -1,0 +1,15 @@
+{
+  "name": "claude-goodies",
+  "version": "1.0.0",
+  "description": "Skills, commands, and agents for Claude Code — TDD workflow, LLM wiki, skill packager, iterative review, and more.",
+  "author": {
+    "name": "Gergely Mancz",
+    "url": "https://github.com/user538295"
+  },
+  "homepage": "https://github.com/user538295/claude_goodies",
+  "repository": "https://github.com/user538295/claude_goodies",
+  "license": "MIT",
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "agents": "./agents/"
+}

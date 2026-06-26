@@ -26,7 +26,7 @@ find ~/.claude/commands ~/.claude/plugins ~/.claude/skills -iname 'brooks-review
    - The full findings and fix history from all prior cycles (if any)
    - Instruction to label every issue with severity and a short ID prefixed by the current cycle number (`C1-I-1`, `C1-I-2`, …). Do not soften findings.
 
-   **If `/brooks-review` is available** (per the check above), in the SAME parallel batch also spawn one `general-purpose` agent that invokes the `brooks-review` skill (fully qualified `brooks-lint:brooks-review`) via the Skill tool on the same target. Instruct it to: review read-only — make NO file edits and NO commits; map each Brooks-Lint finding onto the severity rubric above; and label each with a cycle-prefixed ID using a `B` marker (`C1-B-1`, `C1-B-2`, …). Its findings are peers of the devil's advocate findings in every step below.
+   **If `/brooks-review` is available** (per the check above), in the SAME parallel batch also spawn one `general-purpose` agent **with `model: "opus"`** that invokes the `brooks-review` skill (fully qualified `brooks-lint:brooks-review`) via the Skill tool on the same target. Instruct it to: review read-only — make NO file edits and NO commits; map each Brooks-Lint finding onto the severity rubric above; and label each with a cycle-prefixed ID using a `B` marker (`C1-B-1`, `C1-B-2`, …). Its findings are peers of the devil's advocate findings in every step below.
 
 2. **Consolidate** findings across all DA agents and the Brooks-Lint reviewer (if it ran), deduplicating by root cause.
 

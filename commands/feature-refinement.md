@@ -43,12 +43,7 @@ Repeat rounds until the feature is well-defined (see stop condition below).
 
 ### Part A: Challenge
 
-Open every round with your honest reaction. For each concern, always present it as a choice — never a bare problem. Format:
-
-> **[Concern]**
-> - **Option A: [path]** — Pro: ... Con: ...
-> - **Option B: [path]** — Pro: ... Con: ...
-> - **Recommendation**: [which and why, in one sentence]
+Open every round with your honest reaction. For each real concern, invoke `Skill("options")` with the concern as the topic — it will produce structured options with pros/cons and a firm recommendation.
 
 Concerns to evaluate every round (only raise the ones that are real):
 - Is this solving a real, frequent problem — or a nice-to-have?
@@ -63,11 +58,7 @@ If no real concern exists for a round, skip Part A entirely. Don't manufacture c
 
 Ask only what cannot be answered from the code or docs. Maximum 3 questions per round.
 
-Each question must:
-- Be framed as a choice, not an open field
-- Present 2-4 concrete options
-- Each option: one-line pro, one-line con
-- End with a clear recommendation and short reason
+For each question, invoke `Skill("options")` with the question as the topic — it will frame the choice with concrete options, pros/cons, and a recommendation.
 
 **Surface scope and edge cases — don't ask for them:**
 
@@ -75,18 +66,24 @@ Instead of _"what's out of scope?"_:
 > "This could cover X and Y. I'd recommend scoping to X only — Y can follow later. Agree, or keep Y in?"
 
 Instead of _"what are the edge cases?"_:
-> "Edge case: what happens if [scenario]? Options: A / B / C. I'd go with B because..."
+> "Edge case: what happens if [scenario]?" — then invoke `Skill("options")` to lay out how to handle it.
 
-Fill any gap the user hasn't addressed with your own idea, presented as an option.
+Fill any gap the user hasn't addressed with your own idea, presented as an option via `Skill("options")`.
+
+**No repeats across Part A and Part B, and across all rounds:** Every challenge and every question must address a distinct topic. Before raising a concern or question, check all challenges and questions already raised in this session — if the topic is the same or substantially overlaps, skip it.
 
 ### Stop Condition
 
-Move to Phase 3 when ALL of the following are true:
+Keep iterating until ALL feature-level decisions are resolved. Move to Phase 3 only when:
 - The core problem and goal are clear
 - The main user flow is defined
 - Scope boundaries are explicit (what's in, what's out)
-- Key edge cases are decided
-- No open challenge or concern remains unresolved
+- Every key edge case and UX decision has an answer
+- No open challenge or concern remains unresolved at the feature level
+
+**What blocks Phase 3:** any question whose answer changes something the user sees or does — user-visible behavior, scope, flow, edge cases, UX tradeoffs, and architecture choices that affect the user experience (e.g. "does this update instantly or on save?").
+
+**What does NOT block Phase 3:** pure implementation choices that don't change what the user experiences — data model specifics, internal service boundaries, queue vs. direct write, and similar engineering decisions. Park these in the **Open Questions** section of the brief — `/plan-maker` or `/plan-maker-for-team` will resolve them.
 
 If the user says _"let's do the brief"_ or _"I'm happy with this"_, move immediately.
 

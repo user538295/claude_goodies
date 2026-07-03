@@ -22,6 +22,8 @@ bash ~/.claude/scripts/plan-progress.sh "$ARGUMENTS"
 
 ### Step 2: Implement (TDD)
 
+**Spawn a `general-purpose` agent with `model: "sonnet"` to perform the implementation.** Pass it the full task description, acceptance criteria, sub-items, the working directory, and the plan file path. Instruct it to follow these instructions exactly:
+
  **You MUST follow these instructions**:
 
  **SCOPE — non-negotiable:**
@@ -29,7 +31,8 @@ bash ~/.claude/scripts/plan-progress.sh "$ARGUMENTS"
  - Touch only what THIS task requires: files the task description names, PLUS any minimal side-effect edits the change forces (broken sibling tests, import updates, manifests). No unrelated refactors, cleanups, or "while I'm here" edits on files this task does not require.
 
  **FORBIDDEN:**
- - Do NOT modify the plan file beyond toggling THIS task's checkbox.
+ - Do NOT modify the plan file at all.
+ - Do NOT create any git commits — leave all changes as uncommitted working tree modifications.
 
 If the task produces testable code output, follow strict TDD:
 
@@ -41,6 +44,10 @@ If the task produces testable code output, follow strict TDD:
 If the task has no testable code output (documentation, configuration, CI changes, diagrams), skip the TDD cycle and implement directly.
 
 No assumptions — read all relevant code, documentation, and context first.
+
+Return a summary of what was implemented and which files were changed.
+
+Instruct the agent with all of the above. Wait for the agent to return before continuing.
 
 ### Step 3: Critical review
 
@@ -56,7 +63,7 @@ If the full suite cannot complete in one blocking call, run only the *task-relev
 
 If the test command reports failures:
 
-1. Spawn a fix agent with the full failure output. The fix agent must repair the failing tests.
+1. Spawn a `general-purpose` agent with `model: "sonnet"`. Pass it: the full test failure output, the task description and acceptance criteria, the SCOPE and FORBIDDEN constraints from Step 2, the working directory, and — on retries — the output and changes from all prior fix attempts so the agent knows what was already tried and why it failed.
 2. Re-run the same command.
 3. Repeat until green, or three consecutive fix attempts all fail — in which case stop and report the failures for human review.
 

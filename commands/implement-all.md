@@ -59,7 +59,7 @@ Each iteration:
    Print the result to the user in this exact format (brackets are literal, e.g. `Launching task 6.1 at [12:50:31]`): `Launching task <NEXT_TASK_NAME> at [HH:MM:SS]`
 
    Then use whatever subagent primitive your runtime offers:
-   - Claude Code: the `Agent` tool, `subagent_type: general-purpose`, `run_in_background: true`.
+   - Claude Code: the `Agent` tool, `subagent_type: general-purpose`, `model: "haiku"`, `run_in_background: true`.
    - Cursor: the `Task` tool.
    - Headless runtimes without subagent primitives: invoke `/implement-next` inline.
 

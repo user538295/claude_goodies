@@ -32,9 +32,9 @@ find ~/.claude/commands ~/.claude/plugins ~/.claude/skills -iname 'brooks-review
 
 3. If the consolidated list contains no Critical, Major or Moderate issues — the review loop is complete. Go to the summary below. (This ends the review loop only — not the calling skill's turn.)
 
-4. **Spawn `general-purpose` agent(s) with `model: "sonnet"` to fix** all Critical, Major and Moderate issues. Pass the full consolidated findings. Apply fixes to the actual files. Note which issue ID each fix resolves. **Fix agents must NOT create git commits** — all changes stay as uncommitted working tree modifications.
+4. **Spawn the most appropriate agent(s) with `model: "sonnet"` to fix** all Critical, Major and Moderate issues. Pass the full consolidated findings. Apply fixes to the actual files. Note which issue ID each fix resolves. **Fix agents must NOT create git commits** — all changes stay as uncommitted working tree modifications.
 
-5. **Re-run the full automated test suite using a blocking (foreground) Bash call — never `run_in_background`.** All tests must pass before the next cycle. If tests fail, spawn a `general-purpose` agent with `model: "sonnet"` to resolve them first. You can skip this if you didn't touch the code.
+5. **Re-run the full automated test suite using a blocking (foreground) Bash call — never `run_in_background`.** All tests must pass before the next cycle. If tests fail, spawn the most appropriate agent with `model: "sonnet"` to resolve them first. You can skip this if you didn't touch the code.
 
 6. **Convergence check**: if the same Critical/Major/Moderate issues (same root cause) reappear that were already fixed in a prior cycle, mark them as **unresolvable oscillations**, stop the loop, and report them.
 

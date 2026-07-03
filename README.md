@@ -67,7 +67,7 @@ Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.g
 ### Option 1 — Claude Code plugin marketplace (recommended)
 
 ```bash
-claude plugin marketplace add gergelymancz/claude_goodies
+claude plugin marketplace add user538295/claude_goodies
 claude plugin install claude-goodies
 ```
 

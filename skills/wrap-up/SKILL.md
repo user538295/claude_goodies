@@ -53,7 +53,7 @@ This step has two halves. **Run** the non-mutating verification yourself (items 
 Run these now — no asking:
 
 1. **Tests** — Run the relevant test suite and record the result. If running is genuinely blocked (e.g. Docker/DB not up), say so and mark ❓ — don't fabricate a pass.
-2. **Devil's advocate** — Run `/devils-advocate` (or `/da-review`) on this session's work and capture its findings.
+2. **Devil's advocate** — Run `/devils-advocate` (or `/da-review`; `claude-goodies:da-review` if that is the name shown in your skill list) on this session's work and capture its findings.
 
 Assess these read-only:
 

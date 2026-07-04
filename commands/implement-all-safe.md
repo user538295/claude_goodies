@@ -43,7 +43,7 @@ Each iteration:
 
    You MUST follow these rules:
 
-   Run `/implement-next` on plan file `<plan-path>`.
+   Run `/implement-next` on plan file `<plan-path>`. (If your skill list shows it as `claude-goodies:implement-next`, use that name.)
 
    **SCOPE — non-negotiable:**
    - Implement EXACTLY ONE task: the first uncompleted task in the plan. Do not preview, prepare, or implement any subsequent task.

@@ -21,7 +21,7 @@ find ~/.claude/commands ~/.claude/plugins ~/.claude/skills -iname 'brooks-review
 
 **Loop — repeat until no Critical, Major or Moderate issues remain:**
 
-1. **Use the Agent tool to spawn multiple `devils-advocate` agents in parallel** (minimum 3), **each with `model: "opus"`**, each reviewing independently from a different angle: one focuses on correctness and edge cases, one on architecture and design, one on test coverage gaps. **You MUST use the Agent tool — never simulate reviews with Bash commands, heredocs, inline text, or any other method. Only actual Agent tool invocations count.** Pass each agent:
+1. **Use the Agent tool to spawn multiple `devils-advocate` agents in parallel** (agent type `devils-advocate`, or `claude-goodies:devils-advocate` if that is the name shown in your agent list; minimum 3), **each with `model: "opus"`**, each reviewing independently from a different angle: one focuses on correctness and edge cases, one on architecture and design, one on test coverage gaps. **You MUST use the Agent tool — never simulate reviews with Bash commands, heredocs, inline text, or any other method. Only actual Agent tool invocations count.** Pass each agent:
    - The current state of the target (diff / changed files / plan)
    - The full findings and fix history from all prior cycles (if any)
    - Instruction to label every issue with severity and a short ID prefixed by the current cycle number (`C1-I-1`, `C1-I-2`, …). Do not soften findings.

@@ -21,7 +21,7 @@ bash -c 'ver=$(echo "$CLAUDE_CODE_EXECPATH" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" 
 
 Inform the user which mode was selected and why before continuing.
 
-**Inline mode** — follow the instructions in `/implement-all-safe` verbatim (the plan-file resolution and loop body are identical, but tasks are executed inline instead of via subagents). Do NOT spawn subagents in inline mode.
+**Inline mode** — follow the instructions in `/implement-all-safe` verbatim (or `claude-goodies:implement-all-safe` if that is the name shown in your skill list; the plan-file resolution and loop body are identical, but tasks are executed inline instead of via subagents). Do NOT spawn subagents in inline mode.
 
 ### Step 0: Resolve the plan file
 
@@ -64,7 +64,7 @@ Each iteration:
    - Headless runtimes without subagent primitives: invoke `/implement-next` inline.
 
    You MUST give this prompt to the subagent:
-   > Run `/implement-next` on plan file `<plan-path>`.
+   > Run `/implement-next` on plan file `<plan-path>`. (If your skill list shows it as `claude-goodies:implement-next`, use that name.)
    >
    > **SCOPE — non-negotiable:**
    > - Implement EXACTLY ONE task: the first uncompleted task in the plan. Do not preview, prepare, or implement any subsequent task.

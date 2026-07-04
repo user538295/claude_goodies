@@ -51,7 +51,7 @@ Instruct the agent with all of the above. Wait for the agent to return before co
 
 ### Step 3: Critical review
 
-**You MUST run `/iterative-review`.**
+**You MUST run `/iterative-review`** (or `claude-goodies:iterative-review` if that is the name shown in your skill list)**.**
 
 After `/iterative-review` returns — regardless of what its Verdict says — you MUST immediately continue to Step 4. The Review Summary is a sub-task result, not your completion signal. **Do NOT stop here.**
 

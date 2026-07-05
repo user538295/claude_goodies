@@ -37,7 +37,7 @@ bash ~/.claude/scripts/plan-progress.sh "$ARGUMENTS"
 If the task produces testable code output, follow strict TDD:
 
 1. **Write tests first** — unit, integration, and live/end-to-end tests covering the new behaviour and the task's acceptance criteria. Tests must fail at this point (red).
-2. **Run the tests** — confirm they fail for the right reasons. **Always blocking — never backgrounded, never via polling tools.**
+2. **Run the tests** — confirm they fail for the right reasons. **Always blocking — never backgrounded, never via polling tools. One test run at a time: before starting any run, verify no earlier test run is still alive (e.g. `pgrep -fl pytest` is empty) — overlapping runs multiply parallel workers and can OOM the machine.**
 3. **Implement the functionality** — write only enough code to make the tests pass (green).
 4. **Run the tests again** — all new and existing tests must pass before continuing.
 
@@ -60,6 +60,8 @@ After `/iterative-review` returns — regardless of what its Verdict says — yo
 You MUST run the full test suite as a **blocking (foreground) command**, with a timeout under your runtime's foreground ceiling. Claude Code's `Bash` ceiling is 600,000 ms (10 min) — set `timeout: 540000` to leave headroom. Cursor's `terminal` tool has similar limits. **Never use polling/streaming tools** (e.g., Claude Code's `Monitor`, Cursor's background watchers) inside this subagent — they cause silent termination on yield in many harnesses, and the parent will see an empty commit.
 
 If the full suite cannot complete in one blocking call, run only the *task-relevant subset* (the tests added in Step 2 plus their immediate neighbourhood). Then report the partial-test scope explicitly in Step 7.
+
+**If a test run times out or produces no/empty output, do NOT immediately re-run.** First verify the previous run's processes are actually gone (`pgrep -fl pytest` — or the project's test runner — must be empty; wait for workers to exit). Stacked suite runs multiply parallel workers and have OOM-crashed a 48 GB machine.
 
 If the test command reports failures:
 

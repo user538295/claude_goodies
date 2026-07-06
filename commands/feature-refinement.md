@@ -20,11 +20,20 @@ $ARGUMENTS
 
 Tell the user: _"Investigating the codebase before we start..."_
 
-Spawn an Explore agent to:
-- Find all code, docs, and ADRs related to the described feature
+Spawn two Explore agents **in parallel**, with cleanly disjoint scopes:
+
+**Docs agent** (documentation only — READMEs, ADRs, specs, handouts, wikis):
+- Find all documentation related to the described feature
+- Surface prior decisions, constraints, and stated intentions relevant to this feature
+
+**Code agent** (source code only):
+- Find all code related to the described feature
 - Understand existing patterns, data models, flows, and UI that would be affected
 - Identify similar or adjacent features already implemented
-- Surface any constraints, prior decisions, or risks relevant to this feature
+
+For large projects, split further by area (e.g. one agent per subsystem or doc set), up to ~4 agents total. For small projects, the two-agent minimum still holds — never collapse to one.
+
+After all agents return, compare their findings — explicitly flag any place where the documentation contradicts the code. Those contradictions are prime material for Phase 2 challenges.
 
 Use this knowledge throughout the entire session to:
 - Never ask a question the code or docs already answer
@@ -38,6 +47,8 @@ After investigation, briefly tell the user what you found (2-4 bullet points max
 ## Phase 2: Clarify, Challenge + Ideate (iterative)
 
 Repeat rounds until the feature is well-defined (see stop condition below).
+
+**Numbering:** Every challenge and every question gets the next number in ONE global sequence shared by both (`#1`, `#2`, `#3`, ...). Never reset between rounds — if round 1 ends at `#3`, round 2 starts at `#4`. Label the kind after the number, e.g. `#4 (challenge)` / `#5 (question)`. This lets the user answer tersely ("#2: yes, #4: skip it") and makes the no-repeats check below a concrete ledger lookup.
 
 **Each round has two parts — in this order:**
 

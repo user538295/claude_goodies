@@ -45,8 +45,8 @@
       <p><strong>Kimenet:</strong> Egy Feature Brief Markdown fájl a <code>Documentation/Backlog/[feature-name-kebab-case]-brief.md</code> útvonalon (vagy a projekt gyökerében, ha ez a könyvtár nem létezik). A brief a következőket fedi le: Probléma, Cél, Felhasználók és kontextus, Fő folyamat, Scope-ban, Scope-on kívül, Kulcsdöntések, Határesetek és korlátok, Nyitott kérdések, Jövőbeli iterációk, valamint egy Ajánlás.</p>
       <p><strong>Folyamat fázisai:</strong></p>
       <ol>
-        <li><strong>1. fázis — Feltérképezés:</strong> Elindít egy Explore ágenst, amely átolvassa az összes kapcsolódó kódot, dokumentációt és ADR-t.</li>
-        <li><strong>2. fázis — Tisztázás, kihívás és ötletelés:</strong> Iteratív körök — minden kör megkérdőjelezi a feltételezéseket, és legfeljebb 3, jól megfogalmazott kérdést tesz fel, amíg a scope, a folyamat és a határesetek nem tisztázódnak.</li>
+        <li><strong>1. fázis — Feltérképezés:</strong> Két párhuzamos Explore ágenst indít — egyet a dokumentációra (README-k, ADR-ek, spec-ek), egyet a forráskódra —, majd jelzi, ahol a dokumentáció ellentmond a kódnak. Nagy projekteknél területenként legfeljebb ~4 ágensre bontható.</li>
+        <li><strong>2. fázis — Tisztázás, kihívás és ötletelés:</strong> Iteratív körök — minden kör megkérdőjelezi a feltételezéseket, és legfeljebb 3, jól megfogalmazott kérdést tesz fel, amíg a scope, a folyamat és a határesetek nem tisztázódnak. A kihívások és kérdések egy közös, globális sorszámozást kapnak (<code>#1</code>, <code>#2</code>, ...), amely körök között sem kezdődik újra, így tömören válaszolhatsz ("#2: igen, #4: hagyjuk").</li>
         <li><strong>3. fázis — Feature Brief:</strong> Elkészíti és elmenti a strukturált briefet, majd javasolja a <code>/plan-maker [path]</code> futtatását.</li>
       </ol>
     </section>
@@ -59,15 +59,16 @@
         <p><strong>Kimenet / Eredmény:</strong></p>
         <pre><code>Investigating the codebase before we start...
 
-Found: existing User model, Task model with assignee_id FK, no email infrastructure yet,
+Docs agent: no ADRs on notifications; README lists email as a roadmap item.
+Code agent: existing User model, Task model with assignee_id FK, no email infrastructure yet,
 a TODO comment in task_service.py referencing future notifications.
 
-**[Concern: Scope]**
+**#1 (challenge) [Scope]**
 - Option A: Email only — simple, ships fast. Con: will need rework when push notifications arrive.
 - Option B: Generic notification system with email as first channel — more upfront work, extensible.
 - Recommendation: Option A for now; design the interface to be swappable. Agree?
 
-Q1: Should the assignee receive an email immediately on assignment, or in a daily digest?
+#2 (question): Should the assignee receive an email immediately on assignment, or in a daily digest?
   A) Immediate — users get context faster. Con: noisy for high-volume projects.
   B) Configurable per-user — best UX. Con: adds a settings screen to scope.
   C) Immediate for now, configurable later — pragmatic. Recommendation: C.
@@ -87,16 +88,18 @@ Run `/plan-maker Documentation/Backlog/task-assignment-notifications-brief.md` t
         <p><strong>Kimenet / Eredmény:</strong></p>
         <pre><code>Investigating the codebase before we start...
 
-Found: PostgreSQL 15, 3 document types (notes, tasks, files), existing ILIKE queries in search_service.py,
-no full-text index, ~50k rows in production. Prior ADR-007 deferred search to "Phase 2".
+Docs agent: prior ADR-007 deferred search to "Phase 2".
+Code agent: PostgreSQL 15, 3 document types (notes, tasks, files), existing ILIKE queries in search_service.py,
+no full-text index, ~50k rows in production.
+Contradiction flagged: ADR-007 defers search, but search_service.py already ships ILIKE queries.
 
-**[Concern: Risk]**
+**#1 (challenge) [Risk]**
 - ADR-007 deferred this — do you know why? Options:
   A) Performance concern — full-text on 50k rows is fine for pg_trgm; address it.
   B) Scope concern — previous team wanted to ship faster; now it's time.
   Recommendation: Clarify before scoping to avoid repeating the same decision.
 
-Q1: Which document types must be searched in v1?
+#2 (question): Which document types must be searched in v1?
   A) All three (notes, tasks, files) — complete but more complex.
   B) Notes and tasks only, files deferred — ships faster, covers 90% of use cases.
   Recommendation: B.

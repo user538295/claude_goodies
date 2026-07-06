@@ -45,8 +45,8 @@
       <p><strong>Output:</strong> A Feature Brief Markdown file saved to <code>Documentation/Backlog/[feature-name-kebab-case]-brief.md</code> (or project root if that directory does not exist). The brief covers: Problem, Goal, Users &amp; Context, Core Flow, In Scope, Out of Scope, Key Decisions, Edge Cases &amp; Constraints, Open Questions, Future Iterations, and a Recommendation.</p>
       <p><strong>Process phases:</strong></p>
       <ol>
-        <li><strong>Phase 1 — Investigate:</strong> Spawns an Explore agent to read all related code, docs, and ADRs.</li>
-        <li><strong>Phase 2 — Clarify, Challenge &amp; Ideate:</strong> Iterative rounds — each round challenges assumptions and asks ≤3 framed questions until scope, flow, and edge cases are resolved.</li>
+        <li><strong>Phase 1 — Investigate:</strong> Spawns two parallel Explore agents — one for documentation (READMEs, ADRs, specs), one for source code — then flags any place where docs contradict code. Large projects split into up to ~4 agents by area.</li>
+        <li><strong>Phase 2 — Clarify, Challenge &amp; Ideate:</strong> Iterative rounds — each round challenges assumptions and asks ≤3 framed questions until scope, flow, and edge cases are resolved. Challenges and questions share one global number sequence (<code>#1</code>, <code>#2</code>, ...) that never resets between rounds, so you can answer tersely ("#2: yes, #4: skip").</li>
         <li><strong>Phase 3 — Feature Brief:</strong> Produces and saves the structured brief, then suggests running <code>/plan-maker [path]</code>.</li>
       </ol>
     </section>
@@ -59,15 +59,16 @@
         <p><strong>Output / Result:</strong></p>
         <pre><code>Investigating the codebase before we start...
 
-Found: existing User model, Task model with assignee_id FK, no email infrastructure yet,
+Docs agent: no ADRs on notifications; README lists email as a roadmap item.
+Code agent: existing User model, Task model with assignee_id FK, no email infrastructure yet,
 a TODO comment in task_service.py referencing future notifications.
 
-**[Concern: Scope]**
+**#1 (challenge) [Scope]**
 - Option A: Email only — simple, ships fast. Con: will need rework when push notifications arrive.
 - Option B: Generic notification system with email as first channel — more upfront work, extensible.
 - Recommendation: Option A for now; design the interface to be swappable. Agree?
 
-Q1: Should the assignee receive an email immediately on assignment, or in a daily digest?
+#2 (question): Should the assignee receive an email immediately on assignment, or in a daily digest?
   A) Immediate — users get context faster. Con: noisy for high-volume projects.
   B) Configurable per-user — best UX. Con: adds a settings screen to scope.
   C) Immediate for now, configurable later — pragmatic. Recommendation: C.
@@ -87,16 +88,18 @@ Run `/plan-maker Documentation/Backlog/task-assignment-notifications-brief.md` t
         <p><strong>Output / Result:</strong></p>
         <pre><code>Investigating the codebase before we start...
 
-Found: PostgreSQL 15, 3 document types (notes, tasks, files), existing ILIKE queries in search_service.py,
-no full-text index, ~50k rows in production. Prior ADR-007 deferred search to "Phase 2".
+Docs agent: prior ADR-007 deferred search to "Phase 2".
+Code agent: PostgreSQL 15, 3 document types (notes, tasks, files), existing ILIKE queries in search_service.py,
+no full-text index, ~50k rows in production.
+Contradiction flagged: ADR-007 defers search, but search_service.py already ships ILIKE queries.
 
-**[Concern: Risk]**
+**#1 (challenge) [Risk]**
 - ADR-007 deferred this — do you know why? Options:
   A) Performance concern — full-text on 50k rows is fine for pg_trgm; address it.
   B) Scope concern — previous team wanted to ship faster; now it's time.
   Recommendation: Clarify before scoping to avoid repeating the same decision.
 
-Q1: Which document types must be searched in v1?
+#2 (question): Which document types must be searched in v1?
   A) All three (notes, tasks, files) — complete but more complex.
   B) Notes and tasks only, files deferred — ships faster, covers 90% of use cases.
   Recommendation: B.

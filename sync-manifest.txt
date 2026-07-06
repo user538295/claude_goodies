@@ -43,13 +43,14 @@ scripts/task_section.awk
 
 # --- skills (each shipped skill ships its whole directory) ---
 skills/aaa/
+skills/commit-message/
+skills/doc-voice/
 skills/documentation-standard/
 skills/llm-wiki/
 skills/llm-wiki-product/
-skills/plan-maker/
-skills/skill-packager/
-skills/commit-message/
-skills/doc-voice/
 skills/md-reviewer/
 skills/options/
+skills/plan-maker/
+skills/skill-packager/
+skills/wrap-up/
 

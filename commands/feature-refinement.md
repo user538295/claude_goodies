@@ -62,7 +62,7 @@ Repeat rounds until the feature is well-defined (see stop condition below).
 
 ### Part A: Challenge
 
-Open every round with your honest reaction. For each real concern, invoke `Skill("options")` with the concern as the topic — it will produce structured options with pros/cons and a firm recommendation.
+Open every round with your honest reaction. For each real concern, invoke `Skill("options")` (if your skill list shows it as `claude-goodies:options`, use that name) with the concern as the topic — it will produce structured options with pros/cons and a firm recommendation.
 
 Concerns to evaluate every round (only raise the ones that are real):
 - Is this solving a real, frequent problem — or a nice-to-have?
@@ -79,7 +79,7 @@ Ask only what cannot be answered from the code or docs. Maximum 3 questions per 
 
 Phrase every question as a choice about what the user sees or does — never about implementation. Ask _"what should happen when two people edit the same item at once?"_ — not _"how should we resolve write conflicts?"_
 
-For each question, invoke `Skill("options")` with the question as the topic — it will frame the choice with concrete options, pros/cons, and a recommendation.
+For each question, invoke `Skill("options")` (or `claude-goodies:options`) with the question as the topic — it will frame the choice with concrete options, pros/cons, and a recommendation.
 
 **Surface scope and edge cases — don't ask for them:**
 
@@ -87,9 +87,9 @@ Instead of _"what's out of scope?"_:
 > "This could cover X and Y. I'd recommend scoping to X only — Y can follow later. Agree, or keep Y in?"
 
 Instead of _"what are the edge cases?"_:
-> "Edge case: what happens if [scenario]?" — then invoke `Skill("options")` to lay out how to handle it.
+> "Edge case: what happens if [scenario]?" — then invoke `Skill("options")` (or `claude-goodies:options`) to lay out how to handle it.
 
-Fill any gap the user hasn't addressed with your own idea, presented as an option via `Skill("options")`.
+Fill any gap the user hasn't addressed with your own idea, presented as an option via `Skill("options")` (or `claude-goodies:options`).
 
 **No repeats across Part A and Part B, and across all rounds:** Every challenge and every question must address a distinct topic. Before raising a concern or question, check all challenges and questions already raised in this session — if the topic is the same or substantially overlaps, skip it.
 

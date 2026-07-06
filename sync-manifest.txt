@@ -50,6 +50,7 @@ skills/llm-wiki/
 skills/llm-wiki-product/
 skills/md-reviewer/
 skills/options/
+skills/plain-language/
 skills/plan-maker/
 skills/skill-packager/
 skills/wrap-up/

@@ -18,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p>Interaktív, senior termékstratéga gondolkodásmódú segéd, amely egy nyers feature-ötlettől eljuttat egy jól körülhatárolt Feature Brief dokumentumig, amelyet a projektbe ment, és készen áll a <code>/plan-maker</code> futtatására.</p>
+      <p>Interaktív, senior termékstratéga gondolkodásmódú segéd, amely egy nyers feature-ötlettől eljuttat egy jól körülhatárolt Feature Brief dokumentumig, amelyet a projektbe ment, és készen áll a <code>/plan-maker</code> futtatására. Feltételezi, hogy akár product owner vagy végfelhasználó is lehetsz, aki sem a kódbázist, sem a technológiát nem ismeri — mindent közérthetően fogalmaz, és ha egy döntéshez egy technológia megértése szükséges, azt előbb egy egyszerű mondatban elmagyarázza.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -31,6 +31,7 @@
         <li>Szeretnél egy ördögügyvéd szerepben gondolkodó terméktervezőt, aki megkérdőjelezi a feltételezéseidet, mielőtt elköteleződsz egy irány mellett.</li>
         <li>Szükséged van egy Feature Brief fájlra (<code>Documentation/Backlog/…-brief.md</code>), amely a <code>/plan-maker</code> bemenete lesz.</li>
         <li>Szeretnéd felszínre hozni a kódbázisban rejlő ütközéseket, kockázatokat vagy korábbi döntéseket, mielőtt megoldást tervezel.</li>
+        <li>Product owner vagy nem műszaki érintett vagy — a parancs használatához nem kell sem kódbázis-, sem technológiaismeret, közvetlenül használhatod.</li>
       </ul>
     </section>
 
@@ -42,11 +43,11 @@
       <ul>
         <li><code>[feature idea or description]</code> — (kötelező) Rövid leírás a finomítani kívánt feature-ről. Lehet egy mondat, egy nyers user story vagy néhány felsorolásponti gondolat.</li>
       </ul>
-      <p><strong>Kimenet:</strong> Egy Feature Brief Markdown fájl a <code>Documentation/Backlog/[feature-name-kebab-case]-brief.md</code> útvonalon (vagy a projekt gyökerében, ha ez a könyvtár nem létezik). A brief a következőket fedi le: Probléma, Cél, Felhasználók és kontextus, Fő folyamat, Scope-ban, Scope-on kívül, Kulcsdöntések, Határesetek és korlátok, Nyitott kérdések, Jövőbeli iterációk, valamint egy Ajánlás.</p>
+      <p><strong>Kimenet:</strong> Egy Feature Brief Markdown fájl a <code>Documentation/Backlog/[feature-name-kebab-case]-brief.md</code> útvonalon (vagy a projekt gyökerében, ha ez a könyvtár nem létezik). A brief a következőket fedi le: Probléma, Cél, Felhasználók és kontextus, Fő folyamat, Scope-ban, Scope-on kívül, Kulcsdöntések, Határesetek és korlátok, Nyitott kérdések, Jövőbeli iterációk, valamint egy Ajánlás. A brief közérthető nyelven íródik, kivéve a Nyitott kérdések szakaszt, amely technikai marad — az a <code>/plan-maker</code>-nek és a fejlesztőknek szól.</p>
       <p><strong>Folyamat fázisai:</strong></p>
       <ol>
         <li><strong>1. fázis — Feltérképezés:</strong> Két párhuzamos Explore ágenst indít — egyet a dokumentációra (README-k, ADR-ek, spec-ek), egyet a forráskódra —, majd jelzi, ahol a dokumentáció ellentmond a kódnak. Nagy projekteknél területenként legfeljebb ~4 ágensre bontható.</li>
-        <li><strong>2. fázis — Tisztázás, kihívás és ötletelés:</strong> Iteratív körök — minden kör megkérdőjelezi a feltételezéseket, és legfeljebb 3, jól megfogalmazott kérdést tesz fel, amíg a scope, a folyamat és a határesetek nem tisztázódnak. A kihívások és kérdések egy közös, globális sorszámozást kapnak (<code>#1</code>, <code>#2</code>, ...), amely körök között sem kezdődik újra, így tömören válaszolhatsz ("#2: igen, #4: hagyjuk").</li>
+        <li><strong>2. fázis — Tisztázás, kihívás és ötletelés:</strong> Iteratív körök — minden kör megkérdőjelezi a feltételezéseket, és legfeljebb 3, jól megfogalmazott kérdést tesz fel — mindegyik arról szól, hogy te mit látsz vagy mit teszel, sosem az implementációról —, amíg a scope, a folyamat és a határesetek nem tisztázódnak. A kihívások és kérdések egy közös, globális sorszámozást kapnak (<code>#1</code>, <code>#2</code>, ...), amely körök között sem kezdődik újra, így tömören válaszolhatsz ("#2: igen, #4: hagyjuk").</li>
         <li><strong>3. fázis — Feature Brief:</strong> Elkészíti és elmenti a strukturált briefet, majd javasolja a <code>/plan-maker [path]</code> futtatását.</li>
       </ol>
     </section>
@@ -115,6 +116,7 @@ Run `/plan-maker Documentation/Backlog/full-text-search-brief.md` to create an i
       <h2>Kapcsolódó eszközök</h2>
       <ul>
         <li><a href="skill-plan-maker-hu.html">/plan-maker</a> — A <code>/feature-refinement</code> által előállított Feature Briefet fázisokra bontott implementációs tervvé alakítja, feladatokkal, elfogadási kritériumokkal és TDD al-tételekkel.</li>
+        <li><code>/plain-language</code> — A közös írási konvenció, amelyet a <code>/feature-refinement</code> az elején betölt: először a hétköznapi következmény, a technikai részletek zárójelben.</li>
       </ul>
     </section>
 

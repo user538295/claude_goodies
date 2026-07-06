@@ -31,20 +31,9 @@ If the topic concerns the current project, read relevant project files before dr
 
 ## Write so a non-expert can choose
 
-The reader is the person making the decision — often not the person who did the work or knows it in depth (a product owner, a manager, a stakeholder). An option they can't follow is an option they can't choose. Write every reader-facing part for that reader: the heading, option names, pros, cons, the recommendation, and the single-path statement.
+The reader is the person making the decision — often not the person who did the work or knows it in depth (a product owner, a manager, a stakeholder). An option they can't follow is an option they can't choose.
 
-- Lead with the plain-language consequence — what the choice does for them, what it costs, what visibly changes — then put the precise technical detail in parentheses right after (file and function names, the mechanism, the numbers) so a reader who knows the work still gets exact context. Plain consequence first, specifics in parentheses — not the reverse, unless the technical name is itself the clearest label for this audience.
-- Self-check: strip everything in parentheses; what remains must let the reader grasp the option and its tradeoff, and must name the specific consequence in context — not a vague quality like "more reliable" or "easier to maintain". If the leftover still needs insider vocabulary — "race condition", "coupling", "idempotent", "cascade failure", or any term a non-engineer would have to look up — it isn't plain. Rewrite it as the observable consequence. The stakes must stand on their own even when the mechanism needs expertise.
-- When the choice is irreducibly technical, translate it into the consequences the decision-maker owns — whichever of delivery time, risk, cost, user-visible behavior, or reversibility you can actually substantiate. Don't invent numbers or timelines; if you can't ground a dimension, omit it or say what you'd need.
-- When the decision is non-technical and has no underlying mechanism, the plain statement is the whole thing — don't manufacture a parenthetical.
-
-Examples — plain-first layering:
-- ❌ _"Move dedup into the `StabilityGate.advance()` barrier so the manifest write stops racing the scan."_
-- ✅ _"Stop the occasional duplicate output when a file is saved twice in quick succession (move dedup into the `StabilityGate.advance()` barrier so the manifest write no longer races the scan)."_
-
-Consequence translation when the mechanism can't be simplified:
-- ❌ _"Switch from optimistic locking to `SELECT … FOR UPDATE` row locks."_
-- ✅ _"Prevent two people from booking the same slot, at the cost of some speed under heavy load (switch from optimistic locking to `SELECT … FOR UPDATE` row locks)."_
+Invoke `Skill("plain-language")` to load the writing convention (if your skill list shows it as `claude-goodies:plain-language`, use that name) — skip the invocation if it is already loaded in this conversation. Apply it to every reader-facing part: the heading, option names, pros, cons, the recommendation, and the single-path statement. In short: plain consequence first, technical specifics in parentheses, a one-sentence explainer for any technology the decision hinges on, and the strip-the-parentheses self-check before delivering.
 
 ---
 

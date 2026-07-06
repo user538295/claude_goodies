@@ -2,7 +2,7 @@
 description: Portable runtime-agnostic — repeatedly run /implement-next on a plan file until every task is complete. Auto-detects Claude Code version and falls back to inline mode (/implement-all-safe) if the Agent tool is unavailable (CC < 2.1.172, Cursor, claude -p, etc.).
 ---
 
-**You MUST follow the instructions step-be-step, precisely. You MUSTN'T make shortcuts!**
+**This is not a guidline. You MUST follow the instructions step-be-step, precisely. You MUST NOT make shortcuts, or override the instructions!**
 
 ### Step -1: Version check — pick the right execution mode
 
@@ -50,13 +50,13 @@ Each iteration:
    - Any other exit code → stop and report the unexpected exit code.
    - Exit 0 → tasks remain, note the reported NEXT_TASK_NAME and continue.
 
-   Always run `plan-progress.sh` script in every new iteration and **copy + show the first two lines of the output of the script to the user. Exactly in the same format, don't reformat it.**
+   Always run `plan-progress.sh` script in every new iteration and **copy + show the first two lines of the output of the script to the user. Exactly in the same format, do NOT reformat it. Do NOT prose it!**
 
 #### 2. **Spawn a subagent to implement this task.** First, run:
    ```
    date '+%H:%M:%S' 2>/dev/null || powershell -Command "Get-Date -Format 'HH:mm:ss'" 2>/dev/null || echo "(time unavailable)"
    ```
-   Print the result to the user in this exact format (brackets are literal, e.g. `Launching task 6.1 at [12:50:31]`): `Launching task <NEXT_TASK_NAME> at [HH:MM:SS]`
+   Print the result to the user in this exact format (brackets are literal, e.g. `Launching task 6.1 at [12:50:31]`) and do NOT prose it: `Launching task <NEXT_TASK_NAME> at [HH:MM:SS]`
 
    Then use whatever subagent primitive your runtime offers:
    - Claude Code: the `Agent` tool, `subagent_type: general-purpose`, `model: "haiku"`, `run_in_background: true`.
@@ -96,11 +96,11 @@ Each iteration:
    - Check that the task is checked in the plan file, and check that the related files are committed.
    - If the task is **not checked** (regardless of commit state) → **you MUST go to step 2 ("Spawn a subagent to implement this task") and redo the full process. This is non-negotiable. You MUST NOT decide differently!** Track attempt count — after 3 failed attempts, stop and report: "Task [N.M] failed after 3 attempts. Manual intervention required."
    - If the task **is checked but the files are not committed** → commit only: run `git status --porcelain` to identify all modified and untracked files (covers both tracked modifications and newly created files). Cross-reference each file against the task description to determine membership. Stage by explicit file path only those that belong to this task's implementation. Do NOT use `git add -A` or `git add .` — that risks including unrelated working-tree changes. If uncertain whether a file belongs to this task, include it and note the uncertainty in the commit message. Never leave modified task files unstaged without reporting them. Then commit. Do NOT respawn the subagent.
-     Report this as a violation:
+     Report this as a violation and do NOT prose it:
         - Task [N.M] partial ⚠️ — checked but not committed; committed now ([short-hash]).
-           - **What:** Task was checked but commit was missing (criterion E violated).
+           - **What:** [task was checked but commit was missing (criterion E violated)]
            - **Why:** [determine from context — no assumptions]
-           - **Fix:** Committed the missing changes above.
+           - **Fix:** [committed the missing changes above]
            - **Prevention:** [how to prevent this in the future]
            save the learnings to prevent this next time;
    - **Always report to the user if there was any violation in the instructions or in the process. You and the subagents must follow the instructions strictly. Don't miss that!**

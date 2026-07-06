@@ -4,7 +4,7 @@ description: Portable runtime-agnostic SAFE version — repeatedly run /implemen
 
 > **Inline execution mode.** All steps execute in the current context — no subagents are spawned. Also used automatically by `/implement-all` when subagents are unavailable (Cursor, `claude -p`, CC < 2.1.172).
 
-**You MUST follow the instructions step-be-step, precisely. You MUSTN'T make shortcuts!**
+**This is not a guidline. You MUST follow the instructions step-be-step, precisely. You MUST NOT make shortcuts, or override the instructions!**
 
 ### Step 0: Resolve the plan file
 
@@ -33,7 +33,7 @@ Each iteration:
    - Any other exit code → stop and report the unexpected exit code.
    - Exit 0 → tasks remain, note the reported NEXT_TASK_NAME and continue.
 
-   Always run `plan-progress.sh` script in every new iteration and **show the first two lines of the output of the script to the user. Exactly in the same format, don't reformat it.**
+   Always run `plan-progress.sh` script in every new iteration and **show the first two lines of the output of the script to the user. Exactly in the same format, do NOT reformat it. Do NOT prose it!**
 
 #### 2. **Implement next task.** First, run:
    ```
@@ -69,13 +69,13 @@ Each iteration:
 #### 3. **Recovery check — verify the task landed.**
 
    - Check that the task is checked in the plan file, and check that the related files are committed.
-   - If the task is **not checked** (regardless of commit state) → **you MUST go to step 2 ("Implement next task") and redo the full process. This is non-negotiable.** Track attempt count — after 3 failed attempts, stop and report: "Task [N.M] failed after 3 attempts. Manual intervention required."
+   - If the task is **not checked** (regardless of commit state) → **you MUST go to step 2 ("Implement next task") and redo the full process. This is non-negotiable. You MUST NOT decide differently!** Track attempt count — after 3 failed attempts, stop and report: "Task [N.M] failed after 3 attempts. Manual intervention required."
    - If the task **is checked but the files are not committed** → commit only: run `git status --porcelain` to identify all modified and untracked files (covers both tracked modifications and newly created files). Cross-reference each file against the task description to determine membership. Stage by explicit file path only those that belong to this task's implementation. Do NOT use `git add -A` or `git add .` — that risks including unrelated working-tree changes. If uncertain whether a file belongs to this task, include it and note the uncertainty in the commit message. Never leave modified task files unstaged without reporting them. Then commit. Do NOT re-run `/implement-next`.
-     Report this as a violation:
+     Report exactly this as a violation and do NOT prose it:
         - Task [N.M] partial ⚠️ — checked but not committed; committed now ([short-hash]).
-           - **What:** Task was checked but commit was missing (criterion E violated).
+           - **What:** [Task was checked but commit was missing (criterion E violated)]
            - **Why:** [determine from context — no assumptions]
-           - **Fix:** Committed the missing changes above.
+           - **Fix:** [Committed the missing changes above]
            - **Prevention:** [how to prevent this in the future]
            save the learnings to prevent this next time;
    - **Always report to the user if there was any violation in the instructions or in the process. You must follow the instructions strictly. Don't miss that!**

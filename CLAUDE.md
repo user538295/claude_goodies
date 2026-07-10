@@ -85,10 +85,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 # Communication with the User
 
-- Always start with the understanding of the real intention of the user and satisfy it
+- Always start with the understanding of the real intention of the user but never assume
 - Always be direct, clear, and concise
 - Avoid repetition in your answers
 - **Never soften findings.** State problems and severity directly. Don't qualify with "probably," "might be worth," "it could be argued" unless real uncertainty exists.
+- If the user ask, answer the question, but don't start to make changes.
 
 # Mandatory Verification Protocol
 

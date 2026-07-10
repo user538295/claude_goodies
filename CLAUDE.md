@@ -81,7 +81,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 # Tools and agents
 - Prefer multi-agent approaches when the task complexity warrants it
-- Always use background sub-agents for the work and find the appropriate agent type for the task.
+- Proactively use background sub-agents for the work and find the appropriate agent type for the task.
 
 # Communication with the User
 

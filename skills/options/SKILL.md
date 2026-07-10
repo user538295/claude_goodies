@@ -33,7 +33,7 @@ If the topic concerns the current project, read relevant project files before dr
 
 The reader is the person making the decision — often not the person who did the work or knows it in depth (a product owner, a manager, a stakeholder). An option they can't follow is an option they can't choose.
 
-Invoke `Skill("plain-language")` to load the writing convention (if your skill list shows it as `claude-goodies:plain-language`, use that name) — skip the invocation if it is already loaded in this conversation. Apply it to every reader-facing part: the heading, option names, pros, cons, the recommendation, and the single-path statement. In short: plain consequence first, technical specifics in parentheses, a one-sentence explainer for any technology the decision hinges on, and the strip-the-parentheses self-check before delivering.
+Invoke `Skill("plain-language")` to load the writing convention (if your skill list shows it as `claude-goodies:plain-language`, use that name). Apply it to every reader-facing part: the heading, option names, pros, cons, the recommendation, and the single-path statement. In short: plain consequence first, technical specifics in parentheses, a one-sentence explainer for any technology the decision hinges on, and the strip-the-parentheses self-check before delivering.
 
 ---
 
@@ -65,6 +65,7 @@ State it plainly: what it is, why it's the right call, and why the alternatives 
 
 ## Rules
 
+- You **MUST use the `/plain-language` skill** when available and use it to generate the proper output.
 - Options must represent genuinely different directions — not cosmetic variants of the same idea.
 - Always state a recommendation. In the standard case use the **Recommendation** label. In the single-path case the statement itself serves as the recommendation — no separate label needed. If no option is clearly better, say so directly and explain why the choice is hard.
 - Always consider whether "do nothing" or "decide later" is a legitimate option — especially if the decision seems premature.

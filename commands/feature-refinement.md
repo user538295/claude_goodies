@@ -95,7 +95,8 @@ Fill any gap the user hasn't addressed with your own idea, presented as an optio
 
 ### Stop Condition
 
-Keep iterating until ALL feature-level decisions are resolved. Move to Phase 3 only when:
+Always wait for the answer from the user, then iterate until ALL feature-level decisions are resolved. Move to Phase 3 only when:
+- The user answered your questions
 - The core problem and goal are clear
 - The main user flow is defined
 - Scope boundaries are explicit (what's in, what's out)

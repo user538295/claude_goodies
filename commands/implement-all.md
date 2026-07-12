@@ -91,9 +91,19 @@ Each iteration:
 
    Then wait for the subagent to return before continuing.
 
-#### 3. **Recovery check — verify the task landed.**
+#### 3. **Recovery check and report — verify the task landed.**
 
    - Check that the task is checked in the plan file, and check that the related files are committed.
+   - **Always report to the user in the following exact form. You and the subagents must follow the instructions strictly. Don't miss that!**
+      - If there was no violation (task was already checked and committed), tell the user exactly in this format:
+         - Task [N.M] ✅ — checked (line [NNN]) and committed ([short-hash]). Checkpoint verified (checkbox + commit).
+      - If there was any other violation, tell the user exactly in this format:
+         - Task [N.M] failed ❌:
+            - **What:** [was the violation]
+            - **Why:** [was that (no assumptions, fact check!)]
+            - **Fix:** [did you fix it?]
+            - **Prevention:** [how you will prevent it in the future.]
+            save the learnings to prevent this next time;
    - If the task is **not checked** (regardless of commit state) → **you MUST go to step 2 ("Spawn a subagent to implement this task") and redo the full process. This is non-negotiable. You MUST NOT decide differently!** Track attempt count — after 3 failed attempts, stop and report: "Task [N.M] failed after 3 attempts. Manual intervention required."
    - If the task **is checked but the files are not committed** → commit only: run `git status --porcelain` to identify all modified and untracked files (covers both tracked modifications and newly created files). Cross-reference each file against the task description to determine membership. Stage by explicit file path only those that belong to this task's implementation. Do NOT use `git add -A` or `git add .` — that risks including unrelated working-tree changes. If uncertain whether a file belongs to this task, include it and note the uncertainty in the commit message. Never leave modified task files unstaged without reporting them. Then commit. Do NOT respawn the subagent.
      Report this as a violation and do NOT prose it:
@@ -103,14 +113,3 @@ Each iteration:
            - **Fix:** [committed the missing changes above]
            - **Prevention:** [how to prevent this in the future]
            save the learnings to prevent this next time;
-   - **Always report to the user if there was any violation in the instructions or in the process. You and the subagents must follow the instructions strictly. Don't miss that!**
-      If there was no violation (task was already checked and committed), tell the user exactly in this format:
-         - Task [N.M] ✅ — checked (line [NNN]) and committed ([short-hash]). Checkpoint verified (checkbox + commit).
-      If there was any other violation, tell the user exactly in this format:
-         - Task [N.M] failed ❌:
-            - **What:** [was the violation]
-            - **Why:** [was that (no assumptions, fact check!)]
-            - **Fix:** [did you fix it?]
-            - **Prevention:** [how you will prevent it in the future.]
-            save the learnings to prevent this next time;
-

@@ -83,9 +83,10 @@ Commit all changes for this task — implementation files AND the updated plan f
 
 ### Step 7: Report
 
-Output a concise report for this task:
-- What was implemented
-- Test results summary
-- Any feature loss or deviation from the task spec (be precise)
-- Any unresolvable oscillations from the review loop
-- What was checked off in the plan
+Output a concise report for this task in the following exact form. Do NOT prose, you MUST report it and in the exact form. This is non-negotiable.
+> **Task [N.M] Implementation report:**
+> - Implemented: [What was imlemented]
+> - Tests: [Test results summary]
+> - Feature loss or deviation: [Any feature loss or deviation from the task spec (be extremely precise)]
+> - Unresolvable oscillations: [Any unresolvable oscillations from the review loop]
+> - Task [N.M] — checked at line [NNN] and committed ([full-hash])

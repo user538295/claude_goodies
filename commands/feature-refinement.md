@@ -28,20 +28,26 @@ $ARGUMENTS
 
 Tell the user: _"Investigating the codebase before we start..."_
 
+**Before spawning agents**, initialize your **Reference List** — a running ledger you will maintain throughout this session. Extract any URLs or file paths from `$ARGUMENTS` and add each as a formatted entry: `- path-or-URL \`[user]\` — context from the user's message`. If no context was given beside the link, write `— user provided`.
+
 Spawn two Explore agents **in parallel**, with cleanly disjoint scopes:
 
 **Docs agent** (documentation only — READMEs, ADRs, specs, handouts, wikis):
 - Find all documentation related to the described feature
 - Surface prior decisions, constraints, and stated intentions relevant to this feature
+- End your response with a `## Links Found` section — one line per relevant document: `- path-or-URL \`[docs-agent]\` — why relevant`
 
 **Code agent** (source code only):
 - Find all code related to the described feature
 - Understand existing patterns, data models, flows, and UI that would be affected
 - Identify similar or adjacent features already implemented
+- End your response with a `## Links Found` section — one line per relevant file or directory: `- path-or-URL \`[code-agent]\` — why relevant`
 
-For large projects, split further by area (e.g. one agent per subsystem or doc set), up to ~4 agents total. For small projects, the two-agent minimum still holds — never collapse to one.
+For large projects, split further by area (e.g. one agent per subsystem or doc set), up to ~4 agents total. For small projects, the two-agent minimum still holds — never collapse to one. **Every spawned agent must end its response with a `## Links Found` section** in the same format, using a descriptive tag for its scope (e.g. `` `[auth-agent]` ``, `` `[ui-agent]` ``).
 
 After all agents return, compare their findings — explicitly flag any place where the documentation contradicts the code. State each contradiction as the difference the user would experience (doc/code specifics in parentheses). Those contradictions are prime material for Phase 2 challenges.
+
+**Harvest links:** Copy the path and context from each agent's `## Links Found` section verbatim into your Reference List. Do not paraphrase or reconstruct paths from memory. If the same path already exists, keep the existing line and append the new tag with `+` (e.g. change `` `[user]` `` to `` `[user+docs-agent]` ``) rather than adding a duplicate line.
 
 Use this knowledge throughout the entire session to:
 - Never ask a question the code or docs already answer
@@ -57,6 +63,8 @@ After investigation, briefly tell the user what you found (2-4 bullet points max
 Repeat rounds until the feature is well-defined (see stop condition below).
 
 **Numbering:** Every challenge and every question gets the next number in ONE global sequence shared by both (`#1`, `#2`, `#3`, ...). Never reset between rounds — if round 1 ends at `#3`, round 2 starts at `#4`. Label the kind after the number, e.g. `#4 (challenge)` / `#5 (question)`. This lets the user answer tersely ("#2: yes, #4: skip it") and makes the no-repeats check below a concrete ledger lookup.
+
+**Track links:** Whenever the user shares a URL or file path during any round — tickets, mockups, specs, related briefs — add it to your Reference List as: `- path-or-URL \`[user-p2]\` — context from the user's message`. If no context was given, write `— user provided`. If the path already exists in the Reference List, append `+user-p2` to the existing tag rather than duplicating.
 
 **Each round has two parts — in this order:**
 
@@ -121,6 +129,8 @@ If the `Documentation/Backlog/` directory doesn't exist, save to the project roo
 
 **Format**: Write every section for the non-technical reader (the plain-language convention applies) — except **Open Questions**, which planning tools and engineers will consume and may stay technical.
 
+**References:** Before writing the brief, copy your Reference List entries directly into the `## References` section — replace the example line in the template with the actual entries. Valid source tags: `[user]`, `[user-p2]`, `[docs-agent]`, `[code-agent]`, or any descriptive agent tag; combined tags use `+` (e.g. `[user+docs-agent]`). The note field may read `— user provided` for links with no additional context — that is acceptable. If the Reference List is empty, omit `## References` entirely — do not emit the example line.
+
 ```markdown
 # Feature Brief: [Feature Name]
 
@@ -154,6 +164,9 @@ Numbered steps of the main user journey — plain language, no code, no implemen
 
 ## Future Iterations
 - Good ideas intentionally deferred from this scope
+
+## References
+- path/to/relevant-file.md `[docs-agent]` — why it's relevant
 
 ## Recommendation
 Two to three sentences: your honest take — is this the right feature to build now, what's the hardest part, and what must not be compromised?

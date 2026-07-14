@@ -94,7 +94,7 @@ Each iteration:
 #### 3. **Recovery check and report — verify the task landed.**
 
    - Check that the task is checked in the plan file, and check that the related files are committed.
-   - **Always report to the user in the following exact form. You and the subagents must follow the instructions strictly. Don't miss that!**
+   - **Always report to the user in the following exact form. Follow the format literally. You and the subagents must follow the instructions strictly. Don't miss that!**
       - If there was no violation (task was already checked and committed), tell the user exactly in this format:
          - Task [N.M] ✅ — checked (line [NNN]) and committed ([short-hash]). Checkpoint verified (checkbox + commit).
       - If there was any other violation, tell the user exactly in this format:

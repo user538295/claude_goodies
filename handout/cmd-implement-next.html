@@ -6,7 +6,7 @@
   <title>/implement-next — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: commands/implement-next.md (last synced: 2026-06-15) -->
+  <!-- Source: commands/implement-next.md (last synced: 2026-07-15) -->
 </head>
 <body>
   <div class="card-page">
@@ -46,8 +46,8 @@
       </ul>
       <p><strong>Steps executed for each task (7 steps total):</strong></p>
       <ol>
-        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion and identify the next uncompleted task. If all tasks are complete (exit 1), stops and reports completion.</li>
-        <li><strong>Step 2 — Implement (TDD):</strong> Implements only this task. SCOPE: exactly one task, touch only what the task requires. FORBIDDEN: modify the plan file beyond toggling this task's checkbox. For code tasks: failing tests first (red), then implementation (green), then full pass. For non-code tasks (docs, config): implements directly.</li>
+        <li><strong>Step 1 — Show progress:</strong> Runs <code>plan-progress.sh</code> to display current completion and identify the next uncompleted task. If all tasks are complete (exit 1), stops and reports completion. Also detects a <strong>companion plan</strong> — when the argument is a task-breakdown file whose <code>S#</code>/<code>C#</code> scenario/contract definitions, architecture, and acceptance criteria live in a separate plan. It resolves the plan from a <code>## References</code> link first (correct path even if the plan lives in another directory), falling back to the frontmatter <code>plan:</code> key for a sibling plan. A companion plan named by either mechanism but missing on disk stops the run rather than proceeding without context.</li>
+        <li><strong>Step 2 — Implement (TDD):</strong> Implements only this task. If a companion plan was detected, the agent reads it first to resolve the <code>S#</code>/<code>C#</code> its <code>completes</code> field cites and absorb the architecture and contracts — the plan path is also passed to the review (Step 3) and any fix agents (Step 4). SCOPE: exactly one task, touch only what the task requires. FORBIDDEN: modify the task-breakdown file or the companion plan (the orchestrator toggles checkboxes in Step 5). For code tasks: failing tests first (red), then implementation (green), then full pass. For non-code tasks (docs, config): implements directly.</li>
         <li><strong>Step 3 — Critical review:</strong> Invokes <code>/iterative-review</code> on the diff plus the task spec. The review must NOT create its own commits — all fixes stay as uncommitted working-tree changes. Can be skipped if no code was touched.</li>
         <li><strong>Step 4 — Run tests:</strong> Runs the full test suite as a blocking foreground command, timeout under the runtime's foreground ceiling (Claude Code's <code>Bash</code> ≤ 600,000 ms). If the full suite cannot complete in one blocking call, runs only the task-relevant subset and reports the partial scope in Step 7. Test runs never overlap: if a run times out or yields no output, it first verifies the previous run's processes are gone before re-running. Fix agents retry up to 3 times.</li>
         <li><strong>Step 5 — Check off:</strong> Marks the implemented task and all completed sub-items <code>[x]</code> in the plan file.</li>

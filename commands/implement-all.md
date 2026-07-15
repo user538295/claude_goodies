@@ -39,6 +39,8 @@ Run `test -f "$ARGUMENTS"`.
 
 **Termination condition:** All tasks in the plan file are marked complete (plan-progress.sh returns exit 1). Repeat all steps until this condition is met.
 
+**Terminology:** "the plan file" throughout is this resolved file — the one `/implement-next` checks off and commits (its "task-breakdown file"). It may reference a separate **companion plan** that `/implement-next` resolves and reads as **read-only context** (its Step 1); this loop never checks off, stages, or commits the companion plan.
+
 Each iteration:
 
 #### 1. **Progress** Run, replacing `<plan-path>` with the resolved file path:
@@ -86,7 +88,7 @@ Each iteration:
    > - Do NOT skip `/implement-next` Steps 4, 5, 6, 7 even if `/iterative-review` returned "no issues remain". Review convergence is a green light to proceed to `/implement-next` Step 4 — it is NOT a signal to terminate your turn.
    > - Do NOT bundle this task with adjacent ones into a single commit.
    > - Do NOT spawn nested `/implement-all` invocation from inside your task work.
-   > - Do NOT modify the plan file beyond toggling THIS task's checkbox.
+   > - Do NOT modify the plan file beyond toggling THIS task's checkbox, and never modify a companion plan the task may reference (it is read-only context, never committed).
    > - MUST NOT make shortcuts! MUST follow the instructions step-by-step precisely.
 
    Then wait for the subagent to return before continuing.
@@ -105,7 +107,7 @@ Each iteration:
             - **Prevention:** [how you will prevent it in the future.]
             save the learnings to prevent this next time;
    - If the task is **not checked** (regardless of commit state) → **you MUST go to step 2 ("Spawn a subagent to implement this task") and redo the full process. This is non-negotiable. You MUST NOT decide differently!** Track attempt count — after 3 failed attempts, stop and report: "Task [N.M] failed after 3 attempts. Manual intervention required."
-   - If the task **is checked but the files are not committed** → commit only: run `git status --porcelain` to identify all modified and untracked files (covers both tracked modifications and newly created files). Cross-reference each file against the task description to determine membership. Stage by explicit file path only those that belong to this task's implementation. Do NOT use `git add -A` or `git add .` — that risks including unrelated working-tree changes. If uncertain whether a file belongs to this task, include it and note the uncertainty in the commit message. Never leave modified task files unstaged without reporting them. Then commit. Do NOT respawn the subagent.
+   - If the task **is checked but the files are not committed** → commit only: run `git status --porcelain` to identify all modified and untracked files (covers both tracked modifications and newly created files). Cross-reference each file against the task description to determine membership. Stage by explicit file path only those that belong to this task's implementation. Do NOT use `git add -A` or `git add .` — that risks including unrelated working-tree changes. The companion plan (if the task-breakdown file references one) is read-only context — never stage it; if it shows as modified, report that as a FORBIDDEN violation rather than committing it. If uncertain whether any *other* file belongs to this task, include it and note the uncertainty in the commit message. Never leave modified task files unstaged without reporting them. Then commit. Do NOT respawn the subagent.
      Report this as a violation and do NOT prose it:
         - Task [N.M] partial ⚠️ — checked but not committed; committed now ([short-hash]).
            - **What:** [task was checked but commit was missing (criterion E violated)]

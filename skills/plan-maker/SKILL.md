@@ -109,6 +109,8 @@ Save the new plan as `[ID]-[kebab-feature-name].md` in the identified location.
 
 Follow the mandatory format below exactly. Never omit a section — write `N/A` if a section genuinely does not apply, but keep the heading.
 
+**References:** Collect all files and resources discovered during context gathering and referenced in the plan (source files, docs, specs, ADRs, related plans). Copy them into the `## References` section as formatted entries. Every file path must be a markdown link `[path](path)`. If the Reference List is empty, write `N/A` under the heading — do not omit it.
+
 ```
 # [ID] — [Feature name]
 **Purpose**:
@@ -167,7 +169,7 @@ Follow the mandatory format below exactly. Never omit a section — write `N/A` 
 > **Releasable**: [Precise condition — e.g. "after this phase", "after each tool task", "when Task 1.3 is complete"]
 
 #### Task 1.1 — [Task name]
-- [ ] **File**: `path/to/file.ext`
+- [ ] **File**: [path/to/file.ext](path/to/file.ext)
 - **Depends on**: [Task X.Y | nothing]
 - **Description**:
   - Exact method/function signatures with type hints
@@ -175,7 +177,7 @@ Follow the mandatory format below exactly. Never omit a section — write `N/A` 
   - Config keys, env vars, or constants introduced
   - Integration points with other modules
 - **Releasable**: [one sentence — what becomes callable or usable after this task completes]
-- **Tests (TDD)** — `tests/path/test_file.ext`:
+- **Tests (TDD)** — [tests/path/test_file.ext](tests/path/test_file.ext):
   - Unit: `test_<scenario>` — what it verifies and how
   - Unit: `test_<edge_case>` — description
   - Integration: `test_<scenario>` — which components interact
@@ -195,12 +197,21 @@ Follow the mandatory format below exactly. Never omit a section — write `N/A` 
     architecture docs, user guides, CHANGELOG) and update every file whose content is affected
     by the changes delivered in this plan. The agent must not update docs that are unrelated.
   - Verify all acceptance criteria below are met before marking this task complete.
+  - Verify every file reference in the plan is a valid markdown link — properly formatted as
+    `[path](path)` and pointing to a file that exists in the project. List any broken references
+    (path doesn't exist) as blockers before marking complete. New files created by this plan are
+    exempt from the existence check.
 - **Releasable**: after this task, the feature is fully verified and all documentation reflects
   the delivered implementation.
 - **Acceptance criteria** (must all pass):
   - [Measurable, testable criterion]
 - **Tests (TDD)**: N/A — this is a verification and documentation task.
-- **Checkpoint**: manually confirm every acceptance criterion above is checked.
+- **Checkpoint**: manually confirm every acceptance criterion above is checked; scan the plan file for any bare file paths not wrapped in a markdown link and fix them.
+
+---
+
+## References
+- [path/to/relevant-file.ext](path/to/relevant-file.ext) `[source]` — why it's relevant
 ```
 
 ---
@@ -220,6 +231,8 @@ Follow the mandatory format below exactly. Never omit a section — write `N/A` 
 **Separation of concerns**: data models, business logic, API layer, config, and documentation updates are each their own task — never combine them in one task.
 
 **Final task**: Every plan must end with the "Final verification & documentation update" task as the last task of the last phase. It carries the full acceptance criteria list and the documentation update responsibility.
+
+**File links**: Every file path in the plan must be written as a markdown link `[path](path)` — in **File** items, **Tests (TDD)** headers, and anywhere else a project file path appears.
 
 ---
 
@@ -260,7 +273,7 @@ If no scheme exists: `FEAT-001`, `FIX-001`, `REFACTOR-001`, `INFRA-001`, or `TAS
 **Good** — implementable, testable, complete:
 ```
 #### Task 2.1 — JWT token validation middleware
-- [ ] **File**: `src/auth/jwt_middleware.py`
+- [ ] **File**: [src/auth/jwt_middleware.py](src/auth/jwt_middleware.py)
 - **Depends on**: Task 1.3 (User model), Task 1.4 (Config loader)
 - **Description**:
   - `JWTMiddleware` class validates Bearer tokens on every protected route
@@ -271,7 +284,7 @@ If no scheme exists: `FEAT-001`, `FIX-001`, `REFACTOR-001`, `INFRA-001`, or `TAS
   - Returns `401 {"error": "unauthorized"}` on failure; never leaks exception detail
   - Attaches decoded payload to `request.state.user` on success
   - **Releasable**: after this task, all protected routes enforce JWT validation
-- **Tests (TDD)** — `tests/auth/test_jwt_middleware.py`:
+- **Tests (TDD)** — [tests/auth/test_jwt_middleware.py](tests/auth/test_jwt_middleware.py):
   - Unit: `test_valid_token_passes` — valid token returns decoded payload
   - Unit: `test_expired_token_returns_401` — expired token triggers AuthError
   - Unit: `test_missing_header_returns_401` — no Authorization header

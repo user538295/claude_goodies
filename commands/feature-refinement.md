@@ -129,7 +129,7 @@ If the `Documentation/Backlog/` directory doesn't exist, save to the project roo
 
 **Format**: Write every section for the non-technical reader (the plain-language convention applies) — except **Open Questions**, which planning tools and engineers will consume and may stay technical.
 
-**References:** Before writing the brief, copy your Reference List entries directly into the `## References` section — replace the example line in the template with the actual entries. Valid source tags: `[user]`, `[user-p2]`, `[docs-agent]`, `[code-agent]`, or any descriptive agent tag; combined tags use `+` (e.g. `[user+docs-agent]`). The note field may read `— user provided` for links with no additional context — that is acceptable. If the Reference List is empty, omit `## References` entirely — do not emit the example line.
+**References:** Before writing the brief, copy your Reference List entries directly into the `## References` section — replace the example line in the template with the actual entries. Valid source tags: `[user]`, `[user-p2]`, `[docs-agent]`, `[code-agent]`, or any descriptive agent tag; combined tags use `+` (e.g. `[user+docs-agent]`). The note field may read `— user provided` for links with no additional context — that is acceptable. If the Reference List is empty, omit `## References` entirely — do not emit the example line. Every file path in the References section must be written as a markdown link `[path](path)`; URLs are plain — markdown auto-links them.
 
 ```markdown
 # Feature Brief: [Feature Name]
@@ -166,13 +166,15 @@ Numbered steps of the main user journey — plain language, no code, no implemen
 - Good ideas intentionally deferred from this scope
 
 ## References
-- path/to/relevant-file.md `[docs-agent]` — why it's relevant
+- [path/to/relevant-file.md](path/to/relevant-file.md) `[docs-agent]` — why it's relevant
 
 ## Recommendation
 Two to three sentences: your honest take — is this the right feature to build now, what's the hardest part, and what must not be compromised?
 ```
 
 After saving, tell the user the file path and suggest: _"Run `/plan-maker [path]` to turn this into an implementation plan."_
+
+**Before telling the user the file is ready**, verify that every entry in the `## References` section is a properly formatted markdown link and that the file it points to exists in the project. If any reference is a bare path (not a link), fix it in the saved file. If any linked file does not exist, flag it to the user as a broken reference.
 
 ---
 

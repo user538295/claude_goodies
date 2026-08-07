@@ -26,7 +26,6 @@ agents/devils-advocate.md
 
 # --- commands ---
 commands/da-review.md
-commands/feature-refinement.md
 commands/implement-all.md
 commands/implement-all-safe.md
 commands/implement-next.md
@@ -43,9 +42,11 @@ scripts/task_section.awk
 
 # --- skills (each shipped skill ships its whole directory) ---
 skills/aaa/
+skills/bugfix/
 skills/commit/
 skills/doc-voice/
 skills/documentation-standard/
+skills/feature-refinement/
 skills/llm-wiki/
 skills/llm-wiki-product/
 skills/md-reviewer/

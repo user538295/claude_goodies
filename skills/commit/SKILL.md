@@ -1,7 +1,7 @@
 ---
 name: commit
 description: >-
-  Write standardized Git commit messages in a direct, why-first style — Conventional Commits subject + a body of one or more `## H2` sections, each opening with a context paragraph then bullets. Use when the user asks to "write a commit message", "draft a commit message", "what should the commit message be", "make the commit message", "commit message for these changes", or invokes /commit (commit mode) or /commit message (draft mode); for agent callers, `/commit commit` is the deterministic commit-mode trigger and `/commit message` is the deterministic draft-mode trigger. Two modes: bare `/commit` generates the message AND runs `git commit` (commit mode); `/commit message` generates message text only and never mutates the repo (draft mode). Safe to invoke as one step inside a larger task: it does its job, reports, and returns control without ever ending the agent's turn. Always applies this skill's standardized format — never inspects prior commits to "match local convention". Do NOT use for PR descriptions, tag annotations, or release notes — those have different voice constraints and live outside this skill.
+  Write standardized Git commit messages in a direct, why-first style — Conventional Commits subject + a body of one or more `## H2` sections, each opening with a context paragraph then bullets. Use when the user asks to "write a commit message", "draft a commit message", "what should the commit message be", "make the commit message", "commit message for these changes", or invokes /commit or /commit message. Two modes: bare `/commit` generates the message AND runs `git commit` (commit mode); `/commit message` generates message text only and never mutates the repo (draft mode). Safe to invoke as one step inside a larger task: it does its job, reports, and returns control without ever ending the agent's turn. Always applies this skill's standardized format — never inspects prior commits to "match local convention". Do NOT use for PR descriptions, tag annotations, or release notes — those have different voice constraints and live outside this skill.
 ---
 
 # Commit
@@ -40,16 +40,14 @@ This skill is invoked in one of two modes. **Decide the mode from the invocation
 
 **Commit mode (default).** The skill generates the message AND runs `git commit` with it, then reports the new commit. Triggered by:
 - A bare `/commit` with no arguments.
-- The literal argument `commit` — `/commit commit`. This is the **deterministic trigger for agent callers**: pass `commit` as the sole argument and commit mode is selected. (If both `commit` and `message` tokens appear in the arguments, see **Precedence** below — `message` wins.)
+- The literal argument `commit` — `/commit commit`. This is the **deterministic trigger for agent callers**: pass `commit` as the argument and commit mode is guaranteed.
 - Natural-language commit verbs: "commit the changes", "commit it", "commit these", "go ahead and commit", "commit using /commit".
 
 **Draft mode.** The skill produces message text only and never mutates the repo. Triggered by:
 - The literal argument `message` — `/commit message`. This is the **deterministic trigger for agent callers** wanting draft mode.
-- "write / draft / make the commit message", "what should the commit message be?", "commit message for these changes" — without an explicit commit instruction. (A "commit message" noun phrase followed by a sequencing commit verb — "write the commit message **and then commit it**" — is a commit-verb request and triggers commit mode instead.)
+- "write / draft / make the commit message", "what should the commit message be?", "commit message for these changes" — without an explicit commit instruction.
 
-**The rule:** bare `/commit` or an explicit commit *verb* directed at the repo → commit mode. `/commit message` or a message-only request → draft mode. When genuinely ambiguous (both a draft noun and a commit verb appear in the same request), default to **draft mode** and say so — a draft is always safe; an unwanted commit requires a manual `git reset --soft` to undo (and this skill cannot do that for you). (This NL-parsing default is separate from the invocation default stated above — a bare `/commit` still commits; this rule only governs genuinely ambiguous natural-language phrasing.)
-
-**Precedence when triggers collide (literal-argument form):** When the literal token `message` appears anywhere in the slash-command arguments — `/commit message`, `/commit message commit`, `/commit commit message` — draft mode wins regardless of argument order. This applies to literal-argument invocations only (the slash-command surface). Natural language that does NOT contain a literal `/commit message` invocation is governed by the NL rules above, not this precedence rule.
+**The rule:** bare `/commit` or an explicit commit *verb* directed at the repo → commit mode. `/commit message` or a message-only request → draft mode. When genuinely ambiguous, default to **commit mode** (the explicit action the user asked for) and say so.
 
 Mode selection only changes whether the skill commits. The message format, voice, and generation steps are identical in both modes.
 
@@ -61,9 +59,9 @@ Mode selection only changes whether the skill commits. The message format, voice
 
 - The user invokes `/commit` (commit mode — generate + commit).
 - The user invokes `/commit message` (draft mode — generate only).
-- The user asks to "write / draft / make the commit message" (draft mode).
-- The user asks "what should the commit message be?" (draft mode).
-- The user has just finished a change and is about to commit (commit mode).
+- The user asks to "write / draft / make the commit message".
+- The user asks "what should the commit message be?"
+- The user has just finished a change and is about to commit.
 
 ## When NOT to use
 
@@ -90,7 +88,7 @@ Produce **one fenced block** containing the commit message. Nothing above it exc
 - <concrete change>
 ```
 
-In commit mode, the SHA + file list appears here instead.   ← commit-mode result (default); in draft mode, the one-sentence usage hint appears here.
+Paste into `git commit -F-` or `git commit -e` to review.   ← draft-mode trailer; in commit mode this is replaced by the commit result (SHA + files).
 ````
 
 Never:
@@ -289,7 +287,6 @@ When invoked, follow these steps **in order**. Do not skip steps. **First determ
 
 ## What this skill does NOT do
 
-- **Draft mode never commits.** `/commit message` (or any draft-mode invocation) generates message text only. It runs zero write commands — no `git add`, no `git commit`, ever.
 - **No staging in draft mode.** Draft mode will not run `git add`; if the user has unstaged changes they meant to include, it flags them but does not act. Commit mode stages the specific files belonging to the change being committed (`git add <paths>`) — never a blind `git add -A` — and asks via the `/options` skill when the set is ambiguous.
 - **No history-matching.** Does not inspect prior commits to mimic an inconsistent past format. Applies this skill's standardized format regardless of project history.
 - **No PR descriptions, release notes, or tag annotations.** Different audience, different voice.

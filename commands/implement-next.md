@@ -49,7 +49,7 @@ If step 1 or 2 identifies a companion plan path but that file **does not exist**
 If the task produces testable code output, follow strict TDD:
 
 1. **Write tests first** — unit, integration, and live/end-to-end tests covering the new behaviour and the task's acceptance criteria. Tests must fail at this point (red).
-2. **Run the tests** — confirm they fail for the right reasons. **Always blocking — never backgrounded, never via polling tools. One test run at a time: before starting any run, verify no earlier test run is still alive (e.g. `pgrep -fl pytest` is empty) — overlapping runs multiply parallel workers and can OOM the machine.**
+2. **Run the tests** — confirm they fail for the right reasons. One test run at a time: before starting any run, verify no earlier test run is still alive with `ps -Ao comm=,args= | awk '$1 ~ /[Pp]ython/ && /\/pytest/'` (must be empty — `pgrep -fl pytest` self-matches the shell and must not be used). Overlapping runs multiply parallel workers and can OOM the machine.
 3. **Implement the functionality** — write only enough code to make the tests pass (green).
 4. **Run the tests again** — all new and existing tests must pass before continuing.
 
@@ -69,11 +69,15 @@ After `/iterative-review` returns — regardless of what its Verdict says — yo
 
 ### Step 4: Run tests
 
-You MUST run the full test suite as a **blocking (foreground) command**, with a timeout under your runtime's foreground ceiling. Claude Code's `Bash` ceiling is 600,000 ms (10 min) — set `timeout: 540000` to leave headroom. Cursor's `terminal` tool has similar limits. **Never use polling/streaming tools** (e.g., Claude Code's `Monitor`, Cursor's background watchers) inside this subagent — they cause silent termination on yield in many harnesses, and the parent will see an empty commit.
+You MUST run the full test suite. In Claude Code the `Bash` foreground ceiling is **~120 seconds** — commands that run longer are auto-backgrounded, ending your turn before any commit lands. To run a suite that takes longer than 120 s:
 
-If the full suite cannot complete in one blocking call, run only the *task-relevant subset* (the tests added in Step 2 plus their immediate neighbourhood). Then report the partial-test scope explicitly in Step 7.
+1. Launch pytest with `run_in_background: true` — capture the process ID from the result.
+2. Immediately call the `Monitor` tool on that process — it streams stdout line-by-line and **keeps your session alive** for the full duration.
+3. Read the Monitor result to determine pass/fail and continue to Step 5.
 
-**If a test run times out or produces no/empty output, do NOT immediately re-run.** First verify the previous run's processes are actually gone (`pgrep -fl pytest` — or the project's test runner — must be empty; wait for workers to exit). Stacked suite runs multiply parallel workers and have OOM-crashed a 48 GB machine.
+In Cursor or other harnesses without `Monitor`, fall back to the *task-relevant subset* (tests added in Step 2 plus their immediate neighbourhood) as a blocking call; report the partial scope in Step 7.
+
+**Before any test run, verify no earlier run is still alive:** `ps -Ao comm=,args= | awk '$1 ~ /[Pp]ython/ && /\/pytest/'` must be empty (`pgrep -fl pytest` self-matches the shell — do not use it). Stacked suite runs multiply parallel workers and have OOM-crashed a 48 GB machine.
 
 If the test command reports failures:
 

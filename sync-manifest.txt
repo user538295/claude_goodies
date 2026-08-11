@@ -53,6 +53,7 @@ skills/md-reviewer/
 skills/options/
 skills/plain-language/
 skills/plan-maker/
+skills/quick-plan/
 skills/skill-packager/
 skills/status_report/
 skills/wrap-up/

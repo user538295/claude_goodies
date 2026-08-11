@@ -40,6 +40,10 @@ Each entry links to its handout page with a worked example.
 
 See `CLAUDE.md` § "Plan execution and commit granularity" for the design rationale.
 
+### Fix a bug
+
+- **`/bugfix`** — You have a bug and need it gone — not just patched. Drives a four-agent pipeline: failing test first, TDD fix, full review loop, commit.
+
 ### Get a second opinion
 
 - [**`/da-review`**](https://user538295.github.io/claude_goodies/handout/cmd-da-review.html) — A second opinion that actually pushes back. One-pass devil's-advocate review, no auto-fixes.
@@ -57,6 +61,10 @@ Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/h
 
 - [**`/documentation-standard`**](https://user538295.github.io/claude_goodies/handout/skill-documentation-standard.html) — Docs your team will actually find again. Enforces structure across architecture notes, ADRs, manuals, and dev guides.
 - [**`/skill-packager`**](https://user538295.github.io/claude_goodies/handout/skill-skill-packager.html) — Built a Claude Code skill? Make it work in Claude Desktop too. Packages your folder into an upload-ready ZIP.
+
+### Monitor background tasks
+
+- **`/status_report`** — Kicked off a long task and don't know when it'll finish. Reports status on demand or on a recurring schedule — cancel anytime with `off`.
 
 Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) enforces one-commit-per-task and audits finished runs; [`scripts-logging`](https://user538295.github.io/claude_goodies/handout/scripts-logging.html) archives every prompt as per-project Markdown so you never lose a conversation.
 

@@ -139,7 +139,7 @@ and `clarity-15` re-anchored to the function declaration (agents' consistent
 convention, 2/2 runs). The two baseline runs are not directly comparable: the
 catalog AND the model both changed between them.
 
-2026-08-14 (Sonnet 5) notes: Single run, default effort (no override). C# 20/20,
+2026-08-14 (Sonnet 5) notes: Single run, high effort. C# 20/20,
 Swift 13/13 (both 100%); TypeScript 24/29; Python 26/34 — python judgment recall
 is again the weak spot, consistent with every prior run. Scripted misses (2):
 `solid-12` ts:26 (`console.log` in a domain class — precomputed hit silently

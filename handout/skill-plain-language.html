@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/plain-language — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/plain-language/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/plain-language</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>A sentence a stakeholder can't follow is a decision they can't make. <code>/plain-language</code> rewrites technical content consequence-first — the precise detail stays, repositioned into parentheses where it belongs.</strong> No dumbing down, no omissions. Works for anyone who has to decide without knowing the codebase.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/plain-language</code> when the reader is a product owner, stakeholder, or end user who has to make a decision but doesn't know the code or the tech. Two modes:</p>
+      <ul>
+        <li><strong>Explain mode</strong> — you have something to explain (an error, a concept, a technical decision): pass it as an argument and it's rewritten now.</li>
+        <li><strong>Convention mode</strong> — no topic given: loads the plain-language writing convention for the rest of the session. Other skills (<code>/options</code>, <code>/feature-refinement</code>) invoke this mode automatically.</li>
+      </ul>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"explain this simply"</code></li>
+        <li><code>"what does this error mean"</code></li>
+        <li><code>"put this in plain language"</code></li>
+        <li><code>"translate this for a stakeholder"</code></li>
+        <li><code>"explain the tech so I can decide"</code></li>
+      </ul>
+      <p><strong>The convention:</strong> lead with the consequence, put the mechanism in parentheses. Precise technical detail is never removed — it is repositioned where a non-expert can skip it without losing the point.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Pass the content to explain as an argument, or ask a question:</p>
+      <pre><code>/plain-language [technical content or topic to explain]</code></pre>
+      <p>With no argument, the skill loads the plain-language convention for the session — subsequent output from skills like <code>/options</code> will follow the convention automatically.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Rewrite a technical sentence</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/plain-language "Move dedup into the StabilityGate.advance() barrier so the manifest write stops racing the scan."</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Stop the occasional duplicate output when a file is saved twice in quick
+succession (move dedup into the StabilityGate.advance() barrier so the
+manifest write no longer races the scan).</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Explain a concept to a non-technical reader</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/plain-language explain what a pre-commit hook does to our CTO</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>A script that runs automatically before each save to git — it catches
+failing tests or banned code before the change lands in the shared repo
+(defined in .git/hooks/pre-commit, runs in under 2 seconds on this
+project).</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-options.html">/options</a> — Uses <code>/plain-language</code> internally when presenting tradeoffs to stakeholders; invoke it directly to get a structured decision with plain-language framing.</li>
+        <li><a href="cmd-feature-refinement.html">/feature-refinement</a> — Uses <code>/plain-language</code> to keep the brief readable by non-technical product owners.</li>
+        <li><a href="skill-documentation-standard.html">/documentation-standard</a> — Handles doc structure; pair with <code>/plain-language</code> and <code>/doc-voice</code> to get voice and structure right together.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

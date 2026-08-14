@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/commit — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/commit/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/commit</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p><strong>Ne írj commit üzeneteket kézzel.</strong> Beolvassa a staged difft, elkészít egy Conventional Commits üzenetet egy miért-first törzzsel, majd vagy azonnal commitol, vagy csak a szöveget adja vissza — te döntöd el.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Elkészültél egy változtatással, és olyan commit üzenetre van szükséged, amely a miértet magyarázza el, nem csak a mitet. Használd a <code>/commit</code> parancsot, ha egyszerre akarod legeneráltatni és commitolni, vagy a <code>/commit message</code> parancsot, ha csak a szöveget akarod a repo érintése nélkül.</p>
+      <p>Triggerkifejezések (a SKILL.md-ből):</p>
+      <ul>
+        <li><code>"write a commit message"</code></li>
+        <li><code>"draft a commit message"</code></li>
+        <li><code>"what should the commit message be?"</code></li>
+        <li><code>"commit message for these changes"</code></li>
+        <li><code>"commit it"</code></li>
+        <li><code>"go ahead and commit"</code></li>
+      </ul>
+      <p><strong>Két mód:</strong> sima <code>/commit</code> generál és commitol; <code>/commit message</code> csak a szöveget állítja elő — a repo-t nem érinti.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Commit mód — generálás és commit:</p>
+      <pre><code>/commit</code></pre>
+      <p>Vázlat mód — csak az üzenet szövege, git-mutáció nélkül:</p>
+      <pre><code>/commit message</code></pre>
+      <p>A skill beolvassa a staged difft (vagy az unstaged változtatásokat, ha nincs semmi staged). Az üzenet alakja: <code>&lt;type&gt;(&lt;scope&gt;?): &lt;imperatív leírás&gt;</code> subject sor + egy vagy több <code>## H2</code> törzs-szekció, mindegyik egy kontextus bekezdéssel majd bullet-ekkel. Típusok: <code>feat</code>, <code>fix</code>, <code>docs</code>, <code>refactor</code>, <code>chore</code>, <code>test</code>, <code>perf</code>.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Commit mód</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/commit</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Commit mode: I will commit after generating the message.
+
+```
+docs(readme): document 8 previously undocumented skills
+
+## README coverage
+
+Eight skills existed in `skills/` with no entry in the "What it
+gives you" section. Readers had no way to discover them without
+opening raw SKILL.md files directly.
+
+Added a pain-first bullet for each skill, placed in the section
+that best matches its purpose:
+
+- "Ship a feature, start to finish": `/quick-plan`, `/commit`,
+  `/wrap-up`
+- "Get a second opinion": `/clean-code-review`, `/options`
+- "Wrangle docs and skills": `/doc-voice`, `/md-reviewer`,
+  `/plain-language`
+```
+
+6c5d1ed docs(readme): document 8 previously undocumented skills
+ README.md | 8 ++++++++</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Vázlat mód</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/commit message</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Draft mode: I will generate the message only — no commit.
+
+```
+feat(api): add POST /users/bulk endpoint for batch creation
+
+## Batch user creation
+
+Creating users one at a time via POST /users was too slow for
+import flows — a 500-row CSV took ~25 s of sequential requests.
+The new endpoint accepts up to 1 000 user objects in one call.
+
+- New route: `POST /users/bulk` in `src/routes/users.py`
+- Validates each row individually; partial failures return per-row
+  errors without rolling back successful rows
+- Added integration tests: `tests/test_users_bulk.py` (12 cases)
+```
+
+Paste into `git commit -F-` or `git commit -e` to review.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="skill-wrap-up-hu.html">/wrap-up</a> — Munkamenet-záró audit, amely teszteket és devil's-advocate-et futtat, majd a lezáratlan munkát a <code>/commit</code> segítségével commitolja.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Minden plan-taskot test-first épít fel, és minden task végén a <code>/commit</code> segítségével commitol.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Ügynöki munkafolyamat-pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

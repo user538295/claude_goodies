@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/doc-voice — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/doc-voice/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/doc-voice</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>Docs that read like marketing copy or dry internal prose get rewritten — problem-first, proof-led, no fluff.</strong> Governs how the prose reads; structure is <code>/documentation-standard</code>'s job.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>The reader is a developer deciding whether to install, try, or trust a tool. They are skeptical, fast-scanning, and one tab-close away from leaving. Use <code>/doc-voice</code> when writing or revising any user-facing prose meant to convince that reader.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"improve this README"</code></li>
+        <li><code>"rewrite the docs"</code></li>
+        <li><code>"make this clearer"</code></li>
+        <li><code>"remove the marketing fluff"</code></li>
+        <li><code>"landing copy"</code></li>
+        <li><code>"user manual"</code></li>
+        <li><code>"write a handout"</code></li>
+      </ul>
+      <p><strong>Not for:</strong> code comments, commit messages, ADRs, or internal specs — those have different voice constraints.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Invoke directly, then paste the copy to rewrite or describe what to write:</p>
+      <pre><code>/doc-voice [paste existing copy or describe what to write]</code></pre>
+      <p>The skill rewrites or drafts in one pass. For a deeper adversarial check of the result, follow up with <code>/da-review</code>.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Killing marketing language</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/doc-voice
+Supercharge your workflow with our powerful AI-driven code review tool!
+Seamlessly integrates into your development process and effortlessly
+catches bugs before they reach production.</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Code review that finds real bugs — not style preferences.
+One command, seven check groups, 85 automated detections.
+Runs on local changes, a git range, or specific files.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Pain-first feature bullet</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>Write a feature bullet for /plan-maker that doesn't sound like marketing.</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>- **/plan-maker** — Stop staring at a ticket wondering where to start.
+  Breaks a feature brief into the smallest tasks with tests and
+  dependencies — ready for /implement-next to chew through.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-documentation-standard.html">/documentation-standard</a> — Structure, organisation, and naming conventions for docs. Use it first to get the shape right; then <code>/doc-voice</code> to fix how it reads.</li>
+        <li><a href="cmd-da-review.html">/da-review</a> — Adversarial one-pass review of the output. Run it after <code>/doc-voice</code> to catch claims that don't hold up.</li>
+        <li><a href="skill-aaa.html">/aaa</a> — Benchmarks the output against world-class examples and names specific upgrade paths. Use when "is this good enough?" is the question.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

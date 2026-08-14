@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/md-reviewer — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/md-reviewer/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/md-reviewer</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p><strong>A dokumentáció elcsúszik — a szakkifejezések változnak, a kereszthivatkozások elavulnak, ellentmondások halmozódnak fel. A <code>/md-reviewer</code> Markdown-fájlokat auditál: konzisztenciát, ellentmondásokat és elavult hivatkozásokat keres, mielőtt az olvasók rábukkannak.</strong> 50+ fájlos készleteket is kezel, folytatható feldolgozással, és képes követő dokumentumokat egy tekintélyes mester ellen validálni.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor érdemes az <code>/md-reviewer</code>-t használni, ha a dokumentáció már túlnőtt azon, amit szemre ellenőrizhetnél: a terminológia elcsúszott, ellentmondást gyanítasz az oldalak között, vagy az átnevezések óta esetleg elavultak a kereszthivatkozások. Lefedi: terminológia-konzisztencia, logikai ellentmondások, kereszthivatkozás-érvényesség, formázási szabványok, hang/stílus elemzés, technikai pontosság és duplikáció-detektálás.</p>
+      <p>Triggerkifejezések (a SKILL.md-ből):</p>
+      <ul>
+        <li><code>"review my documentation"</code></li>
+        <li><code>"check docs for inconsistencies"</code></li>
+        <li><code>"validate markdown files"</code></li>
+        <li><code>"find contradictions in docs"</code></li>
+        <li><code>"audit documentation quality"</code></li>
+      </ul>
+      <p><strong>Mester-követő mód:</strong> jelölj ki egy dokumentumot mérvadónak (pl. <code>README.md</code>), és az összes többi ehhez képest kerül ellenőrzésre. A találatok súlyosság szerint vannak jelölve: ellentmondás, eltérés, elavult hivatkozás, formázási hiba.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Hívd meg közvetlenül, majd írd le a felülvizsgálandó dokumentumokat — vagy illeszd be az elérési utakat:</p>
+      <pre><code>/md-reviewer</code></pre>
+      <p>A skill két beállítási kérdést tesz fel indítás előtt: mely fájlokat vizsgálja, és van-e egy mérvadó mester dokumentum. Nagy készletek esetén (50+ fájl) nyomon követi a haladást, így szünet után folytathatod az elejéről való újraindítás nélkül.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Mester-követő felülvizsgálat</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/md-reviewer
+check docs/ for inconsistencies — README.md is the master</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Setup
+────────
+Master: README.md
+Followers: docs/architecture.md, docs/api.md, docs/install.md (3 fájl)
+
+README.md feldolgozása mesterként... kész.
+Követők feldolgozása (1/3): docs/architecture.md... kész.
+Követők feldolgozása (2/3): docs/api.md... kész.
+Követők feldolgozása (3/3): docs/install.md... kész.
+
+Találatok (3)
+────────────────────────────────────────────────────────
+Fájl                  Sor  Súlyosság    Probléma
+────────────────────────────────────────────────────────
+docs/architecture.md  14   Eltérés      "item"-et használ; a README ugyanerre "task"-ot
+docs/api.md           52   Elavult ref  /docs/config.md-re mutat — fájl átnevezve: /docs/setup.md
+docs/install.md       88   Ellentmondás Node 18+ szükséges; README szerint Node 20+
+────────────────────────────────────────────────────────
+
+3 probléma találva 3 fájlban.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Kis készlet ellentmondás-ellenőrzése</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/md-reviewer check CLAUDE.md, README.md, and install.sh comments for contradictions</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>3 fájl felülvizsgálata (nincs kijelölt mester — minden pár keresztellenőrzése).
+
+Találatok (1)
+────────────────────────────────────────────────────────
+Fájl        Sor  Súlyosság      Probléma
+────────────────────────────────────────────────────────
+install.sh  34   Ellentmondás   Megjegyzés szerint "--dry-run semmit nem ír ki";
+                                README szerint "összesítőt ír ki és 0-val lép ki"
+────────────────────────────────────────────────────────
+
+1 probléma találva.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="skill-documentation-standard-hu.html">/documentation-standard</a> — Dokumentumstruktúrát érvényesít: hová kerülnek a fájlok, milyen szakaszok szerepeljenek. Futtasd az <code>/md-reviewer</code> előtt, hogy a struktúra rendben legyen.</li>
+        <li><a href="skill-doc-voice-hu.html">/doc-voice</a> — A szöveg hangnemét szabályozza: probléma-elsőként, bizonyíték-vezérelten, marketingszlogen nélkül. Javítja a stíluseltéréseket, amelyeket az <code>/md-reviewer</code> jelez.</li>
+        <li><a href="cmd-da-review-hu.html">/da-review</a> — Egymenetes adversáris felülvizsgálat; használd az <code>/md-reviewer</code> után, ha egy második véleményt szeretnél arról, hogy a javítások helyesek-e.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Ügynöki munkafolyamat-pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

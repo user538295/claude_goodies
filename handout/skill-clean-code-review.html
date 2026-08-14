@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/clean-code-review — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/clean-code-review/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/clean-code-review</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>Code done — get the deep read before it ships.</strong> Runs 85 checks across 7 groups (clarity, smells, SOLID, architecture, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, or explicit paths — no git required for file-path mode.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>You've written the code and want a structured review before opening a PR — not a vibe check, a systematic pass across 85 named criteria. Use <code>/clean-code-review</code> when you want findings grouped, labeled by severity, and synthesized into a clear action list.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"review my code"</code></li>
+        <li><code>"check the code quality"</code></li>
+        <li><code>"run a clean code review"</code></li>
+        <li><code>"review these changes"</code></li>
+        <li><code>/clean-code-review</code></li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <pre><code>/clean-code-review [TARGET ...] [GROUP ...]</code></pre>
+      <p><strong>Targets</strong> (default: all local changes):</p>
+      <ul>
+        <li><em>none</em> or <code>local</code> — staged + unstaged + untracked changes</li>
+        <li><code>staged</code> / <code>unstaged</code> / <code>untracked</code> — only those areas; combinable</li>
+        <li>A git ref or range — <code>main..HEAD</code>, <code>HEAD~3</code>, <code>abc123..def456</code></li>
+        <li>One or more file paths — reviews the whole files; the only mode that works outside a git repo</li>
+      </ul>
+      <p><strong>Groups</strong> (case-insensitive, omit to run all 7):</p>
+      <ul>
+        <li><code>clarity</code> (17 checks) · <code>smells</code> (19) · <code>solid</code> (15) · <code>arch</code> (10) · <code>tests</code> (12) · <code>safety</code> (7) · <code>ddd</code> (5)</li>
+      </ul>
+      <p><strong>Severity levels:</strong> Critical (correctness/security) · Major (design flaw, likely bug) · Moderate (suboptimal) · Minor (style, naming)</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Full review of local changes</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/clean-code-review</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Target: local changes (staged + unstaged + untracked)
+Running 7 groups in parallel…
+
+── Results ───────────────────────────────────────────
+Group     Checks  Findings
+────────  ──────  ────────────────────────────────────
+clarity      17   1 Minor — method name does not express intent
+smells       19   1 Moderate — duplicated validation logic in 3 places
+solid        15   2 Major findings:
+                    • UserService handles auth, email, and billing (god class)
+                    • PaymentProcessor depends on concrete DB class, not interface
+arch         10   0
+tests        12   1 Moderate — happy path only; no edge cases for null input
+safety        7   0
+ddd           5   0
+
+── Synthesis ─────────────────────────────────────────
+Critical  0
+Major     2  ← fix before merge
+Moderate  2
+Minor     1
+
+Recommended next step: fix the two Major findings in `solid`.
+Run /clean-code-review solid to recheck after.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Single group on a git range</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/clean-code-review main..HEAD safety</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Target: main..HEAD
+Group: safety (7 checks)
+
+── Results ───────────────────────────────────────────
+✗ Major   — Hardcoded API key in src/config/api.py (line 14).
+            Rotate the key; move to environment variable.
+✗ Minor   — No input length validation on POST /api/users/register.
+            A 10 MB payload hits the DB before any guard runs.
+
+── Synthesis ─────────────────────────────────────────
+Critical  0
+Major     1  ← fix before merge
+Minor     1</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-da-review.html">/da-review</a> — Single-pass adversarial review; lighter and faster, no group structure. Good for a quick sanity check; <code>/clean-code-review</code> goes deeper.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — Review loop that also applies fixes. Reach for it when you want problems resolved, not just listed.</li>
+        <li><a href="skill-aaa.html">/aaa</a> — Benchmarks against world-class examples and returns upgrade paths. Use after <code>/clean-code-review</code> when "no findings" isn't enough.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

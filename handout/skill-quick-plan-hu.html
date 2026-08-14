@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/quick-plan — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/quick-plan/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/quick-plan</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p><strong>Ne merülj bele a kódba anélkül, hogy tudnád, hová tartasz. A <code>/quick-plan</code> egy mérhetőjobban megfogalmazott célt, ellenőrizhető sikerkriériumokat és 4–12 konkrét lépést határoz meg egyetlen inline menetben — mielőtt egyetlen sor kód is születne.</strong> Nem ír fájlt, nem hajt végre semmit. Csak terv.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor érdemes a <code>/quick-plan</code>-t használni, ha egy feladat elég összetett ahhoz, hogy hasznos legyen az előzetes struktúra, de nem szükséges a teljes <code>/plan-maker</code>-kezelés (egy perzisztens tervfájl, amelyet az <code>/implement-next</code> feldolgoz). Jól jön: egyetlen jól lehatárolt változtatáshoz, refaktoráláshoz, migrációhoz vagy több mozgó részből álló dokumentum-frissítéshez.</p>
+      <p>Triggerkifejezések (a SKILL.md-ből):</p>
+      <ul>
+        <li><code>"plan this"</code></li>
+        <li><code>"break this down"</code></li>
+        <li><code>"decompose"</code></li>
+        <li><code>"quick plan"</code></li>
+        <li><code>"what are the steps"</code></li>
+      </ul>
+      <p><strong>Kimenet formája:</strong> egy mérhető cél → 2–6 egyenként ellenőrizhető sikerkritérium → 4–12 konkrét lépés. Csak inline — semmi nem kerül lemezre.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Hívd meg a feladat leírásával:</p>
+      <pre><code>/quick-plan [feladat leírása]</code></pre>
+      <p>A kimenet a beszélgetésben marad. Ha utólag teljes tervfájlt szeretnél az <code>/implement-next</code> számára, inkább a <code>/plan-maker</code>-t használd.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Feature feladat</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/quick-plan add rate limiting to the /auth endpoint</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Cél
+───
+A /auth végponton rate limiting érvényes: 10 kérés/perc IP-nként,
+429 visszaadva túllépéskor.
+
+Sikerkritériumok
+────────────────
+1. pytest tests/test_rate_limit.py átmegy
+2. 11 gyors egymás utáni kérés esetén 429-et ad vissza
+3. A naplók "rate limit hit" bejegyzést tartalmaznak a blokkolt kérésnél
+
+Lépések
+───────
+1. Írj bukó tesztet: 11 kérés → 429
+2. Telepíts rate-limiting middleware-t (pl. slowapi vagy egyedi Redis-alapú)
+3. Kösd be a middleware-t csak a /auth végpontra
+4. Állítsd be a határt: 10/perc kliens IP-nként
+5. Túllépéskor adj vissza 429-et Retry-After fejléccel
+6. Adj hozzá naplóbejegyzést túllépéskor
+7. Futtasd a teszteket — ellenőrizd, hogy mind átmegy
+8. Commit</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Migrációs feladat</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/quick-plan migrate tests from unittest to pytest</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Cél
+───
+Minden tesztfájl pytest-stílusra konvertálva; a pytest nullás hibaszámmal
+futtatja a teljes tesztkészletet.
+
+Sikerkritériumok
+────────────────
+1. A pytest automatikusan megtalálja az összes tesztfájlt (nincs unittest runner)
+2. A pytest --tb=short 0-val lép ki
+3. unittest.TestCase import már nem szerepel egyetlen fájlban sem
+
+Lépések
+───────
+1. Leltározd fel az összes tesztfájlt (find . -name "test_*.py")
+2. Minden fájlban: cseréld le a class TestX(unittest.TestCase)-t sima függvényekre
+3. Cseréld le a self.assertEqual(a, b)-t assert a == b-re (és hasonlókat)
+4. Cseréld le a setUp/tearDown metódusokat pytest fixture-ökre
+5. Töröld az unittest.main() blokkokat
+6. Futtasd a pytest-et — javíts minden felfedezési vagy assertion hibát
+7. Commit</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="skill-plan-maker-hu.html">/plan-maker</a> — Alaposabb tervezés, amely egy perzisztens tervfájlt ír, amelyet az <code>/implement-next</code> taskról taskra végrehajthat. Akkor használd, ha automatizált végrehajtást szeretnél, nem csak struktúrát.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Egy <code>/plan-maker</code>-tervfájlból hajt végre egy taskot; az <code>/implement-all</code>-lal párosítva felügyelet nélkül futtatja az egész tervet.</li>
+        <li><a href="cmd-feature-refinement-hu.html">/feature-refinement</a> — Egy nyers ötletet Feature Brief-fé alakít a tervezés előtt. Futtasd először, ha még nem egyértelmű, mi is pontosan a feladat.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Ügynöki munkafolyamat-pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/options — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/options/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/options</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>Stuck between approaches? Get 2–4 genuinely different paths with honest pros/cons and a firm recommendation — grounded in your actual project, not generic assumptions.</strong></p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/options</code> when you have a decision to make and want the trade-offs laid out before committing. The skill reads relevant project files so the pros/cons reflect your actual stack, not a textbook answer.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"what are my options"</code></li>
+        <li><code>"lay out the options"</code></li>
+        <li><code>"pros and cons of X"</code></li>
+        <li><code>"help me decide between"</code></li>
+        <li><code>"weigh the tradeoffs"</code></li>
+        <li><code>"which approach should I take"</code></li>
+      </ul>
+      <p><strong>Not a research workflow.</strong> The skill reads project files and reasons from them; it does not run a multi-step investigation or save output files.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>State the decision directly as the argument:</p>
+      <pre><code>/options [decision or concern]</code></pre>
+      <p>Or just raise the decision in natural language — the skill picks it up from the recent conversation if no argument is given. For decisions that concern the current project, make sure you're in the project directory so the skill can read the relevant files.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Security trade-off</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/options how should we handle auth tokens — store in localStorage vs httpOnly cookies?</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Decision: auth token storage
+
+Option A — localStorage
+  Pro: simple to implement; works across subdomains without configuration
+  Con: accessible to any script on the page — XSS on any dependency
+       exposes every token immediately
+  Con: no automatic expiry enforcement without custom logic
+
+Option B — httpOnly cookie (recommended)
+  Pro: inaccessible to JavaScript — XSS cannot read the token
+  Pro: expiry handled by the browser natively
+  Con: requires CSRF protection (SameSite=Strict handles most cases)
+  Con: cross-origin requests need CORS configuration
+
+Recommendation: httpOnly cookie.
+localStorage is exploitable via XSS in any script on your page —
+one compromised dependency and every session is exposed.
+The CSRF surface is smaller and better-understood than the XSS surface.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Project-grounded tool choice</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/options pick a test framework for our new Python service</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>[Reads pyproject.toml, existing test files, and requirements]
+
+Decision: Python test framework
+
+Option A — pytest (recommended)
+  Pro: already used in sibling service auth-service (tests/conftest.py)
+  Pro: richest plugin ecosystem (pytest-cov, pytest-asyncio for your
+       FastAPI routes)
+  Con: fixture magic is non-obvious to newcomers
+
+Option B — unittest
+  Pro: zero new dependencies
+  Con: verbose boilerplate; no parametrize without a plugin
+  Con: not used anywhere else in this repo — inconsistency cost
+
+Recommendation: pytest — it's already in the repo, the async plugin
+covers your FastAPI routes, and a single conftest.py shares fixtures
+across both services.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-aaa.html">/aaa</a> — After picking a direction, benchmark it against world-class. Use when "is this option actually good?" matters as much as "which option?"</li>
+        <li><a href="cmd-da-review.html">/da-review</a> — Adversarial check of the chosen option's implementation. Run it after you've built the thing.</li>
+        <li><a href="skill-plain-language.html">/plain-language</a> — Restate the options in non-technical terms for a stakeholder who needs to approve the decision.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

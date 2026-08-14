@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/md-reviewer — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/md-reviewer/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/md-reviewer</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>Docs drift — terms shift, cross-references rot, contradictions accumulate. <code>/md-reviewer</code> audits Markdown for consistency, contradictions, and stale links before readers find them.</strong> Handles sets of 50+ files with resumable progress tracking, and validates follower docs against an authoritative master.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/md-reviewer</code> when docs have grown beyond what you can eyeball — terminology has drifted, you suspect contradictions between pages, or cross-references may have gone stale after a rename. It covers: terminology consistency, logical contradictions, cross-reference validity, formatting standards, voice/tone analysis, technical accuracy, and duplicate detection.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"review my documentation"</code></li>
+        <li><code>"check docs for inconsistencies"</code></li>
+        <li><code>"validate markdown files"</code></li>
+        <li><code>"find contradictions in docs"</code></li>
+        <li><code>"audit documentation quality"</code></li>
+      </ul>
+      <p><strong>Master-follower mode:</strong> nominate one doc as the authority (e.g. <code>README.md</code>) and all others are checked against it. Findings are tagged by severity — contradiction, drift, stale ref, formatting.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Invoke directly, then describe the docs to review — or paste file paths:</p>
+      <pre><code>/md-reviewer</code></pre>
+      <p>The skill asks two setup questions before starting: which files to review, and whether one file is the authoritative master. For large sets (50+ files), it tracks progress so you can pause and resume without restarting.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Master-follower review</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/md-reviewer
+check docs/ for inconsistencies — README.md is the master</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Setup
+────────
+Master: README.md
+Followers: docs/architecture.md, docs/api.md, docs/install.md (3 files)
+
+Processing README.md as master... done.
+Processing followers (1/3): docs/architecture.md... done.
+Processing followers (2/3): docs/api.md... done.
+Processing followers (3/3): docs/install.md... done.
+
+Findings (3)
+────────────────────────────────────────────────────────
+File                  Line  Severity     Issue
+────────────────────────────────────────────────────────
+docs/architecture.md  14    Drift        Uses "item"; README uses "task" for same concept
+docs/api.md           52    Stale ref    Links to /docs/config.md — file was renamed to /docs/setup.md
+docs/install.md       88    Contradiction Says Node 18+ required; README says Node 20+
+────────────────────────────────────────────────────────
+
+3 issues found across 3 files.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Small-set contradiction check</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/md-reviewer check CLAUDE.md, README.md, and install.sh comments for contradictions</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Reviewing 3 files (no master nominated — cross-checking all pairs).
+
+Findings (1)
+────────────────────────────────────────────────────────
+File        Line  Severity       Issue
+────────────────────────────────────────────────────────
+install.sh  34    Contradiction  Comment says "--dry-run prints nothing"; README says it
+                                 "prints a summary count and exits 0"
+────────────────────────────────────────────────────────
+
+1 issue found.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-documentation-standard.html">/documentation-standard</a> — Enforces doc structure: where files go, what sections to include. Run before <code>/md-reviewer</code> to get structure right first.</li>
+        <li><a href="skill-doc-voice.html">/doc-voice</a> — Governs prose voice: problem-first, proof-led, no marketing fluff. Fixes the writing style <code>/md-reviewer</code> flags as voice-drift.</li>
+        <li><a href="cmd-da-review.html">/da-review</a> — Adversarial one-pass review; use it after <code>/md-reviewer</code> when you want a second opinion on whether the fixes are sound.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

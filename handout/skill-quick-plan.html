@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/quick-plan — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/quick-plan/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/quick-plan</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>Stop diving into code without knowing where you're going. <code>/quick-plan</code> defines a measurable goal, verifiable success criteria, and 4–12 concrete steps in one inline pass — before any code is written.</strong> No file created, no execution. Plan only.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/quick-plan</code> when a task is complex enough to benefit from upfront structure but you don't need the full <code>/plan-maker</code> treatment (a persisted plan file for <code>/implement-next</code> to consume). Good for: a single well-scoped change, a refactor, a migration, a doc update with several moving parts.</p>
+      <p>Trigger phrases (from SKILL.md):</p>
+      <ul>
+        <li><code>"plan this"</code></li>
+        <li><code>"break this down"</code></li>
+        <li><code>"decompose"</code></li>
+        <li><code>"quick plan"</code></li>
+        <li><code>"what are the steps"</code></li>
+      </ul>
+      <p><strong>Output shape:</strong> one measurable goal → 2–6 individually verifiable success criteria → 4–12 concrete steps. Inline only — nothing is written to disk.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Invoke with a task description:</p>
+      <pre><code>/quick-plan [task description]</code></pre>
+      <p>The output stays in the conversation. If you later decide you want a full plan file for <code>/implement-next</code>, use <code>/plan-maker</code> instead.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Feature task</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/quick-plan add rate limiting to the /auth endpoint</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Goal
+────
+Rate limiting enforced on /auth: 10 req/min per IP, 429 returned on breach.
+
+Success criteria
+────────────────
+1. pytest tests/test_rate_limit.py passes
+2. curl -s -o /dev/null -w "%{http_code}" [11 rapid requests] returns 429
+3. Logs show "rate limit hit" for the blocked request
+
+Steps
+─────
+1. Write failing test: 11 requests → 429
+2. Install rate-limiting middleware (e.g. slowapi or custom Redis-backed)
+3. Wire middleware to /auth only
+4. Set limit: 10/minute per client IP
+5. Return 429 with Retry-After header on breach
+6. Add log line on breach
+7. Run tests — confirm all pass
+8. Commit</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Migration task</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/quick-plan migrate tests from unittest to pytest</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Goal
+────
+All test files converted to pytest style; pytest runs the full suite
+with zero failures.
+
+Success criteria
+────────────────
+1. pytest discovers all test files automatically (no unittest runner)
+2. pytest --tb=short exits 0
+3. No import of unittest.TestCase remains
+
+Steps
+─────
+1. Inventory all test files (find . -name "test_*.py")
+2. For each file: replace class TestX(unittest.TestCase) with plain functions
+3. Replace self.assertEqual(a, b) with assert a == b (and similar)
+4. Replace setUp/tearDown with pytest fixtures
+5. Remove unittest.main() guards
+6. Run pytest — fix any discovery or assertion errors
+7. Commit</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-plan-maker.html">/plan-maker</a> — Heavier planning that writes a persisted plan file <code>/implement-next</code> can execute task by task. Use when you want automated execution, not just structure.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — Executes one task from a <code>/plan-maker</code> plan file; pairs with <code>/implement-all</code> to run the whole plan unattended.</li>
+        <li><a href="cmd-feature-refinement.html">/feature-refinement</a> — Scopes a rough idea into a Feature Brief before planning. Run it first if you're not sure what the task is.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

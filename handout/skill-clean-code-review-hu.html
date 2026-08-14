@@ -19,19 +19,13 @@
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
       <p><strong>Kész a kód — mielőtt kiszállítod, kérj mély átvizsgálást.</strong> 85 ellenőrzést futtat 7 csoportban (clarity, smells, SOLID, arch, tests, safety, DDD), csoportonként egy párhuzamos ágenssel, és súlyosság szerint szintetizálja az eredményeket. Működik helyi változásokra, staged fájlokra, git-tartományokra vagy explicit fájlútvonalakra — git nélkül is, ha útvonalakat adsz meg.</p>
+      <p>A szkriptelt detekciók futnak le először a <code>collect.sh</code>-n keresztül, és előszámolt találatokként kerülnek a csoport-ágensekhez — az ágensek megerősítik vagy elvetik ezeket, nem futtatják újra a detekciót. A vendor és generált fájlok már eleve ki vannak zárva. Nagyon nagy diffeknél az egyes ellenőrzésekre eső találatszám korlátozható; a riport jelzi, ha ez történt.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>Mikor használd</h2>
-      <p>Megírtad a kódot, és strukturált átvizsgálást szeretnél PR nyitása előtt — nem hangulatellenőrzést, hanem szisztematikus átmenetet 85 nevesített kritériumon. Akkor nyúlj a <code>/clean-code-review</code>-hoz, ha csoportosított, súlyossággal jelölt és összegzett eredménylistát szeretnél.</p>
-      <p>Triggerkifejezések (a SKILL.md-ből):</p>
-      <ul>
-        <li><code>"review my code"</code></li>
-        <li><code>"check the code quality"</code></li>
-        <li><code>"run a clean code review"</code></li>
-        <li><code>"review these changes"</code></li>
-        <li><code>/clean-code-review</code></li>
-      </ul>
+      <p>Megírtad a kódot, és strukturált átvizsgálást szeretnél PR nyitása előtt — nem hangulatellenőrzést, hanem szisztematikus végigfutást 85 nevesített kritériumon. Akkor nyúlj a <code>/clean-code-review</code>-hoz, ha csoportosított, súlyossággal jelölt és összegzett eredménylistát szeretnél.</p>
+      <p>A skill nem deklarál trigger kifejezéseket — hívd meg közvetlenül: <code>/clean-code-review</code>.</p>
     </section>
 
     <section data-section="3-invocation">
@@ -41,76 +35,82 @@
       <ul>
         <li><em>nincs</em> vagy <code>local</code> — staged + unstaged + untracked változások</li>
         <li><code>staged</code> / <code>unstaged</code> / <code>untracked</code> — csak azok; kombinálható</li>
-        <li>Git-ref vagy tartomány — <code>main..HEAD</code>, <code>HEAD~3</code>, <code>abc123..def456</code></li>
+        <li>Git-ref vagy tartomány — <code>main..HEAD</code>, <code>HEAD~3</code>, <code>abc123..def456</code>. Egyetlen ref a worktree-hez képest diffel. Nem kombinálható a fenti kulcsszavakkal.</li>
         <li>Egy vagy több fájlútvonal — az egész fájlt vizsgálja; ez az egyetlen mód, ami git-repón kívül is működik</li>
       </ul>
       <p><strong>Csoportok</strong> (kis- és nagybetű-érzéketlen, kihagyva mind a 7 fut):</p>
       <ul>
         <li><code>clarity</code> (17 ellenőrzés) · <code>smells</code> (19) · <code>solid</code> (15) · <code>arch</code> (10) · <code>tests</code> (12) · <code>safety</code> (7) · <code>ddd</code> (5)</li>
       </ul>
-      <p><strong>Súlyossági szintek:</strong> Critical (helyesség/biztonság) · Major (design-hiba, valószínű bug) · Moderate (szuboptimális) · Minor (stílus, elnevezés)</p>
+      <p>Egy csoportnévvel egyező token mindig csoportot jelöl, sosem fájlt vagy refet — pl. a <code>/clean-code-review tests</code> a <code>tests</code> csoportot választja ki, nem egy <code>tests</code> nevű könyvtárat.</p>
+      <p><strong>Nyelvi kapu:</strong> ha a célban nincs támogatott nyelvű fájl, a review megáll, mielőtt bármelyik ágenst elindítaná: <em>"No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java. Unanalysed: {contents of unanalysed.txt}."</em></p>
+      <p><strong>Súlyossági szintek:</strong> Kritikus (helyességet, biztonságot vagy védettséget akadályoz) · Súlyos (jelentős tervezési hiba, hiányzó követelmény vagy valószínű bug) · Közepes (nem optimális, de működőképes) · Apró (stílus, elnevezés vagy szőrszálhasogatás)</p>
     </section>
 
     <section data-section="4-example-1">
-      <h2>1. példa — Helyi változások teljes átvizsgálása</h2>
+      <h2>1. példa — Helyi változások teljes átvizsgálása <em>(szemléltető példa)</em></h2>
       <div class="example">
         <p><strong>Bemenet:</strong></p>
         <pre><code>/clean-code-review</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>Target: local changes (staged + unstaged + untracked)
-Running 7 groups in parallel…
+        <pre><code>## Clean Code Review
 
-── Results ───────────────────────────────────────────
-Group     Checks  Findings
-────────  ──────  ────────────────────────────────────
-clarity      17   1 Minor — method name does not express intent
-smells       19   1 Moderate — duplicated validation logic in 3 places
-solid        15   2 Major findings:
-                    • UserService handles auth, email, and billing (god class)
-                    • PaymentProcessor depends on concrete DB class, not interface
-arch         10   0
-tests        12   1 Moderate — happy path only; no edge cases for null input
-safety        7   0
-ddd           5   0
+**5 findings · 0 Critical · 4 Major · 0 Moderate · 1 Minor** (post-deduplication)
+**Target:** staged unstaged untracked
+**Groups run:** clarity, smells, solid, arch, tests, safety, ddd · 85 checks declared
+**Languages detected:** typescript
 
-── Synthesis ─────────────────────────────────────────
-Critical  0
-Major     2  ← fix before merge
-Moderate  2
-Minor     1
+---
 
-Recommended next step: fix the two Major findings in `solid`.
-Run /clean-code-review solid to recheck after.</code></pre>
+### `src/services/UserService.ts`
+
+[solid-01] · Major · Single Responsibility Principle | src/services/UserService.ts:12 | Split UserService — separate auth, email, and billing into distinct classes
+
+### `src/services/PaymentProcessor.ts`
+
+[solid-05] · Major · Dependency Inversion Principle | src/services/PaymentProcessor.ts:34 | Replace direct dependency on PostgresClient with an interface — inject the implementation
+[smells-04] · Major · Code Duplication | src/services/PaymentProcessor.ts:58 | Remove duplicate validation logic — reuse existing validateInput in src/utils/validation.ts
+
+### `src/services/__tests__/PaymentProcessor.test.ts`
+
+[tests-07] · Major · Test Edge Case Coverage | src/services/__tests__/PaymentProcessor.test.ts:20 | Add edge case test for chargeCard — cover null input
+
+### `src/utils/format.ts`
+
+[clarity-02] · Minor · Function/Method Naming | src/utils/format.ts:8 | Rename doStuff to formatCurrency — name does not express intent</code></pre>
       </div>
     </section>
 
     <section data-section="5-example-2">
-      <h2>2. példa — Egyetlen csoport egy git-tartományra</h2>
+      <h2>2. példa — Egyetlen csoport egy git-tartományra <em>(szemléltető példa)</em></h2>
       <div class="example">
         <p><strong>Bemenet:</strong></p>
         <pre><code>/clean-code-review main..HEAD safety</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>Target: main..HEAD
-Group: safety (7 checks)
+        <pre><code>## Clean Code Review
 
-── Results ───────────────────────────────────────────
-✗ Major   — Hardcoded API key in src/config/api.py (line 14).
-            Rotate the key; move to environment variable.
-✗ Minor   — No input length validation on POST /api/users/register.
-            A 10 MB payload hits the DB before any guard runs.
+**2 findings · 1 Critical · 1 Major · 0 Moderate · 0 Minor** (post-deduplication)
+**Target:** ref: main..HEAD
+**Groups run:** safety · 7 checks declared
+**Languages detected:** python
 
-── Synthesis ─────────────────────────────────────────
-Critical  0
-Major     1  ← fix before merge
-Minor     1</code></pre>
+---
+
+### `src/services/order_service.py`
+
+[safety-01] · Critical · Resource Leak | src/services/order_service.py:23 | Wrap db_connection in a `with` block to guarantee cleanup
+
+### `src/services/notification_service.py`
+
+[safety-06] · Major · Blocking I/O in Async Context | src/services/notification_service.py:41 | Replace blocking requests.get inside async send_notification with an async HTTP client</code></pre>
       </div>
     </section>
 
     <section data-section="6-related-tools">
       <h2>Kapcsolódó eszközök</h2>
       <ul>
-        <li><a href="cmd-da-review-hu.html">/da-review</a> — Egymenetes adversarial review; könnyebb és gyorsabb, nincs csoportstruktúra. Gyors józanság-ellenőrzéshez jó; a <code>/clean-code-review</code> mélyebbre megy.</li>
-        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — Javításokat is alkalmazó review-hurok. Akkor nyúlj hozzá, ha azt szeretnéd, hogy a problémák meg is oldódjanak, ne csak listázva legyenek.</li>
+        <li><a href="cmd-da-review-hu.html">/da-review</a> — Egymenetes, ördög ügyvédje (devil's advocate) jellegű felülvizsgálat; könnyebb és gyorsabb, nincs csoportstruktúra. Gyors józanság-ellenőrzéshez jó; a <code>/clean-code-review</code> mélyebbre megy.</li>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — Javításokat is alkalmazó review-hurok. Ha a <code>/clean-code-review</code> telepítve van és a cél kód, az 1. köre egy <code>/clean-code-review</code> futást is elvégez extra katalógus-ellenőrzésként, <code>C1-CC-N</code> címkével a devil's advocate találatok mellett. Akkor nyúlj hozzá, ha azt szeretnéd, hogy a problémák meg is oldódjanak, ne csak listázva legyenek.</li>
         <li><a href="skill-aaa-hu.html">/aaa</a> — Világszínvonalú példákhoz méri az eredményt, és fejlesztési utakat ad vissza. Használd a <code>/clean-code-review</code> után, ha a "nincs találat" még nem elég.</li>
       </ul>
     </section>

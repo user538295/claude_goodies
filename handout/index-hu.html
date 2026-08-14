@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Claude Code segédlettár</title>
 <link rel="stylesheet" href="styles.css">
-<!-- Source: directory — links to all 23 handout pages (last synced: 2026-08-14) -->
+<!-- Source: directory — links to all 25 handout pages (last synced: 2026-08-14) -->
 <style>
   body {
     padding: 2rem 1.5rem 4rem;
@@ -265,9 +265,13 @@
     <div class="cat-section">
       <h2>Skillek</h2>
       <div class="tool-list">
+        <a class="tool-item" href="skill-feature-refinement-hu.html">
+          <span class="tool-name">/feature-refinement</span>
+          <span class="tool-desc">Egy nyers ötletből átadható brief. Egy szenior termékgondolkodó végigvezet a kérdéseken, amiket egyébként átugranál, és lerak eléd egy lehatárolt Feature Brief-et, amit a /plan-maker átvehet.</span>
+        </a>
         <a class="tool-item" href="skill-aaa-hu.html">
           <span class="tool-name">/aaa</span>
-          <span class="tool-desc">Amikor a „nekem oké" már nem elég. Egy ötletet, feature-t vagy designt stresszelteszt valós best practice-ek mentén, és 3–4 konkrét utat ad arra, hogyan emeld világszínvonalra.</span>
+          <span class="tool-desc">Amikor a „nekem oké” már nem elég. Egy ötletet, feature-t vagy designt stresszelteszt valós best practice-ek mentén, és 3–4 konkrét utat ad arra, hogyan emeld világszínvonalra.</span>
         </a>
         <a class="tool-item" href="skill-documentation-standard-hu.html">
           <span class="tool-name">/documentation-standard</span>
@@ -295,7 +299,7 @@
         </a>
         <a class="tool-item" href="skill-clean-code-review-hu.html">
           <span class="tool-name">/clean-code-review</span>
-          <span class="tool-desc">Kész a kód, és szeretnéd az igazi átvizsgálást. 85 automatizált ellenőrzést futtat 7 csoportban — clarity, smells, SOLID, architektúra, tesztek, biztonság, DDD — helyi változásokon, git-tartományon vagy megadott fájlokon.</span>
+          <span class="tool-desc">Kész a kód, és szeretnéd az igazi átvizsgálást. 85 ellenőrzést futtat 7 csoportban — clarity, smells, SOLID, architektúra, tesztek, biztonság, DDD — helyi változásokon, git-tartományon vagy megadott fájlokon.</span>
         </a>
         <a class="tool-item" href="skill-commit-hu.html">
           <span class="tool-name">/commit</span>
@@ -323,7 +327,7 @@
         </a>
         <a class="tool-item" href="skill-bugfix-hu.html">
           <span class="tool-name">/bugfix</span>
-          <span class="tool-desc">Van egy bugod, és nem csak foltozni akarod — ki akarod irtani. Négylépéses ágens-pipeline viszi végig: bukó teszt, TDD javítás, teljes review-kör, commit.</span>
+          <span class="tool-desc">Van egy bugod, és nem csak foltozni akarod — ki akarod irtani. Négy ágensből álló pipeline viszi végig: bukó teszt, TDD javítás, doksi-frissítés, teljes review-kör, commit.</span>
         </a>
         <a class="tool-item" href="skill-status_report-hu.html">
           <span class="tool-name">/status_report</span>
@@ -340,13 +344,13 @@
           <span class="tool-name">/da-review</span>
           <span class="tool-desc">Egy második vélemény, ami tényleg visszanyom. Egymenetes devil's-advocate review-t futtat a kódodon, terveden vagy designodon, és listázza az összes hibát, amit talál — auto-fix nélkül, csak őszinte verdiktek.</span>
         </a>
-        <a class="tool-item" href="cmd-feature-refinement-hu.html">
-          <span class="tool-name">/feature-refinement</span>
-          <span class="tool-desc">Egy nyers ötletből átadható brief. Egy szenior termékgondolkodó végigvezet a kérdéseken, amiket egyébként átugranál, és lerak eléd egy lehatárolt Feature Brief-et, amit a /plan-maker átvehet.</span>
-        </a>
         <a class="tool-item" href="cmd-implement-all-hu.html">
           <span class="tool-name">/implement-all</span>
           <span class="tool-desc">Kész tervvel a kezedben? Hagyd ott a gépet, és hagyd, hogy szállítson. Az /implement-next-et futtatja loop-ban — egy task, egy commit — amíg a tervben minden elem megépül, átfut review-n, és kipipálódik. Bármilyen harness-ben.</span>
+        </a>
+        <a class="tool-item" href="cmd-implement-all-safe-hu.html">
+          <span class="tool-name">/implement-all-safe</span>
+          <span class="tool-desc">Az /implement-all inline változata — minden lépés az aktuális kontextusban fut, alügynökök indítása nélkül. Az /implement-all automatikusan erre esik vissza Claude Code &lt; 2.1.172 alatt, Cursorban, vagy bármilyen harness-ben, ahol nincs Agent tool; közvetlenül is hívhatod, ha nem az automatikus felismerésre akarsz hagyatkozni.</span>
         </a>
         <a class="tool-item" href="cmd-implement-next-hu.html">
           <span class="tool-name">/implement-next</span>
@@ -380,7 +384,7 @@
         </a>
         <a class="tool-item" href="scripts-plan-hu.html">
           <span class="tool-name">scripts-plan</span>
-          <span class="tool-desc">Tartsd őszintén a terv végrehajtását, egy commitnyi lépésekben. Követi a haladást egy plan fájlon, betartatja az egy-commit-per-task fegyelmet, és end-to-end auditál egy lezárt futást.</span>
+          <span class="tool-desc">Lásd, mi a következő lépés anélkül, hogy újraolvasnád az egész tervet. Progress headert ír a következő kipipálatlan taskhoz — az /implement-next egyszer olvassa be az 1. lépésében, az /implement-all minden iterációban.</span>
         </a>
       </div>
     </div>

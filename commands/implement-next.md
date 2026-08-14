@@ -1,5 +1,5 @@
 ---
-description: Portable runtime-agnostic — read a plan from $ARGUMENTS, implement the next uncompleted task with TDD, optional review, blocking tests, check off, commit. Works in any harness without hook dependencies. For Claude Code's hook-enforced variant use /implement-next-cc.
+description: Portable runtime-agnostic — read a plan from $ARGUMENTS, implement the next uncompleted task with TDD, optional review, blocking tests, check off, commit. Works in any harness without hook dependencies.
 ---
 
 Plan file: $ARGUMENTS

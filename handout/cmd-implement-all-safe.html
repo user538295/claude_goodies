@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/implement-all-safe — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/implement-all-safe.md (last synced: 2026-08-14) -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/implement-all-safe</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Portable runtime-agnostic loop that repeatedly runs <code>/implement-next</code> against a plan file, executing every step inline in the current context — no subagents are spawned. It works in any harness (Claude Code, Cursor, <code>claude -p</code>) without hook dependencies, and is also the mode <code>/implement-all</code> switches to automatically when its <code>Agent</code> tool is unavailable (Cursor, <code>claude -p</code>, Claude Code &lt; 2.1.172).</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/implement-all-safe</code> directly when your harness has no subagent primitive to spawn tasks with, or when <code>/implement-all</code> has already selected it for you after its version check.</p>
+      <ul>
+        <li>You are running in Cursor, <code>claude -p</code>, or another harness without an <code>Agent</code>/<code>Task</code> tool.</li>
+        <li>Your Claude Code build is older than <code>2.1.172</code>, so the <code>Agent</code> tool cannot be used for per-task subagents.</li>
+        <li><code>/implement-all</code> invoked this command automatically after its Step -1 version check found <code>CLAUDE_CODE_EXECPATH</code> unset or the version too old.</li>
+      </ul>
+      <p><strong>Critical constraints (enforced by the command itself):</strong></p>
+      <ul>
+        <li>Does NOT spawn subagents — every step of every task executes inline in the current context.</li>
+        <li>Implements EXACTLY ONE task per loop iteration — no previewing or preparing subsequent tasks.</li>
+        <li>Retries the same task (not later tasks) if its checkbox does not flip, up to 3 attempts, then stops and reports "Manual intervention required."</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Pass the path to the plan file as the sole argument.</p>
+      <pre><code>/implement-all-safe [plan-file-path]</code></pre>
+      <p><strong>Parameters:</strong></p>
+      <ul>
+        <li><code>[plan-file-path]</code> — (required) Path to the plan Markdown file, or a keyword to search for if the exact path is unknown.</li>
+      </ul>
+      <p><strong>Process (Step 0 + loop):</strong></p>
+      <ol start="0">
+        <li><strong>Step 0 — Resolve the plan file:</strong> If the argument is a path to an existing file, use it. Otherwise, glob <code>**/*.md</code>, keyword-match candidates, and keep only those with at least one unchecked task. Halt and ask the user on ambiguity or no match.</li>
+      </ol>
+      <p><strong>Loop body (repeats until <code>plan-progress.sh</code> reports exit 1 — all tasks complete):</strong></p>
+      <ol>
+        <li><strong>Progress:</strong> Runs <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> and shows the first two lines of output verbatim, unreformatted. Exit 1 → all tasks complete, stop. Exit 2/3 → halt with error. Exit 0 → note <code>NEXT_TASK_NAME</code> and continue.</li>
+        <li><strong>Implement next task (inline):</strong> Prints <code>Starting task &lt;NEXT_TASK_NAME&gt; at [HH:MM:SS]</code>, then runs <code>/implement-next</code> directly in the current context — no subagent is spawned. The same scope rules as <code>/implement-all</code> apply: exactly one task, and the turn only ends once implementation, <code>/iterative-review</code>, passing tests, the checkbox flip, a single commit, and <code>/implement-next</code> Step 7's report are all done.</li>
+        <li><strong>Recovery check — verify the task landed:</strong> Checks that the task is checked off in the plan file and that related files are committed. If not checked, goes back to step 2 and retries (up to 3 attempts, then stops and reports for manual intervention). If checked but uncommitted, commits only the files belonging to this task by explicit path (never <code>git add -A</code>) and reports it as a violation.</li>
+      </ol>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Run directly in a harness without a subagent primitive <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/implement-all-safe plans/FEAT-003-cli-migration.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Progress   : [███░░░░░░░░░] 25%  (2/8 tasks, 1/3 phases)
+Next task  : 2.1  **File**: `src/cli/parser.py`
+
+Starting task 2.1 at [09:14:02]
+(runs /implement-next inline: TDD cycle, /iterative-review, tests, check-off, commit)
+
+Task 2.1 ✅ — checked (line 41) and committed (a1b2c3d). Checkpoint verified (checkbox + commit).
+
+Progress   : [█████░░░░░░░] 37%  (3/8 tasks, 1/3 phases)
+Next task  : 2.2  **File**: `src/cli/validator.py`
+
+… (5 more iterations) …
+
+Progress   : all tasks complete (exit 1)
+All tasks complete.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — <code>/implement-all</code> falls back to this command automatically <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/implement-all plans/FEAT-004-legacy-refactor.md
+(run on a Claude Code build older than 2.1.172)</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Version 2.0.40 detected — below 2.1.172, Agent tool unavailable. Switching to inline mode (/implement-all-safe).
+
+Progress   : [░░░░░░░░░░░░] 0%  (0/5 tasks, 0/2 phases)
+Next task  : 1.1  **File**: `README.md`
+
+Starting task 1.1 at [11:02:47]
+(runs /implement-next inline: TDD cycle, /iterative-review, tests, check-off, commit)
+
+Task 1.1 ✅ — checked (line 18) and committed (d4e5f60). Checkpoint verified (checkbox + commit).
+
+… (4 more iterations) …
+
+Progress   : all tasks complete (exit 1)
+All tasks complete.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-implement-all.html">/implement-all</a> — The version-aware wrapper: spawns a subagent per task when the <code>Agent</code> tool is available (Claude Code ≥ 2.1.172), and falls back to this command otherwise.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — The single-task implementation command this loop runs inline for each task; runs TDD, critical review, tests, check-off, and commit.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — Devil's advocate review loop invoked by <code>/implement-next</code> during each task's implementation.</li>
+        <li><a href="scripts-plan.html">scripts-plan</a> — The <code>plan-progress.sh</code> script called at the start of each iteration.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

@@ -86,10 +86,6 @@ check_prereqs() {
     missing=1
   fi
 
-  if ! command -v jq > /dev/null 2>&1; then
-    echo "Warning: jq is not installed; SubagentStop hook registration will be skipped (manual instructions will be printed)." >&2
-  fi
-
   if [[ "$missing" -eq 1 ]]; then
     exit 1
   fi
@@ -220,76 +216,6 @@ stage_files() {
 set_permissions() {
   find "$STAGE_DIR" -name "*.sh" -exec chmod +x {} \;
   find "$STAGE_DIR" -name "*.py" -exec chmod +x {} \;
-}
-
-# ---------------------------------------------------------------------------
-# register_subagent_stop_hook
-# Idempotently merges the SubagentStop hook entry into ~/.claude/settings.json
-# so /implement-all-cc has its enforcement gate from a fresh install.
-# No-ops cleanly when settings.json is missing, jq is missing, or the hook
-# is already registered.
-# ---------------------------------------------------------------------------
-register_subagent_stop_hook() {
-    local settings="${DEST_DIR}/settings.json"
-    if [ ! -f "$settings" ]; then
-        if ! command -v jq >/dev/null 2>&1; then
-            echo "  Note: ${settings} not found and jq not installed; cannot bootstrap settings.json automatically."
-            echo "  Create ${settings} with this content:"
-            printf '    {"hooks":{"SubagentStop":[{"matcher":"*","hooks":[{"type":"command","command":"$HOME/.claude/scripts/implement-next-stop-gate.sh"}]}]}}\n'
-            return 0
-        fi
-        # Bootstrap minimal settings.json with just the hook
-        mkdir -p "$(dirname "$settings")"
-        jq -n '{
-            hooks: {
-                SubagentStop: [{
-                    matcher: "*",
-                    hooks: [{
-                        type: "command",
-                        command: "$HOME/.claude/scripts/implement-next-stop-gate.sh"
-                    }]
-                }]
-            }
-        }' > "$settings"
-        echo "  Bootstrapped ${settings} with SubagentStop hook."
-        return 0
-    fi
-
-    if ! command -v jq >/dev/null 2>&1; then
-        echo "  Note: jq not installed; cannot register SubagentStop hook automatically."
-        echo "  Manually add this to ${settings} under hooks.SubagentStop:"
-        printf '    [{"matcher": "*", "hooks": [{"type": "command", "command": "$HOME/.claude/scripts/implement-next-stop-gate.sh"}]}]\n'
-        return 0
-    fi
-
-    # Idempotency: check if already registered
-    if jq -e '.hooks.SubagentStop[]? | .hooks[]? | select(.command | test("implement-next-stop-gate.sh"))' "$settings" >/dev/null 2>&1; then
-        echo "  SubagentStop hook already registered in ${settings}."
-        return 0
-    fi
-
-    # Merge the hook entry, preserving everything else
-    local tmp
-    tmp=$(mktemp)
-    if jq '
-        .hooks //= {} |
-        .hooks.SubagentStop //= [] |
-        .hooks.SubagentStop += [{
-            "matcher": "*",
-            "hooks": [{
-                "type": "command",
-                "command": "$HOME/.claude/scripts/implement-next-stop-gate.sh"
-            }]
-        }]
-    ' "$settings" > "$tmp" 2>/dev/null; then
-        mv "$tmp" "$settings"
-        echo "  Registered SubagentStop hook in ${settings}."
-    else
-        rm -f "$tmp"
-        echo "  ERROR: ${settings} appears malformed; cannot register hook automatically." >&2
-        echo "  Fix the JSON syntax and re-run install.sh, or add the hook manually:" >&2
-        printf '    {"matcher":"*","hooks":[{"type":"command","command":"$HOME/.claude/scripts/implement-next-stop-gate.sh"}]}\n' >&2
-    fi
 }
 
 # ---------------------------------------------------------------------------
@@ -465,52 +391,6 @@ dry_cp() {
     return 0
   fi
   cp "$src" "$dst" || { echo "Error: failed to install $dst" >&2; exit 1; }
-}
-
-# ---------------------------------------------------------------------------
-# check_cc_variant_integrity
-# Post-install sanity check that the CC variant's required skills are present.
-# Warns to stderr (does not exit) if any are missing. Only meaningful after a
-# real install — caller must gate on DRY_RUN != 1.
-# RECOVERY_SCHEMA_V2 — includes scripts/implement-next-triage.sh.
-# ---------------------------------------------------------------------------
-check_cc_variant_integrity() {
-    local missing=()
-    for f in commands/implement-next-cc.md commands/implement-next-cc-resume.md commands/implement-all-cc.md \
-             scripts/implement-next-stop-gate.sh scripts/implement-next-state-write.sh \
-             scripts/implement-next-state-clear.sh scripts/implement-next-triage.sh; do
-        if [ ! -f "${DEST_DIR}/${f}" ]; then
-            missing+=("$f")
-        fi
-    done
-    if [ ${#missing[@]} -gt 0 ]; then
-        echo "  WARNING: CC variant is incomplete; missing files:" >&2
-        printf '    - %s\n' "${missing[@]}" >&2
-        echo "  /implement-all-cc will fail at rescue path. Re-run install or use /implement-all (portable) instead." >&2
-    fi
-}
-
-# ---------------------------------------------------------------------------
-# check_portable_variant_integrity
-# RECOVERY_SCHEMA_V2 — Post-install sanity check that the portable variant's
-# required skills/scripts are present. Without this, a portable-only install
-# missing the triage script would fail at Step 0 with a raw "bash: not found"
-# and no diagnostic. Both variants share scripts/implement-next-triage.sh.
-# Warns to stderr (does not exit) if any are missing.
-# ---------------------------------------------------------------------------
-check_portable_variant_integrity() {
-    local missing=()
-    for f in commands/implement-all.md commands/implement-next.md \
-             scripts/implement-next-triage.sh; do
-        if [ ! -f "${DEST_DIR}/${f}" ]; then
-            missing+=("$f")
-        fi
-    done
-    if [ ${#missing[@]} -gt 0 ]; then
-        echo "  WARNING: portable variant is incomplete; missing files:" >&2
-        printf '    - %s\n' "${missing[@]}" >&2
-        echo "  /implement-all (portable) will fail at Step 0 triage. Re-run install to restore the manifest." >&2
-    fi
 }
 
 # ---------------------------------------------------------------------------

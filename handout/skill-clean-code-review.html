@@ -18,20 +18,14 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p><strong>Code done — get the deep read before it ships.</strong> Runs 85 checks across 7 groups (clarity, smells, SOLID, architecture, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, or explicit paths — no git required for file-path mode.</p>
+      <p><strong>Code done — get the deep read before it ships.</strong> Runs 85 checks across 7 groups (clarity, smells, SOLID, arch, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, or explicit paths — no git required for file-path mode.</p>
+      <p>Scripted detections run first via <code>collect.sh</code> and are handed to the group agents as precomputed hits — agents confirm or dismiss each one rather than re-running detection. Vendor and generated files are excluded upfront. Per-check findings can be capped on very large diffs; the report notes it when that happens.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>When to use</h2>
       <p>You've written the code and want a structured review before opening a PR — not a vibe check, a systematic pass across 85 named criteria. Use <code>/clean-code-review</code> when you want findings grouped, labeled by severity, and synthesized into a clear action list.</p>
-      <p>Trigger phrases (from SKILL.md):</p>
-      <ul>
-        <li><code>"review my code"</code></li>
-        <li><code>"check the code quality"</code></li>
-        <li><code>"run a clean code review"</code></li>
-        <li><code>"review these changes"</code></li>
-        <li><code>/clean-code-review</code></li>
-      </ul>
+      <p>The skill declares no trigger phrases — invoke it directly with <code>/clean-code-review</code>.</p>
     </section>
 
     <section data-section="3-invocation">
@@ -41,68 +35,74 @@
       <ul>
         <li><em>none</em> or <code>local</code> — staged + unstaged + untracked changes</li>
         <li><code>staged</code> / <code>unstaged</code> / <code>untracked</code> — only those areas; combinable</li>
-        <li>A git ref or range — <code>main..HEAD</code>, <code>HEAD~3</code>, <code>abc123..def456</code></li>
+        <li>A git ref or range — <code>main..HEAD</code>, <code>HEAD~3</code>, <code>abc123..def456</code>. A single ref diffs against the worktree. Not combinable with the keywords above.</li>
         <li>One or more file paths — reviews the whole files; the only mode that works outside a git repo</li>
       </ul>
       <p><strong>Groups</strong> (case-insensitive, omit to run all 7):</p>
       <ul>
         <li><code>clarity</code> (17 checks) · <code>smells</code> (19) · <code>solid</code> (15) · <code>arch</code> (10) · <code>tests</code> (12) · <code>safety</code> (7) · <code>ddd</code> (5)</li>
       </ul>
-      <p><strong>Severity levels:</strong> Critical (correctness/security) · Major (design flaw, likely bug) · Moderate (suboptimal) · Minor (style, naming)</p>
+      <p>A token that matches a group name is always treated as a group, never as a file or ref — e.g. <code>/clean-code-review tests</code> selects the <code>tests</code> group, not a directory named <code>tests</code>.</p>
+      <p><strong>Language gate:</strong> if no supported language file is detected in the target, the review aborts before spawning any agent: <em>"No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java. Unanalysed: {contents of unanalysed.txt}."</em></p>
+      <p><strong>Severity levels:</strong> Critical (blocks correctness, security, or safety) · Major (significant design flaw, missing requirement, or likely bug) · Moderate (suboptimal but workable) · Minor (style, naming, or nitpick)</p>
     </section>
 
     <section data-section="4-example-1">
-      <h2>Example 1 — Full review of local changes</h2>
+      <h2>Example 1 — Full review of local changes <em>(illustrative example)</em></h2>
       <div class="example">
         <p><strong>Input:</strong></p>
         <pre><code>/clean-code-review</code></pre>
         <p><strong>Output / Result:</strong></p>
-        <pre><code>Target: local changes (staged + unstaged + untracked)
-Running 7 groups in parallel…
+        <pre><code>## Clean Code Review
 
-── Results ───────────────────────────────────────────
-Group     Checks  Findings
-────────  ──────  ────────────────────────────────────
-clarity      17   1 Minor — method name does not express intent
-smells       19   1 Moderate — duplicated validation logic in 3 places
-solid        15   2 Major findings:
-                    • UserService handles auth, email, and billing (god class)
-                    • PaymentProcessor depends on concrete DB class, not interface
-arch         10   0
-tests        12   1 Moderate — happy path only; no edge cases for null input
-safety        7   0
-ddd           5   0
+**5 findings · 0 Critical · 4 Major · 0 Moderate · 1 Minor** (post-deduplication)
+**Target:** staged unstaged untracked
+**Groups run:** clarity, smells, solid, arch, tests, safety, ddd · 85 checks declared
+**Languages detected:** typescript
 
-── Synthesis ─────────────────────────────────────────
-Critical  0
-Major     2  ← fix before merge
-Moderate  2
-Minor     1
+---
 
-Recommended next step: fix the two Major findings in `solid`.
-Run /clean-code-review solid to recheck after.</code></pre>
+### `src/services/UserService.ts`
+
+[solid-01] · Major · Single Responsibility Principle | src/services/UserService.ts:12 | Split UserService — separate auth, email, and billing into distinct classes
+
+### `src/services/PaymentProcessor.ts`
+
+[solid-05] · Major · Dependency Inversion Principle | src/services/PaymentProcessor.ts:34 | Replace direct dependency on PostgresClient with an interface — inject the implementation
+[smells-04] · Major · Code Duplication | src/services/PaymentProcessor.ts:58 | Remove duplicate validation logic — reuse existing validateInput in src/utils/validation.ts
+
+### `src/services/__tests__/PaymentProcessor.test.ts`
+
+[tests-07] · Major · Test Edge Case Coverage | src/services/__tests__/PaymentProcessor.test.ts:20 | Add edge case test for chargeCard — cover null input
+
+### `src/utils/format.ts`
+
+[clarity-02] · Minor · Function/Method Naming | src/utils/format.ts:8 | Rename doStuff to formatCurrency — name does not express intent</code></pre>
       </div>
     </section>
 
     <section data-section="5-example-2">
-      <h2>Example 2 — Single group on a git range</h2>
+      <h2>Example 2 — Single group on a git range <em>(illustrative example)</em></h2>
       <div class="example">
         <p><strong>Input:</strong></p>
         <pre><code>/clean-code-review main..HEAD safety</code></pre>
         <p><strong>Output / Result:</strong></p>
-        <pre><code>Target: main..HEAD
-Group: safety (7 checks)
+        <pre><code>## Clean Code Review
 
-── Results ───────────────────────────────────────────
-✗ Major   — Hardcoded API key in src/config/api.py (line 14).
-            Rotate the key; move to environment variable.
-✗ Minor   — No input length validation on POST /api/users/register.
-            A 10 MB payload hits the DB before any guard runs.
+**2 findings · 1 Critical · 1 Major · 0 Moderate · 0 Minor** (post-deduplication)
+**Target:** ref: main..HEAD
+**Groups run:** safety · 7 checks declared
+**Languages detected:** python
 
-── Synthesis ─────────────────────────────────────────
-Critical  0
-Major     1  ← fix before merge
-Minor     1</code></pre>
+---
+
+### `src/services/order_service.py`
+
+[safety-01] · Critical · Resource Leak | src/services/order_service.py:23 | Wrap db_connection in a `with` block to guarantee cleanup
+
+### `src/services/notification_service.py`
+
+[safety-06] · Major · Blocking I/O in Async Context | src/services/notification_service.py:41 | Replace blocking requests.get inside async send_notification with an async HTTP client</code></pre>
       </div>
     </section>
 
@@ -110,7 +110,7 @@ Minor     1</code></pre>
       <h2>Related tools</h2>
       <ul>
         <li><a href="cmd-da-review.html">/da-review</a> — Single-pass adversarial review; lighter and faster, no group structure. Good for a quick sanity check; <code>/clean-code-review</code> goes deeper.</li>
-        <li><a href="cmd-iterative-review.html">/iterative-review</a> — Review loop that also applies fixes. Reach for it when you want problems resolved, not just listed.</li>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — Review loop that also applies fixes. When <code>/clean-code-review</code> is installed and the target is code, its cycle 1 also runs one <code>/clean-code-review</code> pass as an extra catalog check, labeling its findings <code>C1-CC-N</code> alongside the devil's advocate findings. Reach for it when you want problems resolved, not just listed.</li>
         <li><a href="skill-aaa.html">/aaa</a> — Benchmarks against world-class examples and returns upgrade paths. Use after <code>/clean-code-review</code> when "no findings" isn't enough.</li>
       </ul>
     </section>

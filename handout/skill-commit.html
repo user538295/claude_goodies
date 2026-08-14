@@ -46,7 +46,7 @@
     </section>
 
     <section data-section="4-example-1">
-      <h2>Example 1 — Commit mode</h2>
+      <h2>Example 1 — Commit mode <em>(illustrative example)</em></h2>
       <div class="example">
         <p><strong>Input:</strong></p>
         <pre><code>/commit</code></pre>
@@ -78,7 +78,7 @@ that best matches its purpose:
     </section>
 
     <section data-section="5-example-2">
-      <h2>Example 2 — Draft mode</h2>
+      <h2>Example 2 — Draft mode <em>(illustrative example)</em></h2>
       <div class="example">
         <p><strong>Input:</strong></p>
         <pre><code>/commit message</code></pre>
@@ -107,8 +107,9 @@ Paste into `git commit -F-` or `git commit -e` to review.</code></pre>
     <section data-section="6-related-tools">
       <h2>Related tools</h2>
       <ul>
-        <li><a href="skill-wrap-up.html">/wrap-up</a> — End-of-session audit that runs tests and devil's advocate, then invokes <code>/commit</code> internally to close out uncommitted work.</li>
-        <li><a href="cmd-implement-next.html">/implement-next</a> — Builds each plan task test-first and commits via <code>/commit</code> at the end of every task.</li>
+        <li><a href="skill-wrap-up.html">/wrap-up</a> — End-of-session audit that runs tests and devil's advocate, then surfaces any uncommitted work and asks — it commits only after you say yes.</li>
+        <li><a href="cmd-implement-next.html">/implement-next</a> — Builds each plan task test-first and commits it directly in its own Step 6 — one task, one commit.</li>
+        <li><a href="skill-bugfix.html">/bugfix</a> — Invokes <code>/commit</code> as its last mutating step, before the final report, after the failing test, TDD fix, doc update, and review loop.</li>
       </ul>
     </section>
 

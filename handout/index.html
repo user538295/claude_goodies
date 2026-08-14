@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Claude Code Handout Directory</title>
 <link rel="stylesheet" href="styles.css">
-<!-- Source: directory — links to all 27 handout pages (last synced: 2026-08-14) -->
+<!-- Source: directory — links to all 25 handout pages (last synced: 2026-08-14) -->
 <style>
   body {
     padding: 2rem 1.5rem 4rem;
@@ -265,6 +265,10 @@
     <div class="cat-section">
       <h2>Skills</h2>
       <div class="tool-list">
+        <a class="tool-item" href="skill-feature-refinement.html">
+          <span class="tool-name">/feature-refinement</span>
+          <span class="tool-desc">Turn a rough idea into a brief you can hand off. A senior product thinker walks you through the questions you'd otherwise skip, and lands you with a scoped Feature Brief ready for /plan-maker.</span>
+        </a>
         <a class="tool-item" href="skill-aaa.html">
           <span class="tool-name">/aaa</span>
           <span class="tool-desc">When "looks good to me" isn't enough. Stress-tests an idea, feature, or design against real-world best practices and hands you 3–4 concrete ways to make it world-class.</span>
@@ -295,7 +299,7 @@
         </a>
         <a class="tool-item" href="skill-clean-code-review.html">
           <span class="tool-name">/clean-code-review</span>
-          <span class="tool-desc">Code done, want the real read. Runs 85 automated checks across 7 groups — clarity, smells, SOLID, architecture, tests, safety, DDD — on local changes, a git range, or specific files.</span>
+          <span class="tool-desc">Code done, want the real read. Runs 85 checks across 7 groups — clarity, smells, SOLID, architecture, tests, safety, DDD — on local changes, a git range, or specific files.</span>
         </a>
         <a class="tool-item" href="skill-commit.html">
           <span class="tool-name">/commit</span>
@@ -323,7 +327,7 @@
         </a>
         <a class="tool-item" href="skill-bugfix.html">
           <span class="tool-name">/bugfix</span>
-          <span class="tool-desc">You have a bug and need it gone — not just patched. Drives a four-agent pipeline: failing test first, TDD fix, full review loop, commit.</span>
+          <span class="tool-desc">You have a bug and need it gone — not just patched. Drives a four-agent pipeline: failing test first, TDD fix, doc update, full review loop, commit.</span>
         </a>
         <a class="tool-item" href="skill-status_report.html">
           <span class="tool-name">/status_report</span>
@@ -340,13 +344,13 @@
           <span class="tool-name">/da-review</span>
           <span class="tool-desc">A second opinion that actually pushes back. Runs a one-pass devil's-advocate review of your code, plan, or design and lists every flaw it can find — no auto-fixes, just honest verdicts.</span>
         </a>
-        <a class="tool-item" href="cmd-feature-refinement.html">
-          <span class="tool-name">/feature-refinement</span>
-          <span class="tool-desc">Turn a rough idea into a brief you can hand off. A senior product thinker walks you through the questions you'd otherwise skip, and lands you with a scoped Feature Brief ready for /plan-maker.</span>
-        </a>
         <a class="tool-item" href="cmd-implement-all.html">
           <span class="tool-name">/implement-all</span>
           <span class="tool-desc">Have a finished plan? Walk away and let it ship. Runs /implement-next in a loop — one task, one commit at a time — until every item in the plan is built, reviewed, and checked off. Works in any harness.</span>
+        </a>
+        <a class="tool-item" href="cmd-implement-all-safe.html">
+          <span class="tool-name">/implement-all-safe</span>
+          <span class="tool-desc">The inline variant of /implement-all — every step runs in the current context, no subagents spawned. /implement-all falls back to it automatically on Claude Code &lt; 2.1.172, in Cursor, or in any harness without the Agent tool; call it directly if you'd rather not rely on the auto-detect.</span>
         </a>
         <a class="tool-item" href="cmd-implement-next.html">
           <span class="tool-name">/implement-next</span>
@@ -380,7 +384,7 @@
         </a>
         <a class="tool-item" href="scripts-plan.html">
           <span class="tool-name">scripts-plan</span>
-          <span class="tool-desc">Keep plan execution honest, one commit at a time. Tracks progress through a plan file, enforces one-commit-per-task discipline, and audits a finished run end-to-end.</span>
+          <span class="tool-desc">See what's next without re-reading the whole plan. Prints a progress header for the next uncompleted task — /implement-next reads it once in Step 1, /implement-all on every iteration.</span>
         </a>
       </div>
     </div>

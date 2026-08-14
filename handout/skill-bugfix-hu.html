@@ -18,12 +18,12 @@
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p><strong>Van egy bugod, és nem csak foltozni akarod — ki akarod irtani.</strong> Négylépéses ágens-pipeline viszi végig: bukó teszt első (kódolvasás nem számít bizonyítéknak — csak a piros teszt), TDD javítás, doksi-frissítés, teljes iterative-review, majd commit.</p>
+      <p><strong>Van egy bugod, és nem csak foltozni akarod — ki akarod irtani.</strong> Négy ágensből álló pipeline viszi végig: bukó teszt első (kódolvasás nem számít bizonyítéknak — csak a piros teszt), TDD javítás, doksi-frissítés, teljes iterative-review, majd commit. Minden ágens egy alapfeltevésből indul ki: a bug valós és létezik — egyik sem zárhatja azzal, hogy „nincs bug” vagy „nem reprodukálható, lezárva”.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>Mikor használd</h2>
-      <p>Bugot jeleztek — felhasználótól, megbukott CI-futásból, bug-riportfájlból, vagy saját megfigyelésből. A <code>/bugfix</code> az egész javítást végigviszi: reprodukálja teszttel, javítja a kódot, reviewolja az eredményt, és commitol — anélkül, hogy elvesznél a nyomozásban.</p>
+      <p>Bugot jeleztek — felhasználótól, megbukott CI-futásból, bug-riportfájlból, vagy saját megfigyelésből. A <code>/bugfix</code> az egész javítást végigviszi: reprodukálja teszttel, javítja a kódot, átvizsgálja az eredményt, és commitol — anélkül, hogy elvesznél a nyomozásban.</p>
       <ul>
         <li><code>"/bugfix a bejelentkezési form enter-re is elküld, ha tiltott"</code></li>
         <li><code>"/bugfix Documentation/Backlog/bug-szamla-kerekeites.md"</code></li>
@@ -43,14 +43,15 @@
         <li><strong>Reprodukálás</strong> — maradandó, elhelyezett bukó tesztet ír, amely <em>emiatt a bug miatt</em> bukik. Kódolvasás nem fogadható el bizonyítékként.</li>
         <li><strong>Javítás (TDD)</strong> — a legkisebb termelési kód-változtatás, amely zöldre forgatja a tesztet. A reprodukciós tesztet nem szabad módosítani.</li>
         <li><strong>Doksi-frissítés</strong> — szinkronizálja a törött viselkedést leíró dokumentációt.</li>
-        <li><strong>Iteratív review</strong> — futtatja az <code>/iterative-review</code>-t, amíg nem marad Kritikus, Major vagy Moderate probléma.</li>
-        <li><strong>Commit</strong> — meghívja a <code>/commit</code>-ot.</li>
+        <li><strong>Iteratív review</strong> — futtatja az <code>/iterative-review</code>-t, amíg nem marad Kritikus, Súlyos vagy Közepes probléma.</li>
+        <li><strong>Commit</strong> — meghívja a <code>/commit</code>-ot. Ha a commit elutasításra kerül (hook, nincs staged változás), a hibaüzenetet szó szerint jelenti — nem próbál megkerülő megoldást.</li>
+        <li><strong>Report</strong> — rögzített formátumú összefoglaló: bug, repro, fix, docs, review, commit.</li>
       </ol>
-      <p>A lépések sorban futnak. Ha a reprodukálás nem sikerül, a skill leáll és jelenti — soha nem folytatja a javítást reprodukálás nélkül.</p>
+      <p>A lépések sorban futnak. Ha a reprodukálás őszinte erőfeszítés után sem sikerül, a skill leáll és jelenti — soha nem folytatja a javítást reprodukálás nélkül.</p>
     </section>
 
     <section data-section="4-example-1">
-      <h2>1. példa — Szabad szöveges bug</h2>
+      <h2>1. példa — Szabad szöveges bug <em>(szemléltető példa)</em></h2>
       <div class="example">
         <p><strong>Bemenet:</strong></p>
         <pre><code>/bugfix a számlaösszeg .5 centnél lefelé kerekít felfelé helyett</code></pre>
@@ -58,30 +59,28 @@
         <pre><code>## 🐛 Bugfix: számlaösszeg .5 centnél lefelé kerekít
 
 **Bug**      ROUND_HALF_DOWN alkalmazva a `billing/invoice.py:calculate_total`-ban
-**Repro**    tests/billing/test_invoice.py::test_half_cent_rounding — bukott, most átmegy
+**Repro**    tests/billing/test_invoice.py::test_half_cent_rounding — failed, now passes
 **Fix**      Decimal kerekítési mód átváltva ROUND_HALF_UP-ra (`billing/invoice.py`)
-**Docs**     nem érintett
-**Review**   2 probléma javítva (0/1/1), 0 maradt
-**Commit**   a3f91bc — 2 fájl</code></pre>
+**Docs**     none affected
+**Review**   2 issues fixed (0/1/1), 0 remaining
+**Commit**   a3f91bc — 2 files</code></pre>
       </div>
     </section>
 
     <section data-section="5-example-2">
-      <h2>2. példa — Bug-riportfájl</h2>
+      <h2>2. példa — Bug-riportfájl <em>(szemléltető példa)</em></h2>
       <div class="example">
         <p><strong>Bemenet:</strong></p>
         <pre><code>/bugfix Documentation/Backlog/bug-bulk-users-200-reszleges-hiba.md</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>Bug-riport beolvasása: Documentation/Backlog/bug-bulk-users-200-reszleges-hiba.md
-
-## 🐛 Bugfix: POST /users/bulk részleges hibánál 200-at ad vissza
+        <pre><code>## 🐛 Bugfix: POST /users/bulk részleges hibánál 200-at ad vissza
 
 **Bug**      HTTP 200 kerül visszaküldésre, ha egyes sorok validációja hibás (`routes/users.py:bulk_create`)
-**Repro**    tests/routes/test_users_bulk.py::test_partial_failure_returns_207 — bukott, most átmegy
+**Repro**    tests/routes/test_users_bulk.py::test_partial_failure_returns_207 — failed, now passes
 **Fix**      státuszkód mostantól 207 Multi-Status, ha legalább egy sor hibás (`routes/users.py`)
 **Docs**     API referencia frissítve: docs/api/users.md — státuszkódok táblázata
-**Review**   1 probléma javítva (0/0/1), 0 maradt
-**Commit**   d7c04e1 — 3 fájl</code></pre>
+**Review**   1 issue fixed (0/0/1), 0 remaining
+**Commit**   d7c04e1 — 3 files</code></pre>
       </div>
     </section>
 

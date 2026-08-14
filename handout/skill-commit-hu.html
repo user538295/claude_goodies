@@ -46,7 +46,7 @@
     </section>
 
     <section data-section="4-example-1">
-      <h2>1. példa — Commit mód</h2>
+      <h2>1. példa — Commit mód <em>(szemléltető példa)</em></h2>
       <div class="example">
         <p><strong>Bemenet:</strong></p>
         <pre><code>/commit</code></pre>
@@ -78,7 +78,7 @@ that best matches its purpose:
     </section>
 
     <section data-section="5-example-2">
-      <h2>2. példa — Vázlat mód</h2>
+      <h2>2. példa — Vázlat mód <em>(szemléltető példa)</em></h2>
       <div class="example">
         <p><strong>Bemenet:</strong></p>
         <pre><code>/commit message</code></pre>
@@ -107,8 +107,9 @@ Paste into `git commit -F-` or `git commit -e` to review.</code></pre>
     <section data-section="6-related-tools">
       <h2>Kapcsolódó eszközök</h2>
       <ul>
-        <li><a href="skill-wrap-up-hu.html">/wrap-up</a> — Munkamenet-záró audit, amely teszteket és devil's-advocate-et futtat, majd a lezáratlan munkát a <code>/commit</code> segítségével commitolja.</li>
-        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Minden plan-taskot test-first épít fel, és minden task végén a <code>/commit</code> segítségével commitol.</li>
+        <li><a href="skill-wrap-up-hu.html">/wrap-up</a> — Munkamenet-záró audit, amely teszteket és devil's-advocate-et futtat, majd felszínre hozza a nem commitolt munkát és rákérdez — csak explicit igen után commitol.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Minden plan-taskot test-first épít fel, és a saját 6. lépésében közvetlenül commitolja — egy task, egy commit.</li>
+        <li><a href="skill-bugfix-hu.html">/bugfix</a> — Utolsó mutáló lépésként a <code>/commit</code>-ot hívja, a végső riport előtt, a bukó teszt, a TDD javítás, a doksi-frissítés és a review-kör után.</li>
       </ul>
     </section>
 

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/implement-all-safe — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: commands/implement-all-safe.md (last synced: 2026-08-14) -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/implement-all-safe</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p>Runtime-független portable ciklus, amely ismételten lefuttatja a <code>/implement-next</code> parancsot egy tervfájlon — minden lépését inline, a jelenlegi kontextusban végrehajtva, subagent indítása nélkül. Bármilyen harness-ben (Claude Code, Cursor, <code>claude -p</code>) működik, hook-függőség nélkül, és ez az a mód is, amelyre a <code>/implement-all</code> automatikusan átvált, ha az <code>Agent</code> tool nem elérhető (Cursor, <code>claude -p</code>, Claude Code &lt; 2.1.172).</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Akkor használd közvetlenül a <code>/implement-all-safe</code> parancsot, ha a harness-ednek nincs subagent-primitívje a feladatok indításához, vagy ha a <code>/implement-all</code> a verzióellenőrzése után már ezt választotta ki helyetted.</p>
+      <ul>
+        <li>Cursorban, <code>claude -p</code>-ben vagy más olyan harness-ben futtatsz, amelyben nincs <code>Agent</code>/<code>Task</code> tool.</li>
+        <li>A Claude Code buildod régebbi, mint <code>2.1.172</code>, ezért az <code>Agent</code> tool nem használható feladatonkénti subagentekhez.</li>
+        <li>A <code>/implement-all</code> automatikusan ezt a parancsot hívta meg, miután a -1. lépés verzióellenőrzése azt találta, hogy a <code>CLAUDE_CODE_EXECPATH</code> nincs beállítva, vagy a verzió túl régi.</li>
+      </ul>
+      <p><strong>Kritikus megszorítások (a parancs maga kényszeríti ki):</strong></p>
+      <ul>
+        <li>NEM indít subagenteket — minden feladat minden lépése inline, a jelenlegi kontextusban fut le.</li>
+        <li>Ciklusonként PONTOSAN EGY feladatot implementál — nincs előkészítés vagy előretekintés a következő feladatokra.</li>
+        <li>Ha egy feladat checkboxa nem billen át, ugyanazt a feladatot próbálja újra (nem a következőket), legfeljebb 3 kísérletig, utána megáll és jelenti: "Manual intervention required."</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Hívás</h2>
+      <p>Egyetlen argumentumként add át a tervfájl elérési útját.</p>
+      <pre><code>/implement-all-safe [plan-file-path]</code></pre>
+      <p><strong>Paraméterek:</strong></p>
+      <ul>
+        <li><code>[plan-file-path]</code> — (kötelező) A terv Markdown-fájljának elérési útja, vagy egy kulcsszó, ha a pontos elérési út nem ismert.</li>
+      </ul>
+      <p><strong>Folyamat (0. lépés + ciklus):</strong></p>
+      <ol start="0">
+        <li><strong>0. lépés — Tervfájl feloldása:</strong> Ha az argumentum egy létező fájl elérési útja, azt használja. Egyébként a <code>**/*.md</code> mintára illesztett kulcsszó-egyezést keres olyan jelöltek között, amelyek tartalmaznak legalább egy be nem pipált taskot. Megáll és kérdez, ha egyértelműség nélkül több vagy egy találat sincs.</li>
+      </ol>
+      <p><strong>Ciklustörzs (addig ismétlődik, amíg a <code>plan-progress.sh</code> exit 1-et nem ad — minden feladat kész):</strong></p>
+      <ol>
+        <li><strong>Haladás:</strong> Lefuttatja a <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> parancsot, és megjeleníti a kimenet első két sorát szó szerint, átformázás nélkül. Exit 1 → minden kész, megáll. Exit 2/3 → hibajelentéssel megáll. Exit 0 → megjegyzi a <code>NEXT_TASK_NAME</code>-et és folytatódik.</li>
+        <li><strong>Következő feladat implementálása (inline):</strong> Kiírja: <code>Starting task &lt;NEXT_TASK_NAME&gt; at [HH:MM:SS]</code>, majd közvetlenül, a jelenlegi kontextusban futtatja a <code>/implement-next</code> parancsot — subagent nem indul. Ugyanazok a szkóp-szabályok érvényesek, mint a <code>/implement-all</code>-nál: pontosan egy feladat, és a kör csak akkor ér véget, ha az implementáció, a <code>/iterative-review</code>, a zöld tesztek, a checkbox átbillentése, egyetlen commit és a <code>/implement-next</code> 7. lépésének riportja mind megtörtént.</li>
+        <li><strong>Recovery check — landolt-e a feladat:</strong> Ellenőrzi, hogy a task ki van-e pipálva a tervfájlban, és hogy a kapcsolódó fájlok commitolva vannak-e. Ha nincs kipipálva, visszatér a 2. lépéshez és újrapróbálja (legfeljebb 3 kísérletig, utána megáll és jelenti, hogy manuális beavatkozás szükséges). Ha ki van pipálva, de nincs commitolva, csak az adott feladathoz tartozó fájlokat commitolja, explicit elérési út alapján (soha nem <code>git add -A</code>-val), és jelenti azt anomáliaként.</li>
+      </ol>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Közvetlen futtatás subagent-primitíva nélküli harness-ben <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/implement-all-safe plans/FEAT-003-cli-migration.md</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Progress   : [███░░░░░░░░░] 25%  (2/8 tasks, 1/3 phases)
+Next task  : 2.1  **File**: `src/cli/parser.py`
+
+Starting task 2.1 at [09:14:02]
+(runs /implement-next inline: TDD cycle, /iterative-review, tests, check-off, commit)
+
+Task 2.1 ✅ — checked (line 41) and committed (a1b2c3d). Checkpoint verified (checkbox + commit).
+
+Progress   : [█████░░░░░░░] 37%  (3/8 tasks, 1/3 phases)
+Next task  : 2.2  **File**: `src/cli/validator.py`
+
+… (5 további iteráció) …
+
+Progress   : all tasks complete (exit 1)
+All tasks complete.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — A <code>/implement-all</code> automatikusan erre a parancsra vált <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/implement-all plans/FEAT-004-legacy-refactor.md
+(2.1.172-nél régebbi Claude Code buildon futtatva)</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>Version 2.0.40 detected — below 2.1.172, Agent tool unavailable. Switching to inline mode (/implement-all-safe).
+
+Progress   : [░░░░░░░░░░░░] 0%  (0/5 tasks, 0/2 phases)
+Next task  : 1.1  **File**: `README.md`
+
+Starting task 1.1 at [11:02:47]
+(runs /implement-next inline: TDD cycle, /iterative-review, tests, check-off, commit)
+
+Task 1.1 ✅ — checked (line 18) and committed (d4e5f60). Checkpoint verified (checkbox + commit).
+
+… (4 további iteráció) …
+
+Progress   : all tasks complete (exit 1)
+All tasks complete.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="cmd-implement-all-hu.html">/implement-all</a> — A verzióérzékeny wrapper: subagentet indít feladatonként, ha az <code>Agent</code> tool elérhető (Claude Code ≥ 2.1.172), egyébként erre a parancsra vált vissza.</li>
+        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Az egyfeladatos implementációs parancs, amelyet ez a ciklus feladatonként inline lefuttat; TDD-t, kritikai review-t, teszteket, kipipálást és commitot futtat.</li>
+        <li><a href="cmd-iterative-review-hu.html">/iterative-review</a> — Devil's advocate review-ciklus, amelyet az <code>/implement-next</code> hív meg minden feladat implementációja során.</li>
+        <li><a href="scripts-plan-hu.html">scripts-plan</a> — A <code>plan-progress.sh</code> szkript, amelyet minden iteráció elején meghív.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Ügynöki munkafolyamat-pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

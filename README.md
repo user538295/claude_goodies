@@ -28,7 +28,7 @@ Each entry links to its handout page with a worked example.
 
 ### Ship a feature, start to finish
 
-- [**`/feature-refinement`**](https://user538295.github.io/claude_goodies/handout/cmd-feature-refinement.html) — Turn a rough idea into a brief you can hand off. A senior product thinker walks you through the questions you'd otherwise skip.
+- [**`/feature-refinement`**](https://user538295.github.io/claude_goodies/handout/skill-feature-refinement.html) — Turn a rough idea into a brief you can hand off. A senior product thinker walks you through the questions you'd otherwise skip.
 - [**`/plan-maker`**](https://user538295.github.io/claude_goodies/handout/skill-plan-maker.html) — Stop staring at a ticket wondering where to start. Breaks the brief into the smallest tasks with tests and dependencies.
 - [**`/implement-all`**](https://user538295.github.io/claude_goodies/handout/cmd-implement-all.html) — Have a finished plan? Walk away and let it ship. Runs `/implement-next` in a loop — one task, one commit at a time.
 - [**`/implement-next`**](https://user538295.github.io/claude_goodies/handout/cmd-implement-next.html) — Or just do the next task and stop. Builds test-first, reviews itself, commits.
@@ -36,16 +36,13 @@ Each entry links to its handout page with a worked example.
 - [**`/commit`**](https://user538295.github.io/claude_goodies/handout/skill-commit.html) — Commit time. Reads the staged diff, writes a Conventional Commits message with a why-first body, and commits. Use `/commit message` to draft the text without touching the repo.
 - [**`/wrap-up`**](https://user538295.github.io/claude_goodies/handout/skill-wrap-up.html) — Done for the day, not sure anything slipped. Audits commit hygiene, runs tests and devil's advocate, surfaces what's open — mutates nothing until you say yes.
 
-**Two variants exist — start with the portable default.**
-- `/implement-all` + `/implement-next` (portable) — runs in any harness. Halts and tells you if a task finishes without committing. **Requires Claude Code 2.1.172 or later** (it spawns subagents via the `Agent` tool, which was not available in earlier versions). If you are on an older version, use `/implement-all-safe` instead.
-- `/implement-all-safe` + `/implement-next` — identical outcome, but runs inline without spawning subagents. Use this if you are on Claude Code < 2.1.172, in Cursor, or in any headless harness that does not support the `Agent` tool.
-- `/implement-all-cc` + `/implement-next-cc` (Claude Code only) — same flow, with a runtime-level gate that won't let the agent stop without committing, plus a parent loop that recovers if it ever slips through. Pick this when you're in Claude Code and want the safety net.
+**`/implement-all` auto-detects the right mode — just call it.** On Claude Code 2.1.172+ it spawns subagents via the `Agent` tool; on older versions, in Cursor, or in any headless harness without the `Agent` tool, it automatically falls back to inline mode — same outcome, no subagents. That inline loop also ships as its own standalone command, [`/implement-all-safe`](https://user538295.github.io/claude_goodies/handout/cmd-implement-all-safe.html), if you want to invoke it directly instead of relying on the auto-fallback.
 
-See `CLAUDE.md` § "Plan execution and commit granularity" for the design rationale.
+See `commands/implement-next.md` § "Step 6: Commit" for the one-task-one-commit rule.
 
 ### Fix a bug
 
-- **`/bugfix`** — You have a bug and need it gone — not just patched. Drives a four-agent pipeline: failing test first, TDD fix, full review loop, commit.
+- [**`/bugfix`**](https://user538295.github.io/claude_goodies/handout/skill-bugfix.html) — You have a bug and need it gone — not just patched. Drives a four-agent pipeline: failing test first, TDD fix, doc update, full review loop, commit.
 
 ### Get a second opinion
 
@@ -72,9 +69,9 @@ Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/h
 
 ### Monitor background tasks
 
-- **`/status_report`** — Kicked off a long task and don't know when it'll finish. Reports status on demand or on a recurring schedule — cancel anytime with `off`.
+- [**`/status_report`**](https://user538295.github.io/claude_goodies/handout/skill-status_report.html) — Kicked off a long task and don't know when it'll finish. Reports status on demand or on a recurring schedule — cancel anytime with `off`.
 
-Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) enforces one-commit-per-task and audits finished runs; [`scripts-logging`](https://user538295.github.io/claude_goodies/handout/scripts-logging.html) archives every prompt as per-project Markdown so you never lose a conversation.
+Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement-next` reads it once in its Step 1, `/implement-all` on every iteration; [`scripts-logging`](https://user538295.github.io/claude_goodies/handout/scripts-logging.html) archives every prompt as per-project Markdown so you never lose a conversation.
 
 ---
 
@@ -105,7 +102,7 @@ Run this in any terminal — works for both fresh installs and updates. Also wor
 bash <(curl -fsSL https://raw.githubusercontent.com/user538295/claude_goodies/main/install.sh)
 ```
 
-The script clones the repo, copies everything — skills, commands, agents, scripts, and handout pages — into `~/.claude/`, and cleans up after itself. On a fresh install, `CLAUDE.md` is also copied; on updates, the existing `CLAUDE.md` is left untouched unless you pass `--overwrite`. Restart Claude Code (or start a new session) for changes to load.
+The script clones the repo, copies everything — skills, commands, agents, and scripts — into `~/.claude/`, and cleans up after itself. On a fresh install, `CLAUDE.md` is also copied. On updates, by default it 3-way merges your local changes with the new version (using a merge base saved on the prior run) and writes the merged result automatically; on a conflict it writes conflict markers into the file and opens your editor (`$VISUAL`, else `$EDITOR`, else `vi`) to resolve them. It leaves `CLAUDE.md` untouched when your copy already matches the shipped one, or when no merge base exists yet. Restart Claude Code (or start a new session) for changes to load.
 
 **Prerequisites**: bash, git, curl.
 
@@ -132,9 +129,9 @@ Everything ships with a `CLAUDE.md` that Claude Code loads at the start of every
 
 Four of these five principles are adapted from [Andrej Karpathy's guidelines](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md); "Documentation must stay current" is an original addition.
 
-And enforces: tests before code (85%+ coverage), warning-free codebase at all times, one commit per plan task, no batching multiple tasks into a single agent run.
+And enforces: tests before code (85%+ coverage), warning-free codebase at all times. `commands/implement-next.md` adds the execution-level rule: one commit per plan task, no batching multiple tasks into a single commit.
 
-The installer leaves your existing `~/.claude/CLAUDE.md` untouched by default. Pass `--overwrite` to update it: in a terminal, it shows a diff and asks for confirmation; in a non-interactive context (CI, scripts), it overwrites silently.
+By default, the installer 3-way merges your local `~/.claude/CLAUDE.md` changes with the shipped version (when a merge base from a prior run exists) and writes the merged result automatically; on a conflict it writes conflict markers into the file and opens your editor to resolve them. It leaves the file untouched when your copy already matches the shipped one, or when no merge base exists yet. Pass `--overwrite` to replace it outright instead (diff + confirmation in a terminal, silent in non-interactive contexts), or `--keep-claude-md` to leave an existing `CLAUDE.md` alone — a fresh install still installs it either way.
 
 If that's not your speed, this repo isn't for you. If it is — install in 30 seconds.
 

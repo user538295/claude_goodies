@@ -18,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p><strong>You have a bug and need it gone — not just patched.</strong> Drives a four-agent pipeline: failing test first (code inspection doesn't count — only a red test does), TDD fix, doc update, full iterative-review loop, then commit.</p>
+      <p><strong>You have a bug and need it gone — not just patched.</strong> Drives a four-agent pipeline: failing test first (code inspection doesn't count — only a red test does), TDD fix, doc update, full iterative-review loop, then commit. Every agent works from one core assumption: the bug is real and it exists — none may conclude "there is no bug" or "cannot reproduce, closing."</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -44,13 +44,14 @@
         <li><strong>Fix (TDD)</strong> — make the smallest change to production code that turns the test green. The reproduction test is never touched.</li>
         <li><strong>Update docs</strong> — sync any documentation that described the broken behaviour.</li>
         <li><strong>Iterative review</strong> — runs <code>/iterative-review</code> until no Critical, Major, or Moderate issues remain.</li>
-        <li><strong>Commit</strong> — invokes <code>/commit</code>.</li>
+        <li><strong>Commit</strong> — invokes <code>/commit</code>. If the commit is rejected (hook, nothing staged), the error is reported verbatim — no workaround is attempted.</li>
+        <li><strong>Report</strong> — a fixed-shape summary: bug, repro, fix, docs, review, commit.</li>
       </ol>
       <p>Steps run sequentially. If reproduction fails after honest effort, the skill stops and reports it — it never proceeds to fix a bug it couldn't reproduce.</p>
     </section>
 
     <section data-section="4-example-1">
-      <h2>Example 1 — Free-text bug</h2>
+      <h2>Example 1 — Free-text bug <em>(illustrative example)</em></h2>
       <div class="example">
         <p><strong>Input:</strong></p>
         <pre><code>/bugfix the invoice total rounds down on .5 cents instead of up</code></pre>
@@ -67,14 +68,12 @@
     </section>
 
     <section data-section="5-example-2">
-      <h2>Example 2 — Bug-report file</h2>
+      <h2>Example 2 — Bug-report file <em>(illustrative example)</em></h2>
       <div class="example">
         <p><strong>Input:</strong></p>
         <pre><code>/bugfix Documentation/Backlog/bug-bulk-users-200-on-partial.md</code></pre>
         <p><strong>Output / Result:</strong></p>
-        <pre><code>Reading bug report: Documentation/Backlog/bug-bulk-users-200-on-partial.md
-
-## 🐛 Bugfix: POST /users/bulk returns 200 on partial failure
+        <pre><code>## 🐛 Bugfix: POST /users/bulk returns 200 on partial failure
 
 **Bug**      HTTP 200 returned even when some rows fail validation (`routes/users.py:bulk_create`)
 **Repro**    tests/routes/test_users_bulk.py::test_partial_failure_returns_207 — failed, now passes

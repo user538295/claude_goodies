@@ -88,7 +88,7 @@ Each trap that shows up in the report as a finding is a precision failure.
 |---|---|---|---|---|---|---|---|
 | 2026-08-14 | Haiku 4.5 | default | 96 rows (4 languages) | 68/96 (71%) | 38/42 | 30/54 | 5/10 |
 | 2026-08-14 | Sonnet 4.6 | high | 96 rows (4 languages) | 85/96 (88.5%) | 42/42 (100%) | 43/54 (79.6%) | 9/10 |
-| 2026-08-14 | Sonnet 5 | default | 96 rows (4 languages) | 83/96 (86.5%) strict, 84/96 counting anchor drift | 40/42 (95.2%) | 43/54 (79.6%) | 9/10 |
+| 2026-08-14 | Sonnet 5 | high | 96 rows (4 languages) | 83/96 (86.5%) strict, 84/96 counting anchor drift | 40/42 (95.2%) | 43/54 (79.6%) | 9/10 |
 | 2026-08-14 | Opus 5 | high | 96 rows (4 languages) | 82/96 (85.4%) strict, 88/96 (91.7%) counting anchor drift | 40/42 | 42/54 (77.8%) | 9/10 |
 | 2026-08-14 | Fable 5 | high | 96 rows (4 languages) | 83/96 (86.5%) strict, 89/96 counting anchor drift | 35/38 | 48/58 | 10/10 |
 

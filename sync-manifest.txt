@@ -31,6 +31,7 @@ commands/implement-all.md
 commands/implement-all-safe.md
 commands/implement-next.md
 commands/iterative-review.md
+commands/session-log.md
 
 # --- scripts ---
 scripts/plan-progress.sh

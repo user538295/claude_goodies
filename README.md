@@ -70,8 +70,9 @@ Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/h
 ### Monitor background tasks
 
 - [**`/status_report`**](https://user538295.github.io/claude_goodies/handout/skill-status_report.html) — Kicked off a long task and don't know when it'll finish. Reports status on demand or on a recurring schedule — cancel anytime with `off`.
+- [**`/session-log`**](https://user538295.github.io/claude_goodies/handout/scripts-logging.html) — Activate, deactivate, or check prompt logging.
 
-Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement-next` reads it once in its Step 1, `/implement-all` on every iteration; [`scripts-logging`](https://user538295.github.io/claude_goodies/handout/scripts-logging.html) archives every prompt as per-project Markdown so you never lose a conversation.
+Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement-next` reads it once in its Step 1, `/implement-all` on every iteration; [`scripts-logging`](https://user538295.github.io/claude_goodies/handout/scripts-logging.html) archives every prompt as per-project Markdown so you never lose a conversation. Run `/session-log on` to activate logging — it writes the required hook entries to `~/.claude/settings.json` automatically. See the [scripts-logging handout](https://user538295.github.io/claude_goodies/handout/scripts-logging.html) for details.
 
 ---
 
@@ -142,6 +143,7 @@ If that's not your speed, this repo isn't for you. If it is — install in 30 se
 - [Claude Code](https://claude.ai/code) (CLI, desktop app, or IDE extension).
 - macOS or Linux — or Windows via WSL. (Shell scripts use bash and awk.)
 - bash, git, curl (for the installer).
+- jq (for prompt logging hooks).
 
 No MCP servers required.
 

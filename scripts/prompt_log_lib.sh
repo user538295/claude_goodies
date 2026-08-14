@@ -4,24 +4,27 @@ _CLAUDE_SESSION_MAP_DIR="$HOME/.claude/session-maps"
 create_session_file() {
   local session_id="$1"
   local cwd="$2"
+  [[ "$session_id" =~ ^[A-Za-z0-9._-]+$ ]] || return 0
+  local old_umask; old_umask=$(umask); umask 077
   local project_slug
   # Include parent dir to avoid collisions between same-named projects
   project_slug=$(echo "$cwd" | sed 's|.*/\([^/]*/[^/]*\)$|\1|' | tr '/' '-')
   local prompts_dir="$HOME/.claude/prompt-logs/$project_slug"
   mkdir -p "$prompts_dir"
+  chmod 700 "$prompts_dir"
+  chmod 700 "$HOME/.claude/prompt-logs"
   local timestamp
   timestamp=$(date '+%Y-%m-%d_%H-%M-%S')
-  local session_file="$prompts_dir/session_${timestamp}.md"
+  local session_file="$prompts_dir/session_${timestamp}_${session_id:0:8}.md"
 
   # Store session map in a private directory, not world-writable /tmp
   mkdir -p "$_CLAUDE_SESSION_MAP_DIR"
   chmod 700 "$_CLAUDE_SESSION_MAP_DIR"
   echo "$session_file" > "$_CLAUDE_SESSION_MAP_DIR/${session_id}"
-  chmod 600 "$_CLAUDE_SESSION_MAP_DIR/${session_id}"
 
   # Derive path to Claude's session JSONL file
   local project_key
-  project_key=$(echo "$cwd" | sed 's|^/||; s|/|-|g')
+  project_key=$(echo "$cwd" | sed 's|[/._]|-|g')
   local session_jsonl="$HOME/.claude/projects/${project_key}/${session_id}.jsonl"
 
   {
@@ -31,4 +34,5 @@ create_session_file() {
     printf '**Session file:** `%s`\n\n' "$session_jsonl"
     printf '%s\n\n' '---'
   } > "$session_file"
+  umask "$old_umask"
 }

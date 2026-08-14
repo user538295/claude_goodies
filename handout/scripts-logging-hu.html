@@ -23,13 +23,28 @@
 
     <section data-section="2-when-to-use">
       <h2>Mikor használd</h2>
-      <p>Ezek a szkriptek automatikusan futnak — normál használat során nem kell kézzel meghívni őket. A <code>settings.json</code>-ban Claude Code hookokhoz vannak bekötve:</p>
+      <p>A naplózás engedélyezéséhez futtasd a <code>/session-log on</code> parancsot. Ez automatikusan beírja a szükséges hook bejegyzéseket a <code>~/.claude/settings.json</code> fájlba.</p>
       <ul>
-        <li><code>prompt_log_new_session.sh</code> — a <strong>SessionStart</strong> hook hívja minden új Claude Code session indulásakor</li>
+        <li><code>prompt_log_new_session.sh</code> — a <strong>SessionStart</strong> hook hívja hideg indításkor (nem érvényes resume, /clear, vagy /compact esetén)</li>
         <li><code>prompt_log_save.sh</code> — a <strong>UserPromptSubmit</strong> hook hívja minden alkalommal, amikor promptot küldesz</li>
         <li><code>prompt_log_lib.sh</code> — belső, megosztott függvénykönyvtár; a fenti két szkript source-olja, közvetlenül soha nem hívod</li>
       </ul>
       <p>Kézzel csak akkor indítsd őket, ha a logging beállítást debugolod, vagy ha olyan szkriptet írsz, amelynek programozottan kell létrehoznia vagy bővítenie egy session naplófájlt.</p>
+      <p><strong>Függőség:</strong> A <code>jq</code>-nak telepítve kell lennie és elérhetőnek kell lennie a <code>PATH</code>-ban. Ha a <code>jq</code> hiányzik, mindkét logging szkript csendesen kilép, hiba nélkül.</p>
+    </section>
+
+    <section data-section="2b-configuration">
+      <h2>Konfiguráció</h2>
+      <h3>Naplózás kikapcsolása</h3>
+      <p>A naplózás kikapcsolásához futtasd a <code>/session-log off</code> parancsot — ez automatikusan eltávolítja a hook bejegyzéseket a <code>~/.claude/settings.json</code> fájlból. Env-var felülbírálatként beállíthatod a <code>CLAUDE_GOODIES_PROMPT_LOG=0</code> változót a shell-profilodban vagy a <code>.env</code> fájlban; ez a <code>settings.json</code> érintése nélkül tiltja le a naplózást, és plugin-frissítések után is megmarad.</p>
+      <h3>Kézi hook bekötés (install.sh telepítés esetén)</h3>
+      <p>Az <code>install.sh</code>-val telepített változatnál add hozzá az alábbi bejegyzéseket a <code>~/.claude/settings.json</code> fájl <code>"hooks"</code> kulcsa alá:</p>
+      <pre><code>{
+  "hooks": {
+    "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_new_session.sh\""}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_save.sh\""}]}]
+  }
+}</code></pre>
     </section>
 
     <section data-section="3-invocation">
@@ -46,7 +61,7 @@
 
       <h3><code>prompt_log_lib.sh</code> — Megosztott függvénykönyvtár (belső)</h3>
       <p>Közvetlenül nem hívod. A <code>create_session_file(session_id, cwd)</code> függvényt biztosítja. A fenti két szkript tetején source-olva van.</p>
-      <pre><code>source "$HOME/.claude/scripts/prompt_log_lib.sh"</code></pre>
+      <pre><code>source "$(dirname "${BASH_SOURCE[0]}")/prompt_log_lib.sh"</code></pre>
     </section>
 
     <section data-section="4-example-1">

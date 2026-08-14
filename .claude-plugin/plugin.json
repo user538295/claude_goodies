@@ -10,5 +10,6 @@
   "repository": "https://github.com/user538295/claude_goodies",
   "license": "MIT",
   "skills": "./skills/",
-  "commands": "./commands/"
+  "commands": "./commands/",
+  "hooks": "./hooks/hooks.json"
 }

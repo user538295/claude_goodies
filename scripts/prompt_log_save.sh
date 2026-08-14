@@ -1,6 +1,12 @@
 #!/bin/bash
 set -euo pipefail
-source "$HOME/.claude/scripts/prompt_log_lib.sh"
+# UserPromptSubmit hooks that exit 2 erase the user's typed prompt; normalize to 1 (non-blocking).
+# Other non-zero exits surface as hook error banners — intentional for diagnostics.
+trap 'code=$?; [ "$code" -eq 2 ] && exit 1; exit "$code"' EXIT
+umask 077
+[ "${CLAUDE_GOODIES_PROMPT_LOG:-1}" = "0" ] && exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+source "$(dirname "${BASH_SOURCE[0]}")/prompt_log_lib.sh"
 
 input=$(cat)
 session_id=$(echo "$input" | jq -r '.session_id // ""')
@@ -9,6 +15,7 @@ cwd=$(echo "$input" | jq -r '.cwd // ""')
 
 [ -z "$session_id" ] && exit 0
 [ -z "$prompt" ] && exit 0
+[ -z "$cwd" ] && exit 0
 
 session_map="$_CLAUDE_SESSION_MAP_DIR/${session_id}"
 [ ! -f "$session_map" ] && create_session_file "$session_id" "$cwd"

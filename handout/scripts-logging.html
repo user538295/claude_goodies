@@ -23,13 +23,28 @@
 
     <section data-section="2-when-to-use">
       <h2>When to use</h2>
-      <p>These scripts run automatically — you do not invoke them manually during normal use. They are wired to Claude Code hooks in <code>settings.json</code>:</p>
+      <p>Use <code>/session-log on</code> to enable logging. This writes the necessary hook entries to <code>~/.claude/settings.json</code> automatically.</p>
       <ul>
-        <li><code>prompt_log_new_session.sh</code> — called by the <strong>SessionStart</strong> hook whenever a new Claude Code session begins</li>
+        <li><code>prompt_log_new_session.sh</code> — called by the <strong>SessionStart</strong> hook on cold startup (not on resume, /clear, or /compact)</li>
         <li><code>prompt_log_save.sh</code> — called by the <strong>UserPromptSubmit</strong> hook each time you submit a prompt</li>
         <li><code>prompt_log_lib.sh</code> — an internal shared library; sourced by the two scripts above, never invoked directly</li>
       </ul>
       <p>Invoke them manually only when debugging the logging setup or when writing a script that needs to create or append to a session log file programmatically.</p>
+      <p><strong>Dependency:</strong> <code>jq</code> must be installed and on <code>PATH</code>. If <code>jq</code> is absent, both logging scripts exit silently without error.</p>
+    </section>
+
+    <section data-section="2b-configuration">
+      <h2>Configuration</h2>
+      <h3>Disabling logging</h3>
+      <p>Run <code>/session-log off</code> to disable logging — it removes the hook entries from <code>~/.claude/settings.json</code> automatically. As an env-var override, set <code>CLAUDE_GOODIES_PROMPT_LOG=0</code> in your shell profile or <code>.env</code>; this suppresses logging without touching <code>settings.json</code> and persists across plugin updates.</p>
+      <h3>Manual hook wiring (install.sh installs)</h3>
+      <p>For <code>install.sh</code> installs, add these entries to <code>~/.claude/settings.json</code> under the <code>"hooks"</code> key:</p>
+      <pre><code>{
+  "hooks": {
+    "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_new_session.sh\""}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_save.sh\""}]}]
+  }
+}</code></pre>
     </section>
 
     <section data-section="3-invocation">
@@ -46,7 +61,7 @@
 
       <h3><code>prompt_log_lib.sh</code> — Shared library (internal)</h3>
       <p>Not invoked directly. Provides the <code>create_session_file(session_id, cwd)</code> function. Sourced at the top of both scripts above.</p>
-      <pre><code>source "$HOME/.claude/scripts/prompt_log_lib.sh"</code></pre>
+      <pre><code>source "$(dirname "${BASH_SOURCE[0]}")/prompt_log_lib.sh"</code></pre>
     </section>
 
     <section data-section="4-example-1">

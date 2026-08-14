@@ -43,6 +43,7 @@ scripts/task_section.awk
 # --- skills (each shipped skill ships its whole directory) ---
 skills/aaa/
 skills/bugfix/
+skills/clean-code-review/
 skills/commit/
 skills/doc-voice/
 skills/documentation-standard/

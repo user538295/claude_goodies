@@ -1,0 +1,390 @@
+clarity-06	typescript	clarity/noise.ts	MATCH	export class SessionManager {
+clarity-06	typescript	clarity/noise.ts	NOMATCH	export class DataMigrationService {
+clarity-06	javascript	clarity/noise.js	MATCH	class OrderProcessor extends BaseService {
+clarity-06	javascript	clarity/noise.js	NOMATCH	const handler = createOrderProcessor(config);
+clarity-06	python	clarity/noise.py	MATCH	class ConnectionManager:
+clarity-06	python	clarity/noise.py	NOMATCH	manager = ConnectionManager(pool_size)
+clarity-06	csharp	clarity/Noise.cs	MATCH	public sealed class PaymentHandler : IPaymentGateway
+clarity-06	csharp	clarity/Noise.cs	NOMATCH	public void RegisterPaymentHandler(IPaymentGateway gateway)
+clarity-06	swift	clarity/Noise.swift	MATCH	final class NetworkHelper {
+clarity-06	swift	clarity/Noise.swift	NOMATCH	let helper = NetworkHelper.shared
+clarity-06	kotlin	clarity/Noise.kt	MATCH	data class UserInfo(val name: String, val email: String)
+clarity-06	kotlin	clarity/Noise.kt	NOMATCH	class UserInfoRepository(private val api: ApiClient) {
+clarity-06	java	clarity/Noise.java	MATCH	public final class StringUtils {
+clarity-06	java	clarity/Noise.java	NOMATCH	import org.apache.commons.lang3.StringUtils;
+smells-03	typescript	smells/smells-03.ts	MATCH	function save(user: User, force: boolean): void {
+smells-03	typescript	smells/smells-03.ts	NOMATCH	function hasAccess(user: User): boolean { return user.active; }
+smells-03	python	smells/smells-03.py	MATCH	def send_email(user_id: int, force: bool = False) -> None:
+smells-03	python	smells/smells-03.py	NOMATCH	def is_valid(user_id: int) -> bool:
+smells-03	csharp	smells/smells-03.cs	MATCH	public void Save(User user, bool overwrite)
+smells-03	csharp	smells/smells-03.cs	NOMATCH	public bool IsValid(User user)
+smells-03	swift	smells/smells-03.swift	MATCH	func updateUser(id: Int, notify: Bool) {
+smells-03	swift	smells/smells-03.swift	NOMATCH	func isValid(id: Int) -> Bool {
+smells-03	kotlin	smells/smells-03.kt	MATCH	fun saveUser(user: User, overwrite: Boolean) {
+smells-03	kotlin	smells/smells-03.kt	NOMATCH	fun findUser(id: String): User = users.getValue(id)
+smells-03	java	smells/smells-03.java	MATCH	public void publish(Article article, boolean notifySubscribers) {
+smells-03	java	smells/smells-03.java	NOMATCH	public boolean isPublished() { return published; }
+smells-06	typescript	smells/smells-06.ts	MATCH	// const legacyTimeout = 5000;
+smells-06	typescript	smells/smells-06.ts	NOMATCH	// constant values live in config.ts, not here
+smells-06	javascript	smells/smells-06.js	MATCH	// var oldCounter = 0;
+smells-06	javascript	smells/smells-06.js	NOMATCH	// returns the cached value when available
+smells-06	python	smells/smells-06.py	MATCH	# print(response.json())
+smells-06	python	smells/smells-06.py	NOMATCH	# classification of the response happens downstream
+smells-06	csharp	smells/smells-06.cs	MATCH	// var legacyClient = new HttpClient();
+smells-06	csharp	smells/smells-06.cs	NOMATCH	// formats the address for display purposes
+smells-06	swift	smells/smells-06.swift	MATCH	// let cachedToken = keychain.readToken()
+smells-06	swift	smells/smells-06.swift	NOMATCH	// variants are handled by the theme engine
+smells-06	kotlin	smells/smells-06.kt	MATCH	// val retryCount = 3
+smells-06	kotlin	smells/smells-06.kt	NOMATCH	// validation happens in the use case layer
+smells-06	java	smells/smells-06.java	MATCH	// private static final int LEGACY_LIMIT = 10;
+smells-06	java	smells/smells-06.java	NOMATCH	// classes in this package are immutable
+smells-07	typescript	smells/smells-07.ts	MATCH	// TODO: handle token refresh on 401
+smells-07	typescript	smells/smells-07.ts	NOMATCH	// TODOs for this module are tracked in JIRA-1204
+smells-07	javascript	smells/smells-07.js	MATCH	// FIXME: race when two tabs write simultaneously
+smells-07	javascript	smells/smells-07.js	NOMATCH	// FIXMEs get promoted to tickets during triage
+smells-07	python	smells/smells-07.py	MATCH	# HACK: strip BOM until upstream encoder is fixed
+smells-07	python	smells/smells-07.py	NOMATCH	# TODOs are converted to tickets by the pre-commit hook
+smells-07	csharp	smells/smells-07.cs	MATCH	// FIXME: dispose the reader on early return
+smells-07	csharp	smells/smells-07.cs	NOMATCH	// XXXL payloads are rejected before this point
+smells-07	swift	smells/smells-07.swift	MATCH	// TODO: migrate to async/await once minimum target is iOS 15
+smells-07	swift	smells/smells-07.swift	NOMATCH	// HACKs were removed during the security audit
+smells-07	kotlin	smells/smells-07.kt	MATCH	// HACK: force refresh because the SDK caches stale tokens
+smells-07	kotlin	smells/smells-07.kt	NOMATCH	// TODOs belong in the issue tracker, not the code
+smells-07	java	smells/smells-07.java	MATCH	// XXX this bypasses the permission check entirely
+smells-07	java	smells/smells-07.java	NOMATCH	// FIXMEs are triaged weekly by the platform team
+smells-08	typescript	smells/smells-08.ts	MATCH	function findUser(id: string): User | null { return null; }
+smells-08	typescript	smells/smells-08.ts	NOMATCH	if (user == null) { throw new NotFoundError(id); }
+smells-08	javascript	smells/smells-08.js	MATCH	let selectedItem = null;
+smells-08	javascript	smells/smells-08.js	NOMATCH	if (cache !== null && cache.has(key)) return cache.get(key);
+smells-08	python	smells/smells-08.py	MATCH	def find_user(user_id: int) -> Optional[User]:
+smells-08	python	smells/smells-08.py	NOMATCH	if result is None: raise LookupError(user_id)
+smells-08	csharp	smells/smells-08.cs	MATCH	public User? FindUser(string id) { return null; }
+smells-08	csharp	smells/smells-08.cs	NOMATCH	if (user == null) throw new KeyNotFoundException(id);
+smells-08	swift	smells/smells-08.swift	MATCH	func findUser(id: String) -> User? {
+smells-08	swift	smells/smells-08.swift	NOMATCH	guard user != nil else { throw UserError.missing }
+smells-08	kotlin	smells/smells-08.kt	MATCH	fun currentUser(): User? = cache.user
+smells-08	kotlin	smells/smells-08.kt	NOMATCH	fun findUser(id: String): User = users.getValue(id)
+smells-08	java	smells/smells-08.java	MATCH	@Nullable private User cachedUser;
+smells-08	java	smells/smells-08.java	NOMATCH	if (user == null) { throw new NoSuchElementException(id); }
+smells-10	typescript	smells/smells-10.ts	MATCH	const city = order.getCustomer().getAddress().getCity();
+smells-10	typescript	smells/smells-10.ts	NOMATCH	const city = order.shipping.city;
+smells-10	javascript	smells/smells-10.js	MATCH	const label = invoice.getBuyer().getCompany().getName();
+smells-10	javascript	smells/smells-10.js	NOMATCH	const total = cart.items.length;
+smells-10	python	smells/smells-10.py	MATCH	city = order.get_customer().get_address().get_city()
+smells-10	python	smells/smells-10.py	NOMATCH	city = order.shipping.city
+smells-10	csharp	smells/smells-10.cs	MATCH	var city = order.GetCustomer().GetAddress().GetCity();
+smells-10	csharp	smells/smells-10.cs	NOMATCH	var count = order.Items.Count;
+smells-10	swift	smells/smells-10.swift	MATCH	let name = order.customer.address.city.districtName
+smells-10	swift	smells/smells-10.swift	NOMATCH	let city = order.shipping.city
+smells-10	kotlin	smells/smells-10.kt	MATCH	val city = order.customer.profile.address.city
+smells-10	kotlin	smells/smells-10.kt	NOMATCH	val city = order.shipping.city
+smells-10	java	smells/smells-10.java	MATCH	String city = order.getCustomer().getAddress().getCity();
+smells-10	java	smells/smells-10.java	NOMATCH	String city = order.getShipping().getCity();
+smells-12	typescript	smells/smells-12.ts	MATCH	try { await flushQueue(); } catch (error) {}
+smells-12	typescript	smells/smells-12.ts	NOMATCH	} catch (error) { logger.error('flush failed', error); throw error; }
+smells-12	javascript	smells/smells-12.js	MATCH	try { localStorage.removeItem(key); } catch {}
+smells-12	javascript	smells/smells-12.js	NOMATCH	} catch (err) { console.error(err); throw err; }
+smells-12	python	smells/smells-12.py	MATCH	except Exception as exc:
+smells-12	python	smells/smells-12.py	NOMATCH	except ValueError: retries += 1
+smells-12	csharp	smells/smells-12.cs	MATCH	catch (Exception ex) { _logger.LogError(ex, "sync failed"); }
+smells-12	csharp	smells/smells-12.cs	NOMATCH	catch (IOException ex) { throw new SyncFailedException("sync failed", ex); }
+smells-12	swift	smells/smells-12.swift	MATCH	do { try store.save(user) } catch {}
+smells-12	swift	smells/smells-12.swift	NOMATCH	} catch { logger.error("save failed: \(error)") }
+smells-12	kotlin	smells/smells-12.kt	MATCH	} catch (e: Exception) { log.warn("refresh failed", e) }
+smells-12	kotlin	smells/smells-12.kt	NOMATCH	} catch (e: IOException) { throw RefreshFailedException(e) }
+smells-12	java	smells/smells-12.java	MATCH	} catch (Exception e) { log.warn("import failed", e); }
+smells-12	java	smells/smells-12.java	NOMATCH	} catch (SQLException e) { throw new ImportFailedException(e); }
+solid-06	typescript	solid/user-profile.ts	MATCH	  public name: string;
+solid-06	typescript	solid/user-profile.ts	NOMATCH	  public getName(): string { return this.name; }
+solid-06	javascript	solid/user-profile.js	MATCH	    this.name = value;
+solid-06	javascript	solid/user-profile.js	NOMATCH	    this.render();
+solid-06	python	solid/user_profile.py	MATCH	        self.name = name
+solid-06	python	solid/user_profile.py	NOMATCH	        return self.name.strip()
+solid-06	csharp	solid/UserProfile.cs	MATCH	    public string Name { get; set; }
+solid-06	csharp	solid/UserProfile.cs	NOMATCH	    public string Name { get; }
+solid-06	swift	solid/UserProfile.swift	MATCH	    public var count: Int
+solid-06	swift	solid/UserProfile.swift	NOMATCH	    let count: Int = 0
+solid-06	kotlin	solid/UserProfile.kt	MATCH	    var name: String
+solid-06	kotlin	solid/UserProfile.kt	NOMATCH	    val name: String = ""
+solid-06	java	solid/UserProfile.java	MATCH	    public int count;
+solid-06	java	solid/UserProfile.java	NOMATCH	    public int getCount() { return count; }
+solid-08	typescript	solid/invoice-total.ts	MATCH	  let total: number = 0;
+solid-08	typescript	solid/invoice-total.ts	NOMATCH	  const total: number = 0;
+solid-08	javascript	solid/invoice-total.js	MATCH	  let count = 0;
+solid-08	javascript	solid/invoice-total.js	NOMATCH	  const count = 0;
+solid-08	swift	solid/InvoiceTotal.swift	MATCH	    var total = 0
+solid-08	swift	solid/InvoiceTotal.swift	NOMATCH	    let total = 0
+solid-08	kotlin	solid/InvoiceTotal.kt	MATCH	    var total = 0
+solid-08	kotlin	solid/InvoiceTotal.kt	NOMATCH	    val total = 0
+solid-09	typescript	solid/session-state.ts	MATCH	export let currentUser: User = null;
+solid-09	typescript	solid/session-state.ts	NOMATCH	const cache = new Map<string, User>();
+solid-09	javascript	solid/session-state.js	MATCH	var activeSessions = [];
+solid-09	javascript	solid/session-state.js	NOMATCH	const registry = new Map();
+solid-09	python	solid/session_state.py	MATCH	session_cache = {}
+solid-09	python	solid/session_state.py	NOMATCH	MAX_RETRIES = 3
+solid-09	csharp	solid/SessionState.cs	MATCH	    private static int requestCount = 0;
+solid-09	csharp	solid/SessionState.cs	NOMATCH	    private static readonly string ConnectionString = "db";
+solid-09	swift	solid/SessionState.swift	MATCH	var sharedFormatter = DateFormatter()
+solid-09	swift	solid/SessionState.swift	NOMATCH	    var retryCount = 0
+solid-09	kotlin	solid/SessionState.kt	MATCH	var requestCounter = 0
+solid-09	kotlin	solid/SessionState.kt	NOMATCH	val requestCounter = AtomicInteger(0)
+solid-09	java	solid/SessionState.java	MATCH	    private static int instanceCount = 0;
+solid-09	java	solid/SessionState.java	NOMATCH	    private static final String APP_NAME = "billing";
+solid-10	typescript	solid/order-service.ts	MATCH	const repo = new UserRepository(db);
+solid-10	typescript	solid/order-service.ts	NOMATCH	throw new ValidationError("missing field");
+solid-10	javascript	solid/order-service.js	MATCH	const storage = new S3Storage(region);
+solid-10	javascript	solid/order-service.js	NOMATCH	const controller = new AbortController();
+solid-10	csharp	solid/OrderService.cs	MATCH	var gateway = new StripePaymentGateway(apiKey);
+solid-10	csharp	solid/OrderService.cs	NOMATCH	var sb = new StringBuilder(capacity);
+solid-10	java	solid/OrderService.java	MATCH	EmailService mailer = new SmtpEmailService(host);
+solid-10	java	solid/OrderService.java	NOMATCH	Map<String, User> byId = new HashMap<>();
+solid-12	typescript	solid/order-entity.ts	MATCH	    console.log("order placed", order.id);
+solid-12	typescript	solid/order-entity.ts	NOMATCH	    console.debug("trace", payload);
+solid-12	javascript	solid/order-entity.js	MATCH	    console.error("failed to save", err);
+solid-12	javascript	solid/order-entity.js	NOMATCH	    console.table(rows);
+solid-12	python	solid/order_entity.py	MATCH	        logger.info("order %s placed", order_id)
+solid-12	python	solid/order_entity.py	NOMATCH	        log.info("payment captured")
+solid-12	csharp	solid/OrderEntity.cs	MATCH	        _logger.LogInformation("Order {Id} placed", order.Id);
+solid-12	csharp	solid/OrderEntity.cs	NOMATCH	        _log.Info("order placed");
+solid-12	swift	solid/OrderEntity.swift	MATCH	        print("order placed: \(order.id)")
+solid-12	swift	solid/OrderEntity.swift	NOMATCH	        debugPrint("order", order)
+solid-12	kotlin	solid/OrderEntity.kt	MATCH	        Log.d(TAG, "order placed")
+solid-12	kotlin	solid/OrderEntity.kt	NOMATCH	        print("order placed")
+solid-12	java	solid/OrderEntity.java	MATCH	        logger.info("order {} placed", orderId);
+solid-12	java	solid/OrderEntity.java	NOMATCH	        LOGGER.info("order placed");
+solid-15	typescript	solid/shape-renderer.ts	MATCH	switch (shape.type) {
+solid-15	typescript	solid/shape-renderer.ts	NOMATCH	if (order.status === PaymentStatus.Paid) {
+solid-15	javascript	solid/shape-renderer.js	MATCH	if (event.kind === "click") {
+solid-15	javascript	solid/shape-renderer.js	NOMATCH	switch (statusCode) {
+solid-15	csharp	solid/ShapeRenderer.cs	MATCH	switch (payment.Type)
+solid-15	csharp	solid/ShapeRenderer.cs	NOMATCH	                case OrderStatus.Shipped:
+solid-15	swift	solid/ShapeRenderer.swift	MATCH	        case is Circle:
+solid-15	swift	solid/ShapeRenderer.swift	NOMATCH	        case .circle:
+solid-15	java	solid/ShapeRenderer.java	MATCH	if (shape instanceof Circle) {
+solid-15	java	solid/ShapeRenderer.java	NOMATCH	switch (shape.getShapeType()) {
+arch-02	typescript	arch/CreateOrderUseCase.ts	MATCH	import { Injectable } from '@nestjs/common';
+arch-02	typescript	arch/CreateOrderUseCase.ts	NOMATCH	import { OrderResult } from './dto/order-result';
+arch-02	javascript	arch/createOrderUseCase.js	MATCH	const express = require('express');
+arch-02	javascript	arch/createOrderUseCase.js	NOMATCH	const lodash = require('lodash');
+arch-02	python	arch/create_order_use_case.py	MATCH	from django.http import HttpResponse
+arch-02	python	arch/create_order_use_case.py	NOMATCH	from app.services import OrderService
+arch-02	csharp	arch/CreateOrderUseCase.cs	MATCH	using Microsoft.AspNetCore.Mvc;
+arch-02	csharp	arch/CreateOrderUseCase.cs	NOMATCH	using System.Collections.Generic;
+arch-02	swift	arch/CreateOrderUseCase.swift	MATCH	import UIKit
+arch-02	swift	arch/CreateOrderUseCase.swift	NOMATCH	import Foundation
+arch-02	kotlin	arch/CreateOrderUseCase.kt	MATCH	import org.springframework.web.bind.annotation.RestController
+arch-02	kotlin	arch/CreateOrderUseCase.kt	NOMATCH	import com.acme.orders.domain.Order
+arch-02	java	arch/CreateOrderUseCase.java	MATCH	import org.springframework.stereotype.Service;
+arch-02	java	arch/CreateOrderUseCase.java	NOMATCH	import java.util.List;
+arch-03	typescript	arch/Order.ts	MATCH	@Entity({ name: 'orders' })
+arch-03	typescript	arch/Order.ts	NOMATCH	@Injectable()
+arch-03	javascript	arch/Order.js	MATCH	@Column({ nullable: true })
+arch-03	javascript	arch/Order.js	NOMATCH	@Injectable()
+arch-03	python	arch/order.py	MATCH	title = Column(String(200), nullable=False)
+arch-03	python	arch/order.py	NOMATCH	title: str = field(default="")
+arch-03	csharp	arch/Order.cs	MATCH	[Table("Orders")]
+arch-03	csharp	arch/Order.cs	NOMATCH	[Required]
+arch-03	swift	arch/Order.swift	MATCH	@NSManaged public var title: String
+arch-03	swift	arch/Order.swift	NOMATCH	@objc func handleTap() {}
+arch-03	kotlin	arch/Order.kt	MATCH	@Entity(tableName = "orders")
+arch-03	kotlin	arch/Order.kt	NOMATCH	@Serializable data class Order(val id: String, val total: Int)
+arch-03	java	arch/Order.java	MATCH	@Entity(name = "orders")
+arch-03	java	arch/Order.java	NOMATCH	@IdClass(OrderPk.class)
+arch-05	typescript	arch/PlaceOrderService.ts	MATCH	if (error instanceof QueryFailedError) {
+arch-05	typescript	arch/PlaceOrderService.ts	NOMATCH	if (error instanceof ValidationError) {
+arch-05	javascript	arch/placeOrderService.js	MATCH	if (err instanceof MongoError) return retry();
+arch-05	javascript	arch/placeOrderService.js	NOMATCH	if (err instanceof DomainError) throw err;
+arch-05	python	arch/place_order_service.py	MATCH	except IntegrityError as exc:
+arch-05	python	arch/place_order_service.py	NOMATCH	except DataValidationError as exc:
+arch-05	csharp	arch/PlaceOrderService.cs	MATCH	catch (SqlException ex)
+arch-05	csharp	arch/PlaceOrderService.cs	NOMATCH	catch (System.Data.SqlClient.SqlException ex)
+arch-05	swift	arch/PlaceOrderService.swift	MATCH	} catch CoreDataError.saveFailed {
+arch-05	swift	arch/PlaceOrderService.swift	NOMATCH	} catch let error as NSError {
+arch-05	kotlin	arch/PlaceOrderService.kt	MATCH	} catch (e: SQLException) {
+arch-05	kotlin	arch/PlaceOrderService.kt	NOMATCH	} catch (e: IllegalStateException) {
+arch-05	java	arch/PlaceOrderService.java	MATCH	} catch (SQLException e) {
+arch-05	java	arch/PlaceOrderService.java	NOMATCH	} catch (java.sql.SQLException e) {
+arch-08	typescript	arch/BillingService.ts	MATCH	const logger = container.resolve<ILogger>(TOKENS.Logger);
+arch-08	typescript	arch/BillingService.ts	NOMATCH	const user = this.userRepository.get(id);
+arch-08	javascript	arch/billingService.js	MATCH	const mailer = DI.resolve(Mailer);
+arch-08	javascript	arch/billingService.js	NOMATCH	const cache = registry.get(key);
+arch-08	python	arch/billing_service.py	MATCH	service = container.resolve(EmailService)
+arch-08	python	arch/billing_service.py	NOMATCH	service = self.container.get_service(EmailService)
+arch-08	csharp	arch/BillingService.cs	MATCH	var mailer = provider.GetRequiredService<IMailer>();
+arch-08	csharp	arch/BillingService.cs	NOMATCH	var mailer = provider.GetService(typeof(IMailer));
+arch-08	swift	arch/BillingService.swift	MATCH	let payments = Resolver.resolve(PaymentService.self)
+arch-08	swift	arch/BillingService.swift	NOMATCH	let payments = container.resolve(PaymentService.self)
+arch-08	kotlin	arch/BillingService.kt	MATCH	val repo = get<OrderRepository>()
+arch-08	kotlin	arch/BillingService.kt	NOMATCH	val repo = provider.getOrNull<OrderRepository>()
+arch-08	java	arch/BillingService.java	MATCH	Object mailer = ServiceLocator.getService(MailService.class);
+arch-08	java	arch/BillingService.java	NOMATCH	MailService mailer = context.getBean(MailService.class);
+arch-09	typescript	arch/PricingService.ts	MATCH	if (process.env.APP_ENV === 'production') {
+arch-09	typescript	arch/PricingService.ts	NOMATCH	const apiUrl = process.env.API_URL ?? 'https://api.example.com';
+arch-09	javascript	arch/pricingService.js	MATCH	if (process.env.STAGE !== 'prod') return mockGateway;
+arch-09	javascript	arch/pricingService.js	NOMATCH	const port = process.env.PORT || 3000;
+arch-09	python	arch/pricing_service.py	MATCH	if os.getenv("APP_ENV") == "production":
+arch-09	python	arch/pricing_service.py	NOMATCH	if settings.debug_mode:
+arch-09	csharp	arch/PricingService.cs	MATCH	if (env.IsDevelopment()) {
+arch-09	csharp	arch/PricingService.cs	NOMATCH	if (release.IsProductionReady()) {
+arch-09	swift	arch/PricingService.swift	MATCH	#if DEBUG
+arch-09	swift	arch/PricingService.swift	NOMATCH	#if os(iOS)
+arch-09	kotlin	arch/PricingService.kt	MATCH	if (BuildConfig.DEBUG) enableVerboseLogging()
+arch-09	kotlin	arch/PricingService.kt	NOMATCH	val version = BuildConfig.VERSION_NAME
+arch-09	java	arch/PricingService.java	MATCH	String region = System.getenv("AWS_REGION");
+arch-09	java	arch/PricingService.java	NOMATCH	String home = System.getProperty("user.home");
+tests-01	typescript	tgrp/prod/foo.ts	MATCH	export function calculateTotal(items: Item[]): number {
+tests-01	typescript	tgrp/prod/foo.ts	NOMATCH	export const MAX_RETRIES = 3;
+tests-01	javascript	tgrp/prod/foo.js	MATCH	export const fetchUser = async (id) => {
+tests-01	javascript	tgrp/prod/foo.js	NOMATCH	export const API_URL = 'https://api.example.com';
+tests-01	python	tgrp/prod/foo.py	MATCH	def calculate_total(items):
+tests-01	python	tgrp/prod/foo.py	NOMATCH	defaults = load_config(path)
+tests-01	csharp	tgrp/prod/Foo.cs	MATCH	public sealed class OrderService
+tests-01	csharp	tgrp/prod/Foo.cs	NOMATCH	internal sealed class OrderValidator
+tests-01	swift	tgrp/prod/Foo.swift	MATCH	public final class PaymentProcessor {
+tests-01	swift	tgrp/prod/Foo.swift	NOMATCH	private func validateAmount(_ amount: Double) -> Bool {
+tests-01	kotlin	tgrp/prod/Foo.kt	MATCH	data class OrderItem(val sku: String, val qty: Int)
+tests-01	kotlin	tgrp/prod/Foo.kt	NOMATCH	private fun computeHash(input: String): String {
+tests-01	java	tgrp/prod/Foo.java	MATCH	public final class OrderService {
+tests-01	java	tgrp/prod/Foo.java	NOMATCH	protected void onCreate(Bundle savedInstanceState) {
+tests-04	typescript	tgrp/foo.test.ts	MATCH	await new Promise((resolve) => setTimeout(resolve, 500));
+tests-04	typescript	tgrp/foo.test.ts	NOMATCH	const created = new Date('2024-01-15T10:00:00Z');
+tests-04	javascript	tgrp/foo.test.js	MATCH	const id = Math.random().toString(36).slice(2);
+tests-04	javascript	tgrp/foo.test.js	NOMATCH	jest.spyOn(global, 'fetch').mockResolvedValue(okResponse);
+tests-04	python	tgrp/test_foo.py	MATCH	    time.sleep(0.5)
+tests-04	python	tgrp/test_foo.py	NOMATCH	    now = datetime(2024, 1, 15, 10, 0)
+tests-04	csharp	tgrp/FooTests.cs	MATCH	var order = new Order(Guid.NewGuid(), DateTime.UtcNow);
+tests-04	csharp	tgrp/FooTests.cs	NOMATCH	var rng = new Random(42);
+tests-04	swift	tgrp/FooTests.swift	MATCH	let createdAt = Date()
+tests-04	swift	tgrp/FooTests.swift	NOMATCH	let fixed = Date(timeIntervalSince1970: 1_700_000_000)
+tests-04	kotlin	tgrp/src/test/FooTest.kt	MATCH	        Thread.sleep(1000)
+tests-04	kotlin	tgrp/src/test/FooTest.kt	NOMATCH	val rng = Random(1234L)
+tests-04	java	tgrp/src/test/FooTest.java	MATCH	        Thread.sleep(2000);
+tests-04	java	tgrp/src/test/FooTest.java	NOMATCH	Random random = new Random(42);
+tests-05	typescript	tgrp/foo.test.ts	MATCH	expect(repo['_connection']).toBeDefined();
+tests-05	typescript	tgrp/foo.test.ts	NOMATCH	expect(repo['connection']).toBeDefined();
+tests-05	javascript	tgrp/foo.test.js	MATCH	expect(client['_retryCount']).toBe(3);
+tests-05	javascript	tgrp/foo.test.js	NOMATCH	expect(client['retryCount']).toBe(3);
+tests-05	python	tgrp/test_foo.py	MATCH	assert service._validate_input(payload) is True
+tests-05	python	tgrp/test_foo.py	NOMATCH	assert order.__str__() == "Order#42"
+tests-05	csharp	tgrp/FooTests.cs	MATCH	var method = calculator.GetType().GetMethod("ComputeCore", BindingFlags.NonPublic | BindingFlags.Instance);
+tests-05	csharp	tgrp/FooTests.cs	NOMATCH	var prop = calculator.GetType().GetProperty("Total");
+tests-05	swift	tgrp/FooTests.swift	MATCH	let mirror = Mirror(reflecting: viewModel)
+tests-05	swift	tgrp/FooTests.swift	NOMATCH	@testable import PaymentKit
+tests-05	kotlin	tgrp/src/test/FooTest.kt	MATCH	@VisibleForTesting internal var lastEvent: Event? = null
+tests-05	kotlin	tgrp/src/test/FooTest.kt	NOMATCH	import androidx.annotation.OtherAnnotation
+tests-05	java	tgrp/src/test/FooTest.java	MATCH	ReflectionTestUtils.setField(service, "clock", fixedClock);
+tests-05	java	tgrp/src/test/FooTest.java	NOMATCH	Method m = clazz.getMethod("process", String.class);
+tests-06	typescript	tgrp/foo.test.ts	MATCH	  let userService: UserService;
+tests-06	typescript	tgrp/foo.test.ts	NOMATCH	  const userService = new UserService();
+tests-06	javascript	tgrp/foo.test.js	MATCH	  let mockDb;
+tests-06	javascript	tgrp/foo.test.js	NOMATCH	  const mockDb = createMockDb();
+tests-06	python	tgrp/test_foo.py	MATCH	        self.counter = 0
+tests-06	python	tgrp/test_foo.py	NOMATCH	        self.assertEqual(result, 0)
+tests-06	csharp	tgrp/FooTests.cs	MATCH	    private OrderService _sut;
+tests-06	csharp	tgrp/FooTests.cs	NOMATCH	    private readonly OrderService _sut2;
+tests-06	swift	tgrp/FooTests.swift	MATCH	    var sut: PaymentValidator!
+tests-06	swift	tgrp/FooTests.swift	NOMATCH	    let sut = PaymentValidator()
+tests-06	kotlin	tgrp/src/test/FooTest.kt	MATCH	    var repository: FakeRepository = FakeRepository()
+tests-06	kotlin	tgrp/src/test/FooTest.kt	NOMATCH	    val repository2 = FakeRepository()
+tests-06	java	tgrp/src/test/FooTest.java	MATCH	    private OrderRepository repository;
+tests-06	java	tgrp/src/test/FooTest.java	NOMATCH	    void configure(OrderRepository repository) {
+tests-08	typescript	tgrp/foo.test.ts	MATCH	it.skip('retries the request on 503', async () => {
+tests-08	typescript	tgrp/foo.test.ts	NOMATCH	it('skips invalid rows silently', () => {
+tests-08	javascript	tgrp/foo.test.js	MATCH	xdescribe('checkout flow', () => {
+tests-08	javascript	tgrp/foo.test.js	NOMATCH	describe('skip logic for archived users', () => {
+tests-08	python	tgrp/test_foo.py	MATCH	@pytest.mark.skip(reason="flaky on CI")
+tests-08	python	tgrp/test_foo.py	NOMATCH	@pytest.mark.slow
+tests-08	csharp	tgrp/FooTests.cs	MATCH	[Fact(Skip = "waiting on upstream fix")]
+tests-08	csharp	tgrp/FooTests.cs	NOMATCH	[Theory(DisplayName = "Skips blank lines")]
+tests-08	swift	tgrp/FooTests.swift	MATCH	throw XCTSkip("Requires physical device")
+tests-08	swift	tgrp/FooTests.swift	NOMATCH	func testSkipsExpiredCoupons() throws {
+tests-08	kotlin	tgrp/src/test/FooTest.kt	MATCH	@Disabled("blocked by JIRA-482")
+tests-08	kotlin	tgrp/src/test/FooTest.kt	NOMATCH	val disabledFeatures = setOf("beta")
+tests-08	java	tgrp/src/test/FooTest.java	MATCH	@Ignore("fails intermittently on CI")
+tests-08	java	tgrp/src/test/FooTest.java	NOMATCH	boolean ignoreCase = true;
+tests-09	typescript	tgrp/foo.test.ts	MATCH	expect(true).toBe(true);
+tests-09	typescript	tgrp/foo.test.ts	NOMATCH	expect(result.isValid).toBe(true);
+tests-09	javascript	tgrp/foo.test.js	MATCH	  expect(true).toBe(true); // TODO real assertion
+tests-09	javascript	tgrp/foo.test.js	NOMATCH	  expect(flags.enabled).toBe(true);
+tests-09	python	tgrp/test_foo.py	MATCH	    assert True  # placeholder
+tests-09	python	tgrp/test_foo.py	NOMATCH	    assert result is True
+tests-09	csharp	tgrp/FooTests.cs	MATCH	Assert.IsTrue(true);
+tests-09	csharp	tgrp/FooTests.cs	NOMATCH	Assert.IsTrue(result.IsValid);
+tests-09	swift	tgrp/FooTests.swift	MATCH	XCTAssertTrue(true)
+tests-09	swift	tgrp/FooTests.swift	NOMATCH	XCTAssertTrue(cart.isEmpty)
+tests-09	kotlin	tgrp/src/test/FooTest.kt	MATCH	assertTrue(true)
+tests-09	kotlin	tgrp/src/test/FooTest.kt	NOMATCH	assertTrue(result.isSuccess)
+tests-09	java	tgrp/src/test/FooTest.java	MATCH	assertTrue(true);
+tests-09	java	tgrp/src/test/FooTest.java	NOMATCH	assertTrue(user.isActive());
+safety-02	typescript	safety/safety-02.ts	MATCH	const userId = sessionMap.get(token)!;
+safety-02	typescript	safety/safety-02.ts	NOMATCH	const name = user!.profile.name;
+safety-02	csharp	safety/safety-02.cs	MATCH	var start = booking.StartDate.Value.AddDays(1);
+safety-02	csharp	safety/safety-02.cs	NOMATCH	volumeSlider.Value = DEFAULT_VOLUME;
+safety-02	swift	safety/safety-02.swift	MATCH	let vc = storyboard.instantiateViewController(withIdentifier: "detail") as! DetailViewController
+safety-02	swift	safety/safety-02.swift	NOMATCH	guard let user = currentUser else { return }
+safety-02	kotlin	safety/safety-02.kt	MATCH	val name = user!!.name
+safety-02	kotlin	safety/safety-02.kt	NOMATCH	val name = user?.name ?: "unknown"
+safety-03	python	safety/safety-03.py	MATCH	asyncio.create_task(send_welcome_email(user.id))
+safety-03	python	safety/safety-03.py	NOMATCH	result = await asyncio.wait_for(refresh_cache(), timeout=10)
+safety-03	csharp	safety/safety-03.cs	MATCH	        _analyticsService.TrackEventAsync(eventName);
+safety-03	csharp	safety/safety-03.cs	NOMATCH	        await _analyticsService.TrackEventAsync(eventName);
+safety-03	swift	safety/safety-03.swift	MATCH	Task { await analytics.flushEvents() }
+safety-03	swift	safety/safety-03.swift	NOMATCH	let task = session.dataTask(with: request)
+safety-03	kotlin	safety/safety-03.kt	MATCH	GlobalScope.launch { syncRepository.push() }
+safety-03	kotlin	safety/safety-03.kt	NOMATCH	flow.onEach { render(it) }.launchIn(viewModelScope)
+safety-03	java	safety/safety-03.java	MATCH	CompletableFuture.runAsync(() -> auditService.record(event));
+safety-03	java	safety/safety-03.java	NOMATCH	Future<Report> future = executorService.submit(reportJob);
+safety-05	typescript	safety/safety-05.ts	MATCH	if (fs.existsSync(lockPath)) { fs.unlinkSync(lockPath); }
+safety-05	typescript	safety/safety-05.ts	NOMATCH	if (this.pendingJobs.has(jobId)) { return; }
+safety-05	javascript	safety/safety-05.js	MATCH	if (fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir); }
+safety-05	javascript	safety/safety-05.js	NOMATCH	if (this.activeSessions.has(sessionId)) { return; }
+safety-05	python	safety/safety-05.py	MATCH	if os.path.exists(output_dir): shutil.rmtree(output_dir)
+safety-05	python	safety/safety-05.py	NOMATCH	if config_path.exists(): config_path.unlink()
+safety-05	csharp	safety/safety-05.cs	MATCH	if (File.Exists(tempPath)) File.Delete(tempPath);
+safety-05	csharp	safety/safety-05.cs	NOMATCH	if (Directory.Exists(cacheDir)) Directory.Delete(cacheDir, true);
+safety-05	swift	safety/safety-05.swift	MATCH	if FileManager.default.fileExists(atPath: dbPath) { try? FileManager.default.removeItem(atPath: dbPath) }
+safety-05	swift	safety/safety-05.swift	NOMATCH	if self.activeIds.contains(userId) { return }
+safety-05	kotlin	safety/safety-05.kt	MATCH	if (cache.containsKey(userId)) { cache.remove(userId) }
+safety-05	kotlin	safety/safety-05.kt	NOMATCH	if (this.registry.containsKey(name)) { return }
+safety-05	java	safety/safety-05.java	MATCH	if (sessions.containsKey(token)) { sessions.remove(token); }
+safety-05	java	safety/safety-05.java	NOMATCH	if (this.locks.containsKey(lockId)) { return; }
+safety-06	typescript	safety/safety-06.ts	MATCH	const config = fs.readFileSync(configPath, 'utf8');
+safety-06	typescript	safety/safety-06.ts	NOMATCH	import { readAllAsync } from 'node:fs/promises';
+safety-06	javascript	safety/safety-06.js	MATCH	const sha = execSync('git rev-parse HEAD').toString().trim();
+safety-06	javascript	safety/safety-06.js	NOMATCH	const proc = spawn('git', ['rev-parse', 'HEAD']);
+safety-06	python	safety/safety-06.py	MATCH	time.sleep(RETRY_DELAY_SECONDS)
+safety-06	python	safety/safety-06.py	NOMATCH	await asyncio.sleep(RETRY_DELAY_SECONDS)
+safety-06	csharp	safety/safety-06.cs	MATCH	var profile = _profileService.GetProfileAsync(userId).Result;
+safety-06	csharp	safety/safety-06.cs	NOMATCH	var hits = searchResponse.Results.Take(10).ToList();
+safety-06	swift	safety/safety-06.swift	MATCH	sleep(UInt32(retrySeconds))
+safety-06	swift	safety/safety-06.swift	NOMATCH	DispatchQueue.main.asyncAfter(deadline: .now() + delay) { self.retry() }
+safety-06	kotlin	safety/safety-06.kt	MATCH	Thread.sleep(POLL_INTERVAL_MS)
+safety-06	kotlin	safety/safety-06.kt	NOMATCH	delay(POLL_INTERVAL_MS)
+safety-06	java	safety/safety-06.java	MATCH	Thread.sleep(RETRY_BACKOFF_MS);
+safety-06	java	safety/safety-06.java	NOMATCH	String header = String.join(",", columnNames);
+safety-07	typescript	safety/safety-07.ts	MATCH	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+safety-07	typescript	safety/safety-07.ts	NOMATCH	// eslint config lives in eslint.config.mjs
+safety-07	javascript	safety/safety-07.js	MATCH	// eslint-disable-next-line no-console
+safety-07	javascript	safety/safety-07.js	NOMATCH	const bannedComments = ['lint suppression', 'istanbul ignore'];
+safety-07	python	safety/safety-07.py	MATCH	import os, sys  # noqa: E401
+safety-07	python	safety/safety-07.py	NOMATCH	# note: quality gate runs flake8 in CI
+safety-07	csharp	safety/safety-07.cs	MATCH	#pragma warning disable CS8618
+safety-07	csharp	safety/safety-07.cs	NOMATCH	#pragma warning restore CS8618
+safety-07	swift	safety/safety-07.swift	MATCH	// swiftlint:disable:next force_cast
+safety-07	swift	safety/safety-07.swift	NOMATCH	// swiftlint:enable line_length
+safety-07	kotlin	safety/safety-07.kt	MATCH	@Suppress("UNCHECKED_CAST")
+safety-07	kotlin	safety/safety-07.kt	NOMATCH	@SuppressLint("MissingPermission")
+safety-07	java	safety/safety-07.java	MATCH	@SuppressWarnings("unchecked")
+safety-07	java	safety/safety-07.java	NOMATCH	@SuppressFBWarnings("EI_EXPOSE_REP2")
+ddd-01	typescript	ddd/money.ts	MATCH	  set amount(value: number) { this._amount = value; }
+ddd-01	typescript	ddd/money.ts	NOMATCH	  setAmount(value: number) { this._amount = value; }
+ddd-01	javascript	ddd/price.js	MATCH	  set price(value) { this._price = value; }
+ddd-01	javascript	ddd/price.js	NOMATCH	  setPrice(value) { this._price = value; }
+ddd-01	python	ddd/money.py	MATCH	    @amount.setter
+ddd-01	python	ddd/money.py	NOMATCH	    @amount.getter
+ddd-01	swift	ddd/money.swift	MATCH	    var amount: Decimal
+ddd-01	swift	ddd/money.swift	NOMATCH	    let amount: Decimal
+ddd-01	kotlin	ddd/money.kt	MATCH	    var amount: BigDecimal = BigDecimal.ZERO
+ddd-01	kotlin	ddd/money.kt	NOMATCH	    val amount: BigDecimal = BigDecimal.ZERO
+ddd-01	java	ddd/money.java	MATCH	    public void setAmount(BigDecimal amount) { this.amount = amount; }
+ddd-01	java	ddd/money.java	NOMATCH	    public void settle(Payment payment) { this.status = Status.SETTLED; }

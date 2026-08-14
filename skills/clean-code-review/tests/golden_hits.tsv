@@ -1,0 +1,26 @@
+clarity-06	src/App.swift:1:class ItemHandler { var count: Int = 99 }
+clarity-06	src/Cart.kt:1:class CartUtils { var total = 123 }
+clarity-06	src/main.ts:1:export class OrderManager {
+clarity-06	src/mod.py:1:class DataProcessor:
+clarity-06	src/Svc.cs:1:public class OrderHelper { public bool Run(bool f) { return f; } }
+clarity-06	src/User.java:1:public class UserInfo { public int age = 7; }
+ddd-01	src/main.ts:2:  public count = 42;
+safety-06	test_mod.py:3:    time.sleep(1)
+smells-03	src/main.ts:3:  process(flag: boolean): string | null { return flag ? null : "x"; }
+smells-03	src/Svc.cs:1:public class OrderHelper { public bool Run(bool f) { return f; } }
+smells-08	src/main.ts:3:  process(flag: boolean): string | null { return flag ? null : "x"; }
+smells-08	src/mod.py:3:        return None
+solid-06	src/main.ts:2:  public count = 42;
+tests-01	src/App.swift:1:class ItemHandler { var count: Int = 99 }
+tests-01	src/Cart.kt:1:class CartUtils { var total = 123 }
+tests-01	src/main.ts:1:export class OrderManager {
+tests-01	src/mod.py:1:class DataProcessor:
+tests-01	src/Svc.cs:1:public class OrderHelper { public bool Run(bool f) { return f; } }
+tests-01	src/User.java:1:public class UserInfo { public int age = 7; }
+tests-01	src/util.js:1:export const f = () => 1;
+tests-04	test_mod.py:3:    time.sleep(1)
+tests-08	src/__tests__/main.test.ts:2:it.skip("x", () => { expect(true).toBe(true); });
+tests-08	src/__tests__/main.test.ts:2:it.skip("x", () => { expect(true).toBe(true); });
+tests-09	src/__tests__/main.test.ts:2:it.skip("x", () => { expect(true).toBe(true); });
+tests-09	src/__tests__/main.test.ts:2:it.skip("x", () => { expect(true).toBe(true); });
+tests-09	test_mod.py:4:    assert True

@@ -1,0 +1,102 @@
+# Planted violations for the recall benchmark. Columns:
+# check	file	line	detect	description
+solid-09	python/order_service.py	11	scripted	module-level mutable _order_cache = {}
+clarity-06	python/order_service.py	14	scripted	noise-word class name OrderManager
+smells-15	python/order_service.py	20	judgment	constructor calls repo.load_discounts() — work in __init__
+smells-02	python/order_service.py	22	judgment	process() takes 5 parameters
+clarity-01	python/order_service.py	23	judgment	variable named d
+smells-05	python/order_service.py	24	judgment	unused_total is dead code
+smells-08	python/order_service.py	26	scripted	return None hidden failure path
+clarity-09	python/order_service.py	27	judgment	4-term boolean condition not extracted
+clarity-08	python/order_service.py	29	judgment	magic number 86400
+smells-12	python/order_service.py	33	scripted	except Exception: pass swallows failures
+safety-05	python/order_service.py	38	scripted	os.path.exists then os.remove TOCTOU
+clarity-15	python/order_service.py	37	judgment	deep nesting in export_report (anchored at function declaration)
+clarity-14	python/order_service.py	48	judgment	pop_next mutates state AND returns a value
+solid-12	python/order_service.py	62	scripted	logger.info inside domain entity Order
+ddd-04	python/order_service.py	70	judgment	discount business rule inside OrderRepository.save
+tests-02	python/test_order_service.py	30	judgment	meaningless test name test_1
+tests-06	python/test_order_service.py	31	scripted	self.counter mutated inside test method, no reset
+tests-04	python/test_order_service.py	33	scripted	real time.sleep in test
+tests-09	python/test_order_service.py	34	scripted	assert True cannot fail
+tests-08	python/test_order_service.py	36	scripted	skipped test committed
+arch-02	typescript/orderService.ts	7	scripted	express import in business code
+solid-09	typescript/orderService.ts	10	scripted	export let activeOrders module-level mutable
+arch-03	typescript/orderService.ts	12	scripted	@Entity ORM annotation on domain entity
+clarity-06	typescript/orderService.ts	17	scripted	noise-word class name SessionManager
+smells-03	typescript/orderService.ts	20	scripted	useCache: boolean behavior-selecting parameter
+solid-10	typescript/orderService.ts	21	scripted	new PostgresOrderRepository() hardcoded in method body
+safety-02	typescript/orderService.ts	22	scripted	force unwrap this.cache.get(id)!
+solid-12	typescript/orderService.ts	26	scripted	console.log inside domain class
+smells-08	typescript/orderService.ts	29	scripted	return null hidden failure path
+clarity-11	typescript/orderService.ts	35	judgment	nested ternary in totalWithTax
+clarity-08	typescript/orderService.ts	35	judgment	magic numbers 5000/0.27/1000/0.18/0.05
+smells-10	typescript/orderService.ts	40	scripted	train wreck repo.getOwner().getAddress().getCity()
+arch-09	typescript/orderService.ts	44	scripted	NODE_ENV branch inside business logic
+safety-05	typescript/orderService.ts	46	scripted	fs.existsSync then write TOCTOU
+smells-12	typescript/orderService.ts	50	scripted	same-line empty catch (e) {}
+tests-01	typescript/orderService.ts	1	scripted	no test file exists for orderService.ts
+tests-06	typescript/inventory.test.ts	11	scripted	let lastResult shared across tests without reset
+tests-09	typescript/inventory.test.ts	14	scripted	expect(true).toBe(true) cannot fail
+tests-08	typescript/inventory.test.ts	17	scripted	it.skip committed
+tests-04	typescript/inventory.test.ts	23	scripted	real setTimeout wait in test
+tests-05	typescript/inventory.test.ts	24	scripted	as any used to reach private _cache
+# Catalogued 2026-08-14: violations already present in the original fixtures,
+# verified found by the baseline run (2026-08-13, 40/42 recall).
+clarity-05	python/order_service.py	23	judgment	same object named d in process but order elsewhere
+clarity-10	python/order_service.py	37	judgment	export_report mixes business filtering with raw file I/O
+smells-04	python/order_service.py	28	judgment	discount math duplicates Order.apply_discount
+smells-09	python/order_service.py	71	judgment	save mutates its order argument instead of returning
+smells-13	python/order_service.py	22	judgment	process manipulates order internals more than its own members
+smells-16	python/order_service.py	50	judgment	processed_count lazily created outside __init__
+solid-01	python/order_service.py	14	judgment	OrderManager mixes processing, caching, notification, reporting
+solid-05	python/order_service.py	38	judgment	direct os filesystem dependency in OrderManager
+solid-06	python/order_service.py	28	judgment	process mutates d.total bypassing apply_discount
+solid-07	python/order_service.py	57	judgment	total handled as bare primitive, no Money type
+ddd-03	python/order_service.py	45	judgment	reads order.customer.active across aggregate boundary
+tests-07	python/order_service.py	37	judgment	no edge-case tests for export_report
+tests-11	python/order_service.py	22	judgment	no negative/error test for process
+arch-10	python/order_service.py	48	judgment	pop_next public API without documented contract
+clarity-02	typescript/orderService.ts	34	judgment	method totalWithTax named as noun phrase
+clarity-03	typescript/orderService.ts	17	judgment	SessionManager name reveals no actual responsibility
+clarity-04	typescript/orderService.ts	39	judgment	method ownerCity is a noun, not a verb
+clarity-13	typescript/orderService.ts	21	judgment	repo declared 6 lines before first use
+smells-17	typescript/orderService.ts	7	judgment	unused express import
+solid-11	typescript/orderService.ts	13	judgment	anemic Order entity with no behaviour
+arch-04	typescript/orderService.ts	21	judgment	concrete PostgresOrderRepository used without port interface
+tests-12	typescript/inventory.test.ts	22	judgment	name claims retry behaviour, assertion checks cache defined
+# C# fixture (added 2026-08-14)
+safety-07	csharp/OrderProcessing.cs	15	scripted	#pragma warning disable CS1591 committed
+arch-06	csharp/OrderProcessing.cs	75	judgment	Order is ORM model, domain entity, and API response at once
+ddd-02	csharp/OrderProcessing.cs	113	judgment	Order.Equals compares all fields instead of Id only
+solid-04	csharp/OrderProcessing.cs	264	judgment	IOrderWorkflow mixes persistence, mail, printing, tax, housekeeping
+arch-01	csharp/OrderProcessing.cs	323	judgment	bulk discount business rule inside OrdersController.Create
+arch-07	csharp/OrderProcessing.cs	347	judgment	Checkout calls two use cases and the repository directly
+arch-05	csharp/OrderProcessing.cs	375	scripted	catch (SqlException) in application service OrderQueryService
+smells-11	csharp/OrderProcessing.cs	400	judgment	try body wraps 5 business-logic statements in SettleInvoice
+smells-19	csharp/OrderProcessing.cs	434	judgment	KeyNotFoundException catch returns default rate — normal path
+arch-08	csharp/OrderProcessing.cs	447	scripted	ServiceLocator.Resolve<IEmailSender>() in business code
+safety-03	csharp/OrderProcessing.cs	471	scripted	PublishOrderCompletedAsync fire-and-forget in sync method
+safety-01	csharp/OrderProcessing.cs	481	judgment	File.CreateText writer never disposed, no using/finally
+solid-02	csharp/OrderProcessing.cs	503	judgment	new carrier requires editing CalculateRate if-chain
+smells-18	csharp/OrderProcessing.cs	543	judgment	QuoteShipping only forwards to QuoteStandardShipping
+solid-03	csharp/OrderProcessing.cs	563	judgment	ArchivedOrderExporter.Export throws where base never throws
+clarity-12	csharp/OrderProcessing.cs	845	judgment	foreach filter+transform+accumulate instead of LINQ pipeline
+clarity-17	csharp/OrderProcessing.cs	882	scripted	RenderMonthlyStatement is 159 lines, over 150
+smells-01	csharp/OrderProcessing.cs	1	scripted	file is 1041 lines, over the 1000-line threshold
+tests-03	csharp/OrderProcessingTests.cs	17	judgment	11 mock setup lines vs 2 assertions in checkout test
+# Swift fixture (added 2026-08-14)
+ddd-01	swift/Checkout.swift	7	scripted	Money value object with mutable var amount
+safety-04	swift/Checkout.swift	24	judgment	Shipment allows isDelivered=true with deliveredAt=nil
+solid-13	swift/Checkout.swift	53	judgment	CustomerAccount is 4 inheritance levels deep
+solid-14	swift/Checkout.swift	64	judgment	ReceiptPrinter inherits concrete LineTotalCalculator only to reuse lineTotal
+ddd-05	swift/Checkout.swift	84	judgment	OrderRepository.lineItems returns inner aggregate member LineItem
+clarity-07	swift/Checkout.swift	96	judgment	comment restates WHAT the reduce below does
+clarity-16	swift/Checkout.swift	100	scripted	canSubmitOrder has 12 branches
+solid-15	swift/Checkout.swift	119	scripted	switch dispatching on payment type via case is
+smells-06	swift/Checkout.swift	131	scripted	two-line commented-out loyalty discount code
+smells-07	swift/Checkout.swift	137	scripted	TODO comment committed
+solid-08	swift/Checkout.swift	138	scripted	var heading assigned once, never reassigned
+smells-14	swift/Checkout.swift	142	judgment	street/city/zip clump in deliveryLabel and deliveryConfirmation
+tests-10	swift/CheckoutTests.swift	20	judgment	test name describes switch/subclass/constant internals, not behaviour
+safety-06	csharp/OrderProcessing.cs	1054	scripted	blocking .Result inside async BuildAsync

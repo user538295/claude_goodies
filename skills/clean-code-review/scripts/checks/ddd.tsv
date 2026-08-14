@@ -1,0 +1,6 @@
+ddd-01	typescript	grep -E '\.(ts|tsx)$' | mgrep '\bset\s+\w+\s*\([^)]*\)\s*\{|public\s+\w+\s*=\s*'
+ddd-01	javascript	grep -E '\.(js|jsx)$' | mgrep '\bset\s+\w+\s*\([^)]*\)\s*\{'
+ddd-01	python	grep -E '\.py$' | mgrep '@\w+\.setter'
+ddd-01	swift	grep -E '\.swift$' | mgrep '^\s*var\s+\w+\s*:'
+ddd-01	kotlin	grep -E '\.kts?$' | mgrep '^\s*var\s+\w+\s*:'
+ddd-01	java	grep -E '\.java$' | mgrep 'public\s+void\s+set[A-Z]\w*\s*\('

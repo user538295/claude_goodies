@@ -4,7 +4,7 @@ set -euo pipefail
 # Other non-zero exits surface as hook error banners — intentional for diagnostics.
 trap 'code=$?; [ "$code" -eq 2 ] && exit 1; exit "$code"' EXIT
 umask 077
-[ "${CLAUDE_GOODIES_PROMPT_LOG:-1}" = "0" ] && exit 0
+[ -f "$HOME/.claude/prompt-logs/.enabled" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 source "$(dirname "${BASH_SOURCE[0]}")/prompt_log_lib.sh"
 

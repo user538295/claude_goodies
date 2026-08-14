@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/status_report — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/status_report/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/status_report</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>Kicked off a long task and don't know when it'll finish.</strong> Reports status on demand or on a recurring schedule — reads output files, commands, or URLs, extracts progress and ETA, and stops itself when the task completes. Cancel anytime with <code>/status_report off</code>.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>You started a background task — a test suite, build, deploy, migration, data pipeline — and want periodic updates without babysitting it. Works with any output source: a file written by the process, a shell command like <code>kubectl get pods</code>, or a URL.</p>
+      <ul>
+        <li><code>"/status_report"</code> — one check, right now</li>
+        <li><code>"/status_report 10 mins"</code> — check every 10 minutes until done</li>
+        <li><code>"/status_report 2h"</code> — check every 2 hours</li>
+        <li><code>"/status_report off"</code> — stop scheduled checks</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>One-shot — report immediately, no scheduling:</p>
+      <pre><code>/status_report</code></pre>
+      <p>Recurring — report every interval until the task completes:</p>
+      <pre><code>/status_report 10 mins
+/status_report 2h
+/status_report 30    ← bare integer = minutes</code></pre>
+      <p>Cancel scheduled checks:</p>
+      <pre><code>/status_report off
+/status_report cancel
+/status_report stop</code></pre>
+      <p>The skill identifies the running task from conversation context — background task ID, output file path, or description. If multiple tasks are found, it uses the most recently launched. If none found, it asks before proceeding.</p>
+      <p><strong>Tradeoff:</strong> recurring checks are tied to the current session. If the session ends, checks stop. Max 24 checks per run (~4 h at 10-minute intervals).</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — One-shot check</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/status_report</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>14:32 - [test suite] Status update #1 - in progress 43% (187/430)
+
+- Running: src/billing, src/users, src/api
+- 2 failures in src/notifications (non-blocking)
+- No failures in completed packages</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Recurring with completion</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/status_report 5 mins</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>14:47 - [database migration] Status update #1 - in progress 18% (3/17)
+
+- Applying: 003_add_invoice_index
+- Completed: 001_users, 002_billing
+- No errors so far
+
+ETA: 15:11
+Next check scheduled for 14:52
+
+[5 minutes later — automatic wakeup]
+
+14:52 - [database migration] Status update #2 - complete 100% (17/17)
+
+- All 17 migrations applied successfully
+- Migration time: 4m 38s
+
+Run complete — no further checks scheduled.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-wrap-up.html">/wrap-up</a> — End-of-session audit for when the task is code work; <code>/status_report</code> is for monitoring any running process.</li>
+        <li><a href="skill-bugfix.html">/bugfix</a> — Runs a multi-step pipeline that can take time; use <code>/status_report</code> to monitor it from another session if needed.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

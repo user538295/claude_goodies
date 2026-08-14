@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/status_report — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/status_report/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/status_report</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p><strong>Elindítottál egy hosszú háttérfeladatot, és fogalmad sincs, mikor végez.</strong> Kérésre vagy ütemezetten jelenti az állapotát — kimeneti fájlokat, parancsokat vagy URL-eket olvas, kinyeri a haladást és a várható befejezési időt, majd leáll, ha a feladat elkészül. Bármikor leállítható a <code>/status_report off</code> paranccsal.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Elindítottál egy háttérfeladatot — tesztsorozatot, buildet, deployt, migrációt, adatpipeline-t — és időnkénti frissítéseket szeretnél anélkül, hogy figyelned kellene. Bármilyen kimeneti forrással működik: a folyamat által írt fájl, shell-parancs (pl. <code>kubectl get pods</code>) vagy URL.</p>
+      <ul>
+        <li><code>"/status_report"</code> — egy ellenőrzés, azonnal</li>
+        <li><code>"/status_report 10 mins"</code> — ellenőrzés 10 percenként, amíg el nem végez</li>
+        <li><code>"/status_report 2h"</code> — ellenőrzés 2 óránként</li>
+        <li><code>"/status_report off"</code> — ütemezett ellenőrzések leállítása</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Egyszeri — azonnal jelent, ütemezés nélkül:</p>
+      <pre><code>/status_report</code></pre>
+      <p>Ismétlődő — a feladat befejezéséig jelent minden intervallumban:</p>
+      <pre><code>/status_report 10 mins
+/status_report 2h
+/status_report 30    ← egész szám = perc</code></pre>
+      <p>Ütemezett ellenőrzések leállítása:</p>
+      <pre><code>/status_report off
+/status_report cancel
+/status_report stop</code></pre>
+      <p>A skill a beszélgetés kontextusából azonosítja a futó feladatot — háttérfeladat-azonosítóból, kimeneti fájl elérési útjából vagy leírásból. Ha több feladatot talál, a legutóbb indítottat használja. Ha egyet sem talál, megkérdez, mielőtt folytatná.</p>
+      <p><strong>Korlát:</strong> az ismétlődő ellenőrzések az aktuális munkamenethez kötöttek. Ha a munkamenet véget ér, az ellenőrzések megállnak. Futásonként legfeljebb 24 ellenőrzés (~4 óra 10 perces intervallummal).</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Egyszeri ellenőrzés</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/status_report</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>14:32 - [tesztsorozat] Állapotfrissítés #1 - folyamatban 43% (187/430)
+
+- Fut: src/billing, src/users, src/api
+- 2 hiba a src/notifications részben (nem blokkoló)
+- Befejezett csomagokban nincs hiba</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Ismétlődő, befejezéssel</h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/status_report 5 mins</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>14:47 - [adatbázis-migráció] Állapotfrissítés #1 - folyamatban 18% (3/17)
+
+- Fut: 003_add_invoice_index
+- Kész: 001_users, 002_billing
+- Eddig nincs hiba
+
+ETA: 15:11
+Következő ellenőrzés: 14:52
+
+[5 perccel később — automatikus felébresztés]
+
+14:52 - [adatbázis-migráció] Állapotfrissítés #2 - kész 100% (17/17)
+
+- Mind a 17 migráció sikeresen lefutott
+- Migrációs idő: 4p 38mp
+
+Futás befejezve — nincs több ütemezett ellenőrzés.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="skill-wrap-up-hu.html">/wrap-up</a> — Munkamenet-záró audit, amikor a feladat kódfejlesztés; a <code>/status_report</code> bármilyen futó folyamat figyelésére alkalmas.</li>
+        <li><a href="skill-bugfix-hu.html">/bugfix</a> — Többlépéses pipeline-t futtat, amely időt vehet igénybe; ha szükséges, másik munkamenetből is figyelhető a <code>/status_report</code>-tal.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Ügynöki munkafolyamat-pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

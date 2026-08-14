@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/bugfix — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/bugfix/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/bugfix</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>You have a bug and need it gone — not just patched.</strong> Drives a four-agent pipeline: failing test first (code inspection doesn't count — only a red test does), TDD fix, doc update, full iterative-review loop, then commit.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>A bug is reported — from a user, a failing CI run, a bug-report file, or your own observation. Use <code>/bugfix</code> to drive the whole fix end-to-end: reproduce it with a test, fix the code, review the result, and commit — without losing your place in the investigation.</p>
+      <ul>
+        <li><code>"/bugfix the login form submits on enter even when disabled"</code></li>
+        <li><code>"/bugfix Documentation/Backlog/bug-invoice-rounding.md"</code></li>
+        <li><code>"/bugfix users/bulk endpoint returns 200 on partial failure"</code></li>
+      </ul>
+      <p><strong>The argument is a bug description or a path to a bug-report file.</strong> If it resolves to a readable file, the skill reads it. If it's prose, it uses it verbatim. Empty argument → it asks you first.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>Free-text bug description:</p>
+      <pre><code>/bugfix &lt;description&gt;</code></pre>
+      <p>Path to a bug-report file:</p>
+      <pre><code>/bugfix Documentation/Backlog/bug-xyz.md</code></pre>
+      <p><strong>The pipeline, in order:</strong></p>
+      <ol>
+        <li><strong>Reproduce</strong> — write a permanently placed failing test that fails <em>for this bug</em>. Code inspection is not acceptable proof.</li>
+        <li><strong>Fix (TDD)</strong> — make the smallest change to production code that turns the test green. The reproduction test is never touched.</li>
+        <li><strong>Update docs</strong> — sync any documentation that described the broken behaviour.</li>
+        <li><strong>Iterative review</strong> — runs <code>/iterative-review</code> until no Critical, Major, or Moderate issues remain.</li>
+        <li><strong>Commit</strong> — invokes <code>/commit</code>.</li>
+      </ol>
+      <p>Steps run sequentially. If reproduction fails after honest effort, the skill stops and reports it — it never proceeds to fix a bug it couldn't reproduce.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Free-text bug</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/bugfix the invoice total rounds down on .5 cents instead of up</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>## 🐛 Bugfix: invoice total rounds .5 cents down instead of up
+
+**Bug**      ROUND_HALF_DOWN applied in `billing/invoice.py:calculate_total`
+**Repro**    tests/billing/test_invoice.py::test_half_cent_rounding — failed, now passes
+**Fix**      switched Decimal rounding mode to ROUND_HALF_UP (`billing/invoice.py`)
+**Docs**     none affected
+**Review**   2 issues fixed (0/1/1), 0 remaining
+**Commit**   a3f91bc — 2 files</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Bug-report file</h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/bugfix Documentation/Backlog/bug-bulk-users-200-on-partial.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Reading bug report: Documentation/Backlog/bug-bulk-users-200-on-partial.md
+
+## 🐛 Bugfix: POST /users/bulk returns 200 on partial failure
+
+**Bug**      HTTP 200 returned even when some rows fail validation (`routes/users.py:bulk_create`)
+**Repro**    tests/routes/test_users_bulk.py::test_partial_failure_returns_207 — failed, now passes
+**Fix**      status code now 207 Multi-Status when at least one row fails (`routes/users.py`)
+**Docs**     Updated API reference: docs/api/users.md — status codes table
+**Review**   1 issue fixed (0/0/1), 0 remaining
+**Commit**   d7c04e1 — 3 files</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — The review loop <code>/bugfix</code> runs internally in step 4. Use directly on any uncommitted change.</li>
+        <li><a href="skill-commit.html">/commit</a> — Writes the Conventional Commits message and commits; <code>/bugfix</code> calls it in step 5.</li>
+        <li><a href="skill-wrap-up.html">/wrap-up</a> — End-of-session audit that catches unfixed issues before you hand off.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

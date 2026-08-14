@@ -72,6 +72,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
+# Release
+
+**Always use `bash release.sh` to cut a release. Never do it manually.**
+
+---
+
 # File Deletion
 - **Never use `rm`** to delete files. Always move files to trash instead: `trash <file>` (macOS). If `trash` is not available, use `mv <file> ~/.Trash/`.
   - **Exception — machine-managed sentinel files**: scripts under `~/.claude/scripts/` MAY use `rm -f` for the following sentinel file because it is ephemeral state and shipping it to trash creates clutter without recovery value:

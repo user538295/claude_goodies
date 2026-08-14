@@ -16,7 +16,7 @@ Two installation paths exist. A release must satisfy both.
 claude plugin marketplace add user538295/claude_goodies
 claude plugin install claude-goodies
 # update later:
-claude plugin update claude-goodies
+claude plugin update claude-goodies@user538295
 ```
 Claude Code reads `.claude-plugin/plugin.json` to resolve the plugin. The `"version"` field in that file is what `claude plugin` reports and uses to decide whether an update is available.
 
@@ -112,7 +112,7 @@ Hits GitHub directly, prints the file count, exits 0. Confirms `main` and `sync-
 
 ### Plugin marketplace
 ```bash
-claude plugin update claude-goodies
+claude plugin update claude-goodies@user538295
 ```
 Should report the new version number from `.claude-plugin/plugin.json`.
 

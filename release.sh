@@ -163,7 +163,7 @@ main() {
   printf "\nRelease %s complete.\n\n" "$tag"
   echo "Post-release verification:"
   echo "  bash <(curl -fsSL https://raw.githubusercontent.com/user538295/claude_goodies/main/install.sh) --dry-run"
-  echo "  claude plugin update claude-goodies"
+  echo "  claude plugin update claude-goodies@user538295"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

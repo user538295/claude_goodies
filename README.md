@@ -87,7 +87,7 @@ claude plugin install claude-goodies
 Restart Claude Code (or start a new session) for changes to load. To update later:
 
 ```bash
-claude plugin update claude-goodies
+claude plugin update claude-goodies@user538295
 ```
 
 Works in Claude Code.

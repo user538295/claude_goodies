@@ -37,8 +37,8 @@
       <h2>Konfiguráció</h2>
       <h3>Naplózás kikapcsolása</h3>
       <p>A naplózás kikapcsolásához futtasd a <code>/session-log off</code> parancsot — ez automatikusan eltávolítja a hook bejegyzéseket a <code>~/.claude/settings.json</code> fájlból. Env-var felülbírálatként beállíthatod a <code>CLAUDE_GOODIES_PROMPT_LOG=0</code> változót a shell-profilodban vagy a <code>.env</code> fájlban; ez a <code>settings.json</code> érintése nélkül tiltja le a naplózást, és plugin-frissítések után is megmarad.</p>
-      <h3>Kézi hook bekötés (install.sh telepítés esetén)</h3>
-      <p>Az <code>install.sh</code>-val telepített változatnál add hozzá az alábbi bejegyzéseket a <code>~/.claude/settings.json</code> fájl <code>"hooks"</code> kulcsa alá:</p>
+      <h3>Kézi hook bekötés</h3>
+      <p>Ha kézzel akarod bekötni a hookokat, add hozzá az alábbi bejegyzéseket a <code>~/.claude/settings.json</code> fájl <code>"hooks"</code> kulcsa alá:</p>
       <pre><code>{
   "hooks": {
     "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_new_session.sh\""}]}],

@@ -78,7 +78,7 @@ Two script bundles handle the plumbing — [`scripts-plan`](https://user538295.g
 
 ## Install · Update
 
-### Option 1 — Claude Code plugin marketplace (recommended)
+### Claude Code plugin marketplace
 
 ```bash
 claude plugin marketplace add user538295/claude_goodies
@@ -92,27 +92,6 @@ claude plugin update claude-goodies@user538295
 ```
 
 Works in Claude Code.
-
----
-
-### Option 2 — shell installer (all environments)
-
-Run this in any terminal — works for both fresh installs and updates. Also works in Claude Code CLI with the `! ` prefix:
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/user538295/claude_goodies/main/install.sh)
-```
-
-The script clones the repo, copies everything — skills, commands, agents, and scripts — into `~/.claude/`, and cleans up after itself. On a fresh install, `CLAUDE.md` is also copied. On updates, by default it 3-way merges your local changes with the new version (using a merge base saved on the prior run) and writes the merged result automatically; on a conflict it writes conflict markers into the file and opens your editor (`$VISUAL`, else `$EDITOR`, else `vi`) to resolve them. It leaves `CLAUDE.md` untouched when your copy already matches the shipped one, or when no merge base exists yet. Restart Claude Code (or start a new session) for changes to load.
-
-**Prerequisites**: bash, git, curl.
-
-**Windows**: use WSL. Git Bash is not supported.
-
-**Flags**:
-- `--overwrite` — overwrite all files including `CLAUDE.md`; shows a diff and asks for confirmation in interactive terminals; overwrites without prompting in non-interactive contexts
-- `--keep-claude-md` — overwrite all files except `CLAUDE.md`, no prompt
-- `--dry-run` — preview every action without writing any files; combinable with `--overwrite` or `--keep-claude-md`; prints a summary count and exits 0
 
 ---
 

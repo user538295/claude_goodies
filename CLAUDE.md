@@ -30,7 +30,7 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
 **Every code or behavior change requires a documentation update in the same session. No exceptions.**
 
 Before closing any task:
-- Identify all docs that describe the changed behavior (handouts, README, CLAUDE.md, install.sh, inline comments, HTML pages).
+- Identify all docs that describe the changed behavior (handouts, README, CLAUDE.md, inline comments, HTML pages).
 - Update every affected file to match the new reality.
 - If you added a new command, skill, or script: add it to every place that lists or describes similar items.
 

@@ -37,8 +37,8 @@
       <h2>Configuration</h2>
       <h3>Disabling logging</h3>
       <p>Run <code>/session-log off</code> to disable logging — it removes the hook entries from <code>~/.claude/settings.json</code> automatically. As an env-var override, set <code>CLAUDE_GOODIES_PROMPT_LOG=0</code> in your shell profile or <code>.env</code>; this suppresses logging without touching <code>settings.json</code> and persists across plugin updates.</p>
-      <h3>Manual hook wiring (install.sh installs)</h3>
-      <p>For <code>install.sh</code> installs, add these entries to <code>~/.claude/settings.json</code> under the <code>"hooks"</code> key:</p>
+      <h3>Manual hook wiring</h3>
+      <p>To wire the hooks by hand, add these entries to <code>~/.claude/settings.json</code> under the <code>"hooks"</code> key:</p>
       <pre><code>{
   "hooks": {
     "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_new_session.sh\""}]}],

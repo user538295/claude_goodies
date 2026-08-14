@@ -76,7 +76,7 @@ docs/install.md       88    Contradiction Says Node 18+ required; README says No
       <h2>Example 2 — Small-set contradiction check</h2>
       <div class="example">
         <p><strong>Input:</strong></p>
-        <pre><code>/md-reviewer check CLAUDE.md, README.md, and install.sh comments for contradictions</code></pre>
+        <pre><code>/md-reviewer check CLAUDE.md, release-guide.md, and release.sh comments for contradictions</code></pre>
         <p><strong>Output / Result:</strong></p>
         <pre><code>Reviewing 3 files (no master nominated — cross-checking all pairs).
 
@@ -84,8 +84,8 @@ Findings (1)
 ────────────────────────────────────────────────────────
 File        Line  Severity       Issue
 ────────────────────────────────────────────────────────
-install.sh  34    Contradiction  Comment says "--dry-run prints nothing"; README says it
-                                 "prints a summary count and exits 0"
+release.sh  34    Contradiction  Comment says "--dry-run prints nothing"; release-guide.md
+                                 says it "prints the planned steps and exits 0"
 ────────────────────────────────────────────────────────
 
 1 issue found.</code></pre>

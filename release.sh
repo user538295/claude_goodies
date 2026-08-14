@@ -126,10 +126,9 @@ main() {
     printf "  1. sed plugin.json: %s → %s\n" "$current" "$next"
     printf "  2. git add .claude-plugin/plugin.json\n"
     printf "  3. git commit -m \"%s\"\n" "$commit_msg"
-    printf "  4. INSTALL_SKIP_CLONE=1 INSTALL_FIXTURE_DIR=. bash install.sh --dry-run\n"
-    printf "  5. git tag -a %s -m \"Release %s\"\n" "$tag" "$tag"
-    printf "  6. git push origin main\n"
-    printf "  7. git push origin %s\n" "$tag"
+    printf "  4. git tag -a %s -m \"Release %s\"\n" "$tag" "$tag"
+    printf "  5. git push origin main\n"
+    printf "  6. git push origin %s\n" "$tag"
     exit 0
   fi
 
@@ -146,13 +145,6 @@ main() {
   git -C "$REPO_ROOT" commit -m "$commit_msg"
   echo "Committed."
 
-  echo "Running smoke test..."
-  if ! INSTALL_SKIP_CLONE=1 INSTALL_FIXTURE_DIR="$REPO_ROOT" bash "$REPO_ROOT/install.sh" --dry-run; then
-    echo "Error: smoke test failed — tag not created" >&2
-    exit 1
-  fi
-  echo "Smoke test passed."
-
   git -C "$REPO_ROOT" tag -a "$tag" -m "Release $tag"
   printf "Tagged: %s\n" "$tag"
 
@@ -162,7 +154,6 @@ main() {
 
   printf "\nRelease %s complete.\n\n" "$tag"
   echo "Post-release verification:"
-  echo "  bash <(curl -fsSL https://raw.githubusercontent.com/user538295/claude_goodies/main/install.sh) --dry-run"
   echo "  claude plugin update claude-goodies@user538295"
 }
 

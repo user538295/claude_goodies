@@ -257,8 +257,9 @@ sort -u -o "$ADDED" "$ADDED"
 
 # ---------------------------------------------------------------- run detection checks
 
-# Checks whose output has no file:line anchor — exempt from added-line filtering.
-FILTER_EXEMPT=" clarity-16 clarity-17 smells-01 "
+# Checks whose output has no file:line anchor, or whose scope is the whole file —
+# exempt from added-line filtering.
+FILTER_EXEMPT=" clarity-16 clarity-17 smells-01 smells-20 tests-13 "
 
 run_checks() {
   local tsv id lang cmd raw="$OUT/.raw_hits" errf="$OUT/.check_err"

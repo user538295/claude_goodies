@@ -37,12 +37,15 @@ $PRECOMPUTED shape for smells-01: `{ check_id: "smells-01", file, line_count }` 
 ---
 
 ### smells-02 · Moderate · Function Parameter Count
-**Scriptable**: No
+**Scriptable**: Yes
 **Rule**: Any function with more than 3 parameters should use a parameter object.
 **Scope**: `diff`
 **Finding action template**: Wrap parameters of `{functionName}` in a `{SuggestedParamObject}` record/struct
 
-**How to check**: For each new/changed function signature in the diff, count parameters. Flag if > 3.
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
+
+NOTE for agent: the pattern counts commas in a single-line signature, so it finds signatures with 4+ parameters written on one line. Two consequences you must handle. First, a signature wrapped across several lines is invisible to it — still count parameters manually for multi-line signatures in the diff. Second, dismiss hits where the commas are not parameter separators: generic type arguments (`Map<String, Item>`), default values containing commas, array/tuple literals, and decorators on the same line. For Python, `self`/`cls` do not count toward the limit. For TypeScript and Swift, a single destructured or labelled parameter object is one parameter, not several.
 
 ---
 
@@ -233,6 +236,60 @@ NOTE for agent: The TS/JS detection above only catches same-line empty catches (
 
 ---
 
+### smells-20 · Major · Equality Overridden Without a Matching Hash
+**Scriptable**: Yes
+**Rule**: A type that redefines equality but not its hash breaks every hash-based container — two equal objects land in different buckets, so lookups and de-duplication silently fail.
+**Scope**: `files`
+**Finding action template**: Add a hash implementation to `{ClassName}` at `{file}:{line}` built from the same fields equality uses
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 3 language(s). Patterns: `scripts/checks/smells.tsv`.
+No scripted detection for:
+- typescript: not applicable — no built-in equality or hash contract
+- javascript: not applicable — no built-in equality or hash contract
+- python: non-scriptable — `__eq__` without `__hash__` is handled by the language, which makes the type unhashable rather than silently wrong
+- swift: non-scriptable — `Hashable` conformance is synthesised, and a manual `==` without `hash(into:)` is a compile-time concern
+
+NOTE for agent: the detection reports the file's equality declaration when no hash declaration exists anywhere in the same file. Dismiss the hit when the hash lives in a partial class, a base class, or a generated file — check before flagging. This is distinct from ddd-02, which governs which fields an entity's equality may use; this check is about the pair being complete at all.
+
+---
+
+### smells-21 · Moderate · Type-System Escape Hatch
+**Scriptable**: Yes
+**Rule**: A value typed as unconstrained turns off the compiler for everything downstream of it, so mistakes surface at runtime instead of at build time.
+**Scope**: `diff`
+**Finding action template**: Replace the unconstrained type at `{file}:{line}` with the concrete shape, a union, or a generic parameter
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 3 language(s). Patterns: `scripts/checks/smells.tsv`.
+No scripted detection for:
+- javascript: not applicable — untyped by nature
+- java: non-scriptable — raw generic types cannot be told from legitimate `Object` use by pattern alone
+- kotlin: non-scriptable — `Any` is often a correct bound rather than an escape hatch
+- swift: non-scriptable — `Any` is often a correct bound rather than an escape hatch
+
+NOTE for agent: safety-07 owns suppression comments such as `@ts-ignore` and `# type: ignore`; this check owns the types themselves, so never report the same line under both. Dismiss uses at genuine boundaries where the shape is truly unknown until validated — a raw request body immediately parsed into a typed value, a generic serialiser, or a third-party signature that demands it.
+
+---
+
+### smells-22 · Minor · Wildcard Import
+**Scriptable**: Yes
+**Rule**: An import that pulls in everything hides where each name came from and lets an upstream addition silently shadow a local name.
+**Scope**: `diff`
+**Finding action template**: Replace the wildcard import at `{file}:{line}` with explicit imports of the names actually used
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 3 language(s). Patterns: `scripts/checks/smells.tsv`.
+No scripted detection for:
+- typescript: not applicable — `import * as ns` is namespaced and idiomatic, not a wildcard
+- javascript: not applicable — `import * as ns` is namespaced and idiomatic, not a wildcard
+- csharp: not applicable — `using` imports a namespace by design and does not introduce ambiguous names
+- swift: not applicable — module imports are namespaced
+
+NOTE for agent: dismiss the established exceptions where a wildcard is the documented convention — a package's own `__init__` re-export, a test module importing fixtures, a DSL designed to be star-imported. This is distinct from smells-17, which is about imports that are never used.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -245,4 +302,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=smells findings=N checks=M ok`
-where N is the number of finding lines and M is the total count of `### smells-NN` check headers in this file (19 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=smells failed=<brief reason>`
+where N is the number of finding lines and M is the total count of `### smells-NN` check headers in this file (22 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=smells failed=<brief reason>`

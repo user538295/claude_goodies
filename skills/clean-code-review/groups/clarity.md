@@ -97,10 +97,14 @@ NOTE for agent: Anchored to declaration sites (class/interface/etc.) — import 
 ---
 
 ### clarity-09 · Moderate · Complex Boolean Conditions Not Extracted
-**Scriptable**: No
+**Scriptable**: Yes
 **Rule**: An `if` condition with more than two sub-expressions must be extracted into a named predicate function or variable.
-**How to check**: Find `if` statements in the diff with `&&`, `||`, or `!` combinations of 3+ terms. Check whether the condition has been given a name.
 **Finding action template**: Extract condition into a named predicate `{suggestedName}({params})`
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/clarity.tsv`.
+
+NOTE for agent: the pattern finds a condition containing two or more `&&`/`||` (or `and`/`or` in Python), i.e. three or more joined terms. Two blind spots need your eyes on the diff: a condition split across lines by a formatter, and a condition containing a brace — an object literal argument such as `if (validate({ key: 1 }) && a && b)` stops the scan early and produces no hit. Dismiss a hit when the condition already carries a name (assigned to a well-named boolean variable on the same line) and when the operators belong to separate statements rather than one condition.
 
 ---
 
@@ -113,7 +117,7 @@ NOTE for agent: Anchored to declaration sites (class/interface/etc.) — import 
 ---
 
 ### clarity-11 · Moderate · Nested Ternary Operators
-**Scriptable**: Yes
+**Scriptable**: No
 **Rule**: A ternary expression nested inside another ternary — cognitive cost matches deep nesting but lacks braces to signal depth.
 **Scope**: `diff`
 **Finding action template**: Replace nested ternary with an explicit `if/else` block or extract into a named function

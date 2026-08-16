@@ -13,3 +13,10 @@ clarity-16	swift	grep -E '\.swift$' | mgrepc '\b(if|else|for|while|switch|case|c
 clarity-16	kotlin	grep -E '\.kts?$' | mgrepc '\b(if|else|for|while|when|catch)\b|\?[^?:]' | awk -F: '$NF > 10'
 clarity-16	java	grep -E '\.java$' | mgrepc '\b(if|else|for|while|switch|case|catch)\b|\?[^?:]' | awk -F: '$NF > 10'
 clarity-17	all	grep -E '\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|cs|py|swift|kts?|java)$' | mwc | awk '$1 > 150' | sort -rn
+clarity-09	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mgrep '\b(if|while)\s*\([^{]*(&&|\|\|)[^{]*(&&|\|\|)'
+clarity-09	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mgrep '\b(if|while)\s*\([^{]*(&&|\|\|)[^{]*(&&|\|\|)'
+clarity-09	python	grep -E '\.py$' | mgrep '^\s*(if|elif|while)\b.*\b(and|or)\b.*\b(and|or)\b'
+clarity-09	csharp	grep -E '\.cs$' | mgrep '\b(if|while)\s*\([^{]*(&&|\|\|)[^{]*(&&|\|\|)'
+clarity-09	java	grep -E '\.java$' | mgrep '\b(if|while)\s*\([^{]*(&&|\|\|)[^{]*(&&|\|\|)'
+clarity-09	kotlin	grep -E '\.kts?$' | mgrep '\b(if|while)\s*\([^{]*(&&|\|\|)[^{]*(&&|\|\|)'
+clarity-09	swift	grep -E '\.swift$' | mgrep '\b(if|guard|while)\b[^{]*(&&|\|\|)[^{]*(&&|\|\|)'

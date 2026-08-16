@@ -130,6 +130,19 @@ For **new files** (where the entire file is in the diff and no counterpart exist
 
 ---
 
+### arch-11 · Moderate · Environment Address Hardcoded in Code
+**Scriptable**: Yes
+**Rule**: A service address, hostname, or connection string written into code forces a rebuild to change environment, and ships one environment's address to all of them.
+**Scope**: `diff`
+**Finding action template**: Move the address at `{file}:{line}` into configuration and inject it into `{ClassName}`
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+
+NOTE for agent: the patterns already skip comments, `localhost`, loopback addresses, and specification URLs such as `www.w3.org`. Dismiss remaining non-addresses: namespace identifiers that merely look like URLs, documentation links, and fixed third-party endpoints that genuinely never vary by environment. This overlaps clarity-08 in surface only — a magic string is fixed by naming a constant, whereas this finding is only fixed by moving the value out of the code, so report it here and not there.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -142,4 +155,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=arch findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (10 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (11 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`

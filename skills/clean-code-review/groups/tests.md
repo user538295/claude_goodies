@@ -187,6 +187,19 @@ NOTE for agent: also flag test methods whose entire body contains no assertion k
 
 ---
 
+### tests-13 · Critical · Test Module Containing No Assertions
+**Scriptable**: Yes
+**Rule**: A test file with no assertion anywhere in it verifies nothing — it passes as long as the code does not crash, and reports that as coverage.
+**Scope**: `files`
+**Finding action template**: Add assertions to `{file}` that verify the observable outcome, or delete the module if it is a placeholder
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
+
+NOTE for agent: the detection is file-level — it names test modules where the assertion count is zero, and carries no line number, so anchor the finding at the first test declaration in the file. This is distinct from tests-09, which finds individual assertions that cannot fail; here there are none at all. Dismiss files that are not really tests despite their name: shared fixtures, factories, builders, and setup helpers. Dismiss a module whose verification genuinely lives in a custom helper, but only after confirming that helper asserts.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -199,4 +212,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=tests findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### tests-NN` check headers in this file (12 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. Exception: tests-01's project-has-tests baseline finding (when the repository contains no test suite at all) may be reported as Major instead of Critical — this is a sanctioned deviation listed in the synthesizer. On error: `STATUS: GROUP=tests failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### tests-NN` check headers in this file (13 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. Exception: tests-01's project-has-tests baseline finding (when the repository contains no test suite at all) may be reported as Major instead of Critical — this is a sanctioned deviation listed in the synthesizer. On error: `STATUS: GROUP=tests failed=<brief reason>`

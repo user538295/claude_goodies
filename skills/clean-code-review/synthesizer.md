@@ -9,13 +9,13 @@ You receive finding lines and STATUS lines from multiple review agents, plus met
 - Detected language tokens list
 - Skipped files list (`$SKIPPED`)
 - Unmapped extensions (`unanalysed.txt`), if any — shown in report header as "Unanalysed: .ext1, .ext2"
-- Expected check counts per group: clarity=17, smells=19, solid=15, arch=10, tests=12, safety=7, ddd=5
+- Expected check counts per group: clarity=17, smells=22, solid=15, arch=11, tests=13, safety=16, ddd=5
 - The review target (from `mode.txt` — e.g. `staged unstaged untracked`, `ref: main..HEAD`, or `files`)
 - `WARN-CAP:` lines (hit-cap warnings, when findings were truncated after added-line filtering)
 - `WARN-DETECT:` lines (detection-failure warnings, when a detection command errored)
 - `NOTICE-LARGE-DIFF:` (if the target covers more than 100 files)
 
-`{checks_run}` = sum of the expected check counts for the active groups (clarity=17, smells=19, solid=15, arch=10, tests=12, safety=7, ddd=5). Do not count headers — use the expected-count table.
+`{checks_run}` = sum of the expected check counts for the active groups (clarity=17, smells=22, solid=15, arch=11, tests=13, safety=16, ddd=5). Do not count headers — use the expected-count table.
 
 ## Agent failure handling
 
@@ -68,6 +68,10 @@ If a single finding accumulates multiple `(see also:)` annotations from separate
 | solid-06 ↔ solid-08 | same Swift/Kotlin var declaration — field encapsulation vs single-assignment mutability | keep solid-06 (Major, encapsulation signal stronger); drop solid-08 (Minor) |
 | solid-06 ↔ ddd-01 | public mutable property (TS: `public x =`; Swift/Kotlin: `var x: T`) — pattern overlap across languages | keep solid-06 (drop ddd-01) |
 | safety-07 ↔ tests-05 | `@ts-ignore` in test files — safety-07 is Moderate, tests-05 is Major | keep tests-05 (Major > Moderate); drop safety-07 |
+| arch-11 ↔ clarity-08 | same hardcoded address reported as a magic string and as environment coupling | keep arch-11, drop clarity-08 — naming a constant does not fix the coupling, only moving the value into configuration does |
+| safety-14 ↔ clarity-08 | same hardcoded credential reported as a magic string | keep safety-14 (Critical), drop clarity-08 |
+| safety-16 ↔ solid-07 | same money field — wrong numeric type and a primitive standing in for a domain type | keep both (see also) — safety-16 is the correctness defect (rounding drift), solid-07 is the modelling one |
+| smells-21 ↔ safety-07 | TypeScript `as any` next to a suppression comment | keep both only when they sit on different lines; on the same line keep smells-21 (the type) and drop safety-07 (the suppression) |
 | safety-06 ↔ tests-04 | blocking sleep in test files (any language: Swift `sleep(`, C#/Java/Kotlin `Thread.sleep`, Python `time.sleep`) | In **test files**: keep tests-04 (Major), drop safety-06. In **production code**: keep safety-06. |
 | tests-07 ↔ tests-11 | success-only test suite — tests-11 is more specific | keep tests-11; drop tests-07 |
 | tests-02 ↔ tests-10 | tests-10 is more specific (Moderate); tests-02 is Minor | keep tests-10; drop tests-02 |
@@ -143,7 +147,7 @@ File sections: order by highest severity finding in the file (Critical-containin
 - {check_id}/{lang} detection error: {stderr_first_line} — results may be incomplete
 ```
 
-("`checks declared`" = sum of the expected check counts for the active groups: clarity=17, smells=19, solid=15, arch=10, tests=12, safety=7, ddd=5. Do not count headers — use this expected-count table. Checks for languages absent from the diff may have run no scriptable detection.)
+("`checks declared`" = sum of the expected check counts for the active groups: clarity=17, smells=22, solid=15, arch=11, tests=13, safety=16, ddd=5. Do not count headers — use this expected-count table. Checks for languages absent from the diff may have run no scriptable detection.)
 
 Omit the `**Unanalysed:**` line if no unmapped extensions were passed.
 Omit the `**Skipped files:**` line entirely if `$SKIPPED` is empty.

@@ -1,5 +1,5 @@
 ---
-description: Structured clean code review — 85 checks across 7 groups (clarity, smells, solid, arch, tests, safety, ddd). Flexible targets — local changes (default), staged/unstaged/untracked, a git ref/range, or explicit files (works without git). Runs scripted detections, spawns one agent per group, synthesizes findings.
+description: Structured clean code review — 99 checks across 7 groups (clarity, smells, solid, arch, tests, safety, ddd). Flexible targets — local changes (default), staged/unstaged/untracked, a git ref/range, or explicit files (works without git). Runs scripted detections, spawns one agent per group, synthesizes findings.
 ---
 
 # /clean-code-review
@@ -15,7 +15,7 @@ description: Structured clean code review — 85 checks across 7 groups (clarity
 
 **Groups** (case-insensitive): `clarity` · `smells` · `solid` · `arch` · `tests` · `safety` · `ddd`. Omit to run all 7.
 
-Expected check counts: clarity=17, smells=19, solid=15, arch=10, tests=12, safety=7, ddd=5 (85 total).
+Expected check counts: clarity=17, smells=22, solid=15, arch=11, tests=13, safety=16, ddd=5 (99 total).
 
 ## Severity
 - **Critical**: blocks correctness, security, or safety
@@ -66,11 +66,11 @@ Spawn **one agent per active group in parallel** (Agent tool). Group prompt file
 | Group | File | Checks |
 |---|---|---|
 | clarity | `~/.claude/skills/clean-code-review/groups/clarity.md` | 17 |
-| smells | `~/.claude/skills/clean-code-review/groups/smells.md` | 19 |
+| smells | `~/.claude/skills/clean-code-review/groups/smells.md` | 22 |
 | solid | `~/.claude/skills/clean-code-review/groups/solid.md` | 15 |
-| arch | `~/.claude/skills/clean-code-review/groups/arch.md` | 10 |
-| tests | `~/.claude/skills/clean-code-review/groups/tests.md` | 12 |
-| safety | `~/.claude/skills/clean-code-review/groups/safety.md` | 7 |
+| arch | `~/.claude/skills/clean-code-review/groups/arch.md` | 11 |
+| tests | `~/.claude/skills/clean-code-review/groups/tests.md` | 13 |
+| safety | `~/.claude/skills/clean-code-review/groups/safety.md` | 16 |
 | ddd | `~/.claude/skills/clean-code-review/groups/ddd.md` | 5 |
 
 Before spawning, get the diff size: `DIFF_LINES=$(wc -l < "$OUTDIR/numbered.patch")`.
@@ -80,7 +80,7 @@ Pass each agent:
 - Its group MD file path (agent reads it)
 - `$PRECOMPUTED`: its group's lines from `hits.txt` (those starting `{group}-`). Line formats, tab-separated after the check id:
   - `id<TAB>file:line:text` → `{ check_id, file, line, matched_text }` — split on the **first two** colons only (paths and text may contain colons)
-  - `clarity-16<TAB>file:count` → `{ check_id, file, count }`
+  - `clarity-16` / `tests-13` `<TAB>file:count` → `{ check_id, file, count }`
   - `clarity-17` / `smells-01` `<TAB>count file` → `{ check_id, file, line_count }`
 - `$LANGUAGES`: contents of `languages.txt`
 - Its expected check count (table above)
@@ -125,4 +125,4 @@ Present the synthesizer output directly, **exactly once** — do not repeat, re-
   - `tests/test_collect.sh` — target resolution, filtering, caps, numbered diff
   - `tests/test_checks.sh` — every detection command executes cleanly
   - `tests/test_corpus.sh` — pattern semantics: per check+language, `tests/corpus.tsv` defines code that MUST match and near-misses that must NOT. When adding or changing a detection pattern, add its MATCH/NOMATCH rows to `corpus.tsv`.
-- **Recall benchmark** (manual eval, not CI): `benchmark/` contains deliberately flawed Python, TypeScript, C#, and Swift files with 96 catalogued violations covering all 85 checks (`benchmark/planted.tsv`) plus precision traps. Run the skill on those files and score against the catalog after changing agent prompts or models — see `benchmark/README.md`. Never "fix" the benchmark files.
+- **Recall benchmark** (manual eval, not CI): `benchmark/` contains deliberately flawed Python, TypeScript, C#, and Swift files with 96 catalogued violations (`benchmark/planted.tsv`) plus precision traps. The catalogue covers the original 85 checks; the 14 added later (safety-08 through safety-16, smells-20 through smells-22, arch-11, tests-13) have no planted violations yet, so a benchmark run cannot measure their recall. Their patterns are covered by `tests/corpus.tsv` instead. Run the skill on those files and score against the catalog after changing agent prompts or models — see `benchmark/README.md`. Never "fix" the benchmark files.

@@ -388,3 +388,216 @@ ddd-01	kotlin	ddd/money.kt	MATCH	    var amount: BigDecimal = BigDecimal.ZERO
 ddd-01	kotlin	ddd/money.kt	NOMATCH	    val amount: BigDecimal = BigDecimal.ZERO
 ddd-01	java	ddd/money.java	MATCH	    public void setAmount(BigDecimal amount) { this.amount = amount; }
 ddd-01	java	ddd/money.java	NOMATCH	    public void settle(Payment payment) { this.status = Status.SETTLED; }
+safety-01	typescript	safety/leak.ts	MATCH	const stream = fs.createReadStream(path);
+safety-01	typescript	safety/leak.ts	NOMATCH	const data = await fs.promises.readFile(path);
+safety-01	javascript	safety/leak.js	MATCH	const rs = fs.createWriteStream(target);
+safety-01	javascript	safety/leak.js	NOMATCH	const contents = readFileSync(target);
+safety-01	python	safety/leak.py	MATCH	    fh = open(path, "w")
+safety-01	python	safety/leak.py	NOMATCH	    with open(path, "w") as fh:
+safety-01	csharp	safety/Leak.cs	MATCH	        var stream = new FileStream(path, FileMode.Open);
+safety-01	csharp	safety/Leak.cs	NOMATCH	        using var stream = new FileStream(path, FileMode.Open);
+safety-01	java	safety/Leak.java	MATCH	        InputStream in = new FileInputStream(path);
+safety-01	java	safety/Leak.java	NOMATCH	        try (InputStream in = new FileInputStream(path)) {
+safety-01	kotlin	safety/Leak.kt	MATCH	    val reader = BufferedReader(FileReader(path))
+safety-01	kotlin	safety/Leak.kt	NOMATCH	    File(path).useLines { lines -> lines.count() }
+safety-01	swift	safety/Leak.swift	MATCH	        let handle = FileHandle(forReadingAtPath: path)
+safety-01	swift	safety/Leak.swift	NOMATCH	        let data = try Data(contentsOf: url)
+safety-08	typescript	safety/timeout.ts	MATCH	  const res = await fetch(endpoint);
+safety-08	typescript	safety/timeout.ts	NOMATCH	  const res = await fetch(endpoint, { signal: controller.signal });
+safety-08	javascript	safety/timeout.js	MATCH	  const res = await fetch(endpoint);
+safety-08	javascript	safety/timeout.js	NOMATCH	  const res = await fetch(endpoint, { signal: ac.signal });
+safety-08	python	safety/timeout.py	MATCH	    resp = requests.get(url)
+safety-08	python	safety/timeout.py	NOMATCH	    resp = requests.get(url, timeout=5)
+safety-08	csharp	safety/Timeout.cs	MATCH	        var resp = await client.GetAsync(url);
+safety-08	csharp	safety/Timeout.cs	NOMATCH	        var resp = await client.GetAsync(url, cancellationToken);
+safety-09	csharp	safety/AsyncVoid.cs	MATCH	    public async void HandleOrder(Order order)
+safety-09	csharp	safety/AsyncVoid.cs	NOMATCH	    public async Task HandleOrder(Order order)
+safety-10	csharp	safety/Rethrow.cs	MATCH	            throw ex;
+safety-10	csharp	safety/Rethrow.cs	NOMATCH	            throw;
+safety-10	java	safety/Rethrow.java	MATCH	            throw e;
+safety-10	java	safety/Rethrow.java	NOMATCH	            throw new ServiceException("failed", e);
+safety-10	typescript	safety/rethrow.ts	MATCH	    throw new Error(err.message);
+safety-10	typescript	safety/rethrow.ts	NOMATCH	    throw new Error("failed", { cause: err });
+safety-10	javascript	safety/rethrow.js	MATCH	    throw new Error(err.message);
+safety-10	javascript	safety/rethrow.js	NOMATCH	    throw new Error("failed", { cause: err });
+safety-11	typescript	safety/clock.ts	MATCH	    const now = new Date();
+safety-11	typescript	safety/clock.ts	NOMATCH	    const now = this.clock.now();
+safety-11	javascript	safety/clock.js	MATCH	    const id = crypto.randomUUID();
+safety-11	javascript	safety/clock.js	NOMATCH	    const id = this.ids.next();
+safety-11	python	safety/clock.py	MATCH	    created = datetime.now()
+safety-11	python	safety/clock.py	NOMATCH	    created = self._clock.now()
+safety-11	csharp	safety/Clock.cs	MATCH	        var created = DateTime.UtcNow;
+safety-11	csharp	safety/Clock.cs	NOMATCH	        var created = _clock.UtcNow;
+safety-11	java	safety/Clock.java	MATCH	        var created = Instant.now();
+safety-11	java	safety/Clock.java	NOMATCH	        var created = clock.instant();
+safety-11	kotlin	safety/Clock.kt	MATCH	    val created = LocalDateTime.now()
+safety-11	kotlin	safety/Clock.kt	NOMATCH	    val created = clock.now()
+safety-11	swift	safety/Clock.swift	MATCH	        let created = Date()
+safety-11	swift	safety/Clock.swift	NOMATCH	        let created = clock.now
+safety-12	python	safety/defaults.py	MATCH	def register(name, tags=[]):
+safety-12	python	safety/defaults.py	NOMATCH	def register(name, tags=None):
+safety-13	python	safety/validate.py	MATCH	    assert amount > 0
+safety-13	python	safety/validate.py	NOMATCH	    if amount <= 0: raise ValueError("amount must be positive")
+safety-14	typescript	safety/creds.ts	MATCH	const apiKey = "sk-live-9f3a2b7c1d8e";
+safety-14	typescript	safety/creds.ts	NOMATCH	const apiKey = process.env.API_KEY;
+safety-14	javascript	safety/creds.js	MATCH	const password = "hunter2hunter2";
+safety-14	javascript	safety/creds.js	NOMATCH	const password = config.password;
+safety-14	python	safety/creds.py	MATCH	API_KEY = "sk-live-9f3a2b7c1d8e"
+safety-14	python	safety/creds.py	NOMATCH	API_KEY = os.environ["API_KEY"]
+safety-14	csharp	safety/Creds.cs	MATCH	        var password = "P@ssw0rd12345";
+safety-14	csharp	safety/Creds.cs	NOMATCH	        var password = _config["Db:Password"];
+safety-14	java	safety/Creds.java	MATCH	        String secret = "s3cr3tValue123";
+safety-14	java	safety/Creds.java	NOMATCH	        String secret = System.getenv("SECRET");
+safety-14	kotlin	safety/Creds.kt	MATCH	    val apiKey = "sk-live-9f3a2b7c1d8e"
+safety-14	kotlin	safety/Creds.kt	NOMATCH	    val apiKey = System.getenv("API_KEY")
+safety-14	swift	safety/Creds.swift	MATCH	    let apiKey = "sk-live-9f3a2b7c1d8e"
+safety-14	swift	safety/Creds.swift	NOMATCH	    let apiKey = ProcessInfo.processInfo.environment["API_KEY"]
+safety-15	typescript	safety/sql.ts	MATCH	  const q = `SELECT id FROM users WHERE id = ${userId}`;
+safety-15	typescript	safety/sql.ts	NOMATCH	  const q = "SELECT id FROM users WHERE id = $1";
+safety-15	javascript	safety/sql.js	MATCH	  const q = "SELECT id FROM users WHERE id = " + userId;
+safety-15	javascript	safety/sql.js	NOMATCH	  const q = "SELECT id FROM users WHERE id = ?";
+safety-15	python	safety/sql.py	MATCH	    cur.execute("SELECT id FROM users WHERE id = %s" % user_id)
+safety-15	python	safety/sql.py	NOMATCH	    cur.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+safety-15	csharp	safety/Sql.cs	MATCH	        var q = "SELECT Id FROM Users WHERE Id = " + userId;
+safety-15	csharp	safety/Sql.cs	NOMATCH	        var q = "SELECT Id FROM Users WHERE Id = @userId";
+safety-15	java	safety/Sql.java	MATCH	        String q = "SELECT id FROM users WHERE id = " + userId;
+safety-15	java	safety/Sql.java	NOMATCH	        String q = "SELECT id FROM users WHERE id = ?";
+safety-15	kotlin	safety/Sql.kt	MATCH	    val q = "SELECT id FROM users WHERE id = $userId"
+safety-15	kotlin	safety/Sql.kt	NOMATCH	    val q = "SELECT id FROM users WHERE id = ?"
+safety-15	swift	safety/Sql.swift	MATCH	        let q = "SELECT id FROM users WHERE id = \(userId)"
+safety-15	swift	safety/Sql.swift	NOMATCH	        let q = "SELECT id FROM users WHERE id = ?"
+safety-16	typescript	safety/money.ts	MATCH	  totalAmount: number;
+safety-16	typescript	safety/money.ts	NOMATCH	  totalAmount: Money;
+safety-16	python	safety/money.py	MATCH	    total_price: float
+safety-16	python	safety/money.py	NOMATCH	    total_price: Decimal
+safety-16	csharp	safety/Money.cs	MATCH	    public double TotalPrice { get; set; }
+safety-16	csharp	safety/Money.cs	NOMATCH	    public decimal TotalPrice { get; set; }
+safety-16	java	safety/Money.java	MATCH	    private double totalPrice;
+safety-16	java	safety/Money.java	NOMATCH	    private BigDecimal totalPrice;
+safety-16	kotlin	safety/Money.kt	MATCH	    val totalPrice: Double = 0.0
+safety-16	kotlin	safety/Money.kt	NOMATCH	    val totalPrice: BigDecimal = BigDecimal.ZERO
+safety-16	swift	safety/Money.swift	MATCH	    let totalPrice: Double
+safety-16	swift	safety/Money.swift	NOMATCH	    let totalPrice: Decimal
+smells-02	typescript	smells/params.ts	MATCH	export function createOrder(id: string, customer: Customer, items: Item[], coupon: Coupon) {
+smells-02	typescript	smells/params.ts	NOMATCH	export function createOrder(id: string, customer: Customer, items: Item[]) {
+smells-02	javascript	smells/params.js	MATCH	function createOrder(id, customer, items, coupon) {
+smells-02	javascript	smells/params.js	NOMATCH	function createOrder(id, customer, items) {
+smells-02	python	smells/params.py	MATCH	def create_order(order_id, customer, items, coupon):
+smells-02	python	smells/params.py	NOMATCH	def create_order(order_id, customer, items):
+smells-02	csharp	smells/Params.cs	MATCH	    public Order CreateOrder(string id, Customer customer, Item[] items, Coupon coupon)
+smells-02	csharp	smells/Params.cs	NOMATCH	    public Order CreateOrder(string id, Customer customer, Item[] items)
+smells-02	java	smells/Params.java	MATCH	    public Order createOrder(String id, Customer customer, List<Item> items, Coupon coupon) {
+smells-02	java	smells/Params.java	NOMATCH	    public Order createOrder(String id, Customer customer, List<Item> items) {
+smells-02	kotlin	smells/Params.kt	MATCH	    fun createOrder(id: String, customer: Customer, items: List<Item>, coupon: Coupon): Order {
+smells-02	kotlin	smells/Params.kt	NOMATCH	    fun createOrder(id: String, customer: Customer, items: List<Item>): Order {
+smells-02	swift	smells/Params.swift	MATCH	    func createOrder(id: String, customer: Customer, items: [Item], coupon: Coupon) -> Order {
+smells-02	swift	smells/Params.swift	NOMATCH	    func createOrder(id: String, customer: Customer, items: [Item]) -> Order {
+smells-20	csharp	smells/NoHash.cs	MATCH	    public override bool Equals(object other)
+smells-20	csharp	smells/WithHash.cs	NOMATCH	    public override bool Equals(object other)
+smells-20	csharp	smells/WithHash.cs	FILL	    public override int GetHashCode() => Id.GetHashCode();
+smells-20	java	smells/NoHash.java	MATCH	    public boolean equals(Object other) {
+smells-20	java	smells/WithHash.java	NOMATCH	    public boolean equals(Object other) {
+smells-20	java	smells/WithHash.java	FILL	    public int hashCode() { return id.hashCode(); }
+smells-20	kotlin	smells/NoHash.kt	MATCH	    override fun equals(other: Any?): Boolean {
+smells-20	kotlin	smells/WithHash.kt	NOMATCH	    override fun equals(other: Any?): Boolean {
+smells-20	kotlin	smells/WithHash.kt	FILL	    override fun hashCode(): Int = id.hashCode()
+smells-21	typescript	smells/anytype.ts	MATCH	  private cache: any = {};
+smells-21	typescript	smells/anytype.ts	NOMATCH	  private cache: Record<string, Item> = {};
+smells-21	csharp	smells/Dyn.cs	MATCH	        dynamic payload = JsonConvert.DeserializeObject(body);
+smells-21	csharp	smells/Dyn.cs	NOMATCH	        var payload = JsonConvert.DeserializeObject<Payload>(body);
+smells-21	python	smells/anytype.py	MATCH	def handle(payload: Any) -> Any:
+smells-21	python	smells/anytype.py	NOMATCH	def handle(payload: Payload) -> Receipt:
+smells-22	python	smells/wildcard.py	MATCH	from models import *
+smells-22	python	smells/wildcard.py	NOMATCH	from models import Order, Customer
+smells-22	java	smells/Wildcard.java	MATCH	import java.util.*;
+smells-22	java	smells/Wildcard.java	NOMATCH	import java.util.List;
+smells-22	kotlin	smells/Wildcard.kt	MATCH	import kotlinx.coroutines.*
+smells-22	kotlin	smells/Wildcard.kt	NOMATCH	import kotlinx.coroutines.launch
+clarity-09	typescript	clarity/bool.ts	MATCH	    if (user.isActive && user.hasCredit && !user.isBanned) {
+clarity-09	typescript	clarity/bool.ts	NOMATCH	    if (user.isActive && user.hasCredit) {
+clarity-09	javascript	clarity/bool.js	MATCH	    if (a.ok && b.ok && c.ok) {
+clarity-09	javascript	clarity/bool.js	NOMATCH	    if (a.ok && b.ok) {
+clarity-09	python	clarity/bool.py	MATCH	    if user.is_active and user.has_credit and not user.is_banned:
+clarity-09	python	clarity/bool.py	NOMATCH	    if user.is_active and user.has_credit:
+clarity-09	csharp	clarity/Bool.cs	MATCH	        if (user.IsActive && user.HasCredit && !user.IsBanned)
+clarity-09	csharp	clarity/Bool.cs	NOMATCH	        if (user.IsActive && user.HasCredit)
+clarity-09	java	clarity/Bool.java	MATCH	        if (user.isActive() && user.hasCredit() && !user.isBanned()) {
+clarity-09	java	clarity/Bool.java	NOMATCH	        if (user.isActive() && user.hasCredit()) {
+clarity-09	kotlin	clarity/Bool.kt	MATCH	        if (user.isActive && user.hasCredit && !user.isBanned) {
+clarity-09	kotlin	clarity/Bool.kt	NOMATCH	        if (user.isActive && user.hasCredit) {
+clarity-09	swift	clarity/Bool.swift	MATCH	        guard user.isActive && user.hasCredit && !user.isBanned else { return }
+clarity-09	swift	clarity/Bool.swift	NOMATCH	        guard user.isActive && user.hasCredit else { return }
+solid-07	typescript	solid/prim.ts	MATCH	  email: string;
+solid-07	typescript	solid/prim.ts	NOMATCH	  email: EmailAddress;
+solid-07	javascript	solid/prim.js	MATCH	  email: "user@example.com",
+solid-07	javascript	solid/prim.js	NOMATCH	  email: EmailAddress.of(raw),
+solid-07	python	solid/prim.py	MATCH	    email: str
+solid-07	python	solid/prim.py	NOMATCH	    email: EmailAddress
+solid-07	csharp	solid/Prim.cs	MATCH	    public string Email { get; set; }
+solid-07	csharp	solid/Prim.cs	NOMATCH	    public EmailAddress Email { get; set; }
+solid-07	java	solid/Prim.java	MATCH	    private String email;
+solid-07	java	solid/Prim.java	NOMATCH	    private EmailAddress email;
+solid-07	kotlin	solid/Prim.kt	MATCH	    val email: String,
+solid-07	kotlin	solid/Prim.kt	NOMATCH	    val email: EmailAddress,
+solid-07	swift	solid/Prim.swift	MATCH	    let email: String
+solid-07	swift	solid/Prim.swift	NOMATCH	    let email: EmailAddress
+arch-11	typescript	arch/config.ts	MATCH	const baseUrl = "https://api.payments.acme.com/v2";
+arch-11	typescript	arch/config.ts	NOMATCH	const baseUrl = config.paymentsBaseUrl;
+arch-11	javascript	arch/config.js	MATCH	const baseUrl = "https://api.payments.acme.com/v2";
+arch-11	javascript	arch/config.js	NOMATCH	const baseUrl = process.env.PAYMENTS_URL;
+arch-11	python	arch/config.py	MATCH	DSN = "postgres://svc:pw@db.prod.acme.com:5432/orders"
+arch-11	python	arch/config.py	NOMATCH	DSN = os.environ["ORDERS_DSN"]
+arch-11	csharp	arch/Config.cs	MATCH	        var baseUrl = "https://api.payments.acme.com/v2";
+arch-11	csharp	arch/Config.cs	NOMATCH	        var baseUrl = _options.PaymentsBaseUrl;
+arch-11	java	arch/Config.java	MATCH	    String baseUrl = "https://api.payments.acme.com/v2";
+arch-11	java	arch/Config.java	NOMATCH	    String baseUrl = env.getProperty("payments.url");
+arch-11	kotlin	arch/Config.kt	MATCH	    val baseUrl = "https://api.payments.acme.com/v2"
+arch-11	kotlin	arch/Config.kt	NOMATCH	    val baseUrl = config.paymentsBaseUrl
+arch-11	swift	arch/Config.swift	MATCH	    let baseUrl = "https://api.payments.acme.com/v2"
+arch-11	swift	arch/Config.swift	NOMATCH	    let baseUrl = config.paymentsBaseUrl
+tests-13	python	tests/test_empty.py	FILE_MATCH	def test_creates_order():
+tests-13	python	tests/test_empty.py	FILL	    service.create_order(payload)
+tests-13	python	tests/test_real.py	FILE_NOMATCH	def test_creates_order():
+tests-13	python	tests/test_real.py	FILL	    assert service.create_order(payload).id is not None
+tests-13	typescript	tests/empty.test.ts	FILE_MATCH	it("creates an order", async () => {
+tests-13	typescript	tests/empty.test.ts	FILL	  await service.createOrder(payload);
+tests-13	typescript	tests/real.test.ts	FILE_NOMATCH	it("creates an order", async () => {
+tests-13	typescript	tests/real.test.ts	FILL	  expect(await service.createOrder(payload)).toBeDefined();
+tests-13	javascript	tests/empty.test.js	FILE_MATCH	it("creates an order", async () => {
+tests-13	javascript	tests/empty.test.js	FILL	  await service.createOrder(payload);
+tests-13	javascript	tests/real.test.js	FILE_NOMATCH	it("creates an order", async () => {
+tests-13	javascript	tests/real.test.js	FILL	  expect(await service.createOrder(payload)).toBeDefined();
+tests-13	csharp	tests/EmptyTests.cs	FILE_MATCH	    public void CreatesOrder()
+tests-13	csharp	tests/EmptyTests.cs	FILL	        _service.CreateOrder(payload);
+tests-13	csharp	tests/RealTests.cs	FILE_NOMATCH	    public void CreatesOrder()
+tests-13	csharp	tests/RealTests.cs	FILL	        Assert.NotNull(_service.CreateOrder(payload));
+tests-13	java	tests/EmptyTests.java	FILE_MATCH	    public void createsOrder() {
+tests-13	java	tests/EmptyTests.java	FILL	        service.createOrder(payload);
+tests-13	java	tests/RealTests.java	FILE_NOMATCH	    public void createsOrder() {
+tests-13	java	tests/RealTests.java	FILL	        assertNotNull(service.createOrder(payload));
+tests-13	kotlin	tests/EmptyTests.kt	FILE_MATCH	    fun `creates order`() {
+tests-13	kotlin	tests/EmptyTests.kt	FILL	        service.createOrder(payload)
+tests-13	kotlin	tests/RealTests.kt	FILE_NOMATCH	    fun `creates order`() {
+tests-13	kotlin	tests/RealTests.kt	FILL	        assertNotNull(service.createOrder(payload))
+tests-13	swift	tests/EmptyTests.swift	FILE_MATCH	    func testCreatesOrder() {
+tests-13	swift	tests/EmptyTests.swift	FILL	        service.createOrder(payload)
+tests-13	swift	tests/RealTests.swift	FILE_NOMATCH	    func testCreatesOrder() {
+tests-13	swift	tests/RealTests.swift	FILL	        XCTAssertNotNil(service.createOrder(payload))
+safety-08	csharp	safety/Timeout.cs	NOMATCH	        var r5 = await client.GetAsync(BuildUrl(a, b), cancellationToken);
+safety-08	typescript	safety/timeout.ts	NOMATCH	  const r5 = await fetch(buildUrl(a, b), { signal: ac.signal });
+safety-08	javascript	safety/timeout.js	NOMATCH	  const r5 = await fetch(buildUrl(a, b), { signal: ac.signal });
+safety-08	python	safety/timeout.py	NOMATCH	    r5 = requests.get(build_url(a, b), timeout=5)
+smells-02	python	smells/params.py	NOMATCH	    def create_order(self, order_id, customer, items):
+smells-02	python	smells/params.py	MATCH	    def create_order_full(self, order_id, customer, items, coupon):
+smells-02	python	smells/params.py	NOMATCH	    def build(cls, order_id, customer, items):
+smells-02	typescript	smells/params.ts	MATCH	const createOrderFn = (id: string, customer: Customer, items: Item[], coupon: Coupon) => {
+smells-02	typescript	smells/params.ts	NOMATCH	const createOrderOk = (id: string, customer: Customer, items: Item[]) => {
+smells-02	javascript	smells/params.js	MATCH	const createOrderFn = async (id, customer, items, coupon) => {
+smells-02	javascript	smells/params.js	NOMATCH	const createOrderOk = async (id, customer, items) => {
+safety-01	csharp	safety/Leak.cs	MATCH	        this._conn = new SqlConnection(connStr);
+safety-01	java	safety/Leak.java	MATCH	        this.in = new FileInputStream(path);
+safety-16	typescript	safety/money.ts	NOMATCH	  totalCount: number;
+safety-16	typescript	safety/money.ts	NOMATCH	  totalPages: number;
+safety-16	typescript	safety/money.ts	MATCH	  totalPrice: number;
+safety-16	python	safety/money.py	NOMATCH	    total_count: float
+safety-16	csharp	safety/Money.cs	NOMATCH	    public double TotalCount { get; set; }

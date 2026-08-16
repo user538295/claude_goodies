@@ -75,10 +75,14 @@ NOTE for agent: dismiss data classes, DTOs, records, structs, and value objects 
 ---
 
 ### solid-07 · Moderate · Primitive Obsession
-**Scriptable**: No
+**Scriptable**: Yes
 **Rule**: Domain concepts represented as raw primitives (`string` for email/URL, `int` for userId/money, `bool` for status) should be named types, value objects, or enums.
-**How to check**: For each new parameter or field typed as a plain primitive, check whether it encodes a domain concept that would benefit from a named type.
 **Finding action template**: Wrap `{primitiveType} {name}` in a `{SuggestedValueObject}` value object or enum
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/solid.tsv`.
+
+NOTE for agent: the pattern only recognises a fixed vocabulary of domain names (email, url, phone, postal code, currency, amount, price, and identifier suffixes) carried as text or numbers. It is a starting point, not the whole check — the rule covers any domain concept, so still read the diff for domain-specific ones the vocabulary does not know. Dismiss hits at genuine system boundaries where a primitive is correct: serialisation shapes (DTOs, wire contracts, database rows), framework-required signatures, and the constructor of the value object itself, which must accept the primitive it wraps.
 
 ---
 

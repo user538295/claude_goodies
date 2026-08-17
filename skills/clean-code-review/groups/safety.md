@@ -264,6 +264,80 @@ NOTE for agent: this is a correctness check and is distinct from solid-07, which
 
 ---
 
+### safety-17 · Critical · Weak or Broken Cryptographic Primitive
+**Scriptable**: Yes
+**Rule**: A cryptographically broken hash or cipher used for a security purpose — MD5 or SHA-1 for signatures/passwords/integrity, DES/3DES/RC4 for encryption, or ECB mode — is practically forgeable or decryptable and must be replaced.
+**Scope**: `diff`
+**Finding action template**: Replace weak primitive `{algorithm}` at `{file}:{line}` with a modern one (SHA-256+/HMAC for hashing, AES-GCM for encryption)
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+
+NOTE for agent: dismiss when the weak primitive is provably not security-relevant — a non-cryptographic checksum for cache keys, ETags, or deduplication where an adversary gains nothing from a collision. MD5/SHA-1 for password hashing, token or signature generation, or integrity verification of untrusted data is always a finding. A password stored with a plain fast hash (even SHA-256) rather than a KDF (bcrypt/scrypt/argon2/PBKDF2) is a related finding you may raise here.
+
+---
+
+### safety-18 · Critical · TLS or Certificate Verification Disabled
+**Scriptable**: Yes
+**Rule**: Turning off TLS certificate or hostname verification makes the client accept any certificate, so an attacker on the network path can impersonate the server and read or alter the traffic.
+**Scope**: `diff`
+**Finding action template**: Remove the verification bypass at `{file}:{line}` and trust the system CA store — pin a certificate only through a proper pinning API, never by accepting all
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/safety.tsv`.
+No scripted detection for:
+- swift: non-scriptable — disabling verification lives inside a `URLSessionDelegate` `didReceive challenge` method that calls the completion handler with `.useCredential`/`URLCredential(trust:)`, spread across several lines; agent must read the delegate body in the diff.
+
+NOTE for agent: dismiss only when the bypass is unreachable in production — guarded by a build flag that is off in release builds, or confined to a test/fixture path. A bypass reachable from a shipping code path is always a finding, regardless of comments claiming it is temporary.
+
+---
+
+### safety-19 · Critical · OS Command or Code Injection Surface
+**Scriptable**: Yes
+**Rule**: Running a command through a shell (`shell=True`, `os.system`, `Runtime.exec` of a shell string, `child_process.exec`) or evaluating a string as code (`eval`, `exec`, `new Function`) lets any interpolated value execute arbitrary commands or code.
+**Scope**: `diff`
+**Finding action template**: Replace the shell/eval call at `{file}:{line}` with an argument-array exec (`execFile`/`spawn`/`subprocess.run([...])`/`ProcessBuilder` with a list) or remove the dynamic evaluation
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+
+NOTE for agent: the finding is the injection surface, not proof of a reachable exploit — flag it whenever any part of the command or evaluated string could carry a value the program did not fix at author time. Dismiss when every argument is a compile-time constant the caller cannot influence. For C#, `Process.Start` on a fixed filename or a URL (opening a browser) is not shell execution — dismiss those; flag when a shell (`cmd.exe`/`/bin/sh` with `/c`/`-c`) or an interpolated command line is involved. `eval`/`exec` on any non-constant input is always a finding.
+
+---
+
+### safety-20 · Critical · Unsafe Deserialization of Untrusted Data
+**Scriptable**: Yes
+**Rule**: Deserializing with a mechanism that can instantiate arbitrary types or run code during construction — Python `pickle`/`yaml.load`, Java native `readObject`, .NET `BinaryFormatter` or `TypeNameHandling` — turns any attacker-controlled bytes into remote code execution.
+**Scope**: `diff`
+**Finding action template**: Replace the unsafe deserializer at `{file}:{line}` with a data-only format (JSON / `yaml.safe_load` / `unarchivedObject(ofClass:)`) or restrict it to an explicit allow-list of types
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+
+NOTE for agent: dismiss when the serialized bytes provably never cross a trust boundary — a value the program itself wrote to a location only it can write, within the same process lifetime. Dismiss `yaml.load(..., Loader=SafeLoader)` and `yaml.safe_load` — those are the safe forms. Any deserialization of a request body, a user-supplied file, a queue message, or cache/session data from a shared store is a finding.
+
+---
+
+### safety-21 · Major · String or Object Compared by Reference in Java
+**Scriptable**: Yes
+**Rule**: In Java, `==`/`!=` on a `String` (or any boxed/reference type) compares object identity, not value — it happens to work for interned literals and fails silently for any computed or boxed value.
+**Scope**: `diff`
+**Finding action template**: Replace reference comparison at `{file}:{line}` with `{a}.equals({b})` (or `Objects.equals(a, b)` to stay null-safe)
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 1 language(s). Patterns: `scripts/checks/safety.tsv`.
+No scripted detection for:
+- typescript: not applicable — `===` is value equality for strings
+- javascript: not applicable — `===` is value equality for strings
+- python: not applicable — `==` is value equality; `is` on strings is the analogous bug but rare and handled by linters
+- csharp: not applicable — `==` is overloaded to value equality for `string`
+- kotlin: not applicable — `==` compiles to `.equals()`; `===` is the explicit reference check
+- swift: not applicable — `==` is value equality via `Equatable`
+
+NOTE for agent: the pattern flags comparison against a string literal (`x == "shipped"`), the unambiguous form. Also flag, by reading the diff, the variable-to-variable form (`a == b` where both are `String` or a boxed type such as `Integer`) — the pattern cannot see the types. Dismiss `== null`/`!= null` (identity is correct there) and comparisons of `char` literals written in single quotes (those are value types). The pattern's comment guard only suppresses full-line comments, so also dismiss a `==`/`!=` that appears inside a **trailing** `//` comment (e.g. `doStuff(); // status == "old"`).
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -276,4 +350,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=safety findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### safety-NN` check headers in this file (16 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=safety failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### safety-NN` check headers in this file (21 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=safety failed=<brief reason>`

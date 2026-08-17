@@ -388,6 +388,35 @@ ddd-01	kotlin	ddd/money.kt	MATCH	    var amount: BigDecimal = BigDecimal.ZERO
 ddd-01	kotlin	ddd/money.kt	NOMATCH	    val amount: BigDecimal = BigDecimal.ZERO
 ddd-01	java	ddd/money.java	MATCH	    public void setAmount(BigDecimal amount) { this.amount = amount; }
 ddd-01	java	ddd/money.java	NOMATCH	    public void settle(Payment payment) { this.status = Status.SETTLED; }
+ddd-06	typescript	ddd/bc.ts	MATCH	import { StockLevel } from "../inventory/stock";
+ddd-06	typescript	ddd/bc.ts	NOMATCH	import { StockLevel } from "../shared/stock";
+ddd-06	javascript	ddd/bc.js	MATCH	import { StockLevel } from "../inventory/stock.js";
+ddd-06	javascript	ddd/bc.js	NOMATCH	import { StockLevel } from "../shared/stock.js";
+ddd-06	python	ddd/bc.py	MATCH	from inventory.stock import StockLevel
+ddd-06	python	ddd/bc.py	MATCH	from myapp.inventory.stock import StockLevel
+ddd-06	python	ddd/bc.py	NOMATCH	from shared.stock import StockLevel
+ddd-06	python	ddd/bc.py	NOMATCH	from myapp.shared.stock import StockLevel
+ddd-06	java	ddd/Bc.java	MATCH	import com.acme.inventory.StockLevel;
+ddd-06	java	ddd/Bc.java	NOMATCH	import com.acme.shared.StockLevel;
+ddd-06	kotlin	ddd/Bc.kt	MATCH	import com.acme.inventory.StockLevel
+ddd-06	kotlin	ddd/Bc.kt	NOMATCH	import com.acme.shared.StockLevel
+ddd-06	csharp	ddd/Bc.cs	MATCH	using Acme.Inventory.Stock;
+ddd-06	csharp	ddd/Bc.cs	NOMATCH	using Acme.Shared.Stock;
+ddd-07	typescript	ddd/collection.ts	MATCH	  getItems(): LineItem[] { return this._items; }
+ddd-07	typescript	ddd/collection.ts	NOMATCH	  getTotal(): number { return this._total; }
+ddd-07	typescript	ddd/collection.ts	NOMATCH	  parseNames(input: string): string[] { return input.split(","); }
+ddd-07	java	ddd/Collection.java	MATCH	    public List<LineItem> getItems() { return items; }
+ddd-07	java	ddd/Collection.java	MATCH	    public Map<String, LineItem> getIndex() { return index; }
+ddd-07	java	ddd/Collection.java	MATCH	    public Set<Tag> getTags() { return tags; }
+ddd-07	java	ddd/Collection.java	MATCH	    public Collection<LineItem> getAll() { return items; }
+ddd-07	java	ddd/Collection.java	NOMATCH	    public int getCount() { return items.size(); }
+ddd-07	java	ddd/Collection.java	NOMATCH	    public CollectionView<LineItem> getView() { return view; }
+ddd-07	kotlin	ddd/Collection.kt	MATCH	    fun getItems(): MutableList<LineItem> = items
+ddd-07	kotlin	ddd/Collection.kt	NOMATCH	    fun getItems(): List<LineItem> = items
+ddd-07	python	ddd/collection.py	MATCH	    def get_items(self) -> List[LineItem]:
+ddd-07	python	ddd/collection.py	NOMATCH	    def get_total(self) -> int:
+ddd-07	csharp	ddd/Collection.cs	MATCH	    public List<LineItem> GetItems() { return items; }
+ddd-07	csharp	ddd/Collection.cs	NOMATCH	    public int GetCount() { return items.Count; }
 safety-01	typescript	safety/leak.ts	MATCH	const stream = fs.createReadStream(path);
 safety-01	typescript	safety/leak.ts	NOMATCH	const data = await fs.promises.readFile(path);
 safety-01	javascript	safety/leak.js	MATCH	const rs = fs.createWriteStream(target);
@@ -704,3 +733,76 @@ safety-08	python	safety/timeout.py	FILL	    )
 safety-08	csharp	safety/Timeout.cs	NOMATCH	        var respMulti = await client.GetAsync(
 safety-08	csharp	safety/Timeout.cs	FILL	            url,
 safety-08	csharp	safety/Timeout.cs	FILL	            cancellationToken);
+safety-17	typescript	safety/crypto.ts	MATCH	const h = crypto.createHash("md5");
+safety-17	typescript	safety/crypto.ts	NOMATCH	const h = crypto.createHash("sha256");
+safety-17	javascript	safety/crypto.js	MATCH	const h = crypto.createHash('sha1');
+safety-17	javascript	safety/crypto.js	NOMATCH	const h = crypto.createHash('sha512');
+safety-17	python	safety/crypto.py	MATCH	digest = hashlib.md5(data).hexdigest()
+safety-17	python	safety/crypto.py	NOMATCH	digest = hashlib.sha256(data).hexdigest()
+safety-17	java	safety/Crypto.java	MATCH	MessageDigest md = MessageDigest.getInstance("MD5");
+safety-17	java	safety/Crypto.java	NOMATCH	MessageDigest md = MessageDigest.getInstance("SHA-256");
+safety-17	kotlin	safety/Crypto.kt	MATCH	val md = MessageDigest.getInstance("SHA-1")
+safety-17	kotlin	safety/Crypto.kt	NOMATCH	val md = MessageDigest.getInstance("SHA-256")
+safety-17	csharp	safety/Crypto.cs	MATCH	using var md5 = MD5.Create();
+safety-17	csharp	safety/Crypto.cs	NOMATCH	using var sha = SHA256.Create();
+safety-17	swift	safety/Crypto.swift	MATCH	let h = Insecure.MD5.hash(data: data)
+safety-17	swift	safety/Crypto.swift	NOMATCH	let h = SHA256.hash(data: data)
+safety-17	typescript	safety/crypto.ts	MATCH	const h = createHash("md5").update(x);
+safety-17	javascript	safety/crypto.js	NOMATCH	const h = createHashRoute("md5map");
+safety-18	typescript	safety/tls.ts	MATCH	const agent = new https.Agent({ rejectUnauthorized: false });
+safety-18	typescript	safety/tls.ts	NOMATCH	const agent = new https.Agent({ rejectUnauthorized: true });
+safety-18	javascript	safety/tls.js	MATCH	process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+safety-18	javascript	safety/tls.js	NOMATCH	const url = "https://api.example.com/v1";
+safety-18	python	safety/tls.py	MATCH	resp = requests.get(url, verify=False)
+safety-18	python	safety/tls.py	NOMATCH	resp = requests.get(url, verify=True)
+safety-18	csharp	safety/Tls.cs	MATCH	handler.ServerCertificateCustomValidationCallback = (m, c, ch, e) => true;
+safety-18	csharp	safety/Tls.cs	NOMATCH	handler.ServerCertificateCustomValidationCallback = DefaultValidator;
+safety-18	java	safety/Tls.java	MATCH	conn.setHostnameVerifier(NoopHostnameVerifier.INSTANCE);
+safety-18	java	safety/Tls.java	NOMATCH	conn.setHostnameVerifier(new StrictHostnameVerifier());
+safety-18	kotlin	safety/Tls.kt	MATCH	builder.hostnameVerifier(NoopHostnameVerifier())
+safety-18	kotlin	safety/Tls.kt	NOMATCH	builder.hostnameVerifier(strictVerifier)
+safety-19	typescript	safety/inject.ts	MATCH	child_process.exec("ls " + userInput);
+safety-19	typescript	safety/inject.ts	NOMATCH	child_process.execFile("ls", [userInput]);
+safety-19	javascript	safety/inject.js	MATCH	eval(userProvidedCode);
+safety-19	javascript	safety/inject.js	NOMATCH	const n = JSON.parse(raw);
+safety-19	python	safety/inject.py	MATCH	os.system("rm -rf " + path)
+safety-19	python	safety/inject.py	MATCH	subprocess.Popen(shlex.join(parts), shell=True)
+safety-19	python	safety/inject.py	NOMATCH	subprocess.run(["rm", "-rf", path])
+safety-19	java	safety/Inject.java	MATCH	Runtime.getRuntime().exec("sh -c " + cmd);
+safety-19	java	safety/Inject.java	NOMATCH	new ProcessBuilder("ls", "-la").start();
+safety-19	kotlin	safety/Inject.kt	MATCH	Runtime.getRuntime().exec(cmd)
+safety-19	kotlin	safety/Inject.kt	NOMATCH	ProcessBuilder("ls", "-la").start()
+safety-19	csharp	safety/Inject.cs	MATCH	Process.Start("cmd.exe", "/c " + arg);
+safety-19	csharp	safety/Inject.cs	NOMATCH	logger.LogInformation("started");
+safety-19	swift	safety/Inject.swift	MATCH	system("rm -rf " + path)
+safety-19	swift	safety/Inject.swift	NOMATCH	let count = names.count
+safety-20	python	safety/deser.py	MATCH	obj = pickle.loads(data)
+safety-20	python	safety/deser.py	NOMATCH	obj = json.loads(data)
+safety-20	java	safety/Deser.java	MATCH	Object o = new ObjectInputStream(in).readObject();
+safety-20	java	safety/Deser.java	NOMATCH	Object o = objectMapper.readValue(in, Foo.class);
+safety-20	kotlin	safety/Deser.kt	MATCH	val o = ObjectInputStream(input).readObject()
+safety-20	kotlin	safety/Deser.kt	NOMATCH	val o = mapper.readValue(input, Foo::class.java)
+safety-20	csharp	safety/Deser.cs	MATCH	var f = new BinaryFormatter();
+safety-20	csharp	safety/Deser.cs	NOMATCH	var f = JsonSerializer.Deserialize<Foo>(json);
+safety-20	typescript	safety/deser.ts	MATCH	const obj = unserialize(payload);
+safety-20	typescript	safety/deser.ts	NOMATCH	const obj = JSON.parse(payload);
+safety-20	javascript	safety/deser.js	MATCH	vm.runInNewContext(code);
+safety-20	javascript	safety/deser.js	NOMATCH	const obj = JSON.parse(payload);
+safety-20	swift	safety/Deser.swift	MATCH	let o = NSKeyedUnarchiver.unarchiveObject(with: data)
+safety-20	swift	safety/Deser.swift	NOMATCH	let o = try JSONDecoder().decode(Foo.self, from: data)
+safety-21	java	safety/RefEq.java	MATCH	if (status == "shipped") {
+safety-21	java	safety/RefEq.java	NOMATCH	if (status.equals("shipped")) {
+safety-21	java	safety/RefEq.java	NOMATCH	if (count == 0) {
+safety-21	java	safety/RefEq.java	NOMATCH	String label = "a==b";
+smells-23	typescript	smells/debug.ts	MATCH	  debugger;
+smells-23	typescript	smells/debug.ts	NOMATCH	  logger.debug("x");
+smells-23	javascript	smells/debug.js	MATCH	debugger;
+smells-23	javascript	smells/debug.js	NOMATCH	console.log("hi");
+smells-23	python	smells/debug.py	MATCH	    breakpoint()
+smells-23	python	smells/debug.py	NOMATCH	    logger.debug("x")
+smells-23	java	smells/Debug.java	MATCH	      e.printStackTrace();
+smells-23	java	smells/Debug.java	NOMATCH	      logger.error("failed", e);
+smells-23	kotlin	smells/Debug.kt	MATCH	      e.printStackTrace()
+smells-23	kotlin	smells/Debug.kt	NOMATCH	      logger.error("failed", e)
+smells-23	csharp	smells/Debug.cs	MATCH	      Debugger.Break();
+smells-23	csharp	smells/Debug.cs	NOMATCH	      logger.LogError(e, "failed");

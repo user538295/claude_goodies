@@ -9,13 +9,13 @@ You receive finding lines and STATUS lines from multiple review agents, plus met
 - Detected language tokens list
 - Skipped files list (`$SKIPPED`)
 - Unmapped extensions (`unanalysed.txt`), if any — shown in report header as "Unanalysed: .ext1, .ext2"
-- Expected check counts per group: clarity=17, smells=22, solid=15, arch=11, tests=13, safety=16, ddd=5
+- Expected check counts per group: clarity=17, smells=23, solid=15, arch=11, tests=13, safety=21, ddd=9
 - The review target (from `mode.txt` — e.g. `staged unstaged untracked`, `ref: main..HEAD`, or `files`)
 - `WARN-CAP:` lines (hit-cap warnings, when findings were truncated after added-line filtering)
 - `WARN-DETECT:` lines (detection-failure warnings, when a detection command errored)
 - `NOTICE-LARGE-DIFF:` (if the target covers more than 100 files)
 
-`{checks_run}` = sum of the expected check counts for the active groups (clarity=17, smells=22, solid=15, arch=11, tests=13, safety=16, ddd=5). Do not count headers — use the expected-count table.
+`{checks_run}` = sum of the expected check counts for the active groups (clarity=17, smells=23, solid=15, arch=11, tests=13, safety=21, ddd=9). Do not count headers — use the expected-count table.
 
 ## Agent failure handling
 
@@ -147,7 +147,7 @@ File sections: order by highest severity finding in the file (Critical-containin
 - {check_id}/{lang} detection error: {stderr_first_line} — results may be incomplete
 ```
 
-("`checks declared`" = sum of the expected check counts for the active groups: clarity=17, smells=22, solid=15, arch=11, tests=13, safety=16, ddd=5. Do not count headers — use this expected-count table. Checks for languages absent from the diff may have run no scriptable detection.)
+("`checks declared`" = sum of the expected check counts for the active groups: clarity=17, smells=23, solid=15, arch=11, tests=13, safety=21, ddd=9. Do not count headers — use this expected-count table. Checks for languages absent from the diff may have run no scriptable detection.)
 
 Omit the `**Unanalysed:**` line if no unmapped extensions were passed.
 Omit the `**Skipped files:**` line entirely if `$SKIPPED` is empty.

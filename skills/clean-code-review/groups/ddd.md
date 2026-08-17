@@ -81,6 +81,55 @@ NOTE for agent: only flag if the class name or doc comment indicates a Value Obj
 
 ---
 
+### ddd-06 · Major · Bounded Context Coupling
+**Scriptable**: Yes
+**Rule**: A class in one bounded context must not directly import or reference domain types from another bounded context — integration must go through an Anti-Corruption Layer, shared kernel, or published event.
+**Scope**: `diff`
+**Finding action template**: Replace direct import of `{ForeignType}` from bounded context `{ForeignBC}` in `{ClassName}` with an ACL adapter or integration event
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/ddd.tsv`.
+No scripted detection for:
+- swift: non-scriptable — Swift has no path-based imports; a cross-bounded-context reference within a single module produces no import statement, and separate-module `import ModuleName` lines carry no path segment that names the BC. Agent must read the diff to spot references to another BC's domain types.
+
+NOTE for agent: only flag when the import crosses a clear bounded-context boundary — detected by package/module path segments that name different BCs (e.g. `orders` importing from `inventory`, `billing`, `shipping`, `catalog`). Dismiss when the imported type is in a `shared`, `common`, `kernel`, or `core` package — those are intentional shared kernels. Dismiss if you cannot determine the BC structure from the diff alone; state the limitation explicitly.
+
+---
+
+### ddd-07 · Major · Mutable Collection Leaked from Aggregate
+**Scriptable**: Yes
+**Rule**: An aggregate root or entity must not expose a mutable collection directly — callers must not be able to bypass the aggregate root's invariants by mutating the collection they received.
+**Scope**: `diff`
+**Finding action template**: Return an immutable/read-only view from `{ClassName}.{methodName}()` instead of the live `{collectionType}` — use `Collections.unmodifiableList`, `List.copyOf`, `IReadOnlyList`, `toList()`, `asSequence()`, etc.
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 5 language(s). Patterns: `scripts/checks/ddd.tsv`.
+No scripted detection for:
+- javascript: non-scriptable — plain JS has no return-type annotations, so a mutable-collection return has no reliable line-level signal; agent must read the diff to identify getters on aggregate classes that return a live array/map/set
+- swift: not applicable — Swift's `Array`/`Dictionary`/`Set` are value types with copy-on-write semantics, so returning one hands the caller a copy, not the live collection; there is no mutable-collection leak to detect. (A leak would require exposing a `class`-based/reference collection or an `inout`/`unsafe` escape — rare; agent may flag those by reading the diff.)
+
+NOTE for agent: only flag methods on classes that appear to be aggregate roots or entities (named after domain concepts). Dismiss repository query methods — their purpose is to return collections. Dismiss if the return type is already an immutable wrapper (`IReadOnlyList`, `IReadOnlyCollection`, `IEnumerable`, `Iterable`, `Sequence`, `ImmutableList`, `List` (Java) when returned via `Collections.unmodifiableList`, etc.). Dismiss if the collection field is `private final` / `private val` and the method returns a copy.
+
+---
+
+### ddd-08 · Moderate · Domain Event Not Raised on State Transition
+**Scriptable**: No
+**Rule**: When a domain entity or aggregate undergoes a significant state transition (status change, lifecycle event), it must raise a domain event — not leave event publication to the caller.
+**Finding action template**: Raise a domain event inside `{ClassName}.{methodName}()` on the `{stateTransition}` transition instead of relying on the caller to publish it
+
+**How to check**: Look for methods in the diff that clearly transition domain state (e.g. `approve()`, `cancel()`, `ship()`, `complete()`, `activate()`) inside entity or aggregate classes. Flag if the method makes the state change but does not append/publish a domain event. Only apply this check when you can confirm the project uses domain events — look for evidence in the diff such as existing event classes, event publishers, or `domainEvents` collections. If no evidence of domain events exists in the diff, dismiss this check entirely.
+
+---
+
+### ddd-09 · Major · Complex Aggregate Construction Outside Factory
+**Scriptable**: No
+**Rule**: Creating an aggregate root with complex multi-step setup or many constructor arguments must go through a dedicated factory method or factory class — not be scattered across use cases, controllers, or application services.
+**Finding action template**: Extract construction of `{AggregateRoot}` from `{CallerClass}` into a factory method `{AggregateRoot}.create(...)` or a dedicated `{AggregateRoot}Factory`
+
+**How to check**: Find `new AggregateRoot(...)` or equivalent constructor calls in the diff. Flag if: (1) the call has more than 3 arguments, AND (2) the call site is outside a factory class/method (not named `*Factory`, `create*`, `build*`, `make*`, `from*`), AND (3) the called class looks like an aggregate root (named after a domain concept, has an id field or is used as a repository target). Dismiss test files.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -93,4 +142,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=ddd findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### ddd-NN` check headers in this file (5 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. Exception: ddd-03 may be reported as Major (one step below Critical) when the aggregate boundary cannot be conclusively determined from the diff alone — this is a sanctioned deviation listed in the synthesizer. On error: `STATUS: GROUP=ddd failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### ddd-NN` check headers in this file (9 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. Exception: ddd-03 may be reported as Major (one step below Critical) when the aggregate boundary cannot be conclusively determined from the diff alone — this is a sanctioned deviation listed in the synthesizer. On error: `STATUS: GROUP=ddd failed=<brief reason>`

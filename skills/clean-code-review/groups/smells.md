@@ -292,6 +292,21 @@ NOTE for agent: dismiss the established exceptions where a wildcard is the docum
 
 ---
 
+### smells-23 · Minor · Debugger Statement or Stack-Trace Dump Left in Code
+**Scriptable**: Yes
+**Rule**: A breakpoint / `debugger` statement or a raw stack-trace dump (`printStackTrace`) left in committed code is leftover debugging that ships to production — it halts under a debugger or writes noise to stderr instead of handling the error.
+**Scope**: `diff`
+**Finding action template**: Remove the leftover debugging statement at `{file}:{line}` — replace a `printStackTrace()` with real error handling or a logger call
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/smells.tsv`.
+No scripted detection for:
+- swift: not applicable — Swift has no breakpoint statement, and `debugPrint` is a legitimate formatting API rather than a leftover marker
+
+NOTE for agent: `printStackTrace()` with no other handling is the target — dismiss it only when it sits beside a genuine handling/rethrow step and is clearly intentional diagnostic logging through a framework. `debugger`, `breakpoint()`, `pdb.set_trace()`, and `Debugger.Break()` are always findings in shipped code. This is distinct from solid-12 (direct logging coupling) and safety-07 (suppression comments).
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -304,4 +319,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=smells findings=N checks=M ok`
-where N is the number of finding lines and M is the total count of `### smells-NN` check headers in this file (22 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=smells failed=<brief reason>`
+where N is the number of finding lines and M is the total count of `### smells-NN` check headers in this file (23 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=smells failed=<brief reason>`

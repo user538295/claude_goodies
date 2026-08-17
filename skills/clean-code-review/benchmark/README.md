@@ -96,6 +96,11 @@ Each trap that shows up in the report as a finding is a precision failure.
 | 2026-08-14 | Sonnet 5 | high | 96 rows (4 languages) | 83/96 (86.5%) strict, 84/96 counting anchor drift | 40/42 (95.2%) | 43/54 (79.6%) | 9/10 |
 | 2026-08-14 | Opus 5 | high | 96 rows (4 languages) | 82/96 (85.4%) strict, 88/96 (91.7%) counting anchor drift | 40/42 | 42/54 (77.8%) | 9/10 |
 | 2026-08-14 | Fable 5 | high | 96 rows (4 languages) | 83/96 (86.5%) strict, 89/96 counting anchor drift | 35/38 | 48/58 | 10/10 |
+| 2026-08-17 | Sonnet 4.6 | default | 96 rows (4 languages) | 79/96 (82.3%) | 40/42 (95.2%) | 39/54 (72.2%) | 7/10 |
+| 2026-08-17 | Opus 5 | default | 96 rows (4 languages) | 84/96 (87.5%) | 40/42 (95.2%) | 44/54 (81.5%) | 9/10 |
+| 2026-08-17 | Opus 5 | high (run A) | 96 rows (4 languages) | 82/96 (85.4%) post-dedup, 84/96 (87.5%) raw | 40/42 (95.2%) | 42/54 (77.8%) | 9/10 |
+| 2026-08-17 | Opus 5 | high (run B) | 96 rows (4 languages) | 83/96 (86.5%) post-dedup, 85/96 (88.5%) raw | 40/42 (95.2%) | 43/54 (79.6%) | 9/10 |
+| 2026-08-17 | Haiku 4.5 | default | 96 rows (4 languages) | 83/96 (86.5%) | 39/42 (92.9%) | 44/54 (81.5%) | 2/10 |
 
 2026-08-14 (Haiku 4.5) notes: Scripted layer 38/42 (90.5%). Judgment layer 30/54 (55.6%) — lower judgment
 recall reflects model capability tier. Precision issues: 5 trap failures — tests-01 py/cs/swift (test file
@@ -172,4 +177,108 @@ Cross-run pattern update: `clarity-02`↔`clarity-04` crossover has now recurred
 in 4 of 5 runs and is the single highest-value prompt fix available — it costs
 a judgment-recall point almost every run regardless of model.
 
+2026-08-17 (Sonnet 4.6, default effort) notes: Single run. C# 12/13, Swift 7/7
+(both near-perfect); TypeScript judgment 5/8; Python catalogued judgment 4/14 —
+python remains the persistent weak spot across all runs. Scripted misses (2):
+`arch-02` ts:7 (express import in business code — arch agent dismissed it as a
+false positive on the grounds that SessionManager does not use any express types,
+but the check targets the import itself not the usage; same false-dismissal logic
+as prior runs) and `solid-12` ts:26 (`console.log` in domain class — precomputed
+hit silently dismissed by the solid agent, now recurred in 3 of 6 runs, a reliable
+prompt gap). Judgment misses (15): `ddd-04` py:70 (anchor drift — found at :74,
+4 lines off); `clarity-10` py:37 (found a different defect at py:22, not
+export_report I/O-mixing); `smells-19` cs:434 (anchor drift — found at :428,
+6 lines off); plus `smells-04`/`smells-09`/`smells-13`/`solid-05`/`solid-06`
+(planted at :28)/`solid-07`/`ddd-03`/`tests-07`/`tests-11` py (not flagged) and
+`clarity-03`/`clarity-13`/`solid-11` ts (not flagged). 3 trap failures:
+`solid-06` on Python constructor assignments (py:18/19/20/58/59 — agent flagged
+all as public mutable fields; the trap requires dismissing plain `__init__`
+assignments), `clarity-06` on `TestOrderManager` (test class, should be dismissed
+— now recurred in 3 of 6 runs), and `solid-10` on C# test mock instantiations
+(`new Order()`/`new Mock<>()` inside `OrderProcessingTests.cs` — test-file
+instantiation is a documented dismissal in the solid group MD). Effort level
+(default vs high) explains the gap vs the 2026-08-14 Sonnet 4.6 high-effort run
+(82.3% vs 88.5%); model and prompt are identical.
 
+2026-08-17 (Opus 5, default effort) notes: Single run, full pipeline including
+the synthesizer (scores are post-deduplication, matching what a real invocation
+returns). C# 20/20 (100%) and Swift 12/13 (92%); TypeScript 26/29 (89.7%);
+Python 26/34 (76.5%) — python remains the persistent weak spot across every run
+to date. Scripted misses (2): `solid-12` ts:26 (`console.log` in domain class —
+precomputed hit silently dismissed by the solid agent, now recurred in 4 of 7
+runs, the most reliable prompt gap in the catalog) and `ddd-01` sw:7 (Money
+value-object mutability — found correctly by the ddd agent, then dropped from
+the final report by the solid-06↔ddd-01 synthesizer pair rule once the solid-06
+trap below fired on the same line; a true scoring loss caused by a precision
+failure, not a recall miss by the ddd agent). Judgment misses (10): `smells-02`
+py:22 (dedup-dropped by the smells-03 pair rule — same mechanism as the
+2026-08-14 Sonnet 4.6 run); `clarity-02` ts:34 (check-id crossover — reported as
+`clarity-04` at the same line, now recurred in the majority of runs and remains
+the single highest-value prompt fix available); `solid-11` ts:13 (the
+anemic-entity finding itself not flagged — the related ts:34 `totalWithTax`
+symptom was flagged instead, under both `smells-13` and `solid-11`, a different
+location for a distinct instance of the same check); plus `clarity-05`/
+`smells-04`/`smells-13`/`solid-06`/`solid-07`/`ddd-03`/`tests-07` py (not
+flagged at their planted lines — `smells-13` fired instead on a different,
+legitimate py:70 instance). 1 trap failure: `solid-06` on
+`swift/Checkout.swift:7` (`var amount` in the `Money` value object) — the solid
+agent flagged public-mutable-field instead of dismissing it as ddd-01's
+territory per the documented pair rule; this is the first run where this
+specific trap fails, and it cost a second point indirectly by causing the
+synthesizer to drop the correctly-found `ddd-01`. 9/10 traps passed overall,
+consistent with the Sonnet 5/Opus 5/Fable 5 high-effort runs from 2026-08-14.
+Extras were dominated by a large `arch-10` missing-doc sweep and additional
+`solid-07`/`solid-11` instances beyond the single planted example in each file;
+none nonsensical.
+
+2026-08-17 (Opus 5, high effort, runs A and B) notes: Two independent runs of
+the same catalog, model, and prompts — the spread is the useful signal here.
+Group agents produced 151 (A) and 152 (B) raw finding lines. Post-dedup scores
+were derived by applying the synthesizer's drop rules to the co-located
+findings rather than by spawning the synthesizer agent: every `file:line`
+collision in both runs was checked against the pair table, and exactly two
+rules fired on planted rows — `solid-06 ↔ ddd-01` (`synthesizer.md:69`, keep
+solid-06) drops the correctly-found `ddd-01` sw:7, and `smells-02 ↔ smells-03`
+(`synthesizer.md:90`, keep smells-03) drops the correctly-found `smells-02`
+py:22. Each run therefore loses one scripted and one judgment point between
+the raw group output and the final report. A third collision fired
+(`tests-07 ↔ tests-11` on cs:347) but hit extras only.
+
+Per-language recall (raw, before those two drops) was identical across both
+runs except one row: C# 20/20 and Swift 13/13 (100%), TypeScript 26/29
+(89.7%), Python 25/34 (A) and 26/34 (B) — the single difference between the
+two runs was `arch-10` py:48 (`pop_next` undocumented), found in B, missed in
+A. Every other planted row resolved the same way in both runs, which puts
+run-to-run variance for this model/effort at one point.
+
+Misses common to both runs — scripted (1): `solid-12` ts:26 (`console.log` in
+a domain class, precomputed hit silently dismissed by the solid agent; now 6
+of 9 runs, still the most reliable prompt gap in the catalog). Judgment (10):
+`clarity-02` ts:34 (check-id crossover — both runs reported `clarity-04` at
+that exact line instead; now 7 of 9 runs and unchanged as the
+highest-value prompt fix available), `solid-11` ts:13 (the anemic-`Order`
+finding itself missed; both runs flagged the `totalWithTax` symptom elsewhere
+instead), and the persistent Python cluster `clarity-05` :23 / `smells-04`
+:28 / `smells-13` :22 / `solid-06` :28 / `solid-07` :57 / `ddd-03` :45 /
+`tests-07` :37 / `tests-11` :22 — all unflagged at their planted lines in
+both runs, with `smells-13` firing instead on a legitimate but different
+py:27 (A) / swift:95 (B) instance.
+
+1 trap failure in both runs, the same one: `solid-06` on `swift/Checkout.swift:7`
+(`var amount` in the `Money` value object) — the solid agent flagged
+public-mutable-field instead of leaving it to ddd-01, exactly as in the Opus 5
+default-effort run above, and again cost a second point by triggering the
+pair-rule drop of `ddd-01`. This trap has now failed in 4 of 9 runs — the
+Haiku 4.5 run and the three most recent ones; the `clarity-06`
+`TestOrderManager` trap that dominated the earlier failures passed cleanly in
+both runs. Extras were again dominated
+by the `arch-10` missing-doc sweep (26 arch findings in B vs 15 in A — the
+largest single-group divergence between the two runs) plus additional
+`solid-01`/`solid-05`/`solid-07`/`ddd-04` instances; none nonsensical.
+
+Effort comparison: at high effort Opus 5 scores 82–83/96 against 84/96 at
+default effort in the run recorded above. Those two rows are not directly
+comparable — the default-effort row is a single post-synthesis run and its
+`ddd-01` loss came from the same trap failure, so the 1–2 point difference sits
+inside the run-to-run spread measured here. Two runs at one effort level are
+not enough to claim an effort effect in either direction.

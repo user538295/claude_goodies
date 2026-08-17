@@ -83,10 +83,13 @@ has_new_items() {
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 main() {
-  local dry_run=false
-  if [[ "${1:-}" == "--dry-run" ]]; then
-    dry_run=true
-  fi
+  local dry_run=false yes=false
+  for arg in "$@"; do
+    case "$arg" in
+      --dry-run) dry_run=true ;;
+      -y|--yes) yes=true ;;
+    esac
+  done
 
   assert_on_main
   if [[ "$dry_run" == "true" ]]; then
@@ -132,10 +135,12 @@ main() {
     exit 0
   fi
 
-  read -r -p "Have you updated sync-manifest.txt for any new files? [y/N] " confirm
-  if [[ ! "${confirm:-}" =~ ^[yY]$ ]]; then
-    echo "Aborted. Update sync-manifest.txt first." >&2
-    exit 1
+  if [[ "$yes" == "false" ]]; then
+    read -r -p "Have you updated sync-manifest.txt for any new files? [y/N] " confirm
+    if [[ ! "${confirm:-}" =~ ^[yY]$ ]]; then
+      echo "Aborted. Update sync-manifest.txt first." >&2
+      exit 1
+    fi
   fi
 
   sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"$next\"/" "$PLUGIN_JSON"

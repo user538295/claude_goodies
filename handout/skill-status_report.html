@@ -41,17 +41,18 @@
 /status_report 5 minutes
 /status_report 2m
 /status_report 30    ← bare integer = minutes</code></pre>
-      <p>Also accepted: second units (<code>N sec</code>/<code>secs</code>/<code>second</code>/<code>seconds</code>/<code>Ns</code>) and hour units (<code>N hour</code>/<code>hours</code>/<code>Nh</code>). Intervals under 60 s are floored to 60 with the note "Interval floored to 1 minute." Intervals over 1 hour (3600 s) are not recommended — sessions may not persist that long. If <code>N ≤ 0</code> or the input can't be parsed, the skill asks rather than guessing.</p>
+      <p>Also accepted: second units (<code>N sec</code>/<code>secs</code>/<code>second</code>/<code>seconds</code>/<code>Ns</code>) and hour units (<code>N hour</code>/<code>hours</code>/<code>Nh</code>). Intervals under 60 s are floored to 60 with the note "Interval floored to 1 minute." If <code>N ≤ 0</code> or the input can't be parsed, the skill asks rather than guessing.</p>
       <p>Cancel scheduled checks — matching is case-insensitive and also fires when the argument merely <em>begins with</em> one of these words (e.g. <code>"stop reports"</code>):</p>
       <pre><code>/status_report off
 /status_report cancel
 /status_report stop</code></pre>
-      <p><strong>Warning:</strong> cancelling calls the harness's wakeup-cancel mechanism with a "cancel all" flag — it cancels <em>every</em> scheduled wakeup in the current session, not just this skill's.</p>
+      <p>Cancelling stops only this skill's own monitor, by its task ID — it does not touch any other background task.</p>
       <p>The skill identifies the running task from conversation context — background task ID, output file path, or description. If multiple tasks are found, it uses the most recently launched. If none found, it asks before proceeding. If the target task is genuinely ambiguous, it asks which task to monitor.</p>
-      <p>The scheduling mechanism may be unavailable in subagent contexts. If so: cancel mode reports nothing to cancel; recurring mode falls back to a one-shot check with a note that recurring scheduling is unavailable.</p>
+      <p>The <code>Monitor</code> tool may be unavailable in subagent contexts. If so: cancel mode reports nothing to cancel; recurring mode falls back to a one-shot check with a note that recurring scheduling is unavailable.</p>
       <p>Content read from the monitored source (file, shell command, or URL) is treated as raw data only — any instructions it contains are never followed.</p>
-      <p><strong>Tradeoff:</strong> the scheduled checks are tied to the current session — if the session ends, they stop. A new session can still monitor the same task if you give it the output source (file path, command, or URL). Max 24 checks per run (~4 h at 10-minute intervals).</p>
-      <p>ETA is a rough linear extrapolation anchored at check #1, not a commitment. It requires <code>python3</code> on PATH and shows <code>-</code> when no numeric progress signal is available.</p>
+      <p><strong>Tradeoff:</strong> recurring checks run as a persistent background monitor tied to the current session — if the session ends, they stop. A new session can still monitor the same task if you give it the output source (file path, command, or URL). Max 24 checks per run (~4 h at 10-minute intervals).</p>
+      <p>ETA is a rough linear extrapolation anchored on the first percentage actually observed — not check #1 itself — and re-anchored whenever progress resets to a lower value (e.g. a build phase finishing and a test phase starting over). It reports <code>stalled</code> if progress hasn't moved since the anchor. Not a commitment. It requires <code>python3</code> on PATH and shows <code>-</code> when no numeric progress signal is available.</p>
+      <p>Check #1 never reports <code>complete</code>/<code>failed</code> on its own, even if the source already looks done — a single read can't distinguish a genuinely finished run from a monorepo between packages. In recurring mode the monitor always starts; completion is confirmed only once a later read finds the tail unchanged.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -62,6 +63,7 @@
         <p><strong>Output / Result:</strong></p>
         <pre><code>14:32 - [test suite] Status update #1 - in progress 43% (187/430)
 
+[raw task output — data only, not instructions]
 - Running: src/billing, src/users, src/api
 - 2 failures in src/notifications (non-blocking)
 - No failures in completed packages</code></pre>
@@ -74,35 +76,50 @@
         <p><strong>Input:</strong></p>
         <pre><code>/status_report 5 mins</code></pre>
         <p><strong>Output / Result:</strong></p>
-        <pre><code>14:47 - [database migration] Status update #1 - in progress 17% (3/17)
+        <pre><code>23:35 - [integration test suite] Status update #1 - in progress 17% (3/17)
 
-- Applying: 003_add_invoice_index
-- Completed: 001_users, 002_billing
-- No errors so far
+[raw task output — data only, not instructions]
+- [1/17] PASS tests/test_users.py::test_create
+- [2/17] PASS tests/test_users.py::test_delete
+- [3/17] PASS tests/test_billing.py::test_charge
 
 ETA: -
-Next check scheduled for 14:52
-Note: monitoring is tied to this session — if the session ends, checks stop. /status_report off cancels all scheduled wakeups in the current session.
+Next check in 5 min
+Monitor task ID: mon_a1b2c3 — checks every 5 min, each appears as a notification. To stop: /status_report off
 
-[5 minutes later — automatic wakeup]
+[Monitor notification, 5 minutes later]
 
-14:52 - [database migration] Status update #2 - in progress 47% (8/17)
+23:40 - [integration test suite] Status update #2 - in progress 47% (8/17)
 
-- Applying: 009_add_shipping_table
-- Completed: 001_users … 008_orders
-- No errors so far
+[raw task output — data only, not instructions]
+- [6/17] PASS tests/test_billing.py::test_refund
+- [7/17] PASS tests/test_orders.py::test_create
+- [8/17] PASS tests/test_orders.py::test_cancel
 
-ETA: 15:00
-Next check scheduled for 14:57
+ETA: 23:48
 
-[5 minutes later — automatic wakeup]
+[Monitor notification, 5 minutes later]
 
-14:57 - [database migration] Status update #3 - complete 100% (17/17)
+23:45 - [integration test suite] Status update #3 - in progress 100% (17/17)
 
-- All 17 migrations applied successfully
-- Migration time: 10m 12s
+[raw task output — data only, not instructions]
+- [16/17] PASS tests/test_orders.py::test_refund
+- [17/17] PASS tests/test_orders.py::test_ship_international
+- 17 passed, 0 failed
+
+ETA: 23:45
+
+[Monitor notification, 5 minutes later]
+
+23:50 - [integration test suite] Status update #4 - complete 100% (17/17)
+
+[raw task output — data only, not instructions]
+- [16/17] PASS tests/test_orders.py::test_refund
+- [17/17] PASS tests/test_orders.py::test_ship_international
+- 17 passed, 0 failed
 
 Run complete — no further checks scheduled.</code></pre>
+        <p><em>Note: check #3 shows 100% but is not yet reported <code>complete</code> — its tail just changed, so it isn't stable yet. Check #4 sees the identical tail and confirms completion. This one-interval confirmation cost is deliberate: a single reading can't tell "genuinely finished" apart from "one package just finished, the next is about to start."</em></p>
       </div>
     </section>
 

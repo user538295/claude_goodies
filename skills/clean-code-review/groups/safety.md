@@ -129,7 +129,7 @@ No scripted detection for:
 - kotlin: non-scriptable — same as java; `withTimeout` wraps the call from an enclosing line
 - swift: non-scriptable — `URLSession` timeouts live on the session configuration, not the call site
 
-NOTE for agent: dismiss a hit when a timeout is configured elsewhere and provably covers this call — a client built with a default timeout, an enclosing `withTimeout`/`CancellationTokenSource`, or a framework-wide policy. The finding is a call that can wait forever, not a call missing a specific argument. Expect one recurring false positive you must resolve by reading nearby lines: options passed as a prebuilt variable (`const opts = { signal }; fetch(url, opts)`) look identical to no options at all, because the pattern only sees the call line. For the languages with no pattern, apply the rule by reading the diff.
+NOTE for agent: dismiss a hit when a timeout is configured elsewhere and provably covers this call — a client built with a default timeout, an enclosing `withTimeout`/`CancellationTokenSource`, or a framework-wide policy. The finding is a call that can wait forever, not a call missing a specific argument. Expect one recurring false positive you must resolve by reading nearby lines: options passed as a prebuilt variable (`const opts = { signal }; fetch(url, opts)`) look identical to no options at all, because the pattern only sees the call line. All four scripted languages (typescript, javascript, python, csharp) require *a* `)` to appear somewhere on the same line as the call — not necessarily the call's own closing paren — so a multi-line call whose first line already contains an unrelated `)` (e.g. `fetch(url, buildOpts(x)` opening a nested call) still produces a hit even though the outer call isn't closed until a later line. The more common failure mode is the opposite: a multi-line call with no such stray `)` (`fetch(url, {` on one line, `signal: controller.signal,` and the closing `});` on later lines; the equivalent split across lines in `requests.get(`/`client.GetAsync(`) never produces a hit at all — for these, apply the rule by hand: read forward from the call to its closing `)` before deciding whether a timeout/signal/cancellation token is present. This is a known, accepted false-negative trade-off: a genuinely signal-less multi-line call is silently skipped rather than risk mismatching the guard against the wrong line. For the languages with no pattern, apply the rule by reading the diff.
 
 ---
 
@@ -166,7 +166,7 @@ No scripted detection for:
 - kotlin: non-scriptable — same as python
 - swift: not applicable — `throw` does not carry or reset a stack trace
 
-NOTE for agent: this is distinct from smells-12, which owns exceptions that are swallowed. Here the exception does propagate; what is lost is the origin. In C# and Java flag `throw ex;` and prefer bare `throw;`. In TypeScript and JavaScript flag a new error built from only `err.message`, which drops the original. For Python, read the diff for a `raise` inside an `except` that omits `from`.
+NOTE for agent: this is distinct from smells-12, which owns exceptions that are swallowed. Here the exception does propagate; what is lost is the origin. In C# flag `throw ex;` and prefer bare `throw;` — `throw;` is not valid Java syntax, so in Java flag `throw new X(e.getMessage())`, which drops the caught exception as the cause, and prefer `throw new X(msg, e)` instead. In TypeScript and JavaScript flag a new error built from only `err.message`, which drops the original. For Python, read the diff for a `raise` inside an `except` that omits `from`.
 
 ---
 
@@ -232,7 +232,7 @@ NOTE for agent: the pattern already excludes test paths, where assertions are co
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
 
-NOTE for agent: dismiss obvious non-secrets — empty strings, placeholders such as `changeme` or `xxx`, values that are plainly test fixtures, and public identifiers that merely have a secret-sounding name (a client id, a public key, a header name). Flag anything that looks like a live credential even in a test file: committed test credentials are frequently real. When the value is genuinely a secret, say so plainly in the action and include rotation, because deleting the line does not un-expose it.
+NOTE for agent: dismiss obvious non-secrets — empty strings, placeholders such as `changeme` or `xxx`, values that are plainly test fixtures, and public identifiers that merely have a secret-sounding name (e.g. `stripePublicApiKey = "pk_live_51Hxxxxxxxxxxxx"` — a publishable key, not a secret, even though the variable name ends in `ApiKey`). Flag anything that looks like a live credential even in a test file: committed test credentials are frequently real. Unlike safety-15, this pattern does not exclude comment lines — a commented-out credential (`// password = "..."`) still gets flagged, because a committed secret stays exposed in history whether or not the line is live code. When the value is genuinely a secret, say so plainly in the action and include rotation, because deleting the line does not un-expose it.
 
 ---
 

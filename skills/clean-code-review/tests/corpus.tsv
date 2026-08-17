@@ -414,7 +414,7 @@ safety-09	csharp	safety/AsyncVoid.cs	MATCH	    public async void HandleOrder(Ord
 safety-09	csharp	safety/AsyncVoid.cs	NOMATCH	    public async Task HandleOrder(Order order)
 safety-10	csharp	safety/Rethrow.cs	MATCH	            throw ex;
 safety-10	csharp	safety/Rethrow.cs	NOMATCH	            throw;
-safety-10	java	safety/Rethrow.java	MATCH	            throw e;
+safety-10	java	safety/Rethrow.java	MATCH	            throw new ServiceException(e.getMessage());
 safety-10	java	safety/Rethrow.java	NOMATCH	            throw new ServiceException("failed", e);
 safety-10	typescript	safety/rethrow.ts	MATCH	    throw new Error(err.message);
 safety-10	typescript	safety/rethrow.ts	NOMATCH	    throw new Error("failed", { cause: err });
@@ -567,17 +567,17 @@ tests-13	javascript	tests/empty.test.js	FILE_MATCH	it("creates an order", async 
 tests-13	javascript	tests/empty.test.js	FILL	  await service.createOrder(payload);
 tests-13	javascript	tests/real.test.js	FILE_NOMATCH	it("creates an order", async () => {
 tests-13	javascript	tests/real.test.js	FILL	  expect(await service.createOrder(payload)).toBeDefined();
-tests-13	csharp	tests/EmptyTests.cs	FILE_MATCH	    public void CreatesOrder()
+tests-13	csharp	tests/EmptyTests.cs	FILE_MATCH	    [Fact] public void CreatesOrder()
 tests-13	csharp	tests/EmptyTests.cs	FILL	        _service.CreateOrder(payload);
-tests-13	csharp	tests/RealTests.cs	FILE_NOMATCH	    public void CreatesOrder()
+tests-13	csharp	tests/RealTests.cs	FILE_NOMATCH	    [Fact] public void CreatesOrder()
 tests-13	csharp	tests/RealTests.cs	FILL	        Assert.NotNull(_service.CreateOrder(payload));
-tests-13	java	tests/EmptyTests.java	FILE_MATCH	    public void createsOrder() {
+tests-13	java	tests/EmptyTests.java	FILE_MATCH	    @Test public void createsOrder() {
 tests-13	java	tests/EmptyTests.java	FILL	        service.createOrder(payload);
-tests-13	java	tests/RealTests.java	FILE_NOMATCH	    public void createsOrder() {
+tests-13	java	tests/RealTests.java	FILE_NOMATCH	    @Test public void createsOrder() {
 tests-13	java	tests/RealTests.java	FILL	        assertNotNull(service.createOrder(payload));
-tests-13	kotlin	tests/EmptyTests.kt	FILE_MATCH	    fun `creates order`() {
+tests-13	kotlin	tests/EmptyTests.kt	FILE_MATCH	    @Test fun `creates order`() {
 tests-13	kotlin	tests/EmptyTests.kt	FILL	        service.createOrder(payload)
-tests-13	kotlin	tests/RealTests.kt	FILE_NOMATCH	    fun `creates order`() {
+tests-13	kotlin	tests/RealTests.kt	FILE_NOMATCH	    @Test fun `creates order`() {
 tests-13	kotlin	tests/RealTests.kt	FILL	        assertNotNull(service.createOrder(payload))
 tests-13	swift	tests/EmptyTests.swift	FILE_MATCH	    func testCreatesOrder() {
 tests-13	swift	tests/EmptyTests.swift	FILL	        service.createOrder(payload)
@@ -601,3 +601,106 @@ safety-16	typescript	safety/money.ts	NOMATCH	  totalPages: number;
 safety-16	typescript	safety/money.ts	MATCH	  totalPrice: number;
 safety-16	python	safety/money.py	NOMATCH	    total_count: float
 safety-16	csharp	safety/Money.cs	NOMATCH	    public double TotalCount { get; set; }
+solid-07	typescript	solid/prim.ts	NOMATCH	  valid: string;
+solid-07	typescript	solid/prim.ts	NOMATCH	  grid: number;
+solid-07	typescript	solid/prim.ts	NOMATCH	  paid: number;
+solid-07	typescript	solid/prim.ts	NOMATCH	  android: string;
+solid-07	csharp	solid/Prim.cs	NOMATCH	    string valid = "x";
+solid-07	csharp	solid/Prim.cs	NOMATCH	    int android = 1;
+solid-07	java	solid/Prim.java	NOMATCH	    String valid = "x";
+solid-07	java	solid/Prim.java	NOMATCH	    int android = 1;
+safety-16	typescript	safety/money.ts	NOMATCH	  coffeeCount: number;
+safety-16	typescript	safety/money.ts	NOMATCH	  syntaxLevel: number;
+safety-16	typescript	safety/money.ts	NOMATCH	  costumeId: number;
+safety-16	csharp	safety/Money.cs	NOMATCH	        public float coffeeRatio = 1f;
+safety-16	csharp	safety/Money.cs	NOMATCH	        public double syntaxScore;
+safety-06	swift	safety/safety-06.swift	MATCH	        let sem = DispatchSemaphore(value: 1)
+safety-06	swift	safety/safety-06.swift	MATCH	        dispatchGroup.wait()
+safety-06	swift	safety/safety-06.swift	MATCH	        queue.wait()
+safety-07	swift	safety/safety-07.swift	MATCH	final class Store: @unchecked Sendable {
+safety-15	typescript	safety/sql.ts	MATCH	  const q2 = "INSERT INTO users VALUES (" + userId + ")";
+safety-15	typescript	safety/sql.ts	MATCH	  const q3 = "UPDATE users SET name = " + name;
+safety-15	typescript	safety/sql.ts	MATCH	  const q4 = "DELETE FROM users WHERE id = " + userId;
+safety-01	typescript	safety/leak.ts	MATCH	const sock = net.connect(port, host);
+safety-01	typescript	safety/leak.ts	MATCH	const ws = new WebSocket(url);
+safety-01	csharp	safety/Leak.cs	NOMATCH	        var client = new HttpClient();
+safety-11	typescript	safety/clock.ts	MATCH	    const ts2 = Date.now();
+safety-11	typescript	safety/clock.ts	MATCH	    const r2 = Math.random();
+safety-11	swift	safety/Clock.swift	MATCH	        let id2 = UUID()
+safety-11	swift	safety/Clock.swift	MATCH	        let n2 = Int.random(in: 0...10)
+safety-11	java	safety/Clock.java	MATCH	        var ms = System.currentTimeMillis();
+smells-21	typescript	smells/anytype.ts	MATCH	  const z = value as any;
+smells-21	typescript	smells/anytype.ts	MATCH	  const w = <any>value;
+safety-14	typescript	safety/creds.ts	MATCH	const accessToken = "at_live_9f3a2b7c1d8e";
+safety-14	typescript	safety/creds.ts	MATCH	const privateKey = "MIIEvQIBADANBgkqhkiG";
+safety-08	csharp	safety/Timeout.cs	MATCH	        var resp2 = await client.PostAsync(url, content);
+safety-08	python	safety/timeout.py	MATCH	    resp2 = httpx.get(url)
+arch-11	java	arch/Config.java	MATCH	    String uri = "amqp://guest:guest@mq.prod.acme.com:5672/vhost";
+arch-11	java	arch/Config.java	MATCH	    String url2 = "jdbc:postgresql://db.prod.acme.com:5432/orders";
+safety-10	csharp	safety/Rethrow.cs	MATCH	            throw exception;
+safety-14	typescript	safety/creds.ts	MATCH	const DB_PASSWORD = "hunter2xyz123";
+safety-14	typescript	safety/creds.ts	MATCH	const STRIPE_API_KEY = "sk_live_abcdef12";
+safety-14	javascript	safety/creds.js	MATCH	const DB_PASSWORD = "hunter2xyz123";
+safety-14	javascript	safety/creds.js	MATCH	const STRIPE_API_KEY = "sk_live_abcdef12";
+safety-14	python	safety/creds.py	MATCH	DB_PASSWORD = "hunter2xyz123"
+safety-14	python	safety/creds.py	MATCH	STRIPE_API_KEY = "sk_live_abcdef12"
+safety-14	csharp	safety/Creds.cs	MATCH	        var DB_PASSWORD = "hunter2xyz123";
+safety-14	csharp	safety/Creds.cs	MATCH	        var STRIPE_API_KEY = "sk_live_abcdef12";
+safety-14	java	safety/Creds.java	MATCH	        String DB_PASSWORD = "hunter2xyz123";
+safety-14	java	safety/Creds.java	MATCH	        String STRIPE_API_KEY = "sk_live_abcdef12";
+safety-14	kotlin	safety/Creds.kt	MATCH	    val DB_PASSWORD = "hunter2xyz123"
+safety-14	kotlin	safety/Creds.kt	MATCH	    val STRIPE_API_KEY = "sk_live_abcdef12"
+safety-14	swift	safety/Creds.swift	MATCH	    let DB_PASSWORD = "hunter2xyz123"
+safety-14	swift	safety/Creds.swift	MATCH	    let STRIPE_API_KEY = "sk_live_abcdef12"
+tests-13	typescript	components/Button.stories.tsx	FILE_NOMATCH	export const Default = () => <Button />;
+tests-13	python	tests/conftest.py	FILE_NOMATCH	import pytest
+tests-13	python	tests/factories.py	FILE_NOMATCH	def make_user(): return User()
+tests-13	typescript	src/__tests__/onboarding.ts	FILE_MATCH	it("walks through onboarding", async () => {
+tests-13	typescript	src/__tests__/onboarding.ts	FILL	  await service.startOnboarding(user);
+tests-13	javascript	src/__tests__/onboarding.js	FILE_MATCH	it("walks through onboarding", async () => {
+tests-13	javascript	src/__tests__/onboarding.js	FILL	  await service.startOnboarding(user);
+tests-13	python	tests/onboarding.py	FILE_MATCH	def test_onboarding_flow():
+tests-13	python	tests/onboarding.py	FILL	    service.start_onboarding(user)
+tests-13	java	src/test/java/LoginFlow.java	FILE_MATCH	    @Test public void run() {
+tests-13	java	src/test/java/LoginFlow.java	FILL	        service.login(credentials);
+tests-13	kotlin	src/test/kotlin/LoginFlow.kt	FILE_MATCH	    @Test fun run() {
+tests-13	kotlin	src/test/kotlin/LoginFlow.kt	FILL	        service.login(credentials)
+tests-13	csharp	App.Tests/Checkout.cs	FILE_MATCH	    [Fact] public void Run() {
+tests-13	csharp	App.Tests/Checkout.cs	FILL	        service.Checkout(cart);
+tests-13	swift	AppTests/Checkout.swift	FILE_MATCH	    func testRun() {
+tests-13	swift	AppTests/Checkout.swift	FILL	        service.checkout(cart)
+tests-13	python	tests/utils.py	FILE_NOMATCH	def format_date(value):
+tests-13	python	tests/utils.py	FILL	    return value.isoformat()
+tests-13	python	tests/constants.py	FILE_NOMATCH	TAX_RATE = 0.08
+tests-13	typescript	src/__tests__/constants.ts	FILE_NOMATCH	export const TAX_RATE = 0.08;
+tests-13	javascript	src/__tests__/constants.js	FILE_NOMATCH	export const TAX_RATE = 0.08;
+tests-13	csharp	App.Tests/Constants.cs	FILE_NOMATCH	public static class Constants { public const decimal TaxRate = 0.08m; }
+tests-13	java	src/test/java/Constants.java	FILE_NOMATCH	public class Constants { public static final double TAX_RATE = 0.08; }
+tests-13	kotlin	src/test/kotlin/Constants.kt	FILE_NOMATCH	object Constants { const val TAX_RATE = 0.08 }
+tests-13	swift	AppTests/Constants.swift	FILE_NOMATCH	struct Constants { static let taxRate = 0.08 }
+solid-07	kotlin	solid/Prim.kt	NOMATCH	val android: String,
+solid-07	swift	solid/Prim.swift	NOMATCH	let valid: String
+solid-07	python	solid/prim.py	NOMATCH	total_paid: float
+safety-16	kotlin	safety/Money.kt	NOMATCH	val coffeeRatio: Double = 1.0
+safety-16	swift	safety/Money.swift	NOMATCH	let coffeeRatio: Double = 1.0
+safety-16	java	safety/Money.java	NOMATCH	private double coffeeRatio;
+safety-16	typescript	safety/money.ts	MATCH	  amount?: number;
+smells-02	typescript	smells/params.ts	NOMATCH	doSomething(alpha, beta, gamma, delta);
+smells-02	javascript	smells/params.js	NOMATCH	doSomething(alpha, beta, gamma, delta);
+smells-02	typescript	smells/params.ts	NOMATCH	export function makeUser3(a: string, b: string, c: string, d: string)
+smells-02	typescript	smells/params.ts	FILL	{
+smells-02	javascript	smells/params.js	NOMATCH	function makeUser3(a, b, c, d)
+smells-02	javascript	smells/params.js	FILL	{
+safety-08	typescript	safety/timeout.ts	NOMATCH	  const resMulti = await fetch(endpoint, {
+safety-08	typescript	safety/timeout.ts	FILL	    signal: controller.signal,
+safety-08	typescript	safety/timeout.ts	FILL	  });
+safety-08	javascript	safety/timeout.js	NOMATCH	  const resMulti = await fetch(endpoint, {
+safety-08	javascript	safety/timeout.js	FILL	    signal: ac.signal,
+safety-08	javascript	safety/timeout.js	FILL	  });
+safety-08	python	safety/timeout.py	NOMATCH	    respMulti = requests.get(
+safety-08	python	safety/timeout.py	FILL	        url,
+safety-08	python	safety/timeout.py	FILL	        timeout=5,
+safety-08	python	safety/timeout.py	FILL	    )
+safety-08	csharp	safety/Timeout.cs	NOMATCH	        var respMulti = await client.GetAsync(
+safety-08	csharp	safety/Timeout.cs	FILL	            url,
+safety-08	csharp	safety/Timeout.cs	FILL	            cancellationToken);

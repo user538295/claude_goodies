@@ -18,13 +18,13 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p><strong>Code done — get the deep read before it ships.</strong> Runs 85 checks across 7 groups (clarity, smells, SOLID, arch, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, or explicit paths — no git required for file-path mode.</p>
+      <p><strong>Code done — get the deep read before it ships.</strong> Runs 99 checks across 7 groups (clarity, smells, SOLID, arch, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, or explicit paths — no git required for file-path mode.</p>
       <p>Scripted detections run first via <code>collect.sh</code> and are handed to the group agents as precomputed hits — agents confirm or dismiss each one rather than re-running detection. Vendor and generated files are excluded upfront. Per-check findings can be capped on very large diffs; the report notes it when that happens.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>When to use</h2>
-      <p>You've written the code and want a structured review before opening a PR — not a vibe check, a systematic pass across 85 named criteria. Use <code>/clean-code-review</code> when you want findings grouped, labeled by severity, and synthesized into a clear action list.</p>
+      <p>You've written the code and want a structured review before opening a PR — not a vibe check, a systematic pass across 99 named criteria. Use <code>/clean-code-review</code> when you want findings grouped, labeled by severity, and synthesized into a clear action list.</p>
       <p>The skill declares no trigger phrases — invoke it directly with <code>/clean-code-review</code>.</p>
     </section>
 
@@ -40,7 +40,7 @@
       </ul>
       <p><strong>Groups</strong> (case-insensitive, omit to run all 7):</p>
       <ul>
-        <li><code>clarity</code> (17 checks) · <code>smells</code> (19) · <code>solid</code> (15) · <code>arch</code> (10) · <code>tests</code> (12) · <code>safety</code> (7) · <code>ddd</code> (5)</li>
+        <li><code>clarity</code> (17 checks) · <code>smells</code> (22) · <code>solid</code> (15) · <code>arch</code> (11) · <code>tests</code> (13) · <code>safety</code> (16) · <code>ddd</code> (5)</li>
       </ul>
       <p>A token that matches a group name is always treated as a group, never as a file or ref — e.g. <code>/clean-code-review tests</code> selects the <code>tests</code> group, not a directory named <code>tests</code>.</p>
       <p><strong>Language gate:</strong> if no supported language file is detected in the target, the review aborts before spawning any agent: <em>"No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java. Unanalysed: {contents of unanalysed.txt}."</em></p>
@@ -57,7 +57,7 @@
 
 **5 findings · 0 Critical · 4 Major · 0 Moderate · 1 Minor** (post-deduplication)
 **Target:** staged unstaged untracked
-**Groups run:** clarity, smells, solid, arch, tests, safety, ddd · 85 checks declared
+**Groups run:** clarity, smells, solid, arch, tests, safety, ddd · 99 checks declared
 **Languages detected:** typescript
 
 ---
@@ -91,7 +91,7 @@
 
 **2 findings · 1 Critical · 1 Major · 0 Moderate · 0 Minor** (post-deduplication)
 **Target:** ref: main..HEAD
-**Groups run:** safety · 7 checks declared
+**Groups run:** safety · 16 checks declared
 **Languages detected:** python
 
 ---

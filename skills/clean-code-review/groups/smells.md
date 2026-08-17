@@ -47,6 +47,8 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 
 NOTE for agent: the pattern counts commas in a single-line signature, so it finds signatures with 4+ parameters written on one line. Two consequences you must handle. First, a signature wrapped across several lines is invisible to it — still count parameters manually for multi-line signatures in the diff. Second, dismiss hits where the commas are not parameter separators: generic type arguments (`Map<String, Item>`), default values containing commas, array/tuple literals, and decorators on the same line. For Python, `self`/`cls` do not count toward the limit. For TypeScript and Swift, a single destructured or labelled parameter object is one parameter, not several.
 
+The typescript/javascript pattern additionally requires a `{` or `=>` right after the signature, on the same line — csharp/java/kotlin/swift do not have this requirement. This is deliberate, not an inconsistency to fix: typescript/javascript's prefix accepts a bare identifier (to catch unprefixed declarations such as object-method shorthand), which is indistinguishable from a plain 4+-argument function *call* unless the line also shows the body opening; the other four languages require a declaration keyword (`fun`/`func`/`public`/`private`/etc.) that a call never has, so they need no such disambiguator. The accepted trade-off: a typescript/javascript declaration with the opening `{` on the next line produces no hit — apply the rule by hand to multi-line-opened signatures in the diff.
+
 ---
 
 ### smells-03 · Moderate · Boolean Parameters
@@ -250,7 +252,7 @@ No scripted detection for:
 - python: non-scriptable — `__eq__` without `__hash__` is handled by the language, which makes the type unhashable rather than silently wrong
 - swift: non-scriptable — `Hashable` conformance is synthesised, and a manual `==` without `hash(into:)` is a compile-time concern
 
-NOTE for agent: the detection reports the file's equality declaration when no hash declaration exists anywhere in the same file. Dismiss the hit when the hash lives in a partial class, a base class, or a generated file — check before flagging. This is distinct from ddd-02, which governs which fields an entity's equality may use; this check is about the pair being complete at all.
+NOTE for agent: the detection reports the file's equality declaration when no hash declaration exists anywhere in the same file. The reported line may predate this change and so not appear in `$DIFF` — anchor there anyway; you may read the file directly to confirm. Dismiss the hit when the hash lives in a partial class, a base class, or a generated file — check before flagging. This is distinct from ddd-02, which governs which fields an entity's equality may use; this check is about the pair being complete at all.
 
 ---
 
@@ -268,7 +270,7 @@ No scripted detection for:
 - kotlin: non-scriptable — `Any` is often a correct bound rather than an escape hatch
 - swift: non-scriptable — `Any` is often a correct bound rather than an escape hatch
 
-NOTE for agent: safety-07 owns suppression comments such as `@ts-ignore` and `# type: ignore`; this check owns the types themselves, so never report the same line under both. Dismiss uses at genuine boundaries where the shape is truly unknown until validated — a raw request body immediately parsed into a typed value, a generic serialiser, or a third-party signature that demands it.
+NOTE for agent: safety-07 owns suppression comments such as `@ts-ignore` and `# type: ignore`; this check owns the types themselves. Dismiss uses at genuine boundaries where the shape is truly unknown until validated — a raw request body immediately parsed into a typed value, a generic serialiser, or a third-party signature that demands it.
 
 ---
 

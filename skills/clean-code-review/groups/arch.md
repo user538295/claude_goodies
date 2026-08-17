@@ -139,7 +139,7 @@ For **new files** (where the entire file is in the diff and no counterpart exist
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
 
-NOTE for agent: the patterns already skip comments, `localhost`, loopback addresses, and specification URLs such as `www.w3.org`. Dismiss remaining non-addresses: namespace identifiers that merely look like URLs, documentation links, and fixed third-party endpoints that genuinely never vary by environment. This overlaps clarity-08 in surface only — a magic string is fixed by naming a constant, whereas this finding is only fixed by moving the value out of the code, so report it here and not there.
+NOTE for agent: the patterns already skip comments, `localhost`, the loopback address `127.0.0.1` (but not `::1` or `0.0.0.0` — those are not excluded and will be flagged), specification URLs such as `www.w3.org`, and test paths (test-file naming and test directories, same exclusion as safety-11). Dismiss remaining non-addresses: namespace identifiers that merely look like URLs, documentation links, and fixed third-party endpoints that genuinely never vary by environment. This overlaps clarity-08 in surface only — a magic string is fixed by naming a constant, whereas this finding is only fixed by moving the value out of the code, so report it here and not there.
 
 ---
 

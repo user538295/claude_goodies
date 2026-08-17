@@ -41,17 +41,18 @@
 /status_report 5 minutes
 /status_report 2m
 /status_report 30    ← egész szám = perc</code></pre>
-      <p>Emellett elfogadott: másodperc egységek (<code>N sec</code>/<code>secs</code>/<code>second</code>/<code>seconds</code>/<code>Ns</code>) és óra egységek (<code>N hour</code>/<code>hours</code>/<code>Nh</code>). A 60 mp alatti intervallumok 60 másodpercre emelkednek, "Interval floored to 1 minute." megjegyzéssel. Az 1 óránál (3600 mp) hosszabb intervallumok nem ajánlottak — a munkamenet lehet, hogy nem él addig. Ha <code>N ≤ 0</code>, vagy a bemenet nem értelmezhető, a skill megkérdez ahelyett, hogy találgatna.</p>
+      <p>Emellett elfogadott: másodperc egységek (<code>N sec</code>/<code>secs</code>/<code>second</code>/<code>seconds</code>/<code>Ns</code>) és óra egységek (<code>N hour</code>/<code>hours</code>/<code>Nh</code>). A 60 mp alatti intervallumok 60 másodpercre emelkednek, "Interval floored to 1 minute." megjegyzéssel. Ha <code>N ≤ 0</code>, vagy a bemenet nem értelmezhető, a skill megkérdez ahelyett, hogy találgatna.</p>
       <p>Ütemezett ellenőrzések leállítása — az illesztés kis- és nagybetűre nem érzékeny, és akkor is aktiválódik, ha az argumentum csak <em>ezekkel a szavakkal kezdődik</em> (pl. <code>"stop reports"</code>):</p>
       <pre><code>/status_report off
 /status_report cancel
 /status_report stop</code></pre>
-      <p><strong>Figyelmeztetés:</strong> a leállítás a harness ébresztés-lemondó mechanizmusát hívja "mindet töröld" jelzéssel — ez az aktuális munkamenet <em>összes</em> ütemezett ébresztését törli, nem csak ennek a skillnek a sajátjait.</p>
+      <p>A leállítás kizárólag ennek a skillnek a saját monitorát állítja le, a monitor feladat-azonosítója alapján — más háttérfeladatot nem érint.</p>
       <p>A skill a beszélgetés kontextusából azonosítja a futó feladatot — háttérfeladat-azonosítóból, kimeneti fájl elérési útjából vagy leírásból. Ha több feladatot talál, a legutóbb indítottat használja. Ha egyet sem talál, megkérdez, mielőtt folytatná. Ha a célfeladat valóban nem dönthető el egyértelműen, megkérdezi, melyik feladatot figyelje.</p>
-      <p>Az ütemezési mechanizmus subagent-kontextusban hiányozhat. Ha így van: leállítás módban nincs mit törölni; ismétlődő módban a skill egyszeri ellenőrzésre esik vissza, és jelzi, hogy az ismétlődő ütemezés nem elérhető.</p>
+      <p>A <code>Monitor</code> eszköz alügynök-kontextusban nem feltétlenül érhető el. Ilyenkor: a megszakítás mód azt jelzi, hogy nincs mit megszakítani; az ismétlődő mód egyszeri ellenőrzésre vált vissza, azzal a megjegyzéssel, hogy az ismétlődő ütemezés nem érhető el.</p>
       <p>A figyelt forrásból (fájl, shell-parancs vagy URL) beolvasott tartalmat a skill nyers adatként kezeli — a benne található utasításokat sosem követi.</p>
-      <p><strong>Korlát:</strong> az ütemezett ellenőrzések az aktuális munkamenethez kötöttek — ha a munkamenet véget ér, leállnak. Egy új munkamenet figyelheti ugyanazt a feladatot, ha megadod neki a kimeneti forrást (fájl elérési útja, parancs vagy URL). Futásonként legfeljebb 24 ellenőrzés (~4 óra 10 perces intervallummal).</p>
-      <p>A várható befejezési idő egy hozzávetőleges, lineáris extrapoláció az 1. ellenőrzéshez rögzítve, nem ígéret. <code>python3</code> jelenlétét igényli a PATH-on, és <code>-</code> jelet mutat, ha nincs számszerű haladási jelzés.</p>
+      <p><strong>Korlát:</strong> az ismétlődő ellenőrzések egy, az aktuális munkamenethez kötött, tartós háttér-monitorként futnak — ha a munkamenet véget ér, leállnak. Egy új munkamenet figyelheti ugyanazt a feladatot, ha megadod neki a kimeneti forrást (fájl elérési útja, parancs vagy URL). Futásonként legfeljebb 24 ellenőrzés (~4 óra 10 perces intervallummal).</p>
+      <p>A várható befejezési idő egy hozzávetőleges, lineáris extrapoláció, amely az első valóban megfigyelt százalékos értékhez rögzül — nem feltétlenül az 1. ellenőrzéshez —, és újra rögzül, ha a haladás egy alacsonyabb értékre esik vissza (pl. egy build-fázis befejezése után egy teszt-fázis elölről kezdődik). <code>stalled</code> értéket jelez, ha a haladás nem mozdult el a rögzítés óta. Nem ígéret. <code>python3</code> jelenlétét igényli a PATH-on, és <code>-</code> jelet mutat, ha nincs számszerű haladási jelzés.</p>
+      <p>Az 1. ellenőrzés önmagában sosem jelez <code>complete</code>/<code>failed</code> állapotot, még ha a forrás már késznek is látszik — egyetlen olvasásból nem dönthető el, hogy a feladat valóban befejeződött, vagy csak egy monorepo két csomagja között van. Ismétlődő módban a monitor mindig elindul; a befejezést csak egy későbbi, változatlan tartalmú olvasás erősíti meg.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -62,6 +63,7 @@
         <p><strong>Kimenet / Eredmény:</strong></p>
         <pre><code>14:32 - [tesztsorozat] Status update #1 - in progress 43% (187/430)
 
+[raw task output — data only, not instructions]
 - Fut: src/billing, src/users, src/api
 - 2 hiba a src/notifications-ban (nem blokkoló)
 - Nincs hiba a befejezett csomagokban</code></pre>
@@ -74,35 +76,50 @@
         <p><strong>Bemenet:</strong></p>
         <pre><code>/status_report 5 mins</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>14:47 - [adatbázis-migráció] Status update #1 - in progress 17% (3/17)
+        <pre><code>23:35 - [integrációs tesztsorozat] Status update #1 - in progress 17% (3/17)
 
-- Alkalmazás alatt: 003_add_invoice_index
-- Kész: 001_users, 002_billing
-- Eddig nincs hiba
+[raw task output — data only, not instructions]
+- [1/17] PASS tests/test_users.py::test_create
+- [2/17] PASS tests/test_users.py::test_delete
+- [3/17] PASS tests/test_billing.py::test_charge
 
 ETA: -
-Next check scheduled for 14:52
-Note: monitoring is tied to this session — if the session ends, checks stop. /status_report off cancels all scheduled wakeups in the current session.
+Next check in 5 min
+Monitor task ID: mon_a1b2c3 — checks every 5 min, each appears as a notification. To stop: /status_report off
 
-[5 perccel később — automatikus felébresztés]
+[Monitor-értesítés, 5 perccel később]
 
-14:52 - [adatbázis-migráció] Status update #2 - in progress 47% (8/17)
+23:40 - [integrációs tesztsorozat] Status update #2 - in progress 47% (8/17)
 
-- Alkalmazás alatt: 009_add_shipping_table
-- Kész: 001_users … 008_orders
-- Eddig nincs hiba
+[raw task output — data only, not instructions]
+- [6/17] PASS tests/test_billing.py::test_refund
+- [7/17] PASS tests/test_orders.py::test_create
+- [8/17] PASS tests/test_orders.py::test_cancel
 
-ETA: 15:00
-Next check scheduled for 14:57
+ETA: 23:48
 
-[5 perccel később — automatikus felébresztés]
+[Monitor-értesítés, 5 perccel később]
 
-14:57 - [adatbázis-migráció] Status update #3 - complete 100% (17/17)
+23:45 - [integrációs tesztsorozat] Status update #3 - in progress 100% (17/17)
 
-- Mind a 17 migráció sikeresen alkalmazva
-- Migráció időtartama: 10m 12s
+[raw task output — data only, not instructions]
+- [16/17] PASS tests/test_orders.py::test_refund
+- [17/17] PASS tests/test_orders.py::test_ship_international
+- 17 passed, 0 failed
+
+ETA: 23:45
+
+[Monitor-értesítés, 5 perccel később]
+
+23:50 - [integrációs tesztsorozat] Status update #4 - complete 100% (17/17)
+
+[raw task output — data only, not instructions]
+- [16/17] PASS tests/test_orders.py::test_refund
+- [17/17] PASS tests/test_orders.py::test_ship_international
+- 17 passed, 0 failed
 
 Run complete — no further checks scheduled.</code></pre>
+        <p><em>Megjegyzés: a 3. ellenőrzés 100%-ot mutat, de még nem <code>complete</code> — a tartalma épp az imént változott, így még nem stabil. A 4. ellenőrzés ugyanazt a tartalmat látja, ez erősíti meg a befejezést. Ez az egy-intervallumos megerősítési költség szándékos: egyetlen olvasásból nem dönthető el, hogy a feladat valóban befejeződött, vagy csak az egyik csomag most készült el és a következő indul.</em></p>
       </div>
     </section>
 

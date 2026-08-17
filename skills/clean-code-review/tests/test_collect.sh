@@ -244,6 +244,76 @@ run() { OUT="$("$SCRIPT" "$@" 2>"$WORKROOT"/collect_stderr)"; RC=$?; ERR="$(cat 
   assert_file_lacks "$OUT/hits.txt" "smells-07${TAB}f.ts:1:"
 )
 
+( t "FILTER_EXEMPT check (smells-20) reports even when its evidence line is unchanged"
+  newrepo
+  printf 'public class NoHash {\n    public override bool Equals(object other) { return true; }\n}\n' > NoHash.cs
+  git add NoHash.cs; git commit -qm init
+  printf 'public class NoHash {\n    public override bool Equals(object other) { return true; }\n    // unrelated comment\n}\n' > NoHash.cs
+  run
+  assert_exit_ok "$RC"
+  assert_file_has   "$OUT/addedlines.txt" "NoHash.cs:3"
+  assert_file_lacks "$OUT/addedlines.txt" "NoHash.cs:2"
+  assert_file_has   "$OUT/hits.txt" "smells-20${TAB}NoHash.cs:2:"
+)
+
+( t "FILTER_EXEMPT check (clarity-16) reports even when its evidence lines are unchanged"
+  newrepo
+  { for i in $(seq 1 12); do printf 'if (x) { y(); }\n'; done; } > Complex.cs
+  git add Complex.cs; git commit -qm init
+  { for i in $(seq 1 12); do printf 'if (x) { y(); }\n'; done; printf '// unrelated comment\n'; } > Complex.cs
+  run
+  assert_exit_ok "$RC"
+  assert_file_has   "$OUT/addedlines.txt" "Complex.cs:13"
+  assert_file_lacks "$OUT/addedlines.txt" "Complex.cs:1$"
+  assert_file_has   "$OUT/hits.txt" "clarity-16${TAB}Complex.cs:"
+)
+
+( t "FILTER_EXEMPT check (clarity-17) reports even when its evidence (line count) predates the diff"
+  newrepo
+  { for i in $(seq 1 151); do printf 'const l%d = 1;\n' "$i"; done; } > Long.ts
+  git add Long.ts; git commit -qm init
+  { for i in $(seq 1 151); do printf 'const l%d = 1;\n' "$i"; done; printf 'const extra = 1;\n'; } > Long.ts
+  run
+  assert_exit_ok "$RC"
+  assert_file_has   "$OUT/addedlines.txt" "Long.ts:152"
+  assert_file_lacks "$OUT/addedlines.txt" "Long.ts:1$"
+  assert_file_has   "$OUT/hits.txt" "clarity-17${TAB}.*Long.ts"
+)
+
+( t "FILTER_EXEMPT check (smells-01) reports even when its evidence (line count) predates the diff"
+  newrepo
+  { for i in $(seq 1 1001); do printf 'const l%d = 1;\n' "$i"; done; } > Huge.ts
+  git add Huge.ts; git commit -qm init
+  { for i in $(seq 1 1001); do printf 'const l%d = 1;\n' "$i"; done; printf 'const extra = 1;\n'; } > Huge.ts
+  run
+  assert_exit_ok "$RC"
+  assert_file_has   "$OUT/addedlines.txt" "Huge.ts:1002"
+  assert_file_lacks "$OUT/addedlines.txt" "Huge.ts:1$"
+  assert_file_has   "$OUT/hits.txt" "smells-01${TAB}.*Huge.ts"
+)
+
+( t "FILTER_EXEMPT check (tests-13) reports even when its evidence (no assertions) predates the diff"
+  newrepo
+  mkdir -p tests
+  printf 'def test_creates_order():\n    service.create_order(payload)\n' > tests/test_flow.py
+  git add tests/test_flow.py; git commit -qm init
+  printf 'def test_creates_order():\n    service.create_order(payload)\n    # unrelated comment\n' > tests/test_flow.py
+  run
+  assert_exit_ok "$RC"
+  assert_file_has   "$OUT/addedlines.txt" "tests/test_flow.py:3"
+  assert_file_lacks "$OUT/addedlines.txt" "tests/test_flow.py:1"
+  assert_file_has   "$OUT/hits.txt" "tests-13${TAB}tests/test_flow.py:0"
+)
+
+( t "FILTER_EXEMPT set matches groups/*.md Scope:files declarations, except the documented tests-01 exception"
+  file_scoped="$(perl -ne 'if (/^### (\S+)/) { $id = $1 } if (/\*\*Scope\*\*: `files`/) { print "$id\n" }' "$SKILL_DIR"/groups/*.md | sort -u)"
+  exempt="$(grep '^FILTER_EXEMPT=' "$SKILL_DIR/scripts/collect.sh" | sed -E 's/^FILTER_EXEMPT="//; s/"$//' | tr -s ' ' '\n' | sed '/^$/d' | sort -u)"
+  expected_exempt="$(printf '%s\n' "$file_scoped" | grep -vx 'tests-01' | sort -u)"
+  assert_eq "$exempt" "$expected_exempt"
+  printf '%s\n' "$file_scoped" | grep -qx 'tests-01' && ok || bad "tests-01 should be declared Scope: files in groups/tests.md"
+  printf '%s\n' "$exempt" | grep -qx 'tests-01' && bad "tests-01 must NOT be in FILTER_EXEMPT — it still needs added-line filtering" || ok
+)
+
 ( t "hits work in untracked files and in paths with spaces"
   newrepo
   printf 'x\n' > seed.ts; git add seed.ts; git commit -qm init

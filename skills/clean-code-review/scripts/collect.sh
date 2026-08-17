@@ -257,8 +257,17 @@ sort -u -o "$ADDED" "$ADDED"
 
 # ---------------------------------------------------------------- run detection checks
 
-# Checks whose output has no file:line anchor, or whose scope is the whole file —
-# exempt from added-line filtering.
+# Checks whose hit is a whole-file measurement rather than a diff line — an
+# absence (no hash method, no assertions) or a count (branch count, file
+# length) — have no per-line evidence to filter against, so they are exempt
+# from added-line filtering. This set is asserted against the `**Scope**:
+# files` declarations in groups/*.md by tests/test_collect.sh, so keep them
+# in sync — the coupling is discoverable from the code side.
+# tests-01 is also declared `**Scope**: files` in groups/tests.md but is
+# deliberately NOT listed here: its per-symbol hits are collapsed to one
+# finding per file downstream (see the tests-01 dedup below), and unlike the
+# five checks here it still needs added-line filtering to avoid flagging
+# pre-existing symbols in a touched file that this diff didn't add.
 FILTER_EXEMPT=" clarity-16 clarity-17 smells-01 smells-20 tests-13 "
 
 run_checks() {

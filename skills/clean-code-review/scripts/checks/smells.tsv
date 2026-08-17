@@ -1,4 +1,11 @@
 smells-01	all	grep -E '\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|cs|py|swift|kts?|java)$' | mwc | awk '$1 > 1000' | sort -rn
+smells-02	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mgrep '^\s*(export\s+)?(async\s+)?(function\s+\w+|(public|private|protected)\s+\w+|(const|let|var)\s+\w+\s*=\s*(async\s*)?|\w+)\s*\([^)]*,[^),]*,[^),]*,[^)]*\)\s*(:\s*[\w<>\[\]|&., ]+)?\s*(\{|=>)'
+smells-02	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mgrep '^\s*(export\s+)?(async\s+)?(function\s+\w+|(const|let|var)\s+\w+\s*=\s*(async\s*)?|\w+)\s*\([^)]*,[^),]*,[^),]*,[^)]*\)\s*(:\s*[\w<>\[\]|&., ]+)?\s*(\{|=>)'
+smells-02	python	grep -E '\.py$' | mgrep '^\s*(async\s+)?def\s+\w+\s*\(((self|cls)\s*,[^)]*,[^),]*,[^),]*,[^)]*|(?!self\b|cls\b)[^)]*,[^),]*,[^),]*,[^)]*)\)'
+smells-02	csharp	grep -E '\.cs$' | mgrep '^\s*(public|private|protected|internal)[\w<>\[\],?\s]*\s\w+\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
+smells-02	java	grep -E '\.java$' | mgrep '^\s*(public|private|protected)[\w<>\[\],?\s]*\s\w+\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
+smells-02	kotlin	grep -E '\.kts?$' | mgrep '^\s*(public\s+|private\s+|internal\s+|override\s+)*fun\s+\w+\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
+smells-02	swift	grep -E '\.swift$' | mgrep '^\s*(public\s+|private\s+|internal\s+|override\s+)*func\s+\w+\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
 smells-03	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mgrep '\(([^)]*,)?\s*\w+\??\s*:\s*boolean|\bboolean\s*[,)]|^\s*\w+\??\s*:\s*boolean\s*[,)=]'
 smells-03	python	grep -E '\.py$' | mgrep 'def\s+\w+\s*\([^)]*:\s*bool|^\s*\w+\s*:\s*bool\s*[,)=]'
 smells-03	csharp	grep -E '\.cs$' | mgrep '\bbool\s+\w+\s*[,)]'
@@ -40,18 +47,11 @@ smells-12	csharp	grep -E '\.cs$' | mgrep 'catch\s*\(Exception\b|catch\s*\{\s*\}'
 smells-12	swift	grep -E '\.swift$' | mgrep 'catch\s*\{\s*\}|catch\s+\w+\s*\{\s*\}'
 smells-12	kotlin	grep -E '\.kts?$' | mgrep 'catch\s*\(\s*\w+\s*:\s*(Exception|Throwable)\s*\)|catch\s*\([^)]*\)\s*\{\s*\}'
 smells-12	java	grep -E '\.java$' | mgrep 'catch\s*\(Exception\b|catch\s*\(Throwable\b|catch\s*\([^)]*\)\s*\{\s*\}'
-smells-02	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mgrep '^\s*(export\s+)?(async\s+)?(function\s+\w+|(public|private|protected)\s+\w+|(const|let|var)\s+\w+\s*=\s*(async\s*)?|\w+)\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
-smells-02	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mgrep '^\s*(export\s+)?(async\s+)?(function\s+\w+|(const|let|var)\s+\w+\s*=\s*(async\s*)?|\w+)\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
-smells-02	python	grep -E '\.py$' | mgrep '^\s*(async\s+)?def\s+\w+\s*\(((self|cls)\s*,[^)]*,[^),]*,[^),]*,[^)]*|(?!self\b|cls\b)[^)]*,[^),]*,[^),]*,[^)]*)\)'
-smells-02	csharp	grep -E '\.cs$' | mgrep '^\s*(public|private|protected|internal)[\w<>\[\],?\s]*\s\w+\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
-smells-02	java	grep -E '\.java$' | mgrep '^\s*(public|private|protected)[\w<>\[\],?\s]*\s\w+\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
-smells-02	kotlin	grep -E '\.kts?$' | mgrep '^\s*(public\s+|private\s+|internal\s+|override\s+)*fun\s+\w+\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
-smells-02	swift	grep -E '\.swift$' | mgrep '^\s*(public\s+|private\s+|internal\s+|override\s+)*func\s+\w+\s*\([^)]*,[^),]*,[^),]*,[^)]*\)'
-smells-20	csharp	grep -E '\.cs$' | while IFS= read -r f; do [ -f "$f" ] || continue; if grep -qE 'public\s+override\s+bool\s+Equals\s*\(' "$f" && ! grep -qE 'public\s+override\s+int\s+GetHashCode\s*\(' "$f"; then grep -nE 'public\s+override\s+bool\s+Equals\s*\(' "$f" | head -1 | sed "s|^|$f:|"; fi; done
-smells-20	java	grep -E '\.java$' | while IFS= read -r f; do [ -f "$f" ] || continue; if grep -qE 'public\s+boolean\s+equals\s*\(' "$f" && ! grep -qE 'public\s+int\s+hashCode\s*\(' "$f"; then grep -nE 'public\s+boolean\s+equals\s*\(' "$f" | head -1 | sed "s|^|$f:|"; fi; done
-smells-20	kotlin	grep -E '\.kts?$' | while IFS= read -r f; do [ -f "$f" ] || continue; if grep -qE 'override\s+fun\s+equals\s*\(' "$f" && ! grep -qE 'override\s+fun\s+hashCode\s*\(' "$f"; then grep -nE 'override\s+fun\s+equals\s*\(' "$f" | head -1 | sed "s|^|$f:|"; fi; done
+smells-20	csharp	grep -E '\.cs$' | while IFS= read -r f; do [ -f "$f" ] || continue; if grep -qE 'public\s+override\s+bool\s+Equals\s*\(' "$f" && ! grep -qE 'public\s+override\s+int\s+GetHashCode\s*\(' "$f"; then grep -nE 'public\s+override\s+bool\s+Equals\s*\(' "$f" | head -1 | awk -v f="$f" '{print f":"$0}'; fi; done
+smells-20	java	grep -E '\.java$' | while IFS= read -r f; do [ -f "$f" ] || continue; if grep -qE 'public\s+boolean\s+equals\s*\(' "$f" && ! grep -qE 'public\s+int\s+hashCode\s*\(' "$f"; then grep -nE 'public\s+boolean\s+equals\s*\(' "$f" | head -1 | awk -v f="$f" '{print f":"$0}'; fi; done
+smells-20	kotlin	grep -E '\.kts?$' | while IFS= read -r f; do [ -f "$f" ] || continue; if grep -qE 'override\s+fun\s+equals\s*\(' "$f" && ! grep -qE 'override\s+fun\s+hashCode\s*\(' "$f"; then grep -nE 'override\s+fun\s+equals\s*\(' "$f" | head -1 | awk -v f="$f" '{print f":"$0}'; fi; done
 smells-21	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mgrep ':\s*any\b|\bas\s+any\b|<any>'
-smells-21	csharp	grep -E '\.cs$' | mgrep '^\s*(?!//)[^\n]*\bdynamic\s+\w+\s*[=;)]'
+smells-21	csharp	grep -E '\.cs$' | mgrep '^(?!\s*(//|\*|/\*))[^\n]*\bdynamic\s+\w+\s*[=;)]'
 smells-21	python	grep -E '\.py$' | mgrep ':\s*Any\b|->\s*Any\b'
 smells-22	python	grep -E '\.py$' | mgrep '^\s*from\s+[\w.]+\s+import\s+\*'
 smells-22	java	grep -E '\.java$' | mgrep '^\s*import\s+[\w.]+\.\*\s*;'

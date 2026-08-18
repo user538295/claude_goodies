@@ -35,16 +35,17 @@
 
     <section data-section="2b-configuration">
       <h2>Konfiguráció</h2>
-      <h3>Naplózás kikapcsolása</h3>
-      <p>A naplózás kikapcsolásához futtasd a <code>/session-log off</code> parancsot — ez automatikusan eltávolítja a hook bejegyzéseket a <code>~/.claude/settings.json</code> fájlból. Env-var felülbírálatként beállíthatod a <code>CLAUDE_GOODIES_PROMPT_LOG=0</code> változót a shell-profilodban vagy a <code>.env</code> fájlban; ez a <code>settings.json</code> érintése nélkül tiltja le a naplózást, és plugin-frissítések után is megmarad.</p>
-      <h3>Kézi hook bekötés</h3>
-      <p>Ha kézzel akarod bekötni a hookokat, add hozzá az alábbi bejegyzéseket a <code>~/.claude/settings.json</code> fájl <code>"hooks"</code> kulcsa alá:</p>
+      <h3>Naplózás be- és kikapcsolása</h3>
+      <p>A naplózást egy sentinel fájl vezérli: <code>~/.claude/prompt-logs/.enabled</code>. A <code>/session-log on</code> létrehozza, a <code>/session-log off</code> eltávolítja, a <code>/session-log status</code> pedig kiírja az aktuális állapotot. Ha a sentinel nincs meg, mindkét hook csendben kilép, így a hookok bekötve maradhatnak, és a beállítás túléli a plugin-frissítéseket.</p>
+      <h3>Hook bekötés</h3>
+      <p>A hookok automatikusan bekötődnek a plugin <code>hooks/hooks.json</code> fájljából, amelyet a Claude Code magától megtalál — nem kell sem <code>settings.json</code>-t szerkeszteni, sem <code>hooks</code> mezőt felvenni a <code>plugin.json</code>-ba. A bejegyzések <strong>exec formát</strong> használnak (<code>command</code> és <code>args</code>):</p>
       <pre><code>{
   "hooks": {
-    "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_new_session.sh\""}]}],
-    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_save.sh\""}]}]
+    "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh"]}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_save.sh"]}]}]
   }
 }</code></pre>
+      <p>Az exec forma nem stílus kérdése, hanem követelmény. Shell formában a behelyettesített <code>${CLAUDE_PLUGIN_ROOT}</code> értéket egy shell újraértelmezi, és Windowson a Git Bash megeszi a plugin-útvonal visszaperjeleit (<code>C:\Users\…</code> helyett <code>C:Users…</code> lesz), így a szkript nem található meg. Exec formában minden <code>args</code> elem egyetlen argumentumként megy át, amit egyetlen shell sem értelmez, így az útvonal minden platformon sértetlen marad.</p>
     </section>
 
     <section data-section="3-invocation">

@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SCRIPT=\"${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/scripts/prompt_log_new_session.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh"]
           }
         ]
       }
@@ -16,7 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SCRIPT=\"${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/scripts/prompt_log_save.sh\"; [ -f \"$SCRIPT\" ] && bash \"$SCRIPT\" || true"
+            "command": "bash",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_save.sh"]
           }
         ]
       }

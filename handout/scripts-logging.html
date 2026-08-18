@@ -35,16 +35,17 @@
 
     <section data-section="2b-configuration">
       <h2>Configuration</h2>
-      <h3>Disabling logging</h3>
-      <p>Run <code>/session-log off</code> to disable logging — it removes the hook entries from <code>~/.claude/settings.json</code> automatically. As an env-var override, set <code>CLAUDE_GOODIES_PROMPT_LOG=0</code> in your shell profile or <code>.env</code>; this suppresses logging without touching <code>settings.json</code> and persists across plugin updates.</p>
-      <h3>Manual hook wiring</h3>
-      <p>To wire the hooks by hand, add these entries to <code>~/.claude/settings.json</code> under the <code>"hooks"</code> key:</p>
+      <h3>Enabling and disabling logging</h3>
+      <p>Logging is gated on a sentinel file, <code>~/.claude/prompt-logs/.enabled</code>. Run <code>/session-log on</code> to create it and <code>/session-log off</code> to remove it; <code>/session-log status</code> reports the current state. Both hooks exit silently when the sentinel is absent, so the hooks stay registered either way and the setting survives plugin updates.</p>
+      <h3>Hook wiring</h3>
+      <p>The hooks are registered automatically from the plugin's <code>hooks/hooks.json</code>, which Claude Code auto-discovers — no <code>settings.json</code> edit and no <code>hooks</code> field in <code>plugin.json</code> are needed. The entries use <strong>exec form</strong> (<code>command</code> plus <code>args</code>):</p>
       <pre><code>{
   "hooks": {
-    "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_new_session.sh\""}]}],
-    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash \"$HOME/.claude/scripts/prompt_log_save.sh\""}]}]
+    "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh"]}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_save.sh"]}]}]
   }
 }</code></pre>
+      <p>Exec form is required, not stylistic. In shell form the substituted <code>${CLAUDE_PLUGIN_ROOT}</code> is re-parsed by a shell, and on Windows Git Bash consumes the backslashes in the plugin path (<code>C:\Users\…</code> becomes <code>C:Users…</code>), so the script is never found. In exec form each <code>args</code> element is passed as a single argument that no shell parses, which keeps the path intact on every platform.</p>
     </section>
 
     <section data-section="3-invocation">

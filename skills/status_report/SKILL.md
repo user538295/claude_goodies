@@ -65,7 +65,7 @@ Determine progress and item count using the same "Progress %" and "Item count" h
 **Minimum interval**: if parsed seconds < 60, use 60 and note: "Interval floored to 1 minute."
 
 Then:
-1. Run `date +%s` to capture `FIRST_EPOCH` (Unix timestamp). Determine `SOURCE_TYPE`: `file` if the output source is a filesystem path, `url` if it starts with `http://` or `https://`, `command` otherwise. Read the output source, extract `FIRST_PCT` (0–100 integer, or **-1 if not detectable** — meaning no baseline yet; the script anchors on the first real percentage it observes). Produce the immediate check #1 report using OUTPUT FORMAT (include the `ETA: -` and `Next check in N min` lines). Status is `in progress` (or `unavailable`/`awaiting first output`), never `complete`/`failed`, for the same reason as one-shot mode's check #1: there is nothing yet to compare the tail against.
+1. Run `date +%s` to capture `FIRST_EPOCH` (Unix timestamp). Determine `SOURCE_TYPE`: `file` if the output source is a filesystem path, `url` if it starts with `http://` or `https://`, `command` otherwise. Read the output source, extract `FIRST_PCT` (0–100 integer, or **-1 if not detectable** — the script then treats `FIRST_EPOCH` as a 0% baseline, so an ETA is available from the first observed percentage at check #2 on). Produce the immediate check #1 report using OUTPUT FORMAT (include the `ETA: -` and `Next check in N min` lines). Status is `in progress` (or `unavailable`/`awaiting first output`), never `complete`/`failed`, for the same reason as one-shot mode's check #1: there is nothing yet to compare the tail against.
 2. Fill in the **6 placeholders** in the MONITOR_SCRIPT_TEMPLATE with their literal values. Then call `Monitor` with:
    - `command`: the fully filled-in MONITOR_SCRIPT_TEMPLATE (the complete shell script as a string — no unfilled `<PLACEHOLDER>` tokens must remain)
    - `description`: `status checks for <TASK_DESCRIPTION>`
@@ -115,7 +115,7 @@ Fill in **exactly these 6 placeholders** before passing to Monitor. No `<PLACEHO
 | `<SOURCE_TYPE>` | `file`, `command`, or `url` |
 | `<INTERVAL_SECONDS>` | Integer seconds |
 | `<FIRST_EPOCH>` | Unix timestamp integer from step 1 |
-| `<FIRST_PCT>` | Integer 0–100, or -1 if not detectable at check #1 (no baseline yet) |
+| `<FIRST_PCT>` | Integer 0–100, or -1 if not detectable at check #1 (the script then anchors the baseline at 0% on `FIRST_EPOCH`) |
 | `<TASK_DESCRIPTION>` | Short string (no single-quotes) |
 
 ~~~~
@@ -279,15 +279,32 @@ while [ "$CHECK_NUM" -le "$MAX_CHECKS" ]; do
         fi
     fi
 
-    # ETA — anchor on the first real percentage observed (FIRST_PCT starts
-    # at -1 = "no baseline"); re-anchor if progress resets to a lower
-    # percentage (e.g. a build phase finishes and a test phase starts over)
+    # ETA — linear extrapolation from an anchor (ETA_EPOCH, ETA_PCT) to the
+    # current (now, PCT). When check #1 showed a percentage, that is the
+    # anchor. When it did not (FIRST_PCT=-1), check #1's timestamp is still a
+    # real data point — the prep phase before any % appeared is 0% progress —
+    # so the first observed percentage extrapolates from (FIRST_EPOCH, 0),
+    # giving an ETA at check #2 (rough: it counts prep time toward the 0->PCT
+    # span) instead of deferring a check. In that case the stored anchor is
+    # then advanced to this first real reading so later checks — and reset
+    # detection — behave exactly as if it were the baseline. Re-anchor with no
+    # ETA only on a genuine reset: progress dropping below the anchor (e.g. a
+    # build phase finishes and a test phase starts over).
     ETA='-'
     if [ -n "$PCT" ]; then
-        if [ "$FIRST_PCT" -lt 0 ] || [ "$PCT" -lt "$FIRST_PCT" ]; then
+        ETA_EPOCH=$FIRST_EPOCH
+        ETA_PCT=$FIRST_PCT
+        COMPUTE=1
+        if [ "$FIRST_PCT" -lt 0 ]; then
+            ETA_PCT=0
             FIRST_PCT=$PCT
             FIRST_EPOCH=$NOW_EPOCH
-        else
+        elif [ "$PCT" -lt "$FIRST_PCT" ]; then
+            FIRST_PCT=$PCT
+            FIRST_EPOCH=$NOW_EPOCH
+            COMPUTE=0
+        fi
+        if [ "$COMPUTE" -eq 1 ]; then
             ETA=$(python3 -c "
 import sys, time
 try:
@@ -296,7 +313,7 @@ try:
     print('stalled' if made<=0 else time.strftime('%H:%M',time.localtime(t0+(time.time()-t0)*(100-p0)/made)))
 except Exception:
     print('-')
-" "$FIRST_EPOCH" "$FIRST_PCT" "$PCT" 2>/dev/null || printf '-')
+" "$ETA_EPOCH" "$ETA_PCT" "$PCT" 2>/dev/null || printf '-')
         fi
     fi
 
@@ -350,7 +367,7 @@ printf 'Max checks (%d) reached — no further checks scheduled.\n' "$MAX_CHECKS
 - Output format is fixed — Monitor emits lines directly to chat; the script reproduces the same format as Claude's check #1.
 - Max `MAX_CHECKS` (24) checks total (check #1 inline + up to 23 from Monitor). Use `/status_report off` to cancel early.
 - Interval drift: each check's `get_content` time adds on top of the sleep interval — minor for file reads.
-- ETA requires `python3` on PATH. Linear extrapolation, anchored on the first real percentage actually observed — not check #1 itself, and 0% counts as a real percentage if that's what's first observed — and re-anchored whenever progress resets to a lower value (e.g. a build phase finishing and a test phase starting from 0). Reports `stalled` if progress hasn't moved since the anchor. Rough guidance, not a commitment.
+- ETA requires `python3` on PATH. Linear extrapolation anchored on check #1's timestamp (`FIRST_EPOCH`). When check #1 had a percentage, that is the baseline; when it did not (`FIRST_PCT=-1`), the baseline is 0% at that same timestamp, so the first observed percentage at check #2 already yields an ETA (rough — it counts prep time toward the 0->PCT span). Re-anchored whenever progress resets to a lower value (e.g. a build phase finishing and a test phase starting from 0). Reports `stalled` if progress hasn't moved since the anchor. Rough guidance, not a commitment.
 - A source that produces 3 consecutive `unavailable` checks ends the monitor early with a closing line, instead of polling silently until `MAX_CHECKS`. Unavailable means unreachable: an unreadable file, a not-found/not-executable command (exit 126/127), or an unreachable URL (curl failure) — a command that runs and exits nonzero because it has a failure to report (a test runner, a `grep` with no matches) is reachable, not unavailable, and a reachable source with no output yet is "in progress", never unavailable.
 - Completion/failure is only ever reported once the tail is unchanged from the previous check — a single reading can't tell a genuinely finished (or dead) run apart from a monorepo/workspace run between packages, or a per-attempt Traceback inside a live retry loop. Trusting either signal on an unstable read isn't just a delay, it's a wrong terminal verdict — the monitor stops when the run hasn't. For a file source, stability is `stat` size+mtime, not tail equality — a truncated tail can repeat byte-for-byte while the file keeps growing, which a straight comparison would miss.
 - `TaskStop` cancels only this monitor — it does not affect other background tasks.

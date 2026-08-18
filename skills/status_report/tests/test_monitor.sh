@@ -857,15 +857,15 @@ stop_http_server() {
 
 # ---------------------------------------------------------------- m13/n26/n27: FIRST_PCT re-anchor, stalled, and the ETA value itself — genuine cross-iteration state
 
-( t "m13: progress that resets to a lower value re-anchors instead of reporting a fabricated ETA; a stalled repeat is reported once genuinely stalled"
+( t "m13: FIRST_PCT=-1 anchors a 0% baseline so check #2 already yields an ETA; a reset re-anchors; a stalled repeat is reported once genuinely stalled"
   run_fixture_writer 4 -1 '[20%] building\n' '[20%] building still\n' '[5%] phase 2 started\n'
-  # check #2 establishes the baseline at whatever % is first observed — no
-  # baseline yet, so ETA must be '-', never a fabricated HH:MM
+  # check #1 had no % (FIRST_PCT=-1) -> baseline is 0% at FIRST_EPOCH, so the
+  # first observed 20% at check #2 produces a real HH:MM ETA, not '-'
   # check #3 sees progress drop to 5% -> re-anchors, ETA stays '-'
   # check #4 sees the SAME 5% again (writer produced no further updates) ->
   # genuinely stalled, must report 'stalled'
   ETAS="$(printf '%s\n' "$OUT" | grep -E '^ETA: ')"
-  echo "$ETAS" | sed -n '1p' | grep -qF 'ETA: -' && ok || bad "check #2 ETA should be '-', got: $(echo "$ETAS" | sed -n '1p')"
+  echo "$ETAS" | sed -n '1p' | grep -qE '^ETA: [0-2][0-9]:[0-5][0-9]$' && ok || bad "check #2 ETA should be a real HH:MM, got: $(echo "$ETAS" | sed -n '1p')"
   echo "$ETAS" | sed -n '2p' | grep -qF 'ETA: -' && ok || bad "check #3 ETA should be '-' (re-anchored), got: $(echo "$ETAS" | sed -n '2p')"
   assert_contains "$OUT" "stalled"
   assert_empty "$ERR"

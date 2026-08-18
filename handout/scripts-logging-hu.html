@@ -38,14 +38,15 @@
       <h3>Naplózás be- és kikapcsolása</h3>
       <p>A naplózást egy sentinel fájl vezérli: <code>~/.claude/prompt-logs/.enabled</code>. A <code>/session-log on</code> létrehozza, a <code>/session-log off</code> eltávolítja, a <code>/session-log status</code> pedig kiírja az aktuális állapotot. Ha a sentinel nincs meg, mindkét hook csendben kilép, így a hookok bekötve maradhatnak, és a beállítás túléli a plugin-frissítéseket.</p>
       <h3>Hook bekötés</h3>
-      <p>A hookok automatikusan bekötődnek a plugin <code>hooks/hooks.json</code> fájljából, amelyet a Claude Code magától megtalál — nem kell sem <code>settings.json</code>-t szerkeszteni, sem <code>hooks</code> mezőt felvenni a <code>plugin.json</code>-ba. A bejegyzések <strong>exec formát</strong> használnak (<code>command</code> és <code>args</code>):</p>
-      <pre><code>{
-  "hooks": {
-    "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh"]}]}],
-    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_save.sh"]}]}]
-  }
-}</code></pre>
-      <p>Az exec forma nem stílus kérdése, hanem követelmény. Shell formában a behelyettesített <code>${CLAUDE_PLUGIN_ROOT}</code> értéket egy shell újraértelmezi, és Windowson a Git Bash megeszi a plugin-útvonal visszaperjeleit (<code>C:\Users\…</code> helyett <code>C:Users…</code> lesz), így a szkript nem található meg. Exec formában minden <code>args</code> elem egyetlen argumentumként megy át, amit egyetlen shell sem értelmez, így az útvonal minden platformon sértetlen marad.</p>
+      <p>A hookok automatikusan bekötődnek a plugin <code>hooks/hooks.json</code> fájljából, amelyet a Claude Code magától megtalál — nem kell sem <code>settings.json</code>-t szerkeszteni, sem <code>hooks</code> mezőt felvenni a <code>plugin.json</code>-ba. Minden bejegyzés védelmezően oldja fel a szkript útvonalát:</p>
+      <pre><code>s='${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh'; s="${s//\\//}"; [ -f "$s" ] &amp;&amp; exec bash "$s"; exit 0</code></pre>
+      <p>Ezt az egysorost három windowsos Claude Code hiba alakította így; mindhármat <em>not planned</em> vagy <em>duplicate</em> címkével zárták upstream:</p>
+      <ul>
+        <li><strong>Aposztrófok a placeholder körül.</strong> A Claude Code textuálisan helyettesíti be a <code>${CLAUDE_PLUGIN_ROOT}</code> értéket, így Windowson egy visszaperjeles útvonal kerül a command sztringbe. Az aposztrófok megakadályozzák, hogy a shell escape-ként megegye ezeket a visszaperjeleket (<a href="https://github.com/anthropics/claude-code/issues/22449">#22449</a>).</li>
+        <li><strong>Visszaperjel–perjel normalizálás.</strong> A Git Bash a <code>C:/Users/…</code> formát feloldja, a <code>C:\Users\…</code>-t nem, ezért az útvonalat átírjuk használat előtt.</li>
+        <li><strong>Shell forma, nem exec forma.</strong> Az exec forma a <code>bash</code>-t a windowsos <code>PATH</code>-ról indítaná, ahol a Git for Windows alapértelmezett telepítése kihagyja a <code>Git\bin</code>-t (<a href="https://github.com/anthropics/claude-code/issues/22700">#22700</a>), a <code>C:\Windows\System32\bash.exe</code> WSL-stub pedig elsőbbséget kap és az egész TUI-t megfagyasztja (<a href="https://github.com/anthropics/claude-code/issues/37634">#37634</a>). Shell formában maradva a <code>bash</code> a Git Bash saját <code>PATH</code>-ján oldódik fel.</li>
+      </ul>
+      <p>A <code>[ -f "$s" ]</code> ellenőrzés a becsületes tartalék: ahol a platform javíthatatlanul elrontja az útvonalat, a hook csendben 0-val kilép, így a naplózás ott egyszerűen nem elérhető, nem pedig minden promptnál hibasávot ír ki. Fontos: a <code>${CLAUDE_PLUGIN_ROOT}</code> pontosan így szerepeljen — a Claude Code ezt a konkrét tokent keresi, ezért a <code>$CLAUDE_PLUGIN_ROOT</code> vagy a <code>${CLAUDE_PLUGIN_ROOT:-…}</code> változatot soha nem helyettesíti be.</p>
     </section>
 
     <section data-section="3-invocation">

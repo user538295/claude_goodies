@@ -38,14 +38,15 @@
       <h3>Enabling and disabling logging</h3>
       <p>Logging is gated on a sentinel file, <code>~/.claude/prompt-logs/.enabled</code>. Run <code>/session-log on</code> to create it and <code>/session-log off</code> to remove it; <code>/session-log status</code> reports the current state. Both hooks exit silently when the sentinel is absent, so the hooks stay registered either way and the setting survives plugin updates.</p>
       <h3>Hook wiring</h3>
-      <p>The hooks are registered automatically from the plugin's <code>hooks/hooks.json</code>, which Claude Code auto-discovers — no <code>settings.json</code> edit and no <code>hooks</code> field in <code>plugin.json</code> are needed. The entries use <strong>exec form</strong> (<code>command</code> plus <code>args</code>):</p>
-      <pre><code>{
-  "hooks": {
-    "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh"]}]}],
-    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash", "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_save.sh"]}]}]
-  }
-}</code></pre>
-      <p>Exec form is required, not stylistic. In shell form the substituted <code>${CLAUDE_PLUGIN_ROOT}</code> is re-parsed by a shell, and on Windows Git Bash consumes the backslashes in the plugin path (<code>C:\Users\…</code> becomes <code>C:Users…</code>), so the script is never found. In exec form each <code>args</code> element is passed as a single argument that no shell parses, which keeps the path intact on every platform.</p>
+      <p>The hooks are registered automatically from the plugin's <code>hooks/hooks.json</code>, which Claude Code auto-discovers — no <code>settings.json</code> edit and no <code>hooks</code> field in <code>plugin.json</code> are needed. Each entry resolves its script defensively:</p>
+      <pre><code>s='${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh'; s="${s//\\//}"; [ -f "$s" ] &amp;&amp; exec bash "$s"; exit 0</code></pre>
+      <p>That one-liner is shaped by three Claude Code bugs on Windows, all closed upstream as <em>not planned</em> or <em>duplicate</em>:</p>
+      <ul>
+        <li><strong>Single quotes around the placeholder.</strong> Claude Code substitutes <code>${CLAUDE_PLUGIN_ROOT}</code> textually, so on Windows a backslash path lands in the command string. Single quotes stop the shell from eating those backslashes as escapes (<a href="https://github.com/anthropics/claude-code/issues/22449">#22449</a>).</li>
+        <li><strong>Backslash-to-slash normalisation.</strong> Git Bash resolves <code>C:/Users/…</code> but not <code>C:\Users\…</code>, so the path is rewritten before use.</li>
+        <li><strong>Shell form, not exec form.</strong> Exec form would spawn <code>bash</code> through the Windows <code>PATH</code>, where Git for Windows' default install omits <code>Git\bin</code> (<a href="https://github.com/anthropics/claude-code/issues/22700">#22700</a>) and the WSL stub <code>C:\Windows\System32\bash.exe</code> takes priority and hangs the whole TUI (<a href="https://github.com/anthropics/claude-code/issues/37634">#37634</a>). Staying in shell form means <code>bash</code> resolves inside Git Bash's own <code>PATH</code> instead.</li>
+      </ul>
+      <p>The <code>[ -f "$s" ]</code> guard is the honest fallback: where the platform mangles the path beyond repair the hook exits 0 silently, so logging is simply unavailable there rather than printing an error banner on every prompt. Note that <code>${CLAUDE_PLUGIN_ROOT}</code> must appear exactly as written — Claude Code matches that literal token, so variations such as <code>$CLAUDE_PLUGIN_ROOT</code> or <code>${CLAUDE_PLUGIN_ROOT:-…}</code> are never substituted.</p>
     </section>
 
     <section data-section="3-invocation">

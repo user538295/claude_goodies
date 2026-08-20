@@ -806,3 +806,41 @@ smells-23	kotlin	smells/Debug.kt	MATCH	      e.printStackTrace()
 smells-23	kotlin	smells/Debug.kt	NOMATCH	      logger.error("failed", e)
 smells-23	csharp	smells/Debug.cs	MATCH	      Debugger.Break();
 smells-23	csharp	smells/Debug.cs	NOMATCH	      logger.LogError(e, "failed");
+arch-12	python	arch/arch-12.py	MATCH	cache.set(f"user:{u.id}", u)
+arch-12	python	arch/arch-12.py	MATCH	value = cache.get(f"user-{uid}")
+arch-12	python	arch/arch-12.py	NOMATCH	key = user_cache_key(uid)
+arch-12	python	arch/arch-12.py	NOMATCH	entry = cache.get_or_create(key)
+arch-12	typescript	arch/arch-12.ts	MATCH	cache.setItem(`user:${id}`, user);
+arch-12	typescript	arch/arch-12.ts	NOMATCH	const key = userCacheKey(id);
+arch-12	javascript	arch/arch-12.js	MATCH	redisClient.del("user:" + uid);
+arch-12	javascript	arch/arch-12.js	NOMATCH	const key = makeCacheKey(uid);
+arch-12	csharp	consistency/Consistency01.cs	MATCH	_cache.Set($"user:{id}", user);
+arch-12	csharp	consistency/Consistency01.cs	NOMATCH	var key = UserCacheKey(id);
+arch-12	swift	consistency/Consistency01.swift	MATCH	cache.setObject(user, forKey: keyString)
+arch-12	swift	consistency/Consistency01.swift	NOMATCH	let key = userCacheKey(id)
+arch-12	kotlin	consistency/Consistency01.kt	MATCH	userCache.invalidate("user-$id")
+arch-12	kotlin	consistency/Consistency01.kt	NOMATCH	val key = userCacheKey(id)
+arch-12	java	consistency/Consistency01.java	MATCH	userCache.put("user:" + id, user);
+arch-12	java	consistency/Consistency01.java	NOMATCH	String key = userCacheKey(id);
+arch-12	python	arch/arch-12-subscript.py	MATCH	        self._cache[model_name] = embedder
+arch-12	python	arch/arch-12-subscript.py	MATCH	            return self._cache[model_name]
+arch-12	python	arch/arch-12-subscript.py	MATCH	                del self._cache[model]
+arch-12	python	arch/arch-12-subscript.py	NOMATCH	        graph_status_cached = status_json.get("graph")
+arch-12	python	arch/arch-12-subscript.py	NOMATCH	        last_gc_at_cached = maint_cached.get("last_graph_gc_at")
+arch-12	python	arch/arch-12-subscript.py	NOMATCH	    cached = compute_expensive_value(model)
+arch-12	swift	arch/Arch12Subscript.swift	MATCH	            self.protectionCache[url.absoluteString] = protection
+arch-12	swift	arch/Arch12Subscript.swift	MATCH	            protectionCache[url.path]
+arch-12	swift	arch/Arch12Subscript.swift	MATCH	            self.protectionCache.removeValue(forKey: url.path)
+arch-12	swift	arch/Arch12Subscript.swift	MATCH	                cachedGreyScaledImages[account.imageReferenceName] = image
+arch-12	swift	arch/Arch12Subscript.swift	NOMATCH	        let cached = loadFromDisk(url)
+arch-12	typescript	arch/arch-12-subscript.ts	MATCH	    responseCache[buildKey(id)] = payload;
+arch-12	typescript	arch/arch-12-subscript.ts	NOMATCH	    const statusCached = await fetchStatus(id);
+arch-12	javascript	arch/arch-12-subscript.js	MATCH	  cache.clear()
+arch-12	javascript	arch/arch-12-subscript.js	NOMATCH	  const cached = getCachedData(endpoint, cacheTime)
+arch-12	csharp	arch/Arch12Subscript.cs	MATCH	            _cache[assetName] = asset;
+arch-12	csharp	arch/Arch12Subscript.cs	MATCH	            _cache.Clear();
+arch-12	csharp	arch/Arch12Subscript.cs	NOMATCH	            var cached = LoadAsset(assetName);
+arch-12	java	arch/Arch12Subscript.java	MATCH	        userCache.remove(userCacheKey(id));
+arch-12	java	arch/Arch12Subscript.java	NOMATCH	        User cached = repository.findById(id);
+arch-12	kotlin	arch/Arch12Subscript.kt	MATCH	        userCache.removeAll()
+arch-12	kotlin	arch/Arch12Subscript.kt	NOMATCH	        val cached = repository.findById(id)

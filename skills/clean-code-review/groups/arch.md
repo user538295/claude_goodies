@@ -143,6 +143,21 @@ NOTE for agent: the patterns already skip comments, `localhost`, the loopback ad
 
 ---
 
+### arch-12 · Major · Cache Key Lifecycle Mismatch
+**Scriptable**: Yes
+**Rule**: Every cache lifecycle operation (write, read, invalidate) for the same entity must build its key through one shared construction; two operations on the same entity with structurally different key expressions are a finding. Mismatched keys are a silent stale-data generator — writes are never read or invalidated, the cache returns old values forever, and no test catches it because each operation works in isolation.
+**Scope**: `diff`
+**Finding action template**: Centralise cache-key construction for `{entity}` in one function — write uses `{keyShapeA}`, `{operation}` uses `{keyShapeB}`
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`. Two forms are matched, both on a cache-named receiver (`cache`, `_cache`, `userCache`, `_GRAMMAR_CACHE`, `redisClient`, `cachedGreyScaledImages`, …): lifecycle **method calls** (`.get(`/`.set(`/`.delete(`/`.removeValue(`/`.popitem(` …) and **subscript access** (`cache[key]`, `cache[key] = v`, `del cache[key]`). The matched vocabulary is library API surface and language syntax, not domain words. Identifiers ending in the `…_cached` / `…Cached` participle (`status_cached_json`, `maint_cached`) are excluded — they name snapshot values, not caches.
+
+**Known scripted blind spot — you must compensate by reading the diff**: when key construction happens at the *call site* of a wrapper (`setCachedData(\`${endpoint}:${cacheTime}\`, …)` vs `getCachedData(endpoint, …)`), the wrapper's internals all use the same opaque parameter and look consistent. The script flags the wrapper's cache operations but not the call sites. **Whenever a hit sits inside a wrapper function that takes the key as a parameter, trace every call site of that wrapper and compare the key expressions there.** This is where real mismatches hide.
+
+NOTE for agent: this check compares the code against itself — the vocabulary comes from the reviewed code, never a fixed list of domain words. For each hit whose entity appears in the diff, normalise the key expression (literal, f-string/template, concatenation, subscript expression) into a shape like `"user:" + {id}`, group by entity, and flag lifecycles whose shapes differ. Counterpart operations may live outside the diff — search the repository for other cache operations on the same entity before concluding the shapes differ. Dismiss when all lifecycle operations for the entity build their key through one shared function (e.g. `user_cache_key(uid)`). Dismiss when the differing key is a deliberate second cache level (different TTL/region) and is named as such. Dismiss hits that are not caches at all despite the name — counter dicts (`cache_checks["n"] += 1`), pytest fixture dicts (`relocated_fastembed_cache["job"]`), and `.add`/`.remove` on a plain collection. Dismiss a lone operation with no counterpart anywhere in the repository.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -155,4 +170,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=arch findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (11 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (12 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`

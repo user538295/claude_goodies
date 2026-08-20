@@ -49,7 +49,7 @@ See `commands/implement-next.md` § "Step 6: Commit" for the one-task-one-commit
 - [**`/da-review`**](https://user538295.github.io/claude_goodies/handout/cmd-da-review.html) — A second opinion that actually pushes back. One-pass devil's-advocate review, no auto-fixes.
 - [**`/iterative-review`**](https://user538295.github.io/claude_goodies/handout/cmd-iterative-review.html) — A review that doesn't stop at finding problems. Reviewers and fix agents loop until clean.
 - [**`/aaa`**](https://user538295.github.io/claude_goodies/handout/skill-aaa.html) — When "looks good to me" isn't enough. Benchmarks an idea against world-class and hands you 3–4 concrete upgrade paths.
-- [**`/clean-code-review`**](https://user538295.github.io/claude_goodies/handout/skill-clean-code-review.html) — Code done, want the deep read. Runs 109 checks across 7 groups (clarity, smells, SOLID, architecture, tests, safety, DDD) — on local changes, a git range, specific files, or staged-only.
+- [**`/clean-code-review`**](https://user538295.github.io/claude_goodies/handout/skill-clean-code-review.html) — Code done, want the deep read. Runs 110 checks across 7 groups (clarity, smells, SOLID, architecture, tests, safety, DDD) — on local changes, a git range, specific files, or staged-only.
 - [**`/options`**](https://user538295.github.io/claude_goodies/handout/skill-options.html) — Stuck between approaches. Produces 2–4 genuinely different paths with honest pros/cons, grounded in your actual project files, and a firm recommendation.
 
 Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/handout/agentic-workflow-en.html#da) agent — the thing actually doing the attacking. Auto-invoked by both review commands and inside `/implement-next`.

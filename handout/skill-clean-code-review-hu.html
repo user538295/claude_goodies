@@ -18,13 +18,13 @@
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p><strong>Kész a kód — mielőtt kiszállítod, kérj mély átvizsgálást.</strong> 109 ellenőrzést futtat 7 csoportban (clarity, smells, SOLID, arch, tests, safety, DDD), csoportonként egy párhuzamos ágenssel, és súlyosság szerint szintetizálja az eredményeket. Működik helyi változásokra, staged fájlokra, git-tartományokra vagy explicit fájlútvonalakra — git nélkül is, ha útvonalakat adsz meg.</p>
+      <p><strong>Kész a kód — mielőtt kiszállítod, kérj mély átvizsgálást.</strong> 110 ellenőrzést futtat 7 csoportban (clarity, smells, SOLID, arch, tests, safety, DDD), csoportonként egy párhuzamos ágenssel, és súlyosság szerint szintetizálja az eredményeket. Működik helyi változásokra, staged fájlokra, git-tartományokra vagy explicit fájlútvonalakra — git nélkül is, ha útvonalakat adsz meg.</p>
       <p>A szkriptelt detekciók futnak le először a <code>collect.sh</code>-n keresztül, és előszámolt találatokként kerülnek a csoport-ágensekhez — az ágensek megerősítik vagy elvetik ezeket, nem futtatják újra a detekciót. A vendor és generált fájlok már eleve ki vannak zárva. Nagyon nagy diffeknél az egyes ellenőrzésekre eső találatszám korlátozható; a riport jelzi, ha ez történt.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>Mikor használd</h2>
-      <p>Megírtad a kódot, és strukturált átvizsgálást szeretnél PR nyitása előtt — nem hangulatellenőrzést, hanem szisztematikus végigfutást 109 nevesített kritériumon. Akkor nyúlj a <code>/clean-code-review</code>-hoz, ha csoportosított, súlyossággal jelölt és összegzett eredménylistát szeretnél.</p>
+      <p>Megírtad a kódot, és strukturált átvizsgálást szeretnél PR nyitása előtt — nem hangulatellenőrzést, hanem szisztematikus végigfutást 110 nevesített kritériumon. Akkor nyúlj a <code>/clean-code-review</code>-hoz, ha csoportosított, súlyossággal jelölt és összegzett eredménylistát szeretnél.</p>
       <p>A skill nem deklarál trigger kifejezéseket — hívd meg közvetlenül: <code>/clean-code-review</code>.</p>
     </section>
 
@@ -40,7 +40,7 @@
       </ul>
       <p><strong>Csoportok</strong> (kis- és nagybetű-érzéketlen, kihagyva mind a 7 fut):</p>
       <ul>
-        <li><code>clarity</code> (17 ellenőrzés) · <code>smells</code> (23) · <code>solid</code> (15) · <code>arch</code> (11) · <code>tests</code> (13) · <code>safety</code> (21) · <code>ddd</code> (9)</li>
+        <li><code>clarity</code> (17 ellenőrzés) · <code>smells</code> (23) · <code>solid</code> (15) · <code>arch</code> (12) · <code>tests</code> (13) · <code>safety</code> (21) · <code>ddd</code> (9)</li>
       </ul>
       <p>Egy csoportnévvel egyező token mindig csoportot jelöl, sosem fájlt vagy refet — pl. a <code>/clean-code-review tests</code> a <code>tests</code> csoportot választja ki, nem egy <code>tests</code> nevű könyvtárat.</p>
       <p><strong>Nyelvi kapu:</strong> ha a célban nincs támogatott nyelvű fájl, a review megáll, mielőtt bármelyik ágenst elindítaná: <em>"No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java. Unanalysed: {contents of unanalysed.txt}."</em></p>
@@ -57,7 +57,7 @@
 
 **5 findings · 0 Critical · 4 Major · 0 Moderate · 1 Minor** (post-deduplication)
 **Target:** staged unstaged untracked
-**Groups run:** clarity, smells, solid, arch, tests, safety, ddd · 109 checks declared
+**Groups run:** clarity, smells, solid, arch, tests, safety, ddd · 110 checks declared
 **Languages detected:** typescript
 
 ---

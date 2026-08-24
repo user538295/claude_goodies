@@ -60,12 +60,9 @@ For C#: the `.Value` pattern has a high false-positive rate. Only flag `Nullable
 **Finding action template**: Await `{asyncCall}` or attach an explicit `.catch()` error handler at `{file}:{line}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 5 language(s). Patterns: `scripts/checks/safety.tsv`.
-No scripted detection for:
-- typescript: non-scriptable — see NOTE
-- javascript: non-scriptable — see NOTE
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
 
-NOTE for agent: For TypeScript/JavaScript: the agent must inspect the diff manually. Look for async function calls that are neither awaited nor have `.then()`/`.catch()` attached, and whose return value is discarded. Common patterns: `this.service.sendEmail(x)` with no `await`, `void somePromise` without a catch. For C#: grep finds all Async method calls. The agent must check: (1) is the calling method declared `async`? (2) is there an `await` on this line or is the result assigned? If neither, flag it.
+NOTE for agent: For TypeScript/JavaScript the pattern only finds the explicit discard form — `void someCall()` / `void obj?.method()`, including `void x?.()`. It deliberately does not match `void 0` or a `: void` return annotation. That form is the *only* scriptable one, so the agent must still inspect the diff by hand for the far commoner shape: an async call that is neither awaited nor given `.then()`/`.catch()` and whose return value is simply dropped (`this.service.sendEmail(x)` on a statement line). A `void` hit is a finding when the callee can return a promise — check its declared return type; dismiss it when the callee is genuinely synchronous. For C#: grep finds all Async method calls. The agent must check: (1) is the calling method declared `async`? (2) is there an `await` on this line or is the result assigned? If neither, flag it. For Swift the pattern matches every `Task {` — the closure body is on later lines and the line-based matcher cannot see it, so dismiss a hit whose `Task` body carries its own `do`/`catch` (this is the dominant false positive and it is not fixable in the pattern).
 
 ---
 
@@ -101,7 +98,7 @@ NOTE for agent: Only flag when the check and act steps can be interleaved by a s
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
 
-NOTE for agent: only flag when the blocking call appears inside an async function/coroutine/suspend function. Dismiss in synchronous contexts. For Java `.get()` and `.join()`, only flag when called on a `CompletableFuture`, `Future`, or `CompletionStage` variable — dismiss getter methods, map lookups, and `String.join()`. For C#: dismiss `.Result` on types named `Result<T>`, `Option<T>`, `Either<L,R>`, or similar functional result types — flag `.Result` and `.Wait()` only when the containing type is `Task`, `ValueTask`, or their generic variants.
+NOTE for agent: only flag when the blocking call appears inside an async function/coroutine/suspend function. Dismiss in synchronous contexts, and dismiss any hit in a test file — a blocking call in a synchronous test method cannot violate this rule, and the collector already excludes test files for this check. For Java `.get()` and `.join()`, only flag when called on a `CompletableFuture`, `Future`, or `CompletionStage` variable — dismiss getter methods, map lookups, and `String.join()`. For C#: dismiss `.Result` on types named `Result<T>`, `Option<T>`, `Either<L,R>`, or similar functional result types — flag `.Result` and `.Wait()` only when the containing type is `Task`, `ValueTask`, or their generic variants. In Swift the bare `sleep(...)` alternative excludes `Task.sleep(...)`, which suspends the task rather than blocking a thread and is therefore not a violation of this rule; `Thread.sleep`, C `sleep`, and semaphore/dispatch-group waits still match. The Python pattern only knows `time.sleep` — synchronous filesystem and network calls inside an `async def` (`Path.mkdir`, `Path.read_text`, `tarfile.open`, a blocking `requests` call) produce no hit at all, so read the diff for those by hand.
 
 ---
 
@@ -179,7 +176,7 @@ NOTE for agent: this is distinct from smells-12, which owns exceptions that are 
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
 
-NOTE for agent: tests-04 owns this inside test files; these patterns deliberately exclude test paths so the two never overlap. Flag when the value affects a decision, a stored record, or an output the caller can observe. Dismiss logging timestamps, metrics, cache keys, and one-off scripts, where injecting a source buys nothing. Treat a naive local-time call as a finding on its own even when testability is not at stake.
+NOTE for agent: tests-04 owns this inside test files; these patterns deliberately exclude test paths so the two never overlap. The vocabulary covers wall clocks (`new Date()`, `Date.now`, `datetime.now`, `time.time`, `time.monotonic`, `DateTime.UtcNow`, `Instant.now`), randomness (`Math.random`, `random.*`, `secrets.*`, `crypto.getRandomValues`, `Int.random`), and fresh identifiers (`crypto.randomUUID`, `uuidv4()`, `nanoid()`, `uuid4()`, `Guid.NewGuid`, `UUID()`). Flag when the value affects a decision, a stored record, or an output the caller can observe. Dismiss logging timestamps, metrics, cache keys, and one-off scripts, where injecting a source buys nothing — in particular, `time.monotonic()`/`performance.now()` bracketing a block purely to record its latency is a metric, not a finding, whereas the same call driving a TTL or expiry decision is. Treat a naive local-time call as a finding on its own even when testability is not at stake.
 
 ---
 
@@ -205,21 +202,22 @@ NOTE for agent: this is always a finding when the default is mutated anywhere in
 
 ### safety-13 · Major · Assertion Used as Production Validation
 **Scriptable**: Yes
-**Rule**: `assert` is removed when Python runs optimised, so any check written as an assertion silently disappears from the deployed program.
+**Rule**: `assert` is removed when the program is built optimised — Python under `-O`, Swift under `-O` (the default Release configuration) — so any check written as an assertion silently disappears from the deployed program.
 **Scope**: `diff`
 **Finding action template**: Replace the assertion at `{file}:{line}` with an explicit check that raises `{ExceptionType}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 1 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 2 language(s). Patterns: `scripts/checks/safety.tsv`.
 No scripted detection for:
 - typescript: not applicable — no assertion statement stripped by an optimiser
 - javascript: not applicable — no assertion statement stripped by an optimiser
 - csharp: covered by the compiler's own conditional-compilation rules
 - java: not applicable — assertions are disabled by default and rarely used for validation
 - kotlin: not applicable — no assertion statement stripped by an optimiser
-- swift: not applicable — `precondition` survives optimisation and is the correct tool
 
-NOTE for agent: the pattern already excludes test paths, where assertions are correct. Flag assertions that validate input, arguments, or external data. Dismiss assertions that state an internal invariant the code itself guarantees — those are documentation, and losing them under optimisation is harmless.
+NOTE for agent: the patterns already exclude test paths, where assertions are correct. Flag assertions that validate input, arguments, or external data. Dismiss assertions that state an internal invariant the code itself guarantees — those are documentation, and losing them under optimisation is harmless.
+
+For Swift the pattern matches `assert(...)` and `assertionFailure(...)` only. Both have their condition removed entirely under `-O`, so the sequence `assert(x != nil)` followed by `x!` is the classic finding: the guard vanishes in Release and the force-unwrap crashes. `precondition`/`preconditionFailure` are deliberately NOT matched — they survive `-O` and are the correct tool — and neither are project-local wrappers such as `AppLog.assertion(...)`, which are ordinary functions the optimiser keeps. Dismiss an `assertionFailure()` that merely marks a branch the code proves unreachable and that already returns a safe fallback.
 
 ---
 
@@ -245,7 +243,7 @@ NOTE for agent: dismiss obvious non-secrets — empty strings, placeholders such
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
 
-NOTE for agent: the pattern requires both a statement shape and an interpolation or concatenation on the same line, and skips comment lines, so most hits are real. Dismiss a hit when every interpolated part is a compile-time constant the caller cannot influence — a fixed table name from an enum, for example. Dismiss the safe placeholder forms that only look similar: `%s` with a separate parameter tuple, `?`, `$1`, and `@named` bindings. When the value comes from outside the program, the severity stands as written.
+NOTE for agent: the pattern requires both a statement shape and an interpolation or concatenation on the same line, and skips comment lines, so most hits are real. Python additionally matches a bare clause fragment — a `where`/`values(` line that interpolates a value *inside* a quoted literal, as in `where=f"chunk_id = '{chunk_id}'"` — because that shape carries the same injection surface without ever naming `SELECT`. Dismiss a hit when every interpolated part is a compile-time constant the caller cannot influence — a fixed table name from an enum, for example. Dismiss the safe placeholder forms that only look similar: `%s` with a separate parameter tuple, `?`, `$1`, and `@named` bindings. When the value comes from outside the program, the severity stands as written.
 
 ---
 

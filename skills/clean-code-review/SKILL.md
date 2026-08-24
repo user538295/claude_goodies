@@ -44,6 +44,7 @@ bash ~/.claude/skills/clean-code-review/scripts/collect.sh <non-group tokens...>
 |---|---|
 | `mode.txt` | resolved target (`staged`/`unstaged`/`untracked` lines, `ref: X`, or `files`) |
 | `files.txt` | files under review (vendor/generated already excluded) |
+| `files_prod.txt` | `files.txt` minus test files — the `SKIP_TESTS` checks (`ddd-01`, `solid-06`, `solid-08`, `solid-09`) run against this list instead |
 | `skipped.txt` | excluded files |
 | `languages.txt` | detected language tokens |
 | `unanalysed.txt` | code extensions with no language mapping |

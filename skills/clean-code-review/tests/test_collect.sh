@@ -314,6 +314,34 @@ run() { OUT="$("$SCRIPT" "$@" 2>"$WORKROOT"/collect_stderr)"; RC=$?; ERR="$(cat 
   printf '%s\n' "$exempt" | grep -qx 'tests-01' && bad "tests-01 must NOT be in FILTER_EXEMPT — it still needs added-line filtering" || ok
 )
 
+( t "SKIP_TESTS set matches the checks whose groups/*.md NOTE says to dismiss test files"
+  documented="$(perl -ne 'if (/^### (\S+)/) { $id = $1 } if (/NOTE for agent:/ && /[Dd]ismiss[^.]{0,40}test file/) { print "$id\n" }' "$SKILL_DIR"/groups/*.md | sort -u)"
+  skipped="$(grep '^SKIP_TESTS=' "$SKILL_DIR/scripts/collect.sh" | sed -E 's/^SKIP_TESTS="//; s/"$//' | tr -s ' ' '\n' | sed '/^$/d' | sort -u)"
+  assert_eq "$skipped" "$documented"
+)
+
+( t "SKIP_TESTS check (solid-06) skips test files but still reports in production files"
+  newrepo
+  mkdir -p src src/__tests__
+  printf 'x\n' > seed.ts; git add seed.ts; git commit -qm init
+  printf 'export class Cart {\n  public total = 0;\n}\n' > src/cart.ts
+  printf 'export class CartFixture {\n  public sut = 0;\n}\n' > src/__tests__/cart.test.ts
+  run
+  assert_exit_ok "$RC"
+  assert_file_has   "$OUT/hits.txt" "solid-06${TAB}src/cart.ts:2:"
+  assert_file_lacks "$OUT/hits.txt" "solid-06${TAB}src/__tests__/cart.test.ts"
+)
+
+( t "a check NOT in SKIP_TESTS (smells-07) still reports inside test files"
+  newrepo
+  mkdir -p src/__tests__
+  printf 'x\n' > seed.ts; git add seed.ts; git commit -qm init
+  printf '// TODO fix this fixture\n' > src/__tests__/thing.test.ts
+  run
+  assert_exit_ok "$RC"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}src/__tests__/thing.test.ts:1:"
+)
+
 ( t "hits work in untracked files and in paths with spaces"
   newrepo
   printf 'x\n' > seed.ts; git add seed.ts; git commit -qm init

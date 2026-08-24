@@ -47,6 +47,8 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 
 NOTE for agent: the pattern counts commas in a single-line signature, so it finds signatures with 4+ parameters written on one line. Two consequences you must handle. First, a signature wrapped across several lines is invisible to it — still count parameters manually for multi-line signatures in the diff. Second, dismiss hits where the commas are not parameter separators: generic type arguments (`Map<String, Item>`), default values containing commas, array/tuple literals, and decorators on the same line. For Python, `self`/`cls` do not count toward the limit. For TypeScript and Swift, a single destructured or labelled parameter object is one parameter, not several.
 
+Declaration forms the pattern recognises beyond the plain `function`/`def`/`func`/`fun` case: typescript/javascript accept `export default` and any run of `public|private|protected|static|readonly|abstract|override|async` before the name; swift also accepts `init`, `subscript`, leading attributes (`@objc`, `@MainActor`), and the `static|class|final|mutating|convenience|required|open|fileprivate` modifiers; kotlin also accepts `constructor`, extension receivers (`fun Foo.bar(`), and the `suspend|inline|operator|infix|open|abstract|protected|tailrec` modifiers.
+
 The typescript/javascript pattern additionally requires a `{` or `=>` right after the signature, on the same line — csharp/java/kotlin/swift do not have this requirement. This is deliberate, not an inconsistency to fix: typescript/javascript's prefix accepts a bare identifier (to catch unprefixed declarations such as object-method shorthand), which is indistinguishable from a plain 4+-argument function *call* unless the line also shows the body opening; the other four languages require a declaration keyword (`fun`/`func`/`public`/`private`/etc.) that a call never has, so they need no such disambiguator. The accepted trade-off: a typescript/javascript declaration with the opening `{` on the next line produces no hit — apply the rule by hand to multi-line-opened signatures in the diff.
 
 ---
@@ -142,7 +144,11 @@ NOTE for agent: dismiss `null` in null-check guards (`if (x == null)`). Flag ret
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
 
-NOTE for agent: dismiss intentional fluent/builder chains (`StringBuilder`, query builders, test assertions). Also dismiss: collection transformation pipelines (`items.filter(...).map(...).reduce(...)`), Promise/Observable chains (`.then().catch()`), LINQ/RxJS streams, and any fluent API that traverses a single object's own methods. Demeter violations require traversal of *different objects* — `a.getB().getC().doD()` where A, B, and C are distinct types. For the property-chain alternative `(\.\w+){4,}`, dismiss namespaced imports (`module.sub.Class`), known DTO/value-object traversals, and configuration access chains (`config.db.pool.max`). Flag when traversal crosses domain boundaries (e.g. `order.customer.address.city`).
+NOTE for agent: the pattern counts **hops**, not calls — three or more `.name` / `.name(...)` / `?.name` segments in a row, in any mix. `a.b.c()`, `a.getB().getC().doD()` and `a.b.c.d` all qualify; two hops (`order.shipping.city`) do not. This matches the Rule's "longer than 2 hops" and is why singleton reach-throughs such as `ModelManager.shared.accounts.getUIImage(...)` now appear.
+
+The pattern already filters out the dismissals that used to dominate this check, so you should **not** normally see them: fluent/builder chains whose calls come from a known query-builder, collection-pipeline, promise or string-fluent vocabulary (`.query().select(...).to_arrow()`, `.trim().split(...).filter(...)`, `.then().catch()`); `unittest.mock` scaffolding (`return_value`, `side_effect`, `assert_called*`); and test assertions (`expect(...)`, `XCTAssert*`, `assertThat(...)`). Comment lines and numeric segments (SVG path data) are excluded too. If a fluent chain still slips through because its verbs are outside that vocabulary, dismiss it on the same grounds.
+
+What the pattern still cannot judge, and you must: Demeter violations require traversal of *different objects*. Dismiss namespaced constants and nested enums (`Theme.Application.NavigationButton`, `Screen.Sections.Items.rawValue`), namespaced imports (`module.sub.Class`), configuration access chains (`config.db.pool.max`, `process.env.X`), UI-framework property chains (`cell.contentView.subviews.count`), and prose inside docstrings that happens to name a dotted path. Flag when traversal crosses domain boundaries (e.g. `order.customer.address.city`) or reaches through a singleton into a collaborator's collaborator.
 
 ---
 
@@ -263,14 +269,19 @@ NOTE for agent: the detection reports the file's equality declaration when no ha
 **Finding action template**: Replace the unconstrained type at `{file}:{line}` with the concrete shape, a union, or a generic parameter
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 3 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 4 language(s). Patterns: `scripts/checks/smells.tsv`.
 No scripted detection for:
 - javascript: not applicable — untyped by nature
 - java: non-scriptable — raw generic types cannot be told from legitimate `Object` use by pattern alone
 - kotlin: non-scriptable — `Any` is often a correct bound rather than an escape hatch
-- swift: non-scriptable — `Any` is often a correct bound rather than an escape hatch
 
-NOTE for agent: safety-07 owns suppression comments such as `@ts-ignore` and `# type: ignore`; this check owns the types themselves. Dismiss uses at genuine boundaries where the shape is truly unknown until validated — a raw request body immediately parsed into a typed value, a generic serialiser, or a third-party signature that demands it.
+Per-language coverage: typescript flags `any` (including as a nested type argument, `Record<string, any>`) **and** unchecked `as` type assertions; python flags `Any`; csharp flags `dynamic`; swift flags implicitly unwrapped optional declarations (`var x: Foo!`) — swift `Any` remains non-scriptable because it is often a correct bound rather than an escape hatch.
+
+NOTE for agent: safety-07 owns suppression comments such as `@ts-ignore` and `# type: ignore`, and safety-02 owns force-unwrap *expressions* (`x!`, `as!`); this check owns the declared types themselves. Dismiss uses at genuine boundaries where the shape is truly unknown until validated — a raw request body immediately parsed into a typed value, a generic serialiser, or a third-party signature that demands it. The Swift row excludes test targets inside its own pattern: an implicitly-unwrapped `var sut: X!` or `var app: XCUIApplication!` wired up in `setUp` is the idiomatic XCTest fixture, not an escape hatch. The TypeScript row deliberately still runs on test code, where a real `as never` assertion was measured.
+
+For the typescript `as` alternative: import/export aliases (`import { a as b }`), `as const`, widening to `as unknown`, `as Record<string, unknown>` and DOM narrowing (`as HTMLInputElement`) are already excluded by the pattern. Still dismiss an assertion that a preceding line has genuinely validated (`if (!SET.has(x as T)) throw …; … x as T`). Flag assertions that paper over nullability (`p.mergedAt as Date`) or narrow a raw string into a union without a runtime check (`row.state as Record['state']`).
+
+For the swift alternative: `@IBOutlet`/`@IBAction` outlets are already excluded — Interface Builder requires the `!`. Dismiss XCTest fixtures injected in `setUp` (`var sut: Thing!`, `var app: XCUIApplication!`); this check is not in `SKIP_TESTS`, so those still reach you. Flag production stored properties and computed properties whose declared type is `T!`.
 
 ---
 

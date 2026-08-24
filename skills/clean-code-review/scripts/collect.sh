@@ -10,7 +10,7 @@
 #   <file>...          -> review whole files; works outside git repos
 #
 # Stdout: the output directory path (single line). Everything else -> stderr.
-# Output dir contents: mode.txt files.txt skipped.txt languages.txt
+# Output dir contents: mode.txt files.txt files_prod.txt skipped.txt languages.txt
 #   unanalysed.txt addedlines.txt diff.patch hits.txt warnings.txt
 set -u
 
@@ -26,6 +26,10 @@ command -v perl >/dev/null 2>&1 || err "perl is required for detection patterns 
 
 EXCLUDE_RE='(^|/)(vendor|node_modules|dist|\.build|build|target|obj|bin|Pods)/|\.(generated\.|pb\.|min\.js$|lock$|snap$)|\.(log|bak)$|_pb2\.py$|package-lock\.json$|pnpm-lock\.yaml$|go\.sum$|\.gradle\.kts$|(^|/)buildSrc/'
 NONCODE_EXT_RE='\.(md|txt|json|yml|yaml|toml|xml|csv|svg|png|jpg|jpeg|gif|ico|lock|gitignore|gitattributes|editorconfig|env|sh|bash|zsh|sql|html|css|scss|less|plist|pdf|zip)$'
+# Test-file naming conventions, per language. This is the union of the file
+# gates the `tests-*` rows in checks/tests.tsv already use, so the two stay
+# consistent — see SKIP_TESTS below for who uses it.
+TEST_FILE_RE='(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$|(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/|(Tests?|Spec)\.kts?$|(^|/)src/test/|\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/|Tests?\.java$|Tests?\.swift$|(^|/)[^/]*Tests?/'
 
 # ---------------------------------------------------------------- helpers
 # PCRE matching helpers (mgrep/mgrepc/mwc) are shared with the test suite.
@@ -255,6 +259,8 @@ done < "$OUT/files.txt" | sort -u > "$OUT/languages.txt"
 
 sort -u -o "$ADDED" "$ADDED"
 
+grep -Ev "$TEST_FILE_RE" "$OUT/files.txt" > "$OUT/files_prod.txt" || : > "$OUT/files_prod.txt"
+
 # ---------------------------------------------------------------- run detection checks
 
 # Checks whose hit is a whole-file measurement rather than a diff line — an
@@ -270,15 +276,31 @@ sort -u -o "$ADDED" "$ADDED"
 # pre-existing symbols in a touched file that this diff didn't add.
 FILTER_EXEMPT=" clarity-16 clarity-17 smells-01 smells-20 tests-13 "
 
+# Checks whose NOTE in groups/*.md instructs the agent to dismiss hits in test
+# files — `var`/public fields are normal in fixtures and `sut` declarations, and
+# a blocking call in a synchronous test method cannot be "blocking I/O in an
+# async context" (safety-06). Emitting them only spends tokens on findings the
+# prompt discards; measured on the 46-file corpus the field/mutability four
+# produced 91 hits and zero true positives, and safety-06 a further 56. Kept as
+# an explicit list rather than "every non-tests-* check" because most checks DO
+# apply to test code (safety-07 alone contributes 55 true positives there).
+# tests/test_collect.sh asserts this set against the groups/*.md notes.
+SKIP_TESTS=" ddd-01 safety-06 solid-06 solid-08 solid-09 "
+
 run_checks() {
-  local tsv id lang cmd raw="$OUT/.raw_hits" errf="$OUT/.check_err"
+  local tsv id lang cmd list raw="$OUT/.raw_hits" errf="$OUT/.check_err"
   for tsv in "$CHECKS_DIR"/*.tsv; do
     [ -f "$tsv" ] || continue
     while IFS="$TAB" read -r id lang cmd <&3 || [ -n "${id:-}" ]; do
       case "$id" in ''|'#'*) continue ;; esac
       if [ "$lang" != "all" ] && ! grep -qx "$lang" "$OUT/languages.txt"; then continue; fi
       : > "$errf"
-      eval "$cmd" < "$OUT/files.txt" > "$raw" 2>"$errf" || true
+      if printf '%s' "$SKIP_TESTS" | grep -q " $id "; then
+        list="$OUT/files_prod.txt"
+      else
+        list="$OUT/files.txt"
+      fi
+      eval "$cmd" < "$list" > "$raw" 2>"$errf" || true
       if [ -s "$errf" ]; then
         echo "WARN-DETECT: $id/$lang detection error: $(head -n 1 "$errf")" >> "$WARN"
       fi

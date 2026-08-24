@@ -104,7 +104,15 @@ NOTE for agent: Anchored to declaration sites (class/interface/etc.) — import 
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/clarity.tsv`.
 
-NOTE for agent: the pattern finds a condition containing two or more `&&`/`||` (or `and`/`or` in Python), i.e. three or more joined terms. Two blind spots need your eyes on the diff: a condition split across lines by a formatter, and a condition containing a brace — an object literal argument such as `if (validate({ key: 1 }) && a && b)` stops the scan early and produces no hit. Dismiss a hit when the condition already carries a name (assigned to a well-named boolean variable on the same line) and when the operators belong to separate statements rather than one condition.
+NOTE for agent: the pattern finds two or more `&&`/`||` (or `and`/`or` in Python) within one statement, i.e. three or more joined terms. It is no longer restricted to `if`/`while`/`guard`: ternary conditions, JSX render guards (`{a && b && (`), inline callback predicates and assertion arguments now produce hits too. The brace blind spot is gone — `if (validate({ key: 1 }) && a && b)` is found; the scan now stops at `;`, not `{`.
+
+Lines that already name the condition are excluded by the pattern: comments, `return …`, and lines that *begin* a `const`/`let`/`var`/`val` assignment. Python keeps its `if`/`elif`/`while` anchor because `and`/`or` are English words and an unanchored scan reads prose out of docstrings.
+
+Two blind spots remain, and they need your eyes on the diff:
+1. A condition split across lines still produces no hit on the `if` line itself. Python partly compensates: a continuation line that *starts* with `and`/`or` and carries a second operator is flagged, so a multi-line python condition surfaces at its second or third line — anchor the finding at the `if`.
+2. A continuation line of a multi-line **named** assignment (`const ok =` on one line, `a && b && c` on the next) looks identical to a bare condition and will be flagged. Dismiss it — the condition already carries a name.
+
+Also dismiss hits where the operators belong to separate statements rather than one condition, and where the nested operator is a null-coalescing default rather than a third term (`x == a and (y.get(k) or DEFAULT) == b` is two terms, not three).
 
 ---
 

@@ -38,7 +38,9 @@ You receive:
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
 
-NOTE for agent: only flag if the importing class is a use case — not a controller, presenter, or infrastructure adapter. Use-case classes importing types named *Request/*Response from local ./dto or ./models paths are NOT violations. Flag only imports from framework packages (express, fastify, nestjs, koa, etc.). Include sqlalchemy, rest_framework, starlette — these are framework imports commonly found in use cases.
+NOTE for agent: only flag if the importing class is a use case — not a controller, presenter, or infrastructure adapter. Use-case classes importing types named *Request/*Response from local ./dto or ./models paths are NOT violations. Flag only imports from framework packages (express, fastify, nestjs, koa, etc.). Include sqlalchemy, rest_framework, starlette, and the ORM query builders (drizzle-orm, typeorm, @prisma/client, mongoose, sequelize, knex, @mikro-orm) — these are framework imports commonly found in use cases.
+
+The patterns now skip files that structurally cannot host a use case, so you should no longer receive `import UIKit` / `import SwiftUI` hits from Views and ViewControllers, or framework imports from HTTP adapters. Skipped: any path segment naming a presentation, adapter, persistence or test layer (`Presentation/`, `Views/`, `Screens/`, `Pages/`, `Components/`, `Routes/`, `server/`, `api/`, `Controllers/`, `Adapters/`, `Infrastructure/`, `Repositories/`, `Models/`, `ViewModels/`, `tests/`, `__tests__/`, `ui/`, `db/`, `migrations/`), any filename ending `View`/`ViewController`/`ViewModel`/`Controller`/`Presenter`/`Screen`/`Page`/`Component`/`Widget`/`Activity`/`Fragment`/`Modifiers`/`Router`/`Middleware`, and test files. **This is a heuristic keyed on naming convention, not real layer analysis** — a project that puts use cases inside one of those directories will get no arch-02 hits from the script, so apply the rule by hand to any use case in the diff that lives there.
 
 ---
 
@@ -74,6 +76,8 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 
 NOTE for agent: only flag if the catch is in application service, use case, or domain code — not in a repository/adapter.
 
+**Swift**: `catch` is untyped, so there is no framework exception *type* to match on. The scripted signal is instead the point where a caught error's framework-generated message crosses the boundary intact: an assignment of `<something>.localizedDescription` into an error-named state property (`errorMessage = error.localizedDescription`, `self.lastError = err.localizedDescription`). Treat that as a leak — the caller/UI now depends on Foundation's error text instead of a domain error. **Logging is not a violation**: `print(error.localizedDescription)` and `logger.debug(error.localizedDescription)` are not matched and must not be flagged.
+
 ---
 
 ### arch-06 · Major · Cross-Layer Entity Reuse
@@ -103,6 +107,8 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 
 NOTE for agent: dismiss service-locator calls inside DI configuration / module setup files — those are expected.
 
+**Swift**: the ambient service locator is the project-owned singleton, so `SomeType.shared` / `.sharedInstance` / `.instance` is matched — `ModelManager.shared.currencies.getBaseCurrency()`, `StoreManager.shared.isPremiumUser`. Platform singletons are excluded by name (`URLSession.shared`, `AVAudioSession.sharedInstance()`, `NotificationCenter.default`, `UserDefaults.standard`, `Bundle.main`, `UIApplication.shared`, `XCUIDevice.shared`, …) and must not be flagged if one slips through — depending on `URLSession.shared` is a framework-API choice, not a container lookup. Note the exclusion is by exact type name, so a project wrapper such as `FileManagerWrapper.shared` is deliberately still matched. Reading a singleton once in a composition root or `AppDelegate` to build dependencies is expected; reading it from inside a model, view model, service, or domain type is the violation.
+
 ---
 
 ### arch-09 · Moderate · Environment-Specific Branching in Business Logic
@@ -115,6 +121,8 @@ NOTE for agent: dismiss service-locator calls inside DI configuration / module s
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: only flag if found inside domain, use-case, or application-service classes. Dismiss in infrastructure adapters, config classes, or entry points.
+
+**Python**: the pattern now requires the environment read to be a *branch* — inside `if`/`elif`/`while`/`assert`, or compared with `==`/`!=`/`in`. A plain configuration read such as `timeout = os.getenv("REQUEST_TIMEOUT", "30")` or `api_key = os.environ["API_KEY"]` is no longer matched and is not a violation of this rule. Adapter and entry-point files are skipped by path (`server/`, `api/`, `Controllers/`, `Adapters/`, `Infrastructure/`, `config/`, `settings/`, `cli/`, `scripts/`, `tools/`, `db/`, `migrations/`, `tests/`, and `main.py`/`app.py`/`settings.py`/`config.py`/`__main__.py`/`setup.py`/`conftest.py`). Other languages still match every environment read, so apply the branch and layer test yourself there.
 
 ---
 
@@ -139,7 +147,7 @@ For **new files** (where the entire file is in the diff and no counterpart exist
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
 
-NOTE for agent: the patterns already skip comments, `localhost`, the loopback address `127.0.0.1` (but not `::1` or `0.0.0.0` — those are not excluded and will be flagged), specification URLs such as `www.w3.org`, and test paths (test-file naming and test directories, same exclusion as safety-11). Dismiss remaining non-addresses: namespace identifiers that merely look like URLs, documentation links, and fixed third-party endpoints that genuinely never vary by environment. This overlaps clarity-08 in surface only — a magic string is fixed by naming a constant, whereas this finding is only fixed by moving the value out of the code, so report it here and not there.
+NOTE for agent: the patterns already skip comments, `localhost`, the loopback address `127.0.0.1` (but not `::1` or `0.0.0.0` — those are not excluded and will be flagged), specification URLs such as `www.w3.org`, the RFC 2606 / RFC 6761 reserved documentation and testing hosts (`example.com`/`.net`/`.org` and any host whose last label is `.example`, `.invalid` or `.test` — e.g. `http://invalid.example/route`), and test paths (test-file naming and test directories, same exclusion as safety-11). Dismiss remaining non-addresses: namespace identifiers that merely look like URLs, documentation links, and fixed third-party endpoints that genuinely never vary by environment. This overlaps clarity-08 in surface only — a magic string is fixed by naming a constant, whereas this finding is only fixed by moving the value out of the code, so report it here and not there.
 
 ---
 
@@ -154,7 +162,7 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 
 **Known scripted blind spot — you must compensate by reading the diff**: when key construction happens at the *call site* of a wrapper (`setCachedData(\`${endpoint}:${cacheTime}\`, …)` vs `getCachedData(endpoint, …)`), the wrapper's internals all use the same opaque parameter and look consistent. The script flags the wrapper's cache operations but not the call sites. **Whenever a hit sits inside a wrapper function that takes the key as a parameter, trace every call site of that wrapper and compare the key expressions there.** This is where real mismatches hide.
 
-NOTE for agent: this check compares the code against itself — the vocabulary comes from the reviewed code, never a fixed list of domain words. For each hit whose entity appears in the diff, normalise the key expression (literal, f-string/template, concatenation, subscript expression) into a shape like `"user:" + {id}`, group by entity, and flag lifecycles whose shapes differ. Counterpart operations may live outside the diff — search the repository for other cache operations on the same entity before concluding the shapes differ. Dismiss when all lifecycle operations for the entity build their key through one shared function (e.g. `user_cache_key(uid)`). Dismiss when the differing key is a deliberate second cache level (different TTL/region) and is named as such. Dismiss hits that are not caches at all despite the name — counter dicts (`cache_checks["n"] += 1`), pytest fixture dicts (`relocated_fastembed_cache["job"]`), and `.add`/`.remove` on a plain collection. Dismiss a lone operation with no counterpart anywhere in the repository.
+NOTE for agent: this check compares the code against itself — the vocabulary comes from the reviewed code, never a fixed list of domain words. For each hit whose entity appears in the diff, normalise the key expression (literal, f-string/template, concatenation, subscript expression) into a shape like `"user:" + {id}`, group by entity, and flag lifecycles whose shapes differ. Counterpart operations may live outside the diff — search the repository for other cache operations on the same entity before concluding the shapes differ. Dismiss when all lifecycle operations for the entity build their key through one shared function (e.g. `user_cache_key(uid)`). Dismiss when the differing key is a deliberate second cache level (different TTL/region) and is named as such. Dismiss hits that are not caches at all despite the name — counter dicts (`cache_checks["n"] += 1`), pytest fixture dicts (`relocated_fastembed_cache["job"]`), and `.add`/`.remove` on a plain collection. Dismiss a lone operation with no counterpart anywhere in the repository. Subscripts with an integer-literal index (`self._ping_cache[0]`, `self._ping_cache[1]`) are no longer matched — those are tuple/array slots on a single-slot cache, which has no key and therefore cannot have a key mismatch. Keyless lifecycle *calls* (`cache.clear()`, `cache.removeAll()`, `cache.popitem()`) are still matched on purpose: they are evidence of wholesale invalidation, useful when comparing an entity's lifecycle — but on their own they carry no key, so never report one as a mismatch by itself.
 
 ---
 

@@ -53,19 +53,33 @@ smells-07	kotlin	smells/smells-07.kt	NOMATCH	// TODOs belong in the issue tracke
 smells-07	java	smells/smells-07.java	MATCH	// XXX this bypasses the permission check entirely
 smells-07	java	smells/smells-07.java	NOMATCH	// FIXMEs are triaged weekly by the platform team
 smells-08	typescript	smells/smells-08.ts	MATCH	function findUser(id: string): User | null { return null; }
+smells-08	typescript	smells/smells-08.ts	MATCH	function search(query: string, scopeFilter: string | null = null) {
 smells-08	typescript	smells/smells-08.ts	NOMATCH	if (user == null) { throw new NotFoundError(id); }
-smells-08	javascript	smells/smells-08.js	MATCH	let selectedItem = null;
+smells-08	typescript	smells/smells-08.ts	NOMATCH	let selectedItem = null;
+smells-08	javascript	smells/smells-08.js	MATCH	function loadItem(id, fallback = null) {
 smells-08	javascript	smells/smells-08.js	NOMATCH	if (cache !== null && cache.has(key)) return cache.get(key);
+smells-08	javascript	smells/smells-08.js	NOMATCH	let selectedItem = null;
 smells-08	python	smells/smells-08.py	MATCH	def find_user(user_id: int) -> Optional[User]:
+smells-08	python	smells/smells-08.py	MATCH	    scope_filter: str | None = None,
+smells-08	python	smells/smells-08.py	MATCH	def search(query, scope_filter=None):
 smells-08	python	smells/smells-08.py	NOMATCH	if result is None: raise LookupError(user_id)
+smells-08	python	smells/smells-08.py	NOMATCH	    result = None
+smells-08	python	smells/smells-08.py	NOMATCH	    search(query, scope_filter=None)
 smells-08	csharp	smells/smells-08.cs	MATCH	public User? FindUser(string id) { return null; }
+smells-08	csharp	smells/smells-08.cs	MATCH	public void Reset(User? user = null) {
 smells-08	csharp	smells/smells-08.cs	NOMATCH	if (user == null) throw new KeyNotFoundException(id);
+smells-08	csharp	smells/smells-08.cs	NOMATCH	_cachedUser = null;
 smells-08	swift	smells/smells-08.swift	MATCH	func findUser(id: String) -> User? {
+smells-08	swift	smells/smells-08.swift	MATCH	func search(query: String, scopeFilter: String? = nil) {
 smells-08	swift	smells/smells-08.swift	NOMATCH	guard user != nil else { throw UserError.missing }
+smells-08	swift	smells/smells-08.swift	NOMATCH	timer = nil
 smells-08	kotlin	smells/smells-08.kt	MATCH	fun currentUser(): User? = cache.user
+smells-08	kotlin	smells/smells-08.kt	MATCH	fun search(query: String, scopeFilter: String? = null) {
 smells-08	kotlin	smells/smells-08.kt	NOMATCH	fun findUser(id: String): User = users.getValue(id)
+smells-08	kotlin	smells/smells-08.kt	NOMATCH	cachedUser = null
 smells-08	java	smells/smells-08.java	MATCH	@Nullable private User cachedUser;
 smells-08	java	smells/smells-08.java	NOMATCH	if (user == null) { throw new NoSuchElementException(id); }
+smells-08	java	smells/smells-08.java	NOMATCH	this.cachedUser = null;
 smells-10	typescript	smells/smells-10.ts	MATCH	const city = order.getCustomer().getAddress().getCity();
 smells-10	typescript	smells/smells-10.ts	NOMATCH	const city = order.shipping.city;
 smells-10	javascript	smells/smells-10.js	MATCH	const label = invoice.getBuyer().getCompany().getName();
@@ -844,3 +858,181 @@ arch-12	java	arch/Arch12Subscript.java	MATCH	        userCache.remove(userCacheK
 arch-12	java	arch/Arch12Subscript.java	NOMATCH	        User cached = repository.findById(id);
 arch-12	kotlin	arch/Arch12Subscript.kt	MATCH	        userCache.removeAll()
 arch-12	kotlin	arch/Arch12Subscript.kt	NOMATCH	        val cached = repository.findById(id)
+safety-03	typescript	safety/safety-03.ts	MATCH	  return <button onClick={() => void onRefresh()}>Retry</button>;
+safety-03	typescript	safety/safety-03.ts	MATCH	  return <button onClick={() => void onRefresh?.()}>Retry</button>;
+safety-03	typescript	safety/safety-03.ts	NOMATCH	export function renderDashboard(): void {
+safety-03	typescript	safety/safety-03.ts	NOMATCH	  const nothing = void 0;
+safety-03	typescript	safety/safety-03.ts	NOMATCH	  await onRefresh();
+safety-03	javascript	safety/safety-03.js	MATCH	  el.addEventListener("click", () => void syncProfile(userId));
+safety-03	javascript	safety/safety-03.js	NOMATCH	  const settled = Promise.resolve(void 0);
+safety-06	swift	safety/safety-06.swift	NOMATCH	        try await Task.sleep(nanoseconds: 200_000_000)
+safety-06	swift	safety/safety-06.swift	NOMATCH	        try await Task.sleep(for: .seconds(1))
+safety-11	typescript	safety/clock.ts	MATCH	    const id = uuidv4();
+safety-11	typescript	safety/clock.ts	MATCH	    const t0 = performance.now();
+safety-11	typescript	safety/clock.ts	NOMATCH	    const id = this.idGenerator.create();
+safety-11	python	safety/clock.py	MATCH	    started = time.monotonic()
+safety-11	python	safety/clock.py	MATCH	    job_id = str(uuid4())
+safety-11	python	safety/clock.py	MATCH	    raw_token = secrets.token_hex(32)
+safety-11	python	safety/clock.py	NOMATCH	    elapsed = self._timer.elapsed_seconds()
+safety-11	swift	safety/Clock.swift	MATCH	        let created = Date.now
+safety-13	swift	safety/validate.swift	MATCH	    assert(amount > 0)
+safety-13	swift	safety/validate.swift	MATCH	        guard let parsed = raw else { assertionFailure("missing amount"); return nil }
+safety-13	swift	safety/validate.swift	NOMATCH	    precondition(amount > 0)
+safety-13	swift	safety/validate.swift	NOMATCH	    XCTAssertEqual(amount, 12)
+safety-13	swift	safety/validate.swift	NOMATCH	    AppLog.assertion(amount > 0)
+safety-13	swift	safety/validate.swift	NOMATCH	    // assert(amount > 0) is stripped in release builds
+safety-13	swift	safety/validate.swift	NOMATCH	    guard amount > 0 else { throw ValidationError.nonPositiveAmount }
+safety-15	python	safety/sql.py	MATCH	    table.delete(where=f"chunk_id = '{chunk_id}'")
+safety-15	python	safety/sql.py	NOMATCH	    table.delete(where="chunk_id = ?", params=[chunk_id])
+safety-15	python	safety/sql.py	NOMATCH	    logger.info(f"cleanup finished for {chunk_id}")
+smells-02	swift	smells/Params.swift	MATCH	    static func makeOrder(id: String, customer: Customer, items: [Item], coupon: Coupon) -> Order {
+smells-02	swift	smells/Params.swift	MATCH	    init(id: String, customer: Customer, items: [Item], coupon: Coupon) {
+smells-02	swift	smells/Params.swift	NOMATCH	    init(id: String, customer: Customer, items: [Item]) {
+smells-02	kotlin	smells/Params.kt	MATCH	    suspend fun sendOrder(id: String, customer: Customer, items: List<Item>, coupon: Coupon): Order {
+smells-02	kotlin	smells/Params.kt	MATCH	    constructor(id: String, customer: Customer, items: List<Item>, coupon: Coupon)
+smells-02	kotlin	smells/Params.kt	NOMATCH	    suspend fun sendOrderOk(id: String, customer: Customer, items: List<Item>): Order {
+smells-02	typescript	smells/params.ts	MATCH	  public static build(id: string, customer: Customer, items: Item[], coupon: Coupon) {
+smells-02	typescript	smells/params.ts	NOMATCH	  public static buildOk(id: string, customer: Customer, items: Item[]) {
+smells-02	javascript	smells/params.js	MATCH	export default function makeOrder(id, customer, items, coupon) {
+smells-10	swift	smells/smells-10.swift	MATCH	        let image = ModelManager.shared.accounts.getUIImage(for: account)
+smells-10	swift	smells/smells-10.swift	MATCH	        self.view.window?.rootViewController?.dismiss(animated: true)
+smells-10	swift	smells/smells-10.swift	NOMATCH	            content = content.replacingOccurrences(of: "a", with: "b").replacingOccurrences(of: "c", with: "d")
+smells-10	swift	smells/smells-10.swift	NOMATCH	        XCTAssertTrue(app.tabBars.buttons.count > 0, "tab bar visible")
+smells-10	swift	smells/smells-10.swift	NOMATCH	//            print(formatter.locale.identifier.description)
+smells-10	csharp	smells/smells-10.cs	MATCH	        player.controls.Character.Fire.performed += context => Shoot();
+smells-10	python	smells/smells-10.py	MATCH	text = converter.convert(path).document.export_to_markdown()
+smells-10	python	smells/smells-10.py	NOMATCH	arrow_table = await table.query().select(["doc_id"]).to_arrow()
+smells-10	python	smells/smells-10.py	NOMATCH	search_query = nodes_table.vector_search(embedding).distance_type(metric).limit(limit)
+smells-10	python	smells/smells-10.py	NOMATCH	mock_table.query.return_value.to_list = AsyncMock(return_value=rows)
+smells-10	python	smells/smells-10.py	NOMATCH	file_type = path.suffix.lower().lstrip(".")
+smells-10	typescript	smells/smells-10.ts	NOMATCH	    const rows = await db.select().from(repositories).where(eq(repositories.id, id))
+smells-10	typescript	smells/smells-10.ts	NOMATCH	    const tokens = revListOut.trim().split(/s+/).filter((token) => token.length > 0)
+smells-10	typescript	smells/smells-10.ts	NOMATCH	        d="M9 1.2C4.8 1.2 1.4 4.6 1.4 8.8c0 3.7 2.4 6.8 5.7 7.9.4.1.6-.2.6-.4v-1.5"
+smells-10	typescript	smells/smells-10.ts	NOMATCH	    expect(d.teamBreakdown.at(-1)?.team).toBe(UNASSIGNED)
+smells-21	typescript	smells/anytype.ts	MATCH	  const cache2: Record<string, any> = {};
+smells-21	typescript	smells/anytype.ts	MATCH	        mergedAt: p.mergedAt as Date,
+smells-21	typescript	smells/anytype.ts	MATCH	    state: row.state as PullRequestRecord[0],
+smells-21	typescript	smells/anytype.ts	MATCH	                } as never,
+smells-21	typescript	smells/anytype.ts	NOMATCH	import { execFile as execFileCb } from "node:child_process";
+smells-21	typescript	smells/anytype.ts	NOMATCH	  PrCycleTimeDashboard as DashboardModel,
+smells-21	typescript	smells/anytype.ts	NOMATCH	/** Selects hours or days as the display unit for the trend series. */
+smells-21	typescript	smells/anytype.ts	NOMATCH	  const modes = ["fast", "slow"] as const;
+smells-21	typescript	smells/anytype.ts	NOMATCH	    return JSON.parse(text) as unknown
+smells-21	typescript	smells/anytype.ts	NOMATCH	    const obj = userRaw as Record<string, unknown>
+smells-21	typescript	smells/anytype.ts	NOMATCH	    const select = screen.getByRole("combobox") as HTMLSelectElement
+smells-21	swift	smells/Iuo.swift	MATCH	    var parent: AccountViewModel!
+smells-21	swift	smells/Iuo.swift	MATCH	    var selectedItem: Account! = nil
+smells-21	swift	smells/Iuo.swift	MATCH	    var baseCurrency: Currency! {
+smells-21	swift	smells/Iuo.swift	NOMATCH	    @IBOutlet var tableView: UITableView!
+smells-21	swift	smells/Iuo.swift	NOMATCH	    @IBOutlet weak var saveButton: UIButton!
+smells-21	swift	smells/Iuo.swift	NOMATCH	    var currency: Currency = Currency()
+smells-21	swift	smells/Iuo.swift	NOMATCH	        if selectedItem != nil { return }
+clarity-09	typescript	clarity/bool.ts	MATCH	        repoFullName: repo && repo.owner && repo.repo ? repo.name : "",
+clarity-09	typescript	clarity/bool.ts	NOMATCH	  const label = a.ok && b.ok && c.ok ? "yes" : "no";
+clarity-09	typescript	clarity/bool.ts	MATCH	        if (validate({ key: 1 }) && user.isActive && !user.isBanned) {
+clarity-09	typescript	clarity/bool.ts	MATCH	          {baselinePending && !noRepos && !noMerged ? (
+clarity-09	typescript	clarity/bool.ts	NOMATCH	  const teamBaselineAvailable = prev.length >= 3 && median != null && median > 0
+clarity-09	typescript	clarity/bool.ts	NOMATCH	  return account.isValid() && currency.isValid() && category.isValid()
+clarity-09	typescript	clarity/bool.ts	NOMATCH	  // dismiss when a && b && c appears inside a comment
+clarity-09	swift	clarity/Bool.swift	MATCH	        AppLog.assertion((a && b != nil) || (c && d == nil))
+clarity-09	swift	clarity/Bool.swift	NOMATCH	        let isRecurrent = isNew() && !isGenerated() && recurrency.isRecurrent()
+clarity-09	python	clarity/bool.py	MATCH	                    or (delete_doc_owned_symbols and is_code_symbol)
+clarity-09	python	clarity/bool.py	NOMATCH	        and ``MaintenanceLoop._rebuild_async`` (GC-triggered rebuild), and
+clarity-09	python	clarity/bool.py	NOMATCH	    Returns 0.0 if the node or edge table is absent, or if there are zero nodes.
+solid-06	swift	solid/UserProfile.swift	MATCH	    @IBOutlet var tableView: UITableView!
+solid-06	swift	solid/UserProfile.swift	MATCH	    static var registry: [String: Int] = [:]
+solid-06	swift	solid/UserProfile.swift	NOMATCH	        var localTotal = 0
+solid-06	swift	solid/UserProfile.swift	NOMATCH	    var body: some View {
+solid-06	swift	solid/UserProfile.swift	NOMATCH	    @Published private(set) var tracks: [String] = []
+solid-06	kotlin	solid/UserProfile.kt	MATCH	    @JvmField var flag: Boolean = false
+solid-06	kotlin	solid/UserProfile.kt	NOMATCH	        var localCount = 0
+solid-07	typescript	solid/prim.ts	MATCH	  currencyCode: string;
+solid-07	typescript	solid/prim.test.ts	NOMATCH	  email: string;
+solid-07	python	solid/prim.py	MATCH	    graph_mode: str
+solid-07	python	solid/test_prim.py	NOMATCH	    email: str
+solid-07	swift	solid/Prim.swift	MATCH	    let currencyCode: String
+solid-07	swift	solid/PrimTests.swift	NOMATCH	    let email: String
+solid-08	typescript	solid/invoice-total.ts	MATCH	  let onlyOnce = compute();
+solid-08	typescript	solid/invoice-total.ts	NOMATCH	  let running = 0;
+solid-08	typescript	solid/invoice-total.ts	FILL	    running += 1;
+solid-08	swift	solid/InvoiceTotal.swift	MATCH	    var onceOnly = makeThing()
+solid-08	swift	solid/InvoiceTotal.swift	NOMATCH	    var sum = 0
+solid-08	swift	solid/InvoiceTotal.swift	FILL	        sum += 1
+solid-08	swift	solid/InvoiceTotal.swift	NOMATCH	    var items = [Int]()
+solid-08	swift	solid/InvoiceTotal.swift	FILL	        items.append(1)
+solid-08	kotlin	solid/InvoiceTotal.kt	NOMATCH	    var acc = 0
+solid-08	kotlin	solid/InvoiceTotal.kt	FILL	        acc += 1
+solid-09	python	solid/session_state.py	MATCH	_worker_converter = None
+solid-09	python	solid/session_state.py	NOMATCH	logger = logging.getLogger(__name__)
+solid-09	swift	solid/SessionState.swift	MATCH	    static var allCurrencies: [String] = []
+solid-09	swift	solid/SessionState.swift	NOMATCH	    static let appName = "billing"
+solid-10	swift	solid/OrderService.swift	MATCH	    var viewmodel = HomeViewModel()
+solid-10	swift	solid/OrderService.swift	MATCH	        let repo = UserRepository()
+solid-10	swift	solid/OrderService.swift	NOMATCH	        let origin = CGPoint(x: 0, y: 0)
+solid-10	swift	solid/OrderService.swift	NOMATCH	    /// let repo = UserRepository()
+solid-10	python	solid/order_service.py	MATCH	    store = SearchStore(db_path)
+solid-10	python	solid/order_service.py	NOMATCH	    total = compute_total(items)
+solid-10	python	solid/order_service.py	NOMATCH	    # store = SearchStore(db_path)
+solid-10	csharp	solid/OrderService.cs	NOMATCH	var offset = new Vector3(1, 2, 3);
+solid-10	typescript	solid/order-service.ts	NOMATCH	const fmt = new Intl.DateTimeFormat('en-US');
+solid-15	typescript	solid/shape-renderer.ts	MATCH	  if (payload.mode === 'fast') {
+solid-15	typescript	solid/shape-renderer.ts	MATCH	  } else if (job.backend === 'live') {
+solid-15	typescript	solid/shape-renderer.ts	NOMATCH	  if (name === 'bob') {
+solid-15	python	solid/shape_renderer.py	MATCH	    elif isinstance(shape, Square):
+solid-15	python	solid/shape_renderer.py	MATCH	    elif kind == "circle":
+solid-15	python	solid/shape_renderer.py	NOMATCH	    elif count > 3:
+solid-15	swift	solid/ShapeRenderer.swift	MATCH	        switch shape.renderMode {
+solid-15	swift	solid/ShapeRenderer.swift	MATCH	        if currency.code == "EUR" {
+solid-15	swift	solid/ShapeRenderer.swift	NOMATCH	        switch total {
+tests-06	swift	tgrp/FooTests.swift	NOMATCH	        var localTimer = 0
+tests-06	typescript	tgrp/foo.test.ts	NOMATCH	      let deeplyNested = 1;
+arch-02	typescript	arch/place-order-usecase.ts	MATCH	import { eq, desc } from 'drizzle-orm'
+arch-02	typescript	arch/place-order-usecase.ts	MATCH	import { PrismaClient } from '@prisma/client'
+arch-02	typescript	arch/place-order-usecase.ts	NOMATCH	import { OrderRequest } from './dto/order-request'
+arch-02	swift	arch/CheckoutViewController.swift	NOMATCH	import UIKit
+arch-02	swift	arch/Views/CheckoutPanel.swift	NOMATCH	import SwiftUI
+arch-02	python	arch/server/http_adapter.py	NOMATCH	from starlette.requests import Request
+arch-02	python	arch/place_order_usecase.py	MATCH	from sqlalchemy.orm import Session
+arch-05	swift	arch/CancelOrderService.swift	MATCH	                errorMessage = error.localizedDescription
+arch-05	swift	arch/CancelOrderService.swift	MATCH	                self.lastError = err.localizedDescription
+arch-05	swift	arch/CancelOrderService.swift	NOMATCH	                print(error.localizedDescription)
+arch-05	swift	arch/CancelOrderService.swift	NOMATCH	                logger.debug(error.localizedDescription)
+arch-08	swift	arch/CheckoutService.swift	MATCH	        let rate = ModelManager.shared.currencies.getBaseCurrency()
+arch-08	swift	arch/CheckoutService.swift	MATCH	        guard StoreManager.shared.isPremiumUser else { return }
+arch-08	swift	arch/CheckoutService.swift	MATCH	        let wrapper = FileManagerWrapper.shared
+arch-08	swift	arch/CheckoutService.swift	MATCH	        let db = DatabaseRegistry.sharedInstance.handle
+arch-08	swift	arch/CheckoutService.swift	NOMATCH	        let session = URLSession.shared
+arch-08	swift	arch/CheckoutService.swift	NOMATCH	        try AVAudioSession.sharedInstance().setActive(true)
+arch-08	swift	arch/CheckoutService.swift	NOMATCH	        NotificationCenter.default.post(name: .orderPlaced, object: nil)
+arch-08	swift	arch/CheckoutService.swift	NOMATCH	        UserDefaults.standard.set(true, forKey: "seen")
+arch-08	swift	arch/CheckoutService.swift	NOMATCH	        let bundleId = Bundle.main.bundleIdentifier
+arch-08	swift	arch/CheckoutService.swift	NOMATCH	        let shared = makeSharedState()
+arch-09	python	arch/order_service.py	MATCH	    if os.environ.get("APP_ENV") == "production":
+arch-09	python	arch/order_service.py	MATCH	        mode = "fast" if os.getenv("APP_ENV") else "slow"
+arch-09	python	arch/order_service.py	NOMATCH	    timeout = os.getenv("REQUEST_TIMEOUT", "30")
+arch-09	python	arch/order_service.py	NOMATCH	    api_key = os.environ["API_KEY"]
+arch-09	python	arch/server/http_handlers.py	NOMATCH	    if os.environ.get("APP_ENV") == "production":
+arch-11	python	arch/endpoints.py	MATCH	PAYMENTS_URL = "https://payments.acme.io/v1"
+arch-11	python	arch/endpoints.py	NOMATCH	DOC_URL = "http://invalid.example/route"
+arch-11	python	arch/endpoints.py	NOMATCH	SAMPLE_URL = "https://api.example.com/v1"
+arch-11	python	arch/endpoints.py	NOMATCH	PROBE_URL = "http://service.test/health"
+arch-11	swift	arch/Endpoints.swift	MATCH	    let paymentsURL = "https://payments.acme.io/v1"
+arch-11	swift	arch/Endpoints.swift	NOMATCH	    let sampleURL = "https://api.example.com/v1"
+arch-12	python	arch/keyed_cache.py	MATCH	        self._cache[model_name] = embedder
+arch-12	python	arch/keyed_cache.py	MATCH	        return self._cache.get(user_key)
+arch-12	python	arch/keyed_cache.py	MATCH	        self._cache.popitem(last=False)
+arch-12	python	arch/keyed_cache.py	NOMATCH	        return self._ping_cache[1]
+arch-12	python	arch/keyed_cache.py	NOMATCH	        if now - self._ping_cache[0] < PING_TTL_SECONDS:
+ddd-01	swift	ddd/money.swift	MATCH	    var minorUnits: Int = 0
+ddd-01	swift	ddd/money.swift	MATCH	    var currencyCode: String = "EUR"
+ddd-01	swift	ddd/money.swift	NOMATCH	    var displayText: String { "\(minorUnits) \(currencyCode)" }
+ddd-01	swift	ddd/money.swift	NOMATCH	    var formatted: String {
+ddd-01	swift	ddd/money.swift	NOMATCH	            var running: Decimal = 0
+ddd-01	swift	ddd/MoneyViewModel.swift	NOMATCH	    var amount: Decimal = 0
+ddd-01	python	ddd/money.py	MATCH	@dataclass
+ddd-01	python	ddd/money.py	NOMATCH	@dataclass(frozen=True)
+ddd-01	python	ddd/money.py	NOMATCH	@dataclass(frozen=True, slots=True)
+ddd-07	python	ddd/collection.py	NOMATCH	    def get_vectors(self, collection: str) -> List[Vector]:
+ddd-07	python	ddd/collection.py	NOMATCH	    def get_all_nodes(self, collection: str, ns: str) -> list[GraphNode]:
+ddd-07	java	ddd/Collection.java	NOMATCH	    public List<LineItem> getItemsFor(String status) { return items; }
+ddd-07	csharp	ddd/Collection.cs	NOMATCH	    public List<LineItem> GetItemsFor(string status) { return items; }

@@ -1,0 +1,52 @@
+# Frozen file selection for the real-project script-effectiveness measurement.
+# Deterministic: top-5 largest production files + 25/50/75th-percentile production files
+# + top-2 largest test files per project (all files for udemy-top-down-shooter).
+# Excluded dirs: node_modules .git dist build .venv venv .uv-cache .claude coverage DerivedData Pods .build
+# Selected 2026-08-24. Do NOT re-randomize; edit only deliberately.
+# project	path	lines	role	stratum
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	3635	prod	top
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	3105	prod	top
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	2449	prod	top
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	2259	prod	top
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	2014	prod	top
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	362	prod	p25
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	195	prod	p50
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/sync_suppression.py	84	prod	p75
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	8271	test	top
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_sync.py	5742	test	top
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	1003	prod	top
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/SleepTimerView.swift	379	prod	top
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/Components/ControlButtonsView.swift	293	prod	top
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Infrastructure/Audio/AVFoundationAudioService.swift	288	prod	top
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/Components/TimerDisplayView.swift	256	prod	top
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/Components/OverlayPanelContainer.swift	144	prod	p25
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/Components/StarAnimationView.swift	97	prod	p50
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/Components/SymbolButton/SymbolButtonModifiers.swift	38	prod	p75
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetAppTests/Presentation/ViewModels/SleepTimerViewModelMusicSetupTests.swift	1086	test	top
+moonset	/Users/manczg/Documents/development/moonset/core/Tests/MoonsetCoreTests/Domain/Entities/SleepTimerTests.swift	601	test	top
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	619	prod	top
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	561	prod	top
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	560	prod	top
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	542	prod	top
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	533	prod	top
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Import/Import.swift	154	prod	p25
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/AccountEditViewModel.swift	85	prod	p50
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Import/ImportTransactionsImportFailedViewController.swift	44	prod	p75
+financialwell	/Users/manczg/Documents/development/financialwell/UITests/FrenchLocaleE2ESmokeTests.swift	729	test	top
+financialwell	/Users/manczg/Documents/development/financialwell/UITests/Authentication/LockScreenUITests.swift	702	test	top
+dddd	/Users/manczg/Documents/development/dddd/src/metrics/pr-cycle-time-dashboard.ts	833	prod	top
+dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/PrCycleTimeDashboard.tsx	699	prod	top
+dddd	/Users/manczg/Documents/development/dddd/src/collector/github-client.ts	588	prod	top
+dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	525	prod	top
+dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	518	prod	top
+dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/FirstReviewExceptionsPanel.tsx	107	prod	p25
+dddd	/Users/manczg/Documents/development/dddd/src/server/derive-refresh-button-state.ts	53	prod	p50
+dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/team-label.tsx	26	prod	p75
+dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	1149	test	top
+dddd	/Users/manczg/Documents/development/dddd/tests/components/pr-cycle-time-dashboard.test.tsx	1031	test	top
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerControls.cs	378	prod	all
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	121	prod	all
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/WeaponVisualController.cs	69	prod	all
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/Player.cs	22	prod	all
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerWeaponController.cs	21	prod	all
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/LeftHandTargetTransform.cs	9	prod	all

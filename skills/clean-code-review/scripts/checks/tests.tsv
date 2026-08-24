@@ -1,10 +1,10 @@
-tests-01	typescript	grep -E '\.(ts|tsx)$' | grep -vE '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '^\s*export\s+(default\s+)?(async\s+)?(function\s+\w|class\s+\w|abstract\s+class\s+\w|const\s+\w+\s*(:\s*[\w<>|&\[\],. ]*\s*)?=\s*(\s*<[A-Z]\w*[,>])?(\s*async\s+)?\s*(\(|function\s))'
-tests-01	javascript	grep -E '\.(js|jsx)$' | grep -vE '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '^\s*export\s+(default\s+)?(async\s+)?(function\s+\w|class\s+\w|const\s+\w+\s*=\s*(async\s+)?(\(|function\s))'
-tests-01	python	grep -E '\.py$' | grep -vE '(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$' | mgrep '^\s*def\s+[a-z]|^\s*class\s+[A-Z]'
-tests-01	csharp	grep -E '\.cs$' | grep -vE '(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/' | mgrep '^\s*public\s+(sealed\s+|static\s+|abstract\s+|partial\s+|override\s+|readonly\s+|async\s+)*(class\s+|record\s+|struct\s+|interface\s+|enum\s+|void\s+|Task\s+|Task<|ValueTask\s+|ValueTask<|(string|int|bool|long|double|float|decimal|char|byte|object)\s+|[A-Z])'
-tests-01	swift	grep -E '\.swift$' | grep -vE 'Tests?\.swift$|(^|/)[^/]*Tests?/' | mgrep '^\s*(public\s+|open\s+|internal\s+|)?(final\s+|override\s+)?(func\s+\w|class\s+\w|struct\s+\w|enum\s+\w|protocol\s+\w|actor\s+\w|extension\s+\w|static\s+func|fileprivate\s+func|@objc\s+func|@MainActor\s+(func|static\s+func))'
-tests-01	kotlin	grep -E '\.kts?$' | grep -vE '(Tests?|Spec)\.kts?$|(^|/)src/test/' | mgrep '^\s*(public\s+|internal\s+|)?(override\s+|open\s+|abstract\s+|final\s+|data\s+|sealed\s+|inline\s+|)(suspend\s+)?(fun\s+[a-z]\w*|class\s+[A-Z]\w*|object\s+[A-Z]\w*|interface\s+[A-Z]\w*|enum\s+class\s+[A-Z]\w*)'
-tests-01	java	grep -E '\.java$' | grep -vE 'Tests?\.java$|(^|/)src/test/' | mgrep '^\s*public\s+(final\s+|static\s+|abstract\s+|synchronized\s+)*(class\s+|interface\s+|enum\s+|record\s+|void\s+|[\w<\[])'
+tests-01	typescript	grep -E '\.(ts|tsx)$' | grep -vE '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '^\s*export\s+(default\s+)?(async\s+)?(function\s+\w|class\s+\w|abstract\s+class\s+\w|const\s+\w+\s*(:\s*[\w<>|&\[\],. ]*\s*)?=\s*(\s*<[A-Z]\w*[,>])?(\s*async\s+)?\s*(\(|function\s))' | notested
+tests-01	javascript	grep -E '\.(js|jsx)$' | grep -vE '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '^\s*export\s+(default\s+)?(async\s+)?(function\s+\w|class\s+\w|const\s+\w+\s*=\s*(async\s+)?(\(|function\s))' | notested
+tests-01	python	grep -E '\.py$' | grep -vE '(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$' | mgrep '^\s*def\s+[a-z]|^\s*class\s+[A-Z]' | notested
+tests-01	csharp	grep -E '\.cs$' | grep -vE '(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/' | mgrep '^\s*public\s+(sealed\s+|static\s+|abstract\s+|partial\s+|override\s+|readonly\s+|async\s+)*(class\s+|record\s+|struct\s+|interface\s+|enum\s+|void\s+|Task\s+|Task<|ValueTask\s+|ValueTask<|(string|int|bool|long|double|float|decimal|char|byte|object)\s+|[A-Z])' | notested
+tests-01	swift	grep -E '\.swift$' | grep -vE 'Tests?\.swift$|(^|/)[^/]*Tests?/' | mgrep '^\s*(public\s+|open\s+|internal\s+|)?(final\s+|override\s+)?(func\s+\w|class\s+\w|struct\s+\w|enum\s+\w|protocol\s+\w|actor\s+\w|extension\s+\w|static\s+func|fileprivate\s+func|@objc\s+func|@MainActor\s+(func|static\s+func))' | notested
+tests-01	kotlin	grep -E '\.kts?$' | grep -vE '(Tests?|Spec)\.kts?$|(^|/)src/test/' | mgrep '^\s*(public\s+|internal\s+|)?(override\s+|open\s+|abstract\s+|final\s+|data\s+|sealed\s+|inline\s+|)(suspend\s+)?(fun\s+[a-z]\w*|class\s+[A-Z]\w*|object\s+[A-Z]\w*|interface\s+[A-Z]\w*|enum\s+class\s+[A-Z]\w*)' | notested
+tests-01	java	grep -E '\.java$' | grep -vE 'Tests?\.java$|(^|/)src/test/' | mgrep '^\s*public\s+(final\s+|static\s+|abstract\s+|synchronized\s+)*(class\s+|interface\s+|enum\s+|record\s+|void\s+|[\w<\[])' | notested
 tests-04	typescript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '\bsetTimeout\b|\bsetInterval\b|\bnew\s+Date\s*\(\s*\)|\bDate\.now\s*\(\s*\)|\bMath\.random\s*\(\s*\)|\bcrypto\.randomUUID\s*\(\s*\)|\bperformance\.now\s*\(\s*\)'
 tests-04	javascript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '\bsetTimeout\b|\bsetInterval\b|\bnew\s+Date\s*\(\s*\)|\bDate\.now\s*\(\s*\)|\bMath\.random\s*\(\s*\)|\bcrypto\.randomUUID\s*\(\s*\)|\bperformance\.now\s*\(\s*\)'
 tests-04	python	grep -E '(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$' | mgrep '\btime\.sleep\s*\(|\bdatetime\.now\s*\(|\brandom\.\w+\s*\('
@@ -19,13 +19,13 @@ tests-05	csharp	grep -E '(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/' | mgrep '\bInter
 tests-05	swift	grep -E 'Tests?\.swift$|(^|/)[^/]*Tests?/' | mgrep 'reflect\.|Mirror\(reflecting:|NSInvocation'
 tests-05	kotlin	grep -E '(Tests?|Spec)\.kts?$|(^|/)src/test/' | mgrep '@VisibleForTesting'
 tests-05	java	grep -E 'Tests?\.java$|(^|/)src/test/' | mgrep '@VisibleForTesting|\bReflectionTestUtils\b|\b\.getDeclaredMethod\b|\b\.getDeclaredField\b'
-tests-06	typescript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '^\s*(let|var)\s+\w+(\s*:\s*[^=;\n]+)?\s*[;=]'
-tests-06	javascript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '^\s*(let|var)\s+\w+(\s*:\s*[^=;\n]+)?\s*[;=]'
+tests-06	typescript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '^(?:\t| {2}| {4})(?![\t ])(?:let|var)\s+\w+(\s*:\s*[^=;\n]+)?\s*[;=]'
+tests-06	javascript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '^(?:\t| {2}| {4})(?![\t ])(?:let|var)\s+\w+(\s*:\s*[^=;\n]+)?\s*[;=]'
 tests-06	python	grep -E '(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$' | mgrep '^\s*self\.\w+\s*='
-tests-06	csharp	grep -E '(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/' | mgrep '^\s*private\s+\w+\s+\w+\s*[;=]'
-tests-06	swift	grep -E 'Tests?\.swift$|(^|/)[^/]*Tests?/' | mgrep '^\s*var\s+\w+\s*[=:]'
-tests-06	kotlin	grep -E '(Tests?|Spec)\.kts?$|(^|/)src/test/' | mgrep '^\s*var\s+\w+\s*[=:]'
-tests-06	java	grep -E 'Tests?\.java$|(^|/)src/test/' | mgrep '^\s*private\s+\w+\s+\w+\s*[;=]'
+tests-06	csharp	grep -E '(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/' | mgrep '^(?:\t| {2}| {4})(?![\t ])private\s+\w+\s+\w+\s*[;=]'
+tests-06	swift	grep -E 'Tests?\.swift$|(^|/)[^/]*Tests?/' | mgrep '^(?:\t| {2}| {4})(?![\t ])var\s+\w+\s*[=:]'
+tests-06	kotlin	grep -E '(Tests?|Spec)\.kts?$|(^|/)src/test/' | mgrep '^(?:\t| {2}| {4})(?![\t ])var\s+\w+\s*[=:]'
+tests-06	java	grep -E 'Tests?\.java$|(^|/)src/test/' | mgrep '^(?:\t| {2}| {4})(?![\t ])private\s+\w+\s+\w+\s*[;=]'
 tests-08	typescript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '\b(xit|xdescribe|it\.skip|describe\.skip|test\.skip)\s*\('
 tests-08	javascript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '\b(xit|xdescribe|it\.skip|describe\.skip|test\.skip)\s*\('
 tests-08	python	grep -E '(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$' | mgrep '@pytest\.mark\.skip|@unittest\.skip'

@@ -45,7 +45,7 @@ Each iteration:
 
 #### 1. **Progress** Run, replacing `<plan-path>` with the resolved file path:
    ```
-   bash ~/.claude/scripts/plan-progress.sh "<plan-path>"
+   bash "${CLAUDE_PLUGIN_ROOT}"/scripts/plan-progress.sh "<plan-path>"
    ```
    - Exit 1 → all tasks complete — stop.
    - Exit 2 or 3 → stop and report the error.

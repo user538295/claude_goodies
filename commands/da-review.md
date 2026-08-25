@@ -4,20 +4,18 @@ allowed-tools: Read, Grep, Glob
 ---
 
 Review the following target: $ARGUMENTS (if empty, review the current plan/code/work in context).
+Use the `devils-advocate` agent for the review (agent type `devils-advocate`, or `claude-goodies:devils-advocate` if that is the name shown in your agent list; minimum 3).
+Your goal is to find every flaw — do not soften findings. Don't assume, fact check everything including your findings that are correct.
 
-Adopt an adversarial perspective. Your goal is to find every flaw — do not soften findings.
-
-Use the severity rubric defined in `/iterative-review`:
+Use the following severity rubrics:
 - **Critical**: blocks correctness, security, or safety
 - **Major**: significant design flaw, missing requirement, or likely bug
 - **Moderate**: suboptimal but workable
 - **Minor**: style, naming, or nitpick
 
-(This rubric is the single source of truth in `iterative-review.md` — keep them in sync if updated.)
-
 For each issue found, provide:
 - Severity label
-- Short description of the problem
+- Short description of the problem (one-line short, MAX 256 chars)
 - Why it matters / what could go wrong
 
 Group findings by severity (Critical first). At the end, give a one-sentence overall verdict.

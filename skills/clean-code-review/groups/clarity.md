@@ -106,6 +106,8 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 
 NOTE for agent: the pattern finds two or more `&&`/`||` (or `and`/`or` in Python) within one statement, i.e. three or more joined terms. It is no longer restricted to `if`/`while`/`guard`: ternary conditions, JSX render guards (`{a && b && (`), inline callback predicates and assertion arguments now produce hits too. The brace blind spot is gone — `if (validate({ key: 1 }) && a && b)` is found; the scan now stops at `;`, not `{`.
 
+A second set of rows (`mcond`) covers the conditions that wrap across lines — `if (` followed by four `and` continuations, or `if not isinstance(x, list) or any(` spanning three lines. Those are joined into one logical condition and reported once, on the line the condition starts, so the hit line is the `if`/`while`/`guard` itself and never a continuation fragment. A wrapped condition whose first line already carries two operators stays with the single-line rows, so nothing is reported twice. `x or DEFAULT` / `x || nil` is counted as a fallback value, not as a third clause. Assignments, `return`, and comment lines remain excluded — a wrapped `const msg = a && b && c` is deliberately not flagged.
+
 Lines that already name the condition are excluded by the pattern: comments, `return …`, and lines that *begin* a `const`/`let`/`var`/`val` assignment. Python keeps its `if`/`elif`/`while` anchor because `and`/`or` are English words and an unanchored scan reads prose out of docstrings.
 
 Two blind spots remain, and they need your eyes on the diff:
@@ -182,14 +184,14 @@ NOTE for agent: Look for a ternary expression (`condition ? thenBranch : elseBra
 **Scope**: `files`
 **Finding action template**: Reduce complexity in `{functionName}` (currently {N} branches) by extracting branch groups into named functions
 
-**Detection** (file-level keyword count — agent must verify per function boundary):
+**Detection** (per-function branch count — branch lines between the declaration and the closing line):
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/clarity.tsv`.
 
-> Agent note: the command yields a total per file. Only raise a finding if you can identify an individual function within a changed file whose branch count in isolation exceeds 10. The awk threshold `$NF > 10` is a heuristic pre-filter to reduce agent workload — it removes the lowest-count files. It is NOT a soundness filter; a file with count ≤10 could theoretically still contain a complex function (e.g. one line with `case 'a': case 'b': case 'c':` counts as 1 but is 3 branches). Verify per-function complexity manually for all flagged files.
+> Agent note: each hit is one function carrying more than 10 branch lines, already measured — `mbranch` resolves the extent exactly as `mfunc` does (python by indentation, brace languages by brace balance) and counts branch keywords inside it, ignoring comments and string bodies. The matched text is the declaration line. The count is line-granular, so a line with `case 'a': case 'b': case 'c':` counts once though it is three branches — the measurement floors, it does not inflate. Confirm the branch count before reporting and dismiss hits where the "function" is generated code or a test-harness block rather than a unit of logic. Nested functions are counted independently AND inside their enclosing function, so a branchy closure charges both.
 >
-> Anchor all clarity-16 findings at the line of the function's declaration/signature (the `def`, `function`, `fun`, `func`, or method-header line). Do not anchor at the first statement or closing brace. When reporting, the file and function name are sufficient — anchor at the function's declaration line as found in the diff, not at line 1.
+> Anchor all clarity-16 findings at the line of the function's declaration/signature (the `def`, `function`, `fun`, `func`, or method-header line) — that is the `line` the hit already carries. Do not anchor at the first statement or closing brace, nor at line 1.
 >
-> $PRECOMPUTED shape for clarity-16: `{ check_id: "clarity-16", file, count }` — no `line` field (file-level keyword count). Use `count` as a signal; only flag after verifying a specific function in that file exceeds the limit.
+> $PRECOMPUTED shape for clarity-16: `{ check_id: "clarity-16", file, line, matched_text }` — `line` is the function's declaration line.
 
 ---
 

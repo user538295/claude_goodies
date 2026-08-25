@@ -94,10 +94,14 @@ NOTE for agent: Dismiss `isLoading`, `isError`, `isActive`, `enabled`, `disabled
 **Scope**: `diff`
 **Finding action template**: Delete commented-out block at `{file}:{line}` — use `git log` to recover if needed
 
-**Detection**:
+**Detection** (code syntax inside a whole-line comment, not a keyword whitelist):
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
 
-NOTE for agent: dismiss single-line explanatory comments. Flag only when 2+ consecutive commented lines look like code.
+> Agent note: `mcomment` blanks string literals, then keeps a comment body only when it carries code syntax — it ends at a block edge (`{`/`}`), it assigns to an identifier path or to a declared name (`let`/`var`/`const`/`val` …), it is a single balanced `ident(...)` call, or it opens with a declaration keyword (a control keyword additionally needs a condition). A body that reads as English is dropped even when it matches: a sentence break (`word.` followed by a space or end of line) or three consecutive all-lowercase non-keyword words. So a lone `// return the cached value` no longer arrives and neither does a wrapped prose line that happens to start with `for`/`if`/`return`. TODO/FIXME/HACK/XXX comments belong to smells-07 and commented-out `debugger`/`set_trace`/`printStackTrace` to smells-23; `mcomment` skips both, so never re-report them here.
+>
+> Trailing comments (`let key = "a" // "b"`) and block comments (`/* … */`) are out of scope — only comments that occupy the whole line are scanned. A bare-name assignment without a declaration keyword (`# centroid = total / count`) is also skipped: in `#` comments that shape is a formula note far more often than commented-out code.
+>
+> Single hits are real findings — a commented-out call or assignment on its own line is still dead code. Confirm the surrounding lines to report a contiguous block once rather than line by line.
 
 ---
 

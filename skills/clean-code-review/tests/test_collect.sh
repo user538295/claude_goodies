@@ -256,16 +256,17 @@ run() { OUT="$("$SCRIPT" "$@" 2>"$WORKROOT"/collect_stderr)"; RC=$?; ERR="$(cat 
   assert_file_has   "$OUT/hits.txt" "smells-20${TAB}NoHash.cs:2:"
 )
 
-( t "FILTER_EXEMPT check (clarity-16) reports even when its evidence lines are unchanged"
+( t "FILTER_EXEMPT check (clarity-16) reports even when its evidence (the branchy function) predates the diff"
   newrepo
-  { for i in $(seq 1 12); do printf 'if (x) { y(); }\n'; done; } > Complex.cs
+  branchyfn() { printf 'public void Branchy()\n{\n'; for i in $(seq 1 12); do printf '  if (x) { y(); }\n'; done; printf '}\n'; }
+  branchyfn > Complex.cs
   git add Complex.cs; git commit -qm init
-  { for i in $(seq 1 12); do printf 'if (x) { y(); }\n'; done; printf '// unrelated comment\n'; } > Complex.cs
+  { branchyfn; printf '// unrelated comment\n'; } > Complex.cs
   run
   assert_exit_ok "$RC"
-  assert_file_has   "$OUT/addedlines.txt" "Complex.cs:13"
+  assert_file_has   "$OUT/addedlines.txt" "Complex.cs:16"
   assert_file_lacks "$OUT/addedlines.txt" "Complex.cs:1$"
-  assert_file_has   "$OUT/hits.txt" "clarity-16${TAB}Complex.cs:"
+  assert_file_has   "$OUT/hits.txt" "clarity-16${TAB}Complex.cs:1:"
 )
 
 ( t "FILTER_EXEMPT check (clarity-17) reports even when its evidence (the long function) predates the diff"

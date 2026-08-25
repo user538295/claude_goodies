@@ -38,6 +38,19 @@ smells-06	kotlin	smells/smells-06.kt	MATCH	// val retryCount = 3
 smells-06	kotlin	smells/smells-06.kt	NOMATCH	// validation happens in the use case layer
 smells-06	java	smells/smells-06.java	MATCH	// private static final int LEGACY_LIMIT = 10;
 smells-06	java	smells/smells-06.java	NOMATCH	// classes in this package are immutable
+smells-06	swift	smells/smells-06.swift	MATCH	// print("collected transactions:", rawTransactions.count)
+smells-06	swift	smells/smells-06.swift	MATCH	// TagButton.setTitleColor(textColor, for: UIControlState())
+smells-06	swift	smells/smells-06.swift	MATCH	//        }
+smells-06	swift	smells/smells-06.swift	NOMATCH	// if the user has PIN enabled but biometric disabled.
+smells-06	swift	smells/smells-06.swift	NOMATCH	// if there is no place then the placeid will be empty
+smells-06	swift	smells/smells-06.swift	NOMATCH	/// Returns the cached token for the session
+smells-06	swift	smells/smells-06.swift	NOMATCH	// TODO: return the cached token
+smells-06	python	smells/smells-06.py	MATCH	# store.nodes["b"] = []
+smells-06	python	smells/smells-06.py	NOMATCH	# class name, the timeout value, and the model name
+smells-06	python	smells/smells-06.py	NOMATCH	# centroid = centroid_sum / chunk_count
+smells-06	python	smells/smells-06.py	NOMATCH	# return normally, never-propagate invariant). pipeline.py holds only
+smells-06	typescript	smells/smells-06.ts	MATCH	// legacyClient.close();
+smells-06	typescript	smells/smells-06.ts	NOMATCH	// timeout = retryCount * backoffFactor
 smells-07	typescript	smells/smells-07.ts	MATCH	// TODO: handle token refresh on 401
 smells-07	typescript	smells/smells-07.ts	NOMATCH	// TODOs for this module are tracked in JIRA-1204
 smells-07	javascript	smells/smells-07.js	MATCH	// FIXME: race when two tabs write simultaneously
@@ -957,9 +970,62 @@ clarity-09	typescript	clarity/bool.ts	NOMATCH	  return account.isValid() && curr
 clarity-09	typescript	clarity/bool.ts	NOMATCH	  // dismiss when a && b && c appears inside a comment
 clarity-09	swift	clarity/Bool.swift	MATCH	        AppLog.assertion((a && b != nil) || (c && d == nil))
 clarity-09	swift	clarity/Bool.swift	NOMATCH	        let isRecurrent = isNew() && !isGenerated() && recurrency.isRecurrent()
-clarity-09	python	clarity/bool.py	MATCH	                    or (delete_doc_owned_symbols and is_code_symbol)
-clarity-09	python	clarity/bool.py	NOMATCH	        and ``MaintenanceLoop._rebuild_async`` (GC-triggered rebuild), and
-clarity-09	python	clarity/bool.py	NOMATCH	    Returns 0.0 if the node or edge table is absent, or if there are zero nodes.
+clarity-09	python	clarity/bool.py	FILL	def _gc(self) -> None:
+clarity-09	python	clarity/bool.py	NOMATCH	    """Runs for ``MaintenanceLoop._rebuild_async`` (GC-triggered rebuild), and
+clarity-09	python	clarity/bool.py	NOMATCH	    returns 0.0 if the node or edge table is absent, or if there are zero nodes."""
+clarity-09	python	clarity/bool.py	MATCH	    if (
+clarity-09	python	clarity/bool.py	NOMATCH	        (nid in endpoint_ids and not is_ordinary_module)
+clarity-09	python	clarity/bool.py	NOMATCH	        or is_module_pseudo
+clarity-09	python	clarity/bool.py	NOMATCH	        or (delete_doc_owned_symbols and is_code_symbol)
+clarity-09	python	clarity/bool.py	FILL	    ):
+clarity-09	python	clarity/bool.py	FILL	        node_candidates.append(nid)
+clarity-09	python	clarity/bool.py	MATCH	    if eid not in exempt_edge_ids
+clarity-09	python	clarity/bool.py	NOMATCH	    and (src_id in orphan_ids or tgt_id in orphan_ids):
+clarity-09	python	clarity/bool.py	FILL	        drop(eid)
+clarity-09	python	clarity/bool.py	NOMATCH	    if resolved_name == wanted
+clarity-09	python	clarity/bool.py	NOMATCH	    and (namespace or DEFAULT_NS) == target:
+clarity-09	python	clarity/bool.py	FILL	        conflict = True
+clarity-09	typescript	clarity/bool.ts	MATCH	    if (
+clarity-09	typescript	clarity/bool.ts	NOMATCH	      teamBaselineAvailable &&
+clarity-09	typescript	clarity/bool.ts	NOMATCH	      row.medianHours != null &&
+clarity-09	typescript	clarity/bool.ts	NOMATCH	      row.medianHours >= prevTeamMedian * 1.25
+clarity-09	typescript	clarity/bool.ts	FILL	    ) {
+clarity-09	typescript	clarity/bool.ts	FILL	      exceptions.push(row)
+clarity-09	typescript	clarity/bool.ts	FILL	    }
+clarity-09	typescript	clarity/bool.ts	NOMATCH	    if (ready && !busy) {
+clarity-09	typescript	clarity/bool.ts	FILL	      log(a && b && c);
+clarity-09	typescript	clarity/bool.ts	FILL	    }
+clarity-09	javascript	clarity/bool.js	MATCH	    if (
+clarity-09	javascript	clarity/bool.js	NOMATCH	      a.ok &&
+clarity-09	javascript	clarity/bool.js	NOMATCH	      b.ok &&
+clarity-09	javascript	clarity/bool.js	NOMATCH	      c.ok
+clarity-09	javascript	clarity/bool.js	FILL	    ) {
+clarity-09	javascript	clarity/bool.js	FILL	      ship();
+clarity-09	javascript	clarity/bool.js	FILL	    }
+clarity-09	csharp	clarity/Bool.cs	MATCH	        if (
+clarity-09	csharp	clarity/Bool.cs	NOMATCH	            user.IsActive &&
+clarity-09	csharp	clarity/Bool.cs	NOMATCH	            user.HasCredit &&
+clarity-09	csharp	clarity/Bool.cs	NOMATCH	            !user.IsBanned
+clarity-09	csharp	clarity/Bool.cs	FILL	        )
+clarity-09	csharp	clarity/Bool.cs	FILL	        {
+clarity-09	csharp	clarity/Bool.cs	FILL	        }
+clarity-09	java	clarity/Bool.java	MATCH	        if (
+clarity-09	java	clarity/Bool.java	NOMATCH	            user.isActive() &&
+clarity-09	java	clarity/Bool.java	NOMATCH	            user.hasCredit() &&
+clarity-09	java	clarity/Bool.java	NOMATCH	            !user.isBanned()
+clarity-09	java	clarity/Bool.java	FILL	        ) {
+clarity-09	java	clarity/Bool.java	FILL	        }
+clarity-09	kotlin	clarity/Bool.kt	MATCH	        if (
+clarity-09	kotlin	clarity/Bool.kt	NOMATCH	            user.isActive &&
+clarity-09	kotlin	clarity/Bool.kt	NOMATCH	            user.hasCredit &&
+clarity-09	kotlin	clarity/Bool.kt	NOMATCH	            !user.isBanned
+clarity-09	kotlin	clarity/Bool.kt	FILL	        ) {
+clarity-09	kotlin	clarity/Bool.kt	FILL	        }
+clarity-09	swift	clarity/Bool.swift	MATCH	        if fileURL.pathExtension == "db" ||
+clarity-09	swift	clarity/Bool.swift	NOMATCH	            fileURL.pathExtension == "sqlite" ||
+clarity-09	swift	clarity/Bool.swift	NOMATCH	            fileURL.pathExtension == "wal"
+clarity-09	swift	clarity/Bool.swift	FILL	        {
+clarity-09	swift	clarity/Bool.swift	FILL	        }
 solid-06	swift	solid/UserProfile.swift	MATCH	    @IBOutlet var tableView: UITableView!
 solid-06	swift	solid/UserProfile.swift	MATCH	    static var registry: [String: Int] = [:]
 solid-06	swift	solid/UserProfile.swift	NOMATCH	        var localTotal = 0

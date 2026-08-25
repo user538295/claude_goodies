@@ -44,11 +44,21 @@ for row in "${ROWS[@]}"; do
   key="$check.$lang"
   case " $ran " in *" $key "*) continue ;; esac
   ran="$ran $key"
-  cmd="$(grep -h "^$check$(printf '\t')$lang$(printf '\t')" "$SKILL_DIR"/scripts/checks/*.tsv | cut -f3-)"
-  if [ -z "$cmd" ]; then
+  # A check may declare several rows for one language (collect.sh runs each and
+  # appends every row's hits), so union the rows here instead of eval'ing them as
+  # one blob — the first would swallow the shared stdin and starve the rest.
+  : > "../out/$key"; : > "../out/$key.err"
+  found=0
+  while IFS= read -r cmd; do
+    [ -n "$cmd" ] || continue
+    found=1
+    eval "$cmd" < ../filelist >> "../out/$key" 2>>"../out/$key.err"
+  done <<EOF
+$(grep -h "^$check$(printf '\t')$lang$(printf '\t')" "$SKILL_DIR"/scripts/checks/*.tsv | cut -f3-)
+EOF
+  if [ "$found" = 0 ]; then
     echo "FAIL: no command found for $key" >&2; FAIL=$((FAIL+1)); continue
   fi
-  eval "$cmd" < ../filelist > "../out/$key" 2>"../out/$key.err"
   if [ -s "../out/$key.err" ]; then
     echo "FAIL: $key errored: $(head -n 1 "../out/$key.err")" >&2; FAIL=$((FAIL+1))
   fi
@@ -82,7 +92,7 @@ for row in "${ROWS[@]}"; do
   esac
 done
 
-# ---- threshold checks: per-file (clarity-16, smells-01) and per-function (clarity-17)
+# ---- threshold checks: per-file (smells-01) and per-function (clarity-16, clarity-17)
 run_thr() {  # $1=check $2=lang $3=file-that-must-appear $4=file-that-must-not
   local cmd out
   cmd="$(grep -h "^$1$(printf '\t')$2$(printf '\t')" "$SKILL_DIR"/scripts/checks/*.tsv | cut -f3-)"
@@ -95,12 +105,48 @@ run_thr() {  # $1=check $2=lang $3=file-that-must-appear $4=file-that-must-not
 }
 
 mkdir -p thr
-for ext in ts js cs swift kt java; do
-  for i in $(seq 1 12); do echo 'if (x) { y(); }'; done > "thr/complex.$ext"
-  printf 'if (a) { b(); }\nvalue = 1;\n' > "thr/simple.$ext"
-done
-for i in $(seq 1 12); do echo "if x$i: pass"; done > thr/complex.py
-printf 'if a: pass\nb = 1\n' > thr/simple.py
+# clarity-16 is per-function: one function with 12 branch lines must flag, and a
+# file whose 24 branch lines are spread over 12 two-branch functions must not —
+# that spread file is exactly what the old per-file keyword count flagged.
+gen_br() {  # $1=ext $2=long-function-header $3=two-branch-function-template ($N substituted)
+  { printf '%s\n' "$2"; for i in $(seq 1 12); do echo '  if (x) { y(); }'; done; printf '}\n'; } > "thr/branchy.$1"
+  for i in $(seq 1 12); do printf '%s\n' "${3//\$N/$i}"; done > "thr/spread.$1"
+}
+gen_br ts   'function branchy() {'      'function f$N() {
+  if (a) { b(); }
+  if (c) { d(); }
+}'
+cp thr/branchy.ts thr/branchy.js; cp thr/spread.ts thr/spread.js
+gen_br cs   'public void Branchy()
+{'                                      'public void F$N()
+{
+  if (a) { b(); }
+  if (c) { d(); }
+}'
+gen_br kt   'fun branchy() {'           'fun f$N() {
+  if (a) { b() }
+  if (c) { d() }
+}'
+gen_br java 'public void branchy() {'   'public void f$N() {
+  if (a) { b(); }
+  if (c) { d(); }
+}'
+{ printf 'func branchy() {\n'; for i in $(seq 1 12); do echo '  if x { y() }'; done; printf '}\n'; } > thr/branchy.swift
+for i in $(seq 1 12); do printf 'func f%d() {\n  if a { b() }\n  if c { d() }\n}\n' "$i"; done > thr/spread.swift
+{ printf 'def branchy():\n'; for i in $(seq 1 12); do echo "    if x$i: pass"; done; } > thr/branchy.py
+for i in $(seq 1 12); do printf 'def f%d():\n    if a: pass\n    if c: pass\n\n' "$i"; done > thr/spread.py
+
+# Must-not fixtures for the counting rules mbranch adds on top of the old keyword
+# count: prose in comments/docstrings is not branching, a `describe` suite is not
+# a function, and a swift `for:` argument label is not a loop.
+{ printf 'def documented():\n    """\n'
+  for i in $(seq 1 12); do echo "    Retries if the cache is cold, for each stale key."; done
+  printf '    """\n    return 1\n'; } > thr/docprose.py
+{ printf "describe('suite', () => {\n"; for i in $(seq 1 12); do echo '  if (x) { y(); }'; done
+  printf '});\n'; } > thr/suite.ts
+{ printf 'func labelled() {\n'
+  for i in $(seq 1 12); do echo '  button.setTitle(t, for: .normal)'; done
+  printf '}\n'; } > thr/labels.swift
 for i in $(seq 1 160); do echo "const l$i = 1;"; done > thr/long.ts
 printf 'const s = 1;\n' > thr/short.ts
 for i in $(seq 1 1010); do echo "const g$i = 1;"; done > thr/huge.ts
@@ -139,13 +185,16 @@ for i in $(seq 1 40); do printf 'def f%d():\n    x = 1\n    return x\n\n' "$i"; 
 
 find thr -type f | sort > ../thrlist
 
-run_thr clarity-16 typescript "thr/complex.ts"    "thr/simple.ts"
-run_thr clarity-16 javascript "thr/complex.js"    "thr/simple.js"
-run_thr clarity-16 python     "thr/complex.py"    "thr/simple.py"
-run_thr clarity-16 csharp     "thr/complex.cs"    "thr/simple.cs"
-run_thr clarity-16 swift      "thr/complex.swift" "thr/simple.swift"
-run_thr clarity-16 kotlin     "thr/complex.kt"    "thr/simple.kt"
-run_thr clarity-16 java       "thr/complex.java"  "thr/simple.java"
+run_thr clarity-16 typescript "thr/branchy.ts"    "thr/spread.ts"
+run_thr clarity-16 javascript "thr/branchy.js"    "thr/spread.js"
+run_thr clarity-16 python     "thr/branchy.py"    "thr/spread.py"
+run_thr clarity-16 csharp     "thr/branchy.cs"    "thr/spread.cs"
+run_thr clarity-16 swift      "thr/branchy.swift" "thr/spread.swift"
+run_thr clarity-16 kotlin     "thr/branchy.kt"    "thr/spread.kt"
+run_thr clarity-16 java       "thr/branchy.java"  "thr/spread.java"
+run_thr clarity-16 python     "thr/branchy.py"    "thr/docprose.py"
+run_thr clarity-16 typescript "thr/branchy.ts"    "thr/suite.ts"
+run_thr clarity-16 swift      "thr/branchy.swift" "thr/labels.swift"
 run_thr clarity-17 typescript "thr/longfn.ts"    "thr/manyfns.ts"
 run_thr clarity-17 javascript "thr/longfn.js"    "thr/manyfns.js"
 run_thr clarity-17 python     "thr/longfn.py"    "thr/manyfns.py"

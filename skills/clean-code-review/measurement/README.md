@@ -149,3 +149,44 @@ All 19 new `tests-05` corpus hits are `patch.object(syncer, "_private_method")`,
 
 **Corrections / not pursued.** Round 2's "`clarity-16/17` have no recall gap, `mfunc` not shipped" is retired for `clarity-17`; `clarity-16` is genuinely file-level.
 Kotlin/Java have no real-code coverage (zero `.kt`/`.java`, six `.cs` files). C# verbatim identifiers escape `mfunc`. `results/*.tsv` and `report.xlsx` are not regenerated, as in round 3.
+
+
+## Round 5 (2026-08-25, four parallel agents)
+
+Recall-first round; candidates ranked by the `llmonly` findings round 4 misses. Three checks fixed and swept separately, then merged. Every hit below, before and after, was re-adjudicated in one blind pass — like-for-like, not a verdict join.
+
+### Corpus (46 files, re-adjudicated 2026-08-25)
+
+| check | fix | hits | TP | FP | precision |
+|---|---|---|---|---|---|
+| `clarity-16` | per-function branch count (`mbranch()`) | 32 → **56** | 16 → **53** | 16 → **3** | 50% → **95%** |
+| `clarity-09` | wrapped conditions joined (`mcond()`) | 37 → **48** | 26 → **40** | 11 → **8** | 70% → **83%** |
+| `smells-06` | comment tested for code shape (`mcomment()`) | 9 → **13** | 5 → **13** | 4 → **0** | 56% → **100%** |
+| `safety-13` | none — not defective, see below | 18 → 18 | — | — | — |
+| **total** | | **78 → 117** | **47 → 106** | **31 → 11** | **60% → 91%** |
+
+Recall vs `llmonly.tsv` (±3 lines): `clarity-16` 0/44 → **37/44**, `clarity-09` 14/31 → **20/31**, `smells-06` 1/9 → **5/9**; corpus-wide 464 → **511** of 830. Every other check is byte-identical (`diff` = 0 over the full sweep).
+
+### Whole projects (1,509 files)
+
+| check | archon-search | dddd | financialwell | moonset | udemy | total |
+|---|---|---|---|---|---|---|
+| `clarity-16` | 349 → 129 | 48 → 14 | 141 → 54 | 37 → 3 | 0 → 0 | 575 → **200** |
+| `clarity-09` | 66 → 86 | 37 → 43 | 43 → 44 | 0 → 0 | 0 → 0 | 146 → **173** |
+| `smells-06` | 34 → 6 | 0 → 0 | 64 → **177** | 0 → 0 | 0 → 0 | 98 → **183** |
+
+`smells-06`'s growth is real commented-out Swift in one project; all 123 new hits were read. Watch `HIT_CAP=200` in `collect.sh`. Harness: rows run through `lib.sh` as in round 4; pre-fix rows over the 46 files reproduce 32 / 37 / 9.
+
+### What each fix does
+
+- **`clarity-16`** — `mbranch()` counts branches inside each function's extent and anchors the hit on the declaration, replacing a whole-file keyword count. Bar stays >10, as the rule always said. Swift `for:` labels and `?.` no longer count.
+- **`clarity-09`** — `mcond()` joins a condition to its continuation lines before counting operators, so a wrapped `if (` is found and reported once, on the `if`. `x or DEFAULT` counts as one term, not two.
+- **`smells-06`** — `mcomment()` accepts a comment on code shape (call, assignment, declaration, block edge) and rejects English prose, instead of matching a keyword after the marker.
+
+**`safety-13`: investigated, not changed.** Swift `precondition` survives `-O` (only `-Ounchecked` drops it), and `AppLog.assertion` never asserts — `allowAssertion` is false at declaration and at its only call site.
+Coverage is exhaustive: `ast` finds 11 `assert` nodes in 162 python files and the row matches 11; no raw `assert(`/`assertionFailure(` in 383 swift files is unmatched. Side finding: its "0 TP" is stale — two are real TPs.
+
+**Tests.** Green: `test_checks` 365 commands, `test_collect` 109/0, `test_corpus` 1,101/0. New fixtures: `thr/branchy.<ext>` must flag, `thr/spread.<ext>` (24 branches over 12 functions) must not; 34 `clarity-09` and 13 `smells-06` assertions.
+
+**Corrections.** Round 4's "`clarity-16` is genuinely file-level" is retired; round 2's "`solid-12` skips `*.assert*`, which `safety-13` owns" is false — neither owns them. Fixed a `test_corpus.sh` stdin bug.
+**Not pursued.** Ternary chains (5 hits, 1 useful), `any(…)` conditions, multi-line signatures. Kotlin/Java stay fixture-only; `results/*.tsv` and `report.xlsx` are not regenerated, as in rounds 3-4.

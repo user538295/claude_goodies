@@ -45,7 +45,7 @@ $PRECOMPUTED shape for smells-01: `{ check_id: "smells-01", file, line_count }` 
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
 
-NOTE for agent: the pattern counts commas in a single-line signature, so it finds signatures with 4+ parameters written on one line. Two consequences you must handle. First, a signature wrapped across several lines is invisible to it — still count parameters manually for multi-line signatures in the diff. Second, dismiss hits where the commas are not parameter separators: generic type arguments (`Map<String, Item>`), default values containing commas, array/tuple literals, and decorators on the same line. For Python, `self`/`cls` do not count toward the limit. For TypeScript and Swift, a single destructured or labelled parameter object is one parameter, not several.
+NOTE for agent: python, csharp, java, kotlin and swift join a wrapped signature to its continuation lines before counting, so a multi-line signature is flagged at its declaration line and nested parens, brackets, braces and quoted defaults do not inflate the count. Typescript/javascript still count commas on one line only (see the trade-off below) — count parameters by hand for a wrapped TS/JS signature in the diff. Dismiss hits where the commas are still not parameter separators: generic type arguments (`Map<String, Item>`) are the remaining case, since `<`/`>` cannot be told from comparison operators. For Python, `self`/`cls` do not count toward the limit. For TypeScript and Swift, a single destructured or labelled parameter object is one parameter, not several.
 
 Declaration forms the pattern recognises beyond the plain `function`/`def`/`func`/`fun` case: typescript/javascript accept `export default` and any run of `public|private|protected|static|readonly|abstract|override|async` before the name; swift also accepts `init`, `subscript`, leading attributes (`@objc`, `@MainActor`), and the `static|class|final|mutating|convenience|required|open|fileprivate` modifiers; kotlin also accepts `constructor`, extension receivers (`fun Foo.bar(`), and the `suspend|inline|operator|infix|open|abstract|protected|tailrec` modifiers.
 
@@ -121,7 +121,7 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
 
-NOTE for agent: dismiss `null` in null-check guards (`if (x == null)`). Flag return statements and parameter defaults only. Dismiss `? … : null` ternary branches and null-valued object-literal properties (the `:` must follow a `)` to be a return-type annotation, not a ternary else or object property).
+NOTE for agent: the hits are return statements, nullable return-type annotations, and null parameter defaults. Ternary else-branches (`? … : null`) and null-valued object-literal properties no longer produce hits at all. Neither do variable, property and field declarations: `let`/`const`/`var`/`val` declarations are excluded in the pattern, and for python `msig` keeps an annotated `= None` default only when the line sits inside a `def` signature's parentheses, so a dataclass field or a `self.x: T | None = None` attribute is not flagged while the last parameter of a wrapped signature still is. Swift is anchored on `return nil` rather than on a `-> Type?` declaration, so a function that returns an optional is flagged at the nil-returning line inside it, which may sit several lines below the signature. Still dismiss `null` in null-check guards (`if (x == null)`), and dismiss a parameter that is already `Optional<Type>`/`T?` with a documented default — that shape is this check's own remedy, not the smell.
 
 ---
 
@@ -172,6 +172,8 @@ What the pattern still cannot judge, and you must: Demeter violations require tr
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
 
 NOTE for agent: The TS/JS detection above only catches same-line empty catches (including optional-binding `catch {}`). Agents must also check for log-and-continue catches (any catch whose body only calls a logger then swallows the error) — these require reading the diff, not just pattern matching.
+
+The swift row does read the block body: it flags a `catch` whose body is empty or only logs (`print`/`NSLog`/`os_log`/`AppLog.`/`logger.`), and skips one that re-throws or returns, so a catch that sets user-visible error state is not flagged. It also flags a discarded `try?` in statement position — `try? await Task.sleep` is excluded as the idiomatic cancellation-tolerant wait. The python row drops an `except` whose block re-raises: wrapping a generic exception in a domain error is correct handling, not swallowing.
 
 ---
 

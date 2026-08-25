@@ -56,27 +56,35 @@ smells-08	typescript	smells/smells-08.ts	MATCH	function findUser(id: string): Us
 smells-08	typescript	smells/smells-08.ts	MATCH	function search(query: string, scopeFilter: string | null = null) {
 smells-08	typescript	smells/smells-08.ts	NOMATCH	if (user == null) { throw new NotFoundError(id); }
 smells-08	typescript	smells/smells-08.ts	NOMATCH	let selectedItem = null;
+smells-08	typescript	smells/smells-08.ts	NOMATCH	  let nextUrl: string | null = null;
+smells-08	typescript	smells/smells-08.ts	NOMATCH	  return rows.length > 0 ? renderRow(rows[0]) : null;
 smells-08	javascript	smells/smells-08.js	MATCH	function loadItem(id, fallback = null) {
 smells-08	javascript	smells/smells-08.js	NOMATCH	if (cache !== null && cache.has(key)) return cache.get(key);
 smells-08	javascript	smells/smells-08.js	NOMATCH	let selectedItem = null;
 smells-08	python	smells/smells-08.py	MATCH	def find_user(user_id: int) -> Optional[User]:
+smells-08	python	smells/smells-08.py	FILL	def search(
 smells-08	python	smells/smells-08.py	MATCH	    scope_filter: str | None = None,
-smells-08	python	smells/smells-08.py	MATCH	def search(query, scope_filter=None):
+smells-08	python	smells/smells-08.py	FILL	):
+smells-08	python	smells/smells-08.py	MATCH	def search_all(query, scope_filter=None):
 smells-08	python	smells/smells-08.py	NOMATCH	if result is None: raise LookupError(user_id)
 smells-08	python	smells/smells-08.py	NOMATCH	    result = None
 smells-08	python	smells/smells-08.py	NOMATCH	    search(query, scope_filter=None)
+smells-08	python	smells/smells-08.py	NOMATCH	    baseline: EvalBaseline | None = None
 smells-08	csharp	smells/smells-08.cs	MATCH	public User? FindUser(string id) { return null; }
 smells-08	csharp	smells/smells-08.cs	MATCH	public void Reset(User? user = null) {
 smells-08	csharp	smells/smells-08.cs	NOMATCH	if (user == null) throw new KeyNotFoundException(id);
 smells-08	csharp	smells/smells-08.cs	NOMATCH	_cachedUser = null;
-smells-08	swift	smells/smells-08.swift	MATCH	func findUser(id: String) -> User? {
+smells-08	swift	smells/smells-08.swift	MATCH	    return nil
 smells-08	swift	smells/smells-08.swift	MATCH	func search(query: String, scopeFilter: String? = nil) {
+smells-08	swift	smells/smells-08.swift	NOMATCH	func findUser(id: String) -> User? {
 smells-08	swift	smells/smells-08.swift	NOMATCH	guard user != nil else { throw UserError.missing }
 smells-08	swift	smells/smells-08.swift	NOMATCH	timer = nil
+smells-08	swift	smells/smells-08.swift	NOMATCH	    private var cachedUser: User? = nil
 smells-08	kotlin	smells/smells-08.kt	MATCH	fun currentUser(): User? = cache.user
 smells-08	kotlin	smells/smells-08.kt	MATCH	fun search(query: String, scopeFilter: String? = null) {
 smells-08	kotlin	smells/smells-08.kt	NOMATCH	fun findUser(id: String): User = users.getValue(id)
 smells-08	kotlin	smells/smells-08.kt	NOMATCH	cachedUser = null
+smells-08	kotlin	smells/smells-08.kt	NOMATCH	    private val cachedUser: User? = null
 smells-08	java	smells/smells-08.java	MATCH	@Nullable private User cachedUser;
 smells-08	java	smells/smells-08.java	NOMATCH	if (user == null) { throw new NoSuchElementException(id); }
 smells-08	java	smells/smells-08.java	NOMATCH	this.cachedUser = null;
@@ -100,10 +108,15 @@ smells-12	javascript	smells/smells-12.js	MATCH	try { localStorage.removeItem(key
 smells-12	javascript	smells/smells-12.js	NOMATCH	} catch (err) { console.error(err); throw err; }
 smells-12	python	smells/smells-12.py	MATCH	except Exception as exc:
 smells-12	python	smells/smells-12.py	NOMATCH	except ValueError: retries += 1
+smells-12	python	smells/smells-12.py	NOMATCH	except Exception as exc:
+smells-12	python	smells/smells-12.py	FILL	    raise SyncFailed("sync failed") from exc
 smells-12	csharp	smells/smells-12.cs	MATCH	catch (Exception ex) { _logger.LogError(ex, "sync failed"); }
 smells-12	csharp	smells/smells-12.cs	NOMATCH	catch (IOException ex) { throw new SyncFailedException("sync failed", ex); }
 smells-12	swift	smells/smells-12.swift	MATCH	do { try store.save(user) } catch {}
-smells-12	swift	smells/smells-12.swift	NOMATCH	} catch { logger.error("save failed: \(error)") }
+smells-12	swift	smells/smells-12.swift	MATCH	} catch { logger.error("save failed: \(error)") }
+smells-12	swift	smells/smells-12.swift	NOMATCH	} catch { logger.error("save failed"); throw error }
+smells-12	swift	smells/smells-12.swift	MATCH	try? store.save(user)
+smells-12	swift	smells/smells-12.swift	NOMATCH	try? await Task.sleep(for: .seconds(1))
 smells-12	kotlin	smells/smells-12.kt	MATCH	} catch (e: Exception) { log.warn("refresh failed", e) }
 smells-12	kotlin	smells/smells-12.kt	NOMATCH	} catch (e: IOException) { throw RefreshFailedException(e) }
 smells-12	java	smells/smells-12.java	MATCH	} catch (Exception e) { log.warn("import failed", e); }
@@ -162,6 +175,10 @@ solid-12	csharp	solid/OrderEntity.cs	MATCH	        _logger.LogInformation("Order
 solid-12	csharp	solid/OrderEntity.cs	NOMATCH	        _log.Info("order placed");
 solid-12	swift	solid/OrderEntity.swift	MATCH	        print("order placed: \(order.id)")
 solid-12	swift	solid/OrderEntity.swift	NOMATCH	        debugPrint("order", order)
+solid-12	swift	solid/OrderEntity.swift	MATCH	        AppLog.warning(message: "order placed")
+solid-12	swift	solid/OrderEntity.swift	NOMATCH	        AppLog.assertion(order.isValid())
+solid-12	swift	solid/OrderController.swift	NOMATCH	        print("order placed: \(order.id)")
+solid-12	swift	solid/SleepTimerViewModel.swift	NOMATCH	        print("tick: \(remaining)")
 solid-12	kotlin	solid/OrderEntity.kt	MATCH	        Log.d(TAG, "order placed")
 solid-12	kotlin	solid/OrderEntity.kt	NOMATCH	        print("order placed")
 solid-12	java	solid/OrderEntity.java	MATCH	        logger.info("order {} placed", orderId);
@@ -280,6 +297,10 @@ tests-05	javascript	tgrp/foo.test.js	MATCH	expect(client['_retryCount']).toBe(3)
 tests-05	javascript	tgrp/foo.test.js	NOMATCH	expect(client['retryCount']).toBe(3);
 tests-05	python	tgrp/test_foo.py	MATCH	assert service._validate_input(payload) is True
 tests-05	python	tgrp/test_foo.py	NOMATCH	assert order.__str__() == "Order#42"
+tests-05	python	tgrp/test_foo.py	NOMATCH	from mypkg._internal import Thing
+tests-05	python	tgrp/test_foo.py	NOMATCH	    service = self._make_service(tmp_path)
+tests-05	python	tgrp/test_foo.py	MATCH	    assert "self._embedding_model" not in source
+tests-05	python	tgrp/test_foo.py	MATCH	    with patch.object(service, "_validate_input") as spy:
 tests-05	csharp	tgrp/FooTests.cs	MATCH	var method = calculator.GetType().GetMethod("ComputeCore", BindingFlags.NonPublic | BindingFlags.Instance);
 tests-05	csharp	tgrp/FooTests.cs	NOMATCH	var prop = calculator.GetType().GetProperty("Total");
 tests-05	swift	tgrp/FooTests.swift	MATCH	let mirror = Mirror(reflecting: viewModel)
@@ -1036,3 +1057,34 @@ ddd-07	python	ddd/collection.py	NOMATCH	    def get_vectors(self, collection: st
 ddd-07	python	ddd/collection.py	NOMATCH	    def get_all_nodes(self, collection: str, ns: str) -> list[GraphNode]:
 ddd-07	java	ddd/Collection.java	NOMATCH	    public List<LineItem> getItemsFor(String status) { return items; }
 ddd-07	csharp	ddd/Collection.cs	NOMATCH	    public List<LineItem> GetItemsFor(string status) { return items; }
+smells-02	python	smells/params.py	MATCH	def create_report(
+smells-02	python	smells/params.py	FILL	    self,
+smells-02	python	smells/params.py	FILL	    order_id,
+smells-02	python	smells/params.py	FILL	    customer,
+smells-02	python	smells/params.py	FILL	    items,
+smells-02	python	smells/params.py	FILL	    coupon,
+smells-02	python	smells/params.py	FILL	):
+smells-02	python	smells/params.py	NOMATCH	def make_report(
+smells-02	python	smells/params.py	FILL	    self,
+smells-02	python	smells/params.py	FILL	    order_id,
+smells-02	python	smells/params.py	FILL	    customer,
+smells-02	python	smells/params.py	FILL	    sep=",",
+smells-02	python	smells/params.py	FILL	):
+smells-02	swift	smells/Params.swift	MATCH	    func createReport(
+smells-02	swift	smells/Params.swift	FILL	        id: String,
+smells-02	swift	smells/Params.swift	FILL	        customer: Customer,
+smells-02	swift	smells/Params.swift	FILL	        items: [Item],
+smells-02	swift	smells/Params.swift	FILL	        coupon: Coupon
+smells-02	swift	smells/Params.swift	FILL	    ) -> Order {
+smells-02	swift	smells/Params.swift	NOMATCH	    func makeReport(
+smells-02	swift	smells/Params.swift	FILL	        id: String,
+smells-02	swift	smells/Params.swift	FILL	        customer: Customer,
+smells-02	swift	smells/Params.swift	FILL	        items: [Item]
+smells-02	swift	smells/Params.swift	FILL	    ) -> Order {
+smells-02	python	smells/params.py	NOMATCH	def sum_report(
+smells-02	python	smells/params.py	FILL	    self,
+smells-02	python	smells/params.py	FILL	    order_id,
+smells-02	python	smells/params.py	FILL	    customer,
+smells-02	python	smells/params.py	FILL	    *,
+smells-02	python	smells/params.py	FILL	    items,
+smells-02	python	smells/params.py	FILL	):

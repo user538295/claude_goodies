@@ -268,16 +268,17 @@ run() { OUT="$("$SCRIPT" "$@" 2>"$WORKROOT"/collect_stderr)"; RC=$?; ERR="$(cat 
   assert_file_has   "$OUT/hits.txt" "clarity-16${TAB}Complex.cs:"
 )
 
-( t "FILTER_EXEMPT check (clarity-17) reports even when its evidence (line count) predates the diff"
+( t "FILTER_EXEMPT check (clarity-17) reports even when its evidence (the long function) predates the diff"
   newrepo
-  { for i in $(seq 1 151); do printf 'const l%d = 1;\n' "$i"; done; } > Long.ts
+  longfn() { printf 'function longOne() {\n'; for i in $(seq 1 151); do printf '  const l%d = 1;\n' "$i"; done; printf '}\n'; }
+  longfn > Long.ts
   git add Long.ts; git commit -qm init
-  { for i in $(seq 1 151); do printf 'const l%d = 1;\n' "$i"; done; printf 'const extra = 1;\n'; } > Long.ts
+  { longfn; printf 'const extra = 1;\n'; } > Long.ts
   run
   assert_exit_ok "$RC"
-  assert_file_has   "$OUT/addedlines.txt" "Long.ts:152"
+  assert_file_has   "$OUT/addedlines.txt" "Long.ts:154"
   assert_file_lacks "$OUT/addedlines.txt" "Long.ts:1$"
-  assert_file_has   "$OUT/hits.txt" "clarity-17${TAB}.*Long.ts"
+  assert_file_has   "$OUT/hits.txt" "clarity-17${TAB}Long.ts:1:"
 )
 
 ( t "FILTER_EXEMPT check (smells-01) reports even when its evidence (line count) predates the diff"

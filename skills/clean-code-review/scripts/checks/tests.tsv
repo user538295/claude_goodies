@@ -14,7 +14,7 @@ tests-04	kotlin	grep -E '(Tests?|Spec)\.kts?$|(^|/)src/test/' | mgrep '\bThread\
 tests-04	java	grep -E 'Tests?\.java$|(^|/)src/test/' | mgrep '\bThread\.sleep\s*\(|\bLocalDateTime\.now\s*\(|\bnew\s+Random\s*\(\s*\)|\bUUID\.randomUUID\s*\(\s*\)|\bInstant\.now\s*\(\s*\)|\bSystem\.currentTimeMillis\s*\(\s*\)|\bSystem\.nanoTime\s*\(\s*\)|\bLocalDate\.now\s*\(\s*\)|\bThreadLocalRandom\.current\s*\(\s*\)'
 tests-05	typescript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '\[[\x27"]_[a-z_]\w*[\x27"]\]|@ts-ignore|\bas\s+any\b'
 tests-05	javascript	grep -E '\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/' | mgrep '\[[\x27"]_[a-z_]\w*[\x27"]\]'
-tests-05	python	grep -E '(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$' | mgrep '\._(?!_)[a-z_]\w*\b'
+tests-05	python	grep -E '(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$' | mgrep '^(?!\s*(?:#|(?:from|import)\b))(?:.*(?<!\bself)\._(?!_)[a-z_]\w*\b|.*\bself\._(?!_)[a-z_]\w*\b(?!\s*\()|.*\b(?:patch\.object|(?:get|set)attr)\s*\(\s*[^,()]+,\s*[\x27"]_(?!_)[a-z_]\w*[\x27"])'
 tests-05	csharp	grep -E '(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/' | mgrep '\bInternalsVisibleTo\b|\bPrivateObject\b|\bGetType\(\)\.GetMethod\b'
 tests-05	swift	grep -E 'Tests?\.swift$|(^|/)[^/]*Tests?/' | mgrep 'reflect\.|Mirror\(reflecting:|NSInvocation'
 tests-05	kotlin	grep -E '(Tests?|Spec)\.kts?$|(^|/)src/test/' | mgrep '@VisibleForTesting'

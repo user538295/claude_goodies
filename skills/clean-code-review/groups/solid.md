@@ -150,6 +150,8 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 
 NOTE for agent: only flag if the class is in a domain/entity/aggregate/business-logic package. Dismiss logging in controllers, services, repositories, or infrastructure.
 
+The rows now apply that layer test to the file list before matching: a file reaches you only when its path has a `domain/`, `entities/`, `models/`, `aggregates/` or `value-objects/` segment, or its name ends in `Entity`/`Aggregate`/`ValueObject`/`Model` — with `*ViewModel` excluded as presentation. That gate is a naming convention, not proof: still confirm the flagged type is domain logic. It also means a domain class in an unconventionally named file never reaches you — judge those from the diff. The swift row matches any `*Log`/`*Logger` façade (`AppLog.warning`) but skips `*.assert*` methods, which are assertions — safety-13 owns those.
+
 ---
 
 ### solid-13 · Moderate · Inheritance Depth

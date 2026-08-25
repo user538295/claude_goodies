@@ -25,7 +25,13 @@ for raw in open(hits_path):
         continue
     m = re.match(r"^(/[^:]+):(\d+)(?::(.*))?$", rest)
     if m:
-        rows.append((check, m.group(1), int(m.group(2)), (m.group(3) or "").strip()))
+        if m.group(3) is None:
+            # `file:N` with no excerpt is a count-style file-level hit (clarity-16's
+            # branch-keyword count), not a line. Recording it as a line number sends
+            # the adjudicator to an unrelated line and breaks the overlap match.
+            rows.append((check, m.group(1), 1, f"file-level: {m.group(2)} matches"))
+        else:
+            rows.append((check, m.group(1), int(m.group(2)), m.group(3).strip()))
         continue
     rows.append((check, rest, 1, "UNPARSED"))
 

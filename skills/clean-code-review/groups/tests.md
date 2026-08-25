@@ -112,6 +112,8 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 
 NOTE for agent: For Swift: Flag only reflection-based access to private internals (Mirror, NSInvocation). `@testable import` is the standard Swift mechanism for testing internal members and is NOT a violation.
 
+NOTE for agent: For Python the script already drops `from pkg._internal import X` (an underscored module path is not private-member access), `self._helper(...)` (a test calling a helper it declares itself), and whole-line comments, and it flags `patch.object(sut, "_private")` / `setattr(sut, "_private", ...)` alongside `sut._private`. What survives and is still NOT a violation: a private name appearing only inside a docstring or an assertion-message string, and an attribute read or set on a mock or test-double object rather than on the real subject.
+
 ---
 
 ### tests-06 · Major · Shared Mutable State Between Tests

@@ -82,7 +82,7 @@ Pass each agent:
 - `$PRECOMPUTED`: its group's lines from `hits.txt` (those starting `{group}-`). Line formats, tab-separated after the check id:
   - `id<TAB>file:line:text` → `{ check_id, file, line, matched_text }` — split on the **first two** colons only (paths and text may contain colons)
   - `clarity-16` / `tests-13` `<TAB>file:count` → `{ check_id, file, count }`
-  - `clarity-17` / `smells-01` `<TAB>count file` → `{ check_id, file, line_count }`
+  - `smells-01` `<TAB>count file` → `{ check_id, file, line_count }`
 - `$LANGUAGES`: contents of `languages.txt`
 - Its expected check count (table above)
 - The `skipped.txt` list with instruction: "Files in this list are excluded — report NO findings for them."

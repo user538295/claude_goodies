@@ -82,7 +82,7 @@ for row in "${ROWS[@]}"; do
   esac
 done
 
-# ---- file-level threshold checks (clarity-16, clarity-17, smells-01)
+# ---- threshold checks: per-file (clarity-16, smells-01) and per-function (clarity-17)
 run_thr() {  # $1=check $2=lang $3=file-that-must-appear $4=file-that-must-not
   local cmd out
   cmd="$(grep -h "^$1$(printf '\t')$2$(printf '\t')" "$SKILL_DIR"/scripts/checks/*.tsv | cut -f3-)"
@@ -104,6 +104,39 @@ printf 'if a: pass\nb = 1\n' > thr/simple.py
 for i in $(seq 1 160); do echo "const l$i = 1;"; done > thr/long.ts
 printf 'const s = 1;\n' > thr/short.ts
 for i in $(seq 1 1010); do echo "const g$i = 1;"; done > thr/huge.ts
+
+# clarity-17 is per-function: one 160-line function must flag, 40 four-line
+# functions in a 160-line file must not. `thr/long.ts` above (160 statements,
+# no function) stays the smells-01 negative.
+gen_fn() {  # $1=ext $2=header-of-the-long-function $3=short-function-template ($N substituted)
+  { printf '%s\n' "$2"; for i in $(seq 1 157); do echo "  const l$i = 1;"; done; printf '}\n'; } > "thr/longfn.$1"
+  for i in $(seq 1 40); do printf '%s\n' "${3//\$N/$i}"; done > "thr/manyfns.$1"
+}
+gen_fn ts    'function longOne() {'                'function f$N() {
+  const x = 1;
+  return x;
+}'
+cp thr/longfn.ts thr/longfn.js; cp thr/manyfns.ts thr/manyfns.js
+gen_fn cs    'public void LongOne()
+{'                                                 'public int F$N()
+{
+  return 1;
+}'
+gen_fn swift 'func longOne() {'                    'func f$N() {
+  let x = 1
+  _ = x
+}'
+gen_fn kt    'fun longOne() {'                     'fun f$N() {
+  val x = 1
+  println(x)
+}'
+gen_fn java  'public void longOne() {'             'public int f$N() {
+  int x = 1;
+  return x;
+}'
+{ printf 'def long_one():\n'; for i in $(seq 1 157); do echo "    l$i = 1"; done; } > thr/longfn.py
+for i in $(seq 1 40); do printf 'def f%d():\n    x = 1\n    return x\n\n' "$i"; done > thr/manyfns.py
+
 find thr -type f | sort > ../thrlist
 
 run_thr clarity-16 typescript "thr/complex.ts"    "thr/simple.ts"
@@ -113,7 +146,13 @@ run_thr clarity-16 csharp     "thr/complex.cs"    "thr/simple.cs"
 run_thr clarity-16 swift      "thr/complex.swift" "thr/simple.swift"
 run_thr clarity-16 kotlin     "thr/complex.kt"    "thr/simple.kt"
 run_thr clarity-16 java       "thr/complex.java"  "thr/simple.java"
-run_thr clarity-17 all        "thr/long.ts"    "thr/short.ts"
+run_thr clarity-17 typescript "thr/longfn.ts"    "thr/manyfns.ts"
+run_thr clarity-17 javascript "thr/longfn.js"    "thr/manyfns.js"
+run_thr clarity-17 python     "thr/longfn.py"    "thr/manyfns.py"
+run_thr clarity-17 csharp     "thr/longfn.cs"    "thr/manyfns.cs"
+run_thr clarity-17 swift      "thr/longfn.swift" "thr/manyfns.swift"
+run_thr clarity-17 kotlin     "thr/longfn.kt"    "thr/manyfns.kt"
+run_thr clarity-17 java       "thr/longfn.java"  "thr/manyfns.java"
 run_thr smells-01  all        "thr/huge.ts"    "thr/long.ts"
 
 echo ""

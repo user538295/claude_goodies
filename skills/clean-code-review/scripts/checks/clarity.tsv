@@ -19,4 +19,10 @@ clarity-16	csharp	grep -E '\.cs$' | mgrepc '\b(if|else|for|foreach|while|switch|
 clarity-16	swift	grep -E '\.swift$' | mgrepc '\b(if|else|for|while|switch|case|catch|guard)\b|\?[^?:]' | awk -F: '$NF > 10'
 clarity-16	kotlin	grep -E '\.kts?$' | mgrepc '\b(if|else|for|while|when|catch)\b|\?[^?:]' | awk -F: '$NF > 10'
 clarity-16	java	grep -E '\.java$' | mgrepc '\b(if|else|for|while|switch|case|catch)\b|\?[^?:]' | awk -F: '$NF > 10'
-clarity-17	all	grep -E '\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|cs|py|swift|kts?|java)$' | mwc | awk '$1 > 150' | sort -rn
+clarity-17	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mfunc '^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\b|=>\s*\{\s*$|^\s*(?:(?:public|private|protected|static|async|get|set|override|readonly)\s+)*[\w$]+\s*(?:<[^>]*>)?\s*\([^;]*\)\s*(?::[^{;]*)?\{\s*$' 150
+clarity-17	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mfunc '^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\b|=>\s*\{\s*$|^\s*(?:(?:public|private|protected|static|async|get|set|override|readonly)\s+)*[\w$]+\s*(?:<[^>]*>)?\s*\([^;]*\)\s*(?::[^{;]*)?\{\s*$' 150
+clarity-17	python	grep -E '\.py$' | mfunc '^\s*(?:async\s+)?def\s+\w+' 150
+clarity-17	csharp	grep -E '\.cs$' | mfunc '^\s*(?:(?:public|private|protected|internal|static|async|override|virtual|sealed|partial|abstract|extern|unsafe|new)\s+)+[\w<>\[\],\.\?]+(?:\s+\w+)?\s*(?:<[^>]*>)?\s*\(|=>\s*\{\s*$' 150
+clarity-17	swift	grep -E '\.swift$' | mfunc '^\s*(?:[@\w]+\s+)*(?:func\s+\w+|init[?!]?\s*[(<]|deinit\b|subscript\s*[(<]|var\s+\w+\s*:[^=]*\{\s*$)' 150
+clarity-17	kotlin	grep -E '\.kts?$' | mfunc '^\s*(?:[@\w]+\s+)*(?:fun\s|init\s*\{|constructor\s*\()' 150
+clarity-17	java	grep -E '\.java$' | mfunc '^\s*(?:(?:public|private|protected|static|final|abstract|synchronized|native|default|strictfp)\s+)+[\w<>\[\],\.\?]+(?:\s+\w+)?\s*(?:<[^>]*>)?\s*\(|->\s*\{\s*$' 150

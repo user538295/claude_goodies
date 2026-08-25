@@ -199,14 +199,14 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 **Scope**: `files`
 **Finding action template**: Extract logical sub-unit `{suggestedName}` from `{functionName}` (currently {N} lines)
 
-**Detection** (file line count as proxy — agent must verify per function):
-Scripted (hits arrive in `$PRECOMPUTED`): 1 language(s). Patterns: `scripts/checks/clarity.tsv`.
+**Detection** (per-function span — declaration line through closing line):
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/clarity.tsv`.
 
-> Agent note: this flags long files. Read each flagged file and identify individual functions exceeding 150 lines. Only report findings at the function level, not the file level.
+> Agent note: each hit is one function that spans more than 150 lines, already measured — `mfunc` walks python bodies by indentation and brace-language bodies by brace balance. The matched text is the declaration line. Confirm the span before reporting (a brace inside a block comment or a multi-line string literal can inflate it) and dismiss hits where the "function" is generated code or a test-harness block (`describe`/`suite`) rather than a unit of logic. The declaration regex is loose by design — the 150-line threshold does the filtering — so an anonymous callback or a computed property can appear; those are still functions and still count. Nested functions are reported independently, so an inner long function and its long enclosing function are two findings.
 >
-> Anchor all clarity-17 findings at the line of the function's declaration/signature (the `def`, `function`, `fun`, `func`, or method-header line). Do not anchor at line 1.
+> Anchor all clarity-17 findings at the line of the function's declaration/signature (the `def`, `function`, `fun`, `func`, or method-header line) — that is the `line` the hit already carries. Do not anchor at line 1.
 >
-> $PRECOMPUTED shape for clarity-17: `{ check_id: "clarity-17", file, line_count }` — no `line` field (file-level count). Use `line_count` as a signal to inspect individual functions in the file.
+> $PRECOMPUTED shape for clarity-17: `{ check_id: "clarity-17", file, line, matched_text }` — `line` is the function's declaration line.
 
 ---
 

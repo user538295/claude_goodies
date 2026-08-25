@@ -3,7 +3,7 @@
 solid-09	python/order_service.py	11	scripted	module-level mutable _order_cache = {}
 clarity-06	python/order_service.py	14	scripted	noise-word class name OrderManager
 smells-15	python/order_service.py	20	judgment	constructor calls repo.load_discounts() — work in __init__
-smells-02	python/order_service.py	22	judgment	process() takes 5 parameters
+smells-02	python/order_service.py	22	scripted	process() takes 5 parameters
 clarity-01	python/order_service.py	23	judgment	variable named d
 smells-05	python/order_service.py	24	judgment	unused_total is dead code
 smells-08	python/order_service.py	26	scripted	return None hidden failure path
@@ -13,7 +13,7 @@ smells-12	python/order_service.py	33	scripted	except Exception: pass swallows fa
 safety-05	python/order_service.py	38	scripted	os.path.exists then os.remove TOCTOU
 clarity-15	python/order_service.py	37	judgment	deep nesting in export_report (anchored at function declaration)
 clarity-14	python/order_service.py	48	judgment	pop_next mutates state AND returns a value
-solid-12	python/order_service.py	62	scripted	logger.info inside domain entity Order
+solid-12	python/order_service.py	62	judgment	logger.info inside domain entity Order
 ddd-04	python/order_service.py	70	judgment	discount business rule inside OrderRepository.save
 tests-02	python/test_order_service.py	30	judgment	meaningless test name test_1
 tests-06	python/test_order_service.py	31	scripted	self.counter mutated inside test method, no reset
@@ -27,7 +27,7 @@ clarity-06	typescript/orderService.ts	17	scripted	noise-word class name SessionM
 smells-03	typescript/orderService.ts	20	scripted	useCache: boolean behavior-selecting parameter
 solid-10	typescript/orderService.ts	21	scripted	new PostgresOrderRepository() hardcoded in method body
 safety-02	typescript/orderService.ts	22	scripted	force unwrap this.cache.get(id)!
-solid-12	typescript/orderService.ts	26	scripted	console.log inside domain class
+solid-12	typescript/orderService.ts	26	judgment	console.log inside domain class
 smells-08	typescript/orderService.ts	29	scripted	return null hidden failure path
 clarity-11	typescript/orderService.ts	35	judgment	nested ternary in totalWithTax
 clarity-08	typescript/orderService.ts	35	judgment	magic numbers 5000/0.27/1000/0.18/0.05

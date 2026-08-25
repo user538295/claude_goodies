@@ -16,6 +16,12 @@ smells-03	typescript	smells/smells-03.ts	MATCH	function save(user: User, force: 
 smells-03	typescript	smells/smells-03.ts	NOMATCH	function hasAccess(user: User): boolean { return user.active; }
 smells-03	python	smells/smells-03.py	MATCH	def send_email(user_id: int, force: bool = False) -> None:
 smells-03	python	smells/smells-03.py	NOMATCH	def is_valid(user_id: int) -> bool:
+smells-03	python	smells/smells-03.py	NOMATCH	    status: bool = False
+smells-03	python	smells/smells-03.py	NOMATCH	ENABLED: bool = True
+smells-03	python	smells/smells-03.py	NOMATCH	    ok: bool = compute()
+smells-03	python	smells/smells-03.py	FILL	def configure(
+smells-03	python	smells/smells-03.py	MATCH	    verbose: bool = False,
+smells-03	python	smells/smells-03.py	FILL	):
 smells-03	csharp	smells/smells-03.cs	MATCH	public void Save(User user, bool overwrite)
 smells-03	csharp	smells/smells-03.cs	NOMATCH	public bool IsValid(User user)
 smells-03	swift	smells/smells-03.swift	MATCH	func updateUser(id: Int, notify: Bool) {
@@ -370,6 +376,8 @@ safety-02	csharp	safety/safety-02.cs	MATCH	var start = booking.StartDate.Value.A
 safety-02	csharp	safety/safety-02.cs	NOMATCH	volumeSlider.Value = DEFAULT_VOLUME;
 safety-02	swift	safety/safety-02.swift	MATCH	let vc = storyboard.instantiateViewController(withIdentifier: "detail") as! DetailViewController
 safety-02	swift	safety/safety-02.swift	NOMATCH	guard let user = currentUser else { return }
+safety-02	swift	safety/safety-02.swift	NOMATCH	var sut: DetailViewController!
+safety-02	swift	safety/safety-02.swift	NOMATCH	@IBOutlet var label: UILabel!
 safety-02	kotlin	safety/safety-02.kt	MATCH	val name = user!!.name
 safety-02	kotlin	safety/safety-02.kt	NOMATCH	val name = user?.name ?: "unknown"
 safety-03	python	safety/safety-03.py	MATCH	asyncio.create_task(send_welcome_email(user.id))
@@ -824,6 +832,8 @@ safety-19	csharp	safety/Inject.cs	MATCH	Process.Start("cmd.exe", "/c " + arg);
 safety-19	csharp	safety/Inject.cs	NOMATCH	logger.LogInformation("started");
 safety-19	swift	safety/Inject.swift	MATCH	system("rm -rf " + path)
 safety-19	swift	safety/Inject.swift	NOMATCH	let count = names.count
+safety-19	swift	safety/Inject.swift	NOMATCH	.font(.system(size: 16))
+safety-19	swift	safety/Inject.swift	MATCH	let task = Process()
 safety-20	python	safety/deser.py	MATCH	obj = pickle.loads(data)
 safety-20	python	safety/deser.py	NOMATCH	obj = json.loads(data)
 safety-20	java	safety/Deser.java	MATCH	Object o = new ObjectInputStream(in).readObject();

@@ -190,3 +190,30 @@ Coverage is exhaustive: `ast` finds 11 `assert` nodes in 162 python files and th
 
 **Corrections.** Round 4's "`clarity-16` is genuinely file-level" is retired; round 2's "`solid-12` skips `*.assert*`, which `safety-13` owns" is false — neither owns them. Fixed a `test_corpus.sh` stdin bug.
 **Not pursued.** Ternary chains (5 hits, 1 useful), `any(…)` conditions, multi-line signatures. Kotlin/Java stay fixture-only; `results/*.tsv` and `report.xlsx` are not regenerated, as in rounds 3-4.
+
+## Round 6 (2026-08-25, three parallel agents)
+
+Precision round on the three highest-volume checks the earlier rounds never touched (verified untouched: current script reproduces the baseline hit count). Big recall was harvested in rounds 2-5, so remaining fruit is false-positive cuts. Each fixed and swept separately, then merged onto main.
+
+### Corpus (46 files, 2026-08-24 verdicts)
+
+| check | fix | hits | TP | FP | precision |
+|---|---|---|---|---|---|
+| `safety-02` | drop Swift IUO/`@IBOutlet` declarations `(var\|let) N: T!` (perl post-filter) | 138 → **76** | 72 → 72 | 66 → **4** | 52% → **95%** |
+| `smells-03` | gate `:bool` to `def`-signature membership (`msig`) | 61 → **46** | 34 → 34 | 27 → **12** | 56% → **74%** |
+| `safety-19` | `(?<!\.)` lookbehind so SwiftUI `Font.system(` stops matching | 9 → **0** | 0 → 0 | 9 → **0** | 0% → n/a |
+| **total** | | **208 → 122** | **106 → 106** | **102 → 16** | 51% → **87%** |
+
+### Whole projects (1,519 files)
+
+| check | archon-search | dddd | financialwell | moonset | total |
+|---|---|---|---|---|---|
+| `safety-02` | 0 → 0 | 129 → 129 | 1,123 → 680 | 169 → 70 | 1,421 → **879** |
+| `smells-03` | 537 → 306 | 7 → 7 | 128 → 128 | 8 → 8 | 680 → **449** |
+| `safety-19` | 2 → 2 | 0 → 0 | 36 → 0 | 13 → 0 | 51 → **2** |
+
+**Zero TP lost.** Every dropped hit already carried an `FP` verdict; no new hits (all three fixes are purely subtractive). `safety-02`'s 4 survivors are non-declaration force-unwraps regex can't split (guarded `value!`, two in comments); `smells-03`'s 12 are real params dismissed on semantics.
+
+**What each fix does.** `safety-02` — a perl `-ne` drop of `(var|let) NAME: TYPE!` declaration lines after mgrep (BSD-grep has no `-P`; lib.sh stays GNU-grep-free); swift row only. `smells-03` — reuses the existing `msig ':\s*bool'`, keeping a `name: bool` hit only inside a `def(...)` span, so dataclass fields, locals and module constants drop while wrapped-signature params stay; python row only. `safety-19` — matches the `(?<!\.)` already on its ts/js/python rows; swift row only.
+
+**Tests.** Green: `test_checks` 365 commands, `test_collect` 109/0, `test_corpus` **1,109/0** (+8: NOMATCH decls/fields/constants/`.system(`, MATCH wrapped param + `Process()`). `lib.sh` unchanged — no new helper. `results/*.tsv` and `report.xlsx` not regenerated, as in rounds 3-5.

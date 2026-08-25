@@ -7,7 +7,7 @@ smells-02	java	grep -E '\.java$' | mparams '^\s*(public|private|protected)[\w<>\
 smells-02	kotlin	grep -E '\.kts?$' | mparams '^\s*(?:(?:public|private|protected|internal|override|open|abstract|final|suspend|inline|operator|infix|tailrec|external)\s+)*(?:fun\s+(?:<[^>]*>\s*)?(?:\w+\.)?\w+|constructor)\s*\(' 3
 smells-02	swift	grep -E '\.swift$' | mparams '^\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|private|internal|fileprivate|open|static|class|final|override|mutating|nonmutating|required|convenience|nonisolated)\s+)*(?:func\s+\w+|init[?!]?|subscript)\s*(?:<[^>]*>)?\s*\(' 3
 smells-03	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mgrep '\(([^)]*,)?\s*\w+\??\s*:\s*boolean|\bboolean\s*[,)]|^\s*\w+\??\s*:\s*boolean\s*[,)=]'
-smells-03	python	grep -E '\.py$' | mgrep 'def\s+\w+\s*\([^)]*:\s*bool|^\s*\w+\s*:\s*bool\s*[,)=]'
+smells-03	python	grep -E '\.py$' | mgrep 'def\s+\w+\s*\([^)]*:\s*bool|^\s*\w+\s*:\s*bool\s*[,)=]' | msig ':\s*bool'
 smells-03	csharp	grep -E '\.cs$' | mgrep '\bbool\s+\w+\s*[,)]'
 smells-03	swift	grep -E '\.swift$' | mgrep 'func\s+\w+\s*\([^)]*:\s*Bool|^\s*\w+\s*:\s*Bool\s*[,)=]'
 smells-03	kotlin	grep -E '\.kts?$' | mgrep 'fun\s+\w+\s*\([^)]*:\s*Boolean|^\s*\w+\s*:\s*Boolean\s*[,)=]'

@@ -29,6 +29,34 @@ mgrepc() {  # mgrepc 'PCRE' -> file:match_count per file (like grep -cH)
     }' "$1"
 }
 
+mpair() {  # mpair 'ACQUIRE_RE' 'RELEASE_RE' -> file:line:text for ACQUIRE matches only in files with ZERO RELEASE matches
+  # Used by safety-01: a resource leak is per-FILE — an acquire (open/connect/
+  # addObserver/new IDisposable) is a finding only when the SAME FILE never
+  # releases it. A line-local regex cannot see that pairing; this reads the whole
+  # file, drops it entirely when any line matches RELEASE_RE (the close/shutdown/
+  # disconnect/removeObserver/Dispose/using that guarantees cleanup), and only
+  # then emits each ACQUIRE_RE line. Scoped acquires that clean up on their own
+  # line (`with ...`, `using (...)`, try-with-resources) are excluded by the
+  # caller anchoring ACQUIRE_RE on the unscoped construction form, so this helper
+  # stays a pure two-pattern presence test. Both patterns are PCRE.
+  perl -e '
+    my ($acq, $rel) = @ARGV;
+    my ($acq_re, $rel_re) = (qr/$acq/, qr/$rel/);
+    while (defined(my $f = <STDIN>)) {
+      chomp $f; next unless -f $f && -r $f;
+      open(my $fh, "<", $f) or next;
+      my @l = <$fh>; close $fh;
+      my $released = 0;
+      for my $line (@l) { if ($line =~ $rel_re) { $released = 1; last } }
+      next if $released;
+      for my $i (0 .. $#l) {
+        next unless $l[$i] =~ $acq_re;
+        my $line = $l[$i]; chomp $line;
+        print "$f:", $i + 1, ":$line\n";
+      }
+    }' "$1" "$2"
+}
+
 mwc() {  # -> "linecount file" per file (like wc -l, space-safe)
   perl -e '
     while (defined(my $f = <STDIN>)) {

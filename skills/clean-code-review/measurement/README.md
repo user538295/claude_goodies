@@ -248,3 +248,34 @@ Three checks never touched by rounds 1-6 (verified: current script reproduces th
 **Tests.** Green: `test_checks` **369** commands, `test_collect` 109/0, `test_corpus` **1,133/0**. New helper `mnoassert 'DECL_RE' 'ASSERT_RE'` in `lib.sh` (mirrors `mbranch`'s extent machinery). `groups/safety.md` and `groups/tests.md` NOTEs updated. `results/*.tsv` and `report.xlsx` not regenerated, as in rounds 3-6.
 
 **Not pursued.** `safety-07` (20 FP) and `tests-04` (20 FP) — the false positives are semantic (legit deferred imports; incidental fixture timestamps), not regex-separable. `solid-07` — rejected in round 3. `safety-11` broadening — noisy (330 raw swift hits from `DispatchQueue…now()`).
+
+## Round 8 (2026-08-26, three parallel agents)
+
+Two Critical checks with recall gaps (safety-15, safety-01) and one Major FP generator (arch-12), none touched by rounds 1-7. **The xlsx baseline is stale** — rounds 2-7 changed many patterns without regenerating it — so before-numbers here are the *live* corpus hits joined to the 2026-08-24 verdicts, re-measured, not read from the workbook. Each fixed and swept separately, then merged onto main.
+
+### Corpus (46 files, live hits × 2026-08-24 verdicts + new-hit adjudication)
+
+| check | fix | hits | TP | FP | precision |
+|---|---|---|---|---|---|
+| `safety-15` | python: catch SQL predicate fragments (OR/AND/IN/IS NULL/comparison/LIKE) built by `+`-concat or f-string, no DML verb on the line; uppercase keywords so prose `or`/`in` don't match | 1 → **19** | 1 → **18** | 0 → **1** | 100% → **95%** |
+| `safety-01` | new `mpair()` per-file helper: unscoped `ProcessPoolExecutor`/`ThreadPoolExecutor` with no `.shutdown()` in file (py); `NotificationCenter…addObserver` with no `removeObserver` in file (swift) | 0 → **2** | 0 → **2** | 0 → **0** | n/a → **100%** |
+| `arch-12` | fire only on a computed multi-part cache key (f-string/interp/`+`-concat/`.format(`/tuple); drop bare-var, literal, member-access, and keyless ops (`clear()`/`popitem()`) | 5 → **0** | 0 → 0 | 5 → **0** | 0% → n/a |
+| **total** | | **6 → 21** | **1 → 20** | **5 → 1** | **17% → 95%** |
+
+### Whole projects (git-tracked files only; `git -C <proj> ls-files`)
+
+| check | archon-search | moonset | financialwell | dddd | total |
+|---|---|---|---|---|---|
+| `safety-15` | 21 → **45** | 0 → 0 | 5 → 5 | 1 → 1 | 27 → **51** |
+| `safety-01` | 3 → 4 | 0 → 0 | 0 → 3 | 0 → 0 | 3 → **7** |
+| `arch-12` | 15 → 0 | 0 → 0 | 13 → 0 | 0 → 0 | 28 → **0** |
+
+### Verification
+
+- **`safety-15`** — new pattern is the old alternation plus branches, so no prior hit drops. 24 new archon hits adjudicated **23 TP / 1 FP (95.8%)**, every one read in source (OR/IN/AND/IS NULL predicate concatenation across `graph_store.py`, `store.py`, `store_filters.py`). The single corpus FP is `"language = " + _sql_quote_str("")` — a compile-time constant the definition says to dismiss. python-only; JS/TS connective branches carry high prose-concat FP risk.
+- **`safety-01`** — was blind everywhere. New rows add **+4 hits, 4/4 TP** (archon `parser.py:310` executor never shut down; financialwell observer never removed ×3). Correction: whole-project "before" was 3, not 0 — a pre-existing socket row emits 3 `tests/smoke/` FP (each `.close()`d next line); left untouched (surgical). Dropped slices as deliberate noise-avoidance: python `.connect`/`.disconnect` (real leaks release elsewhere in-file, so per-file pairing can't see them; only test-fixture noise fired) and C# `IDisposable` (cross-file type, unrecognizable deterministically).
+- **`arch-12`** — **zero TP lost**: the 5 dropped corpus hits (`embedder_cache.py`) are all FP-verdicted, and all 28 whole-project hits were bare/literal/member/no-arg keys that cannot mismatch. Survivors: 0.
+
+**Tests.** Green: `test_checks` **369** commands, `test_collect` 109/0, `test_corpus` **1,158/0**. New helper `mpair 'ACQUIRE_RE' 'RELEASE_RE'` in `lib.sh` (whole-file two-pattern presence test). `groups/safety.md` and `groups/arch.md` NOTEs updated. `results/*.tsv` and `report.xlsx` not regenerated, as in rounds 3-7. `test_corpus.sh` already supported multiple rows per language (round 7), so `safety-01`'s pairs run in production `collect.sh` unchanged.
+
+**Not pursued.** `solid-07` (21 live FP) — round-3 judgment call (TP and FP share the `*_id: str` shape). `ddd-07` — already 0 hits (a prior round tightened it). `safety-07`/`tests-04` — semantic FPs, unchanged.

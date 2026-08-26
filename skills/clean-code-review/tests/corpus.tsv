@@ -916,34 +916,43 @@ arch-12	javascript	arch/arch-12.js	MATCH	redisClient.del("user:" + uid);
 arch-12	javascript	arch/arch-12.js	NOMATCH	const key = makeCacheKey(uid);
 arch-12	csharp	consistency/Consistency01.cs	MATCH	_cache.Set($"user:{id}", user);
 arch-12	csharp	consistency/Consistency01.cs	NOMATCH	var key = UserCacheKey(id);
-arch-12	swift	consistency/Consistency01.swift	MATCH	cache.setObject(user, forKey: keyString)
+arch-12	swift	consistency/Consistency01.swift	NOMATCH	cache.setObject(user, forKey: keyString)
 arch-12	swift	consistency/Consistency01.swift	NOMATCH	let key = userCacheKey(id)
 arch-12	kotlin	consistency/Consistency01.kt	MATCH	userCache.invalidate("user-$id")
 arch-12	kotlin	consistency/Consistency01.kt	NOMATCH	val key = userCacheKey(id)
 arch-12	java	consistency/Consistency01.java	MATCH	userCache.put("user:" + id, user);
 arch-12	java	consistency/Consistency01.java	NOMATCH	String key = userCacheKey(id);
-arch-12	python	arch/arch-12-subscript.py	MATCH	        self._cache[model_name] = embedder
-arch-12	python	arch/arch-12-subscript.py	MATCH	            return self._cache[model_name]
-arch-12	python	arch/arch-12-subscript.py	MATCH	                del self._cache[model]
+arch-12	python	arch/arch-12-subscript.py	NOMATCH	        self._cache[model_name] = embedder
+arch-12	python	arch/arch-12-subscript.py	NOMATCH	            return self._cache[model_name]
+arch-12	python	arch/arch-12-subscript.py	NOMATCH	                del self._cache[model]
 arch-12	python	arch/arch-12-subscript.py	NOMATCH	        graph_status_cached = status_json.get("graph")
 arch-12	python	arch/arch-12-subscript.py	NOMATCH	        last_gc_at_cached = maint_cached.get("last_graph_gc_at")
 arch-12	python	arch/arch-12-subscript.py	NOMATCH	    cached = compute_expensive_value(model)
-arch-12	swift	arch/Arch12Subscript.swift	MATCH	            self.protectionCache[url.absoluteString] = protection
-arch-12	swift	arch/Arch12Subscript.swift	MATCH	            protectionCache[url.path]
-arch-12	swift	arch/Arch12Subscript.swift	MATCH	            self.protectionCache.removeValue(forKey: url.path)
-arch-12	swift	arch/Arch12Subscript.swift	MATCH	                cachedGreyScaledImages[account.imageReferenceName] = image
+arch-12	swift	arch/Arch12Subscript.swift	NOMATCH	            self.protectionCache[url.absoluteString] = protection
+arch-12	swift	arch/Arch12Subscript.swift	NOMATCH	            protectionCache[url.path]
+arch-12	swift	arch/Arch12Subscript.swift	NOMATCH	            self.protectionCache.removeValue(forKey: url.path)
+arch-12	swift	arch/Arch12Subscript.swift	NOMATCH	                cachedGreyScaledImages[account.imageReferenceName] = image
 arch-12	swift	arch/Arch12Subscript.swift	NOMATCH	        let cached = loadFromDisk(url)
-arch-12	typescript	arch/arch-12-subscript.ts	MATCH	    responseCache[buildKey(id)] = payload;
+arch-12	typescript	arch/arch-12-subscript.ts	NOMATCH	    responseCache[buildKey(id)] = payload;
 arch-12	typescript	arch/arch-12-subscript.ts	NOMATCH	    const statusCached = await fetchStatus(id);
-arch-12	javascript	arch/arch-12-subscript.js	MATCH	  cache.clear()
+arch-12	javascript	arch/arch-12-subscript.js	NOMATCH	  cache.clear()
 arch-12	javascript	arch/arch-12-subscript.js	NOMATCH	  const cached = getCachedData(endpoint, cacheTime)
-arch-12	csharp	arch/Arch12Subscript.cs	MATCH	            _cache[assetName] = asset;
-arch-12	csharp	arch/Arch12Subscript.cs	MATCH	            _cache.Clear();
+arch-12	csharp	arch/Arch12Subscript.cs	NOMATCH	            _cache[assetName] = asset;
+arch-12	csharp	arch/Arch12Subscript.cs	NOMATCH	            _cache.Clear();
 arch-12	csharp	arch/Arch12Subscript.cs	NOMATCH	            var cached = LoadAsset(assetName);
-arch-12	java	arch/Arch12Subscript.java	MATCH	        userCache.remove(userCacheKey(id));
+arch-12	java	arch/Arch12Subscript.java	NOMATCH	        userCache.remove(userCacheKey(id));
 arch-12	java	arch/Arch12Subscript.java	NOMATCH	        User cached = repository.findById(id);
-arch-12	kotlin	arch/Arch12Subscript.kt	MATCH	        userCache.removeAll()
+arch-12	kotlin	arch/Arch12Subscript.kt	NOMATCH	        userCache.removeAll()
 arch-12	kotlin	arch/Arch12Subscript.kt	NOMATCH	        val cached = repository.findById(id)
+arch-12	python	arch/arch-12-subscript.py	MATCH	    self._cache[f"user:{uid}"] = vector
+arch-12	python	arch/arch-12-subscript.py	MATCH	    return self._cache[f"user:{uid}"]
+arch-12	python	arch/arch-12-subscript.py	NOMATCH	    return self._cache["static"]
+arch-12	swift	arch/Arch12Subscript.swift	MATCH	    imageCache["\(account.id)-thumb"] = image
+arch-12	swift	arch/Arch12Subscript.swift	MATCH	    return imageCache["\(account.id)-thumb"]
+arch-12	typescript	arch/arch-12-subscript.ts	MATCH	    responseCache[`resp:${id}`] = payload;
+arch-12	typescript	arch/arch-12-subscript.ts	NOMATCH	    responseCache["static"] = payload;
+arch-12	python	arch/arch-12.py	NOMATCH	value = cache.get("static")
+arch-12	python	arch/arch-12.py	NOMATCH	self._cache.clear()
 safety-03	typescript	safety/safety-03.ts	MATCH	  return <button onClick={() => void onRefresh()}>Retry</button>;
 safety-03	typescript	safety/safety-03.ts	MATCH	  return <button onClick={() => void onRefresh?.()}>Retry</button>;
 safety-03	typescript	safety/safety-03.ts	NOMATCH	export function renderDashboard(): void {
@@ -971,6 +980,16 @@ safety-13	swift	safety/validate.swift	NOMATCH	    guard amount > 0 else { throw 
 safety-15	python	safety/sql.py	MATCH	    table.delete(where=f"chunk_id = '{chunk_id}'")
 safety-15	python	safety/sql.py	NOMATCH	    table.delete(where="chunk_id = ?", params=[chunk_id])
 safety-15	python	safety/sql.py	NOMATCH	    logger.info(f"cleanup finished for {chunk_id}")
+safety-15	python	safety/sql.py	MATCH	    pred = "(" + src_pred + " OR " + tgt_pred + ")"
+safety-15	python	safety/sql.py	MATCH	    clause = f"chunk_id IN ({placeholders})"
+safety-15	python	safety/sql.py	MATCH	    pred2 = where_eq("a", x) + " AND " + where_eq("b", y)
+safety-15	python	safety/sql.py	MATCH	    pred3 = where_eq("name", n) + " AND namespace IS NULL"
+safety-15	python	safety/sql.py	MATCH	    pred4 = "expires_at >= " + quote(cutoff)
+safety-15	python	safety/sql.py	MATCH	    pred5 = "source_path LIKE " + quote(prefix)
+safety-15	python	safety/sql.py	NOMATCH	    label = first + " or " + second
+safety-15	python	safety/sql.py	NOMATCH	    text = f"located in ({region})"
+safety-15	python	safety/sql.py	NOMATCH	    cur.execute("DELETE FROM t WHERE id IN (%s)", ids)
+safety-15	python	safety/sql.py	NOMATCH	    cfg = base + "threshold = 0.5\n"
 smells-02	swift	smells/Params.swift	MATCH	    static func makeOrder(id: String, customer: Customer, items: [Item], coupon: Coupon) -> Order {
 smells-02	swift	smells/Params.swift	MATCH	    init(id: String, customer: Customer, items: [Item], coupon: Coupon) {
 smells-02	swift	smells/Params.swift	NOMATCH	    init(id: String, customer: Customer, items: [Item]) {
@@ -1157,9 +1176,9 @@ arch-11	python	arch/endpoints.py	NOMATCH	SAMPLE_URL = "https://api.example.com/v
 arch-11	python	arch/endpoints.py	NOMATCH	PROBE_URL = "http://service.test/health"
 arch-11	swift	arch/Endpoints.swift	MATCH	    let paymentsURL = "https://payments.acme.io/v1"
 arch-11	swift	arch/Endpoints.swift	NOMATCH	    let sampleURL = "https://api.example.com/v1"
-arch-12	python	arch/keyed_cache.py	MATCH	        self._cache[model_name] = embedder
-arch-12	python	arch/keyed_cache.py	MATCH	        return self._cache.get(user_key)
-arch-12	python	arch/keyed_cache.py	MATCH	        self._cache.popitem(last=False)
+arch-12	python	arch/keyed_cache.py	NOMATCH	        self._cache[model_name] = embedder
+arch-12	python	arch/keyed_cache.py	NOMATCH	        return self._cache.get(user_key)
+arch-12	python	arch/keyed_cache.py	NOMATCH	        self._cache.popitem(last=False)
 arch-12	python	arch/keyed_cache.py	NOMATCH	        return self._ping_cache[1]
 arch-12	python	arch/keyed_cache.py	NOMATCH	        if now - self._ping_cache[0] < PING_TTL_SECONDS:
 ddd-01	swift	ddd/money.swift	MATCH	    var minorUnits: Int = 0
@@ -1206,3 +1225,11 @@ smells-02	python	smells/params.py	FILL	    customer,
 smells-02	python	smells/params.py	FILL	    *,
 smells-02	python	smells/params.py	FILL	    items,
 smells-02	python	smells/params.py	FILL	):
+safety-01	python	safety/pool_leak.py	MATCH	        self._pool = ProcessPoolExecutor(max_workers=1)
+safety-01	python	safety/pool_ok.py	NOMATCH	        self._pool = ProcessPoolExecutor(max_workers=1)
+safety-01	python	safety/pool_ok.py	FILL	        self._pool.shutdown(wait=True)
+safety-01	python	safety/pool_with.py	NOMATCH	        with ProcessPoolExecutor() as pool:
+safety-01	swift	safety/Observer.swift	MATCH	        NotificationCenter.default.addObserver(self, selector: #selector(handle), name: UIApplication.didBecomeActiveNotification, object: nil)
+safety-01	swift	safety/ObserverOk.swift	NOMATCH	        NotificationCenter.default.addObserver(self, selector: #selector(handle), name: UIApplication.didBecomeActiveNotification, object: nil)
+safety-01	swift	safety/ObserverOk.swift	FILL	        NotificationCenter.default.removeObserver(self)
+safety-01	swift	safety/ObserverSpy.swift	NOMATCH	    override func addObserver(_ observer: Any, selector aSelector: Selector, name aName: NSNotification.Name?, object anObject: Any?) {

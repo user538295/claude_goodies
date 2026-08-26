@@ -78,6 +78,8 @@ NOTE for agent: only flag if the catch is in application service, use case, or d
 
 **Swift**: `catch` is untyped, so there is no framework exception *type* to match on. The scripted signal is instead the point where a caught error's framework-generated message crosses the boundary intact: an assignment of `<something>.localizedDescription` into an error-named state property (`errorMessage = error.localizedDescription`, `self.lastError = err.localizedDescription`). Treat that as a leak — the caller/UI now depends on Foundation's error text instead of a domain error. **Logging is not a violation**: `print(error.localizedDescription)` and `logger.debug(error.localizedDescription)` are not matched and must not be flagged.
 
+**Python**: the scripted signal also fires where a caught exception's raw text is placed into a returned or response error field — `error=str(exc)` or an f-string `f"...{exc}"`. Flag it as a leak **only** when the caught exception is infrastructure/ORM/framework or a broad `except Exception`; an already-translated domain exception (`except MyDomainError as exc: return Resp(error=str(exc))`) is **not** a violation. Logging calls such as `logger.error(str(exc))` are not matched and must not be flagged.
+
 ---
 
 ### arch-06 · Major · Cross-Layer Entity Reuse

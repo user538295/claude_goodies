@@ -623,3 +623,53 @@ mcomment() {  # mcomment 'MARKER' -> file:line:text for whole-line comments that
       close $fh;
     }' "$1"
 }
+
+mdropfunc() {  # mdropfunc 'FACTORY_RE' — filter file:line:text hits, dropping any whose
+  # innermost enclosing python `def` matches FACTORY_RE. Used by solid-10 to
+  # dismiss collaborator construction inside composition-root / factory functions
+  # (create_*/build_*/… and the FastAPI `lifespan`) — exactly the hits
+  # groups/solid.md tells the agent to ignore.
+  # Enclosure is by EXTENT, not nearest-preceding-def: each `def` owns the lines
+  # after it indented deeper than its own `def` keyword (blank lines do not end
+  # it), the same python extent rule mfunc/mnoassert use. A def that has already
+  # closed before the hit therefore never captures it — fixing the sibling
+  # mis-attribution a nearest-preceding scan produces after a nested def dedents.
+  # Defs are applied in file order so a deeper (inner) def overwrites its
+  # enclosing one, leaving the innermost def's factory-ness as the verdict.
+  # python only (indentation-scoped); a hit inside no def is passed through.
+  perl -e '
+    my $fac = qr/$ARGV[0]/;
+    my (%drop, %loaded);
+    while (defined(my $hit = <STDIN>)) {
+      my ($f, $n) = $hit =~ /^(.+?):(\d+):/ or do { print $hit; next };
+      unless ($loaded{$f}++) {
+        $drop{$f} = {};
+        if (open(my $fh, "<", $f)) {
+          my @l = <$fh>; close $fh;
+          for my $i (0 .. $#l) {
+            next unless $l[$i] =~ /^(\s*)(?:async\s+)?def\s/;
+            my $ind = length($1);
+            my $isfac = $l[$i] =~ $fac ? 1 : 0;
+            # skip a (possibly multi-line) signature first: a wrapped signature
+            # closes at the def indent, so measuring the body from the def line
+            # would end the extent on the closing paren line. Balance parens
+            # (strings blanked) to find the signature end, as mfunc does.
+            my ($depth, $sig) = (0, $i);
+            for my $j ($i .. $#l) {
+              my $t = $l[$j]; $t =~ s/(["\x27])(?:\\.|(?!\1).)*\1/_/g;
+              for my $c ($t =~ /([()])/g) { $c eq "(" ? $depth++ : $depth-- }
+              $sig = $j;
+              last if $depth <= 0;
+            }
+            for my $j ($sig + 1 .. $#l) {       # body: lines indented deeper than the def
+              next if $l[$j] =~ /^\s*$/;
+              my ($jind) = $l[$j] =~ /^(\s*)/;
+              last if length($jind) <= $ind;    # dedent to/below the def ends its extent
+              $drop{$f}{$j + 1} = $isfac;        # innermost def (processed later) wins
+            }
+          }
+        }
+      }
+      print $hit unless $drop{$f}{$n};
+    }' "$1"
+}

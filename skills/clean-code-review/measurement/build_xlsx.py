@@ -137,8 +137,9 @@ def main():
     ws = wb.create_sheet("Method")
     for row in [
         ["model", "sonnet (adjudication + LLM-only agents)"],
-        ["execution", "serial per file: collect.sh -> adjudicate -> LLM-only -> rebuild xlsx"],
-        ["adjudication sample", "files 1-12: first 15 hits per check per file; files 13-46: all hits"],
+        ["run date", "2026-08-26 (round-9 rerun, live round-8 scripts)"],
+        ["execution", "collect.sh sweep upfront (all 46 files); then serial sonnet agents chunked by project (<=150 hits/agent): adjudicate + LLM-only -> rebuild xlsx"],
+        ["adjudication sample", "all hits, every file (no per-check cap)"],
         ["script coverage %", "overlap / LLM-only found (recall proxy, formula)"],
         ["est. true hits", "hits total x precision (script haul corrected for FPs, formula)"],
         ["LLM-only repeats", "1 (token budget; variance not measured)"],

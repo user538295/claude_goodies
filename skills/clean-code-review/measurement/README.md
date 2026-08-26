@@ -42,7 +42,22 @@ Record the model and any rule changes in the Method sheet (edit the rows in `bui
 
 ## Baseline (2026-08-24, sonnet agents)
 
-2,602 hits, 2,602 adjudicated, 830 LLM-only findings. Overall precision **41%** (archon-search 47%, dddd 41%, financialwell 41%, moonset 22%, udemy 18%). Script coverage of LLM findings: 46%. 19 of 60 scriptable checks produced zero hits on this corpus. See `2026-08-24-report.xlsx`.
+2,602 hits, 2,602 adjudicated, 830 LLM-only findings. Overall precision **41%** (archon-search 47%, dddd 41%, financialwell 41%, moonset 22%, udemy 18%). Script coverage of LLM findings: 46%. 19 of 60 scriptable checks produced zero hits on this corpus. See `2026-08-24-report.xlsx`. Data archived under `results/2026-08-24/`.
+
+## Full rerun (2026-08-26, sonnet agents)
+
+The whole measurement re-run from scratch on the frozen 46-file corpus with the **live round-8 scripts** (the workbook had gone stale — rounds 3-8 changed patterns without regenerating it). `results/*.tsv` and `report.xlsx` regenerated; deliverable `2026-08-26-report.xlsx`.
+
+**Headline:** 1,811 hits, all 1,811 adjudicated, 979 LLM-only findings. Overall precision **74.9%** (archon-search 75%, moonset 79%, financialwell 77%, dddd 75%, udemy 15%). Script coverage of LLM findings (recall proxy, ±3 lines): **60%** (588/979). 43 of 60 scriptable checks fired; 17 produced zero hits on this corpus.
+
+This confirms the cumulative effect of rounds 1-8: hits fell **2,602 → 1,811** and corpus-wide precision rose **41% → 75%** on a clean, full re-adjudication (not a verdict-join).
+
+**Method deltas from the baseline** (recorded in the Method sheet):
+- All hits adjudicated on every file (the baseline capped files 1-12 at 15 hits/check).
+- Adjudication + LLM-only agents chunked by project (≤150 hits/agent) instead of one agent per file; each file is still read and judged independently. Run serially.
+- LLM-only is a fresh single pass (979 findings vs the baseline's 830), so coverage is measured against this run's findings.
+
+Model, file set, and ±3-line matching are unchanged, so precision is comparable to the baseline.
 
 ## Improvements (2026-08-24)
 
@@ -53,229 +68,3 @@ Precision **41% → 46.5%**; false positives 1,538 → 1,222.
 
 Verified: re-ran all 46 files; only those five checks moved, zero novel hits.
 
-## Round 2 (2026-08-24, four parallel agents)
-
-Sweep **2,283 → 2,195**: 393 lost (392 adjudicated `FP`; the one `TP` is a mis-adjudication — that file does have a test), 305 gained. **Real TP loss: zero.** Precision on surviving adjudicated hits **46% → 56%**. The 305 gains are agent-sampled (48–100% per check), not independently adjudicated — re-adjudicate before quoting a post-change figure.
-
-Recall (primary goal): `arch-08` 0 → 39 (39/39 real; the Swift locator is `X.shared`, not `Container.resolve(`), `solid-10` 5 → 51 (Swift/Python have no `new` — match collaborator suffixes), `smells-10` 29 → 60 (Rule says 3 *hops*; pattern demanded 3 calls or 4 properties), `solid-15` 12 → 35, `clarity-09` 23 → 37, `smells-21` 11 → 25, `safety-13` 9 → 18, `arch-05` 0 → 4.
-
-Precision, zero TP cost: `safety-06` 121 → 2 (`Task.sleep` excluded, added to `SKIP_TESTS`), `solid-08` 91 → 36 (whole-file reassignment scan replaces the line-local regex), `tests-06` 45 → 12, `ddd-01` 45 → 19, `tests-01` 38 → 21, `arch-02` 18 → 2, `solid-06` 113 → 103. New `notested()` in `lib.sh` gives `tests-01` the repo lookup its NOTE asked for by hand; outside git it drops nothing.
-
-Rejected: **`smells-01`** is not defective (100% precision at 1,000 lines; a stricter bar is policy, not a fix). **`clarity-16/17`** have no recall gap — file-level recall is ~100%; the apparent gap compared per-function findings to per-file pre-filter hits. Per-function segmentation needs an `mfunc` helper, not shipped. **`smells-02`** is unreachable — 96 of the 4+-param signatures are multi-line and `mgrep` has no multiline state. **`tests-06` hook gate** (45 → 1): a file that resets one field and leaks another is exactly this bug; indentation fix kept, gate dropped.
-
-**Correction to round 1:** the layer-gated set is **337** hits, not 326, and excludes `arch-03`/`arch-05` (zero hits): `solid-12` 250, `ddd-01` 56, `arch-02` 18, `arch-12` 7, `ddd-07` 3, `arch-09` 2, `safety-08` 1.
-
-**Open (closed in round 3):** `solid-12` (250 hits, 0 TP) — flags every `logger.` call, needs layer inference. Directory-based inference was rejected (1 of 5 projects has `Domain/`/`Application/`); naming convention generalises and is what the shipped exclusions use.
-
-## Round 3 (2026-08-25)
-
-Three checks, each fixed and swept separately on the frozen 46-file corpus.
-
-| check | fix | hits | TP | FP | new hits |
-|---|---|---|---|---|---|
-| `smells-02` | count params across wrapped signatures (`mparams()`) | 13 → **72** | 12 → 12 | 1 → **0** | +60 |
-| `solid-12` | only scan domain-named files; match `*Log` façades | 250 → **22** | 0 → 0 | 250 → **5** | +17 |
-| `smells-12` | read the `catch`/`except` body (`mbody()`) | 105 → **92** | 77 → 77 | 28 → **2** | +13 |
-
-### Corpus totals
-
-| | before | after |
-|---|---|---|
-| hits | 2,195 | 2,013 |
-| true positives | 1,038 | **1,038** |
-| false positives | 809 | **537** |
-| precision | 56% | **66%** |
-| LLM findings caught by the right check | 515/830 (62%) | **552/830 (67%)** |
-
-`TP`/`FP` count only hits carrying a 2026-08-24 verdict. `new hits` did not exist before this round, so no verdict exists for them — they were verified separately.
-
-### How the new hits were verified
-
-- **60** `smells-02`: parameter counts checked against Python's `ast` — 64/64 correct.
-- **17** `solid-12`: `AppLog.*` calls inside `Models/` domain classes; 10 match LLM findings.
-- **13** `smells-12`: Swift `try?`/log-only catches; 12 match LLM findings, 1 read in source.
-
-**Zero true positives lost.** Every dropped hit already carried an `FP` verdict.
-
-### What each fix does
-
-- **`smells-02`** — `mparams()` joins a wrapped signature to its continuation lines, then splits on top-level commas, so nesting, quoted defaults and the `*`/`/` markers no longer distort the count. python/csharp/java/kotlin/swift; ts/js keep the single-line count and its declaration-vs-call guard. Retires round 2's "unreachable" verdict.
-- **`solid-12`** — the rows gate the file list to a `domain/`, `entities/`, `models/`, `aggregates/` or `value-objects/` segment, or a `*Entity`/`*Aggregate`/`*ValueObject`/`*Model` filename (`*ViewModel` excluded): the layer test the NOTE already asked the agent for. The swift row also matches any `*Log`/`*Logger` façade but skips `*.assert*`, which safety-13 owns. Cost: a domain class in an unconventionally named file is no longer pre-flagged, so `benchmark/planted.tsv`'s two `solid-12` rows are now `judgment`. The 5 surviving `FP` are raw `print(` calls in a domain model.
-- **`smells-12`** — `mbody()` reads the block a `catch`/`except` opens. Python drops an `except` that re-raises: wrapping in a domain error is handling, not swallowing. Swift gains the log-only catch and the discarded statement-position `try?`.
-
-### Correction to the baseline
-
-`clarity-16`'s 25% precision and 2% coverage in `report.xlsx` are a harness artifact, not a defect: the check emits `file:count`, but `ingest_hits.py` read `file:N` as `file:line`, so the branch count was adjudicated as a line number. Matched at file level it covers **44 of 44** of its LLM findings. `ingest_hits.py` now records the count form as file-level.
-
-### Not pursued
-
-- `smells-21` — 29 of its 33 apparent misses already reach the agent through safety-07 and safety-02, the owners its own NOTE names.
-- `solid-07` — its true positives are the same `*_id: str` shape as its false positives. Judgment, not regex.
-- `solid-09` — round 2's pattern already catches those misses.
-
-## Round 4 (2026-08-25, three parallel agents)
-
-Three checks fixed separately. **New: each was also swept over the five projects in full — 1,581 files.** The corpus gives precision (it has verdicts); the whole-project sweep gives the volume a real review sees.
-
-### Corpus (46 files, 2026-08-24 verdicts)
-
-| check | fix | hits | TP | FP | new |
-|---|---|---|---|---|---|
-| `clarity-17` | per-function span (`mfunc()`) replaces file line count | 32 → **23** | 11 → 11 | 21 → **1** | +23 |
-| `tests-05` | drop import paths and self-declared helpers; add `patch.object`/`setattr` | 347 → **291** | 257 → 257 | 90 → **15** | +19 |
-| `smells-08` | `msig()` signature membership; `let`/`var`/`val` excluded | 327 → **214** | 177 → 177 | 150 → **37** | 0 |
-
-Totals: hits 2,013 → **1,835**, FP 558 → **349**, precision 66% → **75%**, LLM findings matched within ±3 lines 444 → **465** of 830.
-`clarity-17` moved file-level → line-level, so all 32 old hits formally "drop" — that is the whole 1,060 → 1,049 TP difference. **Zero TPs lost:** all 11 `TP` files still hit on the named function, and all 188 dropped verdict-carrying hits are `FP`.
-
-### Whole projects (1,581 files)
-
-| check | archon-search | dddd | financialwell | moonset | total |
-|---|---|---|---|---|---|
-| `clarity-17` | 539 → 56 | 53 → 25 | 109 → 4 | 40 → 1 | 742 → **86** |
-| `tests-05` | 4,099 → 3,821 | — | — | — | 4,099 → **3,821** |
-| `smells-08` | 1,572 → 1,158 | 95 → 44 | 480 → 197 | 44 → 12 | 2,191 → **1,411** |
-
-`tests-05` moves least in net, most in substance: 666 dropped (335 `from pkg._x import …`, rest `self._helper(…)`) against **388 new** — 345 `patch.object`, 43 `getattr`/`setattr`. All archon-search: no other project has python tests.
-Harness: rows run straight through `lib.sh`, not per-file `collect.sh` (75 min/sweep). Faithful here — none is in `SKIP_TESTS`, and `files` mode makes line filtering a no-op. Validated: pre-fix rows over the 46 files reproduce 32 / 347 / 327.
-
-**Verification.** `ast.parse` over all 838 python files finds exactly 56 functions >150 lines; `clarity-17` finds **56 — zero missed, zero false**. Its 30 non-python hits all measured >150 in source.
-All 19 new `tests-05` corpus hits are `patch.object(syncer, "_private_method")`, read in source. `smells-08` gained nothing — purely subtractive.
-
-**Judgment calls.** `smells-08` swift dropped `-> Type?` — 178 whole-project drops, adjudicated 18 FP / 1 TP, and that TP still hits via its `= nil` default. Swift now anchors on `return nil`, deliberately inconsistent with kotlin/python.
-`clarity-17` counts `describe(…)` as a function (24 of 30 non-python hits). Dropping them drops a round-1 `TP` whose sibling file carries an `FP` for the identical construct. **Open question of the round.**
-
-**Tests.** Green: `test_checks` 358 commands, `test_collect` 109/0, `test_corpus` **1,051/0**. `clarity-17`'s one threshold assertion became seven per-language, with new fixtures `thr/longfn.<ext>` (must flag) and `thr/manyfns.<ext>` (must not).
-
-**Corrections / not pursued.** Round 2's "`clarity-16/17` have no recall gap, `mfunc` not shipped" is retired for `clarity-17`; `clarity-16` is genuinely file-level.
-Kotlin/Java have no real-code coverage (zero `.kt`/`.java`, six `.cs` files). C# verbatim identifiers escape `mfunc`. `results/*.tsv` and `report.xlsx` are not regenerated, as in round 3.
-
-
-## Round 5 (2026-08-25, four parallel agents)
-
-Recall-first round; candidates ranked by the `llmonly` findings round 4 misses. Three checks fixed and swept separately, then merged. Every hit below, before and after, was re-adjudicated in one blind pass — like-for-like, not a verdict join.
-
-### Corpus (46 files, re-adjudicated 2026-08-25)
-
-| check | fix | hits | TP | FP | precision |
-|---|---|---|---|---|---|
-| `clarity-16` | per-function branch count (`mbranch()`) | 32 → **56** | 16 → **53** | 16 → **3** | 50% → **95%** |
-| `clarity-09` | wrapped conditions joined (`mcond()`) | 37 → **48** | 26 → **40** | 11 → **8** | 70% → **83%** |
-| `smells-06` | comment tested for code shape (`mcomment()`) | 9 → **13** | 5 → **13** | 4 → **0** | 56% → **100%** |
-| `safety-13` | none — not defective, see below | 18 → 18 | — | — | — |
-| **total** | | **78 → 117** | **47 → 106** | **31 → 11** | **60% → 91%** |
-
-Recall vs `llmonly.tsv` (±3 lines): `clarity-16` 0/44 → **37/44**, `clarity-09` 14/31 → **20/31**, `smells-06` 1/9 → **5/9**; corpus-wide 464 → **511** of 830. Every other check is byte-identical (`diff` = 0 over the full sweep).
-
-### Whole projects (1,509 files)
-
-| check | archon-search | dddd | financialwell | moonset | udemy | total |
-|---|---|---|---|---|---|---|
-| `clarity-16` | 349 → 129 | 48 → 14 | 141 → 54 | 37 → 3 | 0 → 0 | 575 → **200** |
-| `clarity-09` | 66 → 86 | 37 → 43 | 43 → 44 | 0 → 0 | 0 → 0 | 146 → **173** |
-| `smells-06` | 34 → 6 | 0 → 0 | 64 → **177** | 0 → 0 | 0 → 0 | 98 → **183** |
-
-`smells-06`'s growth is real commented-out Swift in one project; all 123 new hits were read. Watch `HIT_CAP=200` in `collect.sh`. Harness: rows run through `lib.sh` as in round 4; pre-fix rows over the 46 files reproduce 32 / 37 / 9.
-
-### What each fix does
-
-- **`clarity-16`** — `mbranch()` counts branches inside each function's extent and anchors the hit on the declaration, replacing a whole-file keyword count. Bar stays >10, as the rule always said. Swift `for:` labels and `?.` no longer count.
-- **`clarity-09`** — `mcond()` joins a condition to its continuation lines before counting operators, so a wrapped `if (` is found and reported once, on the `if`. `x or DEFAULT` counts as one term, not two.
-- **`smells-06`** — `mcomment()` accepts a comment on code shape (call, assignment, declaration, block edge) and rejects English prose, instead of matching a keyword after the marker.
-
-**`safety-13`: investigated, not changed.** Swift `precondition` survives `-O` (only `-Ounchecked` drops it), and `AppLog.assertion` never asserts — `allowAssertion` is false at declaration and at its only call site.
-Coverage is exhaustive: `ast` finds 11 `assert` nodes in 162 python files and the row matches 11; no raw `assert(`/`assertionFailure(` in 383 swift files is unmatched. Side finding: its "0 TP" is stale — two are real TPs.
-
-**Tests.** Green: `test_checks` 365 commands, `test_collect` 109/0, `test_corpus` 1,101/0. New fixtures: `thr/branchy.<ext>` must flag, `thr/spread.<ext>` (24 branches over 12 functions) must not; 34 `clarity-09` and 13 `smells-06` assertions.
-
-**Corrections.** Round 4's "`clarity-16` is genuinely file-level" is retired; round 2's "`solid-12` skips `*.assert*`, which `safety-13` owns" is false — neither owns them. Fixed a `test_corpus.sh` stdin bug.
-**Not pursued.** Ternary chains (5 hits, 1 useful), `any(…)` conditions, multi-line signatures. Kotlin/Java stay fixture-only; `results/*.tsv` and `report.xlsx` are not regenerated, as in rounds 3-4.
-
-## Round 6 (2026-08-25, three parallel agents)
-
-Precision round on the three highest-volume checks the earlier rounds never touched (verified untouched: current script reproduces the baseline hit count). Big recall was harvested in rounds 2-5, so remaining fruit is false-positive cuts. Each fixed and swept separately, then merged onto main.
-
-### Corpus (46 files, 2026-08-24 verdicts)
-
-| check | fix | hits | TP | FP | precision |
-|---|---|---|---|---|---|
-| `safety-02` | drop Swift IUO/`@IBOutlet` declarations `(var\|let) N: T!` (perl post-filter) | 138 → **76** | 72 → 72 | 66 → **4** | 52% → **95%** |
-| `smells-03` | gate `:bool` to `def`-signature membership (`msig`) | 61 → **46** | 34 → 34 | 27 → **12** | 56% → **74%** |
-| `safety-19` | `(?<!\.)` lookbehind so SwiftUI `Font.system(` stops matching | 9 → **0** | 0 → 0 | 9 → **0** | 0% → n/a |
-| **total** | | **208 → 122** | **106 → 106** | **102 → 16** | 51% → **87%** |
-
-### Whole projects (1,519 files)
-
-| check | archon-search | dddd | financialwell | moonset | total |
-|---|---|---|---|---|---|
-| `safety-02` | 0 → 0 | 129 → 129 | 1,123 → 680 | 169 → 70 | 1,421 → **879** |
-| `smells-03` | 537 → 306 | 7 → 7 | 128 → 128 | 8 → 8 | 680 → **449** |
-| `safety-19` | 2 → 2 | 0 → 0 | 36 → 0 | 13 → 0 | 51 → **2** |
-
-**Zero TP lost.** Every dropped hit already carried an `FP` verdict; no new hits (all three fixes are purely subtractive). `safety-02`'s 4 survivors are non-declaration force-unwraps regex can't split (guarded `value!`, two in comments); `smells-03`'s 12 are real params dismissed on semantics.
-
-**What each fix does.** `safety-02` — a perl `-ne` drop of `(var|let) NAME: TYPE!` declaration lines after mgrep (BSD-grep has no `-P`; lib.sh stays GNU-grep-free); swift row only. `smells-03` — reuses the existing `msig ':\s*bool'`, keeping a `name: bool` hit only inside a `def(...)` span, so dataclass fields, locals and module constants drop while wrapped-signature params stay; python row only. `safety-19` — matches the `(?<!\.)` already on its ts/js/python rows; swift row only.
-
-**Tests.** Green: `test_checks` 365 commands, `test_collect` 109/0, `test_corpus` **1,109/0** (+8: NOMATCH decls/fields/constants/`.system(`, MATCH wrapped param + `Process()`). `lib.sh` unchanged — no new helper. `results/*.tsv` and `report.xlsx` not regenerated, as in rounds 3-5.
-
-## Round 7 (2026-08-25, three parallel agents)
-
-Three checks never touched by rounds 1-6 (verified: current script reproduces the baseline hit count). Two recall-first (safety-16, tests-09), one precision (safety-03). Each fixed and swept separately, then merged onto main.
-
-### Corpus (46 files, 2026-08-24 verdicts + new-hit adjudication)
-
-| check | fix | hits | TP | FP | precision |
-|---|---|---|---|---|---|
-| `safety-16` | swift: broaden beyond `name: Double` annotations to money-named return types, `Double`/`Float` params, and `Double(…)` casts (guarded money-word lexicon) | 2 → **4** | 0 → **1** | 2 → **3** | 0% → **25%** |
-| `tests-09` | `mnoassert()` flags a test function whose whole body holds zero assertion tokens; py/swift/ts/js rows + message-tautology forms | 0 → **18** | 0 → **17** | 0 → **1** | n/a → **94%** |
-| `safety-03` | swift: `mbody`-drop `Task{}` bodies containing `catch` + drop assigned `x = Task{`; python: drop `create_task`/`ensure_future` on an assignment RHS | 14 → **2** | 2 → **2** | 12 → **0** | 14% → **100%** |
-| **total** | | **16 → 24** | **2 → 20** | **14 → 4** | **13% → 83%** |
-
-### Whole projects (git-tracked files only; `.venv`/`node_modules`/`Pods`/nested worktrees excluded)
-
-| check | archon-search | moonset | financialwell | dddd | total |
-|---|---|---|---|---|---|
-| `safety-16` | 0 → 0 | 0 → 0 | 13 → **19** | 0 → 0 | 13 → **19** |
-| `safety-03` | 79 → 5 | 11 → 3 | 7 → 7 | 4 → 4 | 101 → **19** |
-| `tests-09` | 1 → 90 | 1 → 7 | 0 → 28 | 0 → 0 | 2 → **125** |
-
-### Verification
-
-- **`safety-16`** — purely additive (original annotation branch kept as the first alternation), so zero prior hits drop. The 6 new financialwell hits adjudicated **5 TP / 1 FP** (the FP is `updateExchangePrice` — a conversion rate, same rate-exclusion the baseline used). Python left untouched: its 46 raw hits are all `.venv` dependency noise, 0 real recall.
-- **`tests-09`** — new-hit precision **17/18 (94%)**, every corpus hit read in source; the 3 `test_sync.py` + swift `LockScreenUITests.swift:123` match `llmonly.tsv` leads exactly. The one FP asserts indirectly via `side_effect=AssertionError`, invisible to any regex. FP guards added for `beforeEach`/`afterAll` hooks, `expectTypeOf<>()`, swift `measure {}`, and helper-delegated `verify…()`.
-- **`safety-03`** — **zero TP lost**: every dropped corpus hit already carried an `FP` verdict (swift do/catch bodies 278/428/479/532/570/758/884, tracked `animationTask = Task{}` 162; python assigned 3227/7757/4963/4965). The 2 TP (354/671, bare `Task { try? … }`) retained. 5 archon survivors are genuine bare `create_task` or string-literal mentions.
-
-**Tests.** Green: `test_checks` **369** commands, `test_collect` 109/0, `test_corpus` **1,133/0**. New helper `mnoassert 'DECL_RE' 'ASSERT_RE'` in `lib.sh` (mirrors `mbranch`'s extent machinery). `groups/safety.md` and `groups/tests.md` NOTEs updated. `results/*.tsv` and `report.xlsx` not regenerated, as in rounds 3-6.
-
-**Not pursued.** `safety-07` (20 FP) and `tests-04` (20 FP) — the false positives are semantic (legit deferred imports; incidental fixture timestamps), not regex-separable. `solid-07` — rejected in round 3. `safety-11` broadening — noisy (330 raw swift hits from `DispatchQueue…now()`).
-
-## Round 8 (2026-08-26, three parallel agents)
-
-Two Critical checks with recall gaps (safety-15, safety-01) and one Major FP generator (arch-12), none touched by rounds 1-7. **The xlsx baseline is stale** — rounds 2-7 changed many patterns without regenerating it — so before-numbers here are the *live* corpus hits joined to the 2026-08-24 verdicts, re-measured, not read from the workbook. Each fixed and swept separately, then merged onto main.
-
-### Corpus (46 files, live hits × 2026-08-24 verdicts + new-hit adjudication)
-
-| check | fix | hits | TP | FP | precision |
-|---|---|---|---|---|---|
-| `safety-15` | python: catch SQL predicate fragments (OR/AND/IN/IS NULL/comparison/LIKE) built by `+`-concat or f-string, no DML verb on the line; uppercase keywords so prose `or`/`in` don't match | 1 → **19** | 1 → **18** | 0 → **1** | 100% → **95%** |
-| `safety-01` | new `mpair()` per-file helper: unscoped `ProcessPoolExecutor`/`ThreadPoolExecutor` with no `.shutdown()` in file (py); `NotificationCenter…addObserver` with no `removeObserver` in file (swift) | 0 → **2** | 0 → **2** | 0 → **0** | n/a → **100%** |
-| `arch-12` | fire only on a computed multi-part cache key (f-string/interp/`+`-concat/`.format(`/tuple); drop bare-var, literal, member-access, and keyless ops (`clear()`/`popitem()`) | 5 → **0** | 0 → 0 | 5 → **0** | 0% → n/a |
-| **total** | | **6 → 21** | **1 → 20** | **5 → 1** | **17% → 95%** |
-
-### Whole projects (git-tracked files only; `git -C <proj> ls-files`)
-
-| check | archon-search | moonset | financialwell | dddd | total |
-|---|---|---|---|---|---|
-| `safety-15` | 21 → **45** | 0 → 0 | 5 → 5 | 1 → 1 | 27 → **51** |
-| `safety-01` | 3 → 4 | 0 → 0 | 0 → 3 | 0 → 0 | 3 → **7** |
-| `arch-12` | 15 → 0 | 0 → 0 | 13 → 0 | 0 → 0 | 28 → **0** |
-
-### Verification
-
-- **`safety-15`** — new pattern is the old alternation plus branches, so no prior hit drops. 24 new archon hits adjudicated **23 TP / 1 FP (95.8%)**, every one read in source (OR/IN/AND/IS NULL predicate concatenation across `graph_store.py`, `store.py`, `store_filters.py`). The single corpus FP is `"language = " + _sql_quote_str("")` — a compile-time constant the definition says to dismiss. python-only; JS/TS connective branches carry high prose-concat FP risk.
-- **`safety-01`** — was blind everywhere. New rows add **+4 hits, 4/4 TP** (archon `parser.py:310` executor never shut down; financialwell observer never removed ×3). Correction: whole-project "before" was 3, not 0 — a pre-existing socket row emits 3 `tests/smoke/` FP (each `.close()`d next line); left untouched (surgical). Dropped slices as deliberate noise-avoidance: python `.connect`/`.disconnect` (real leaks release elsewhere in-file, so per-file pairing can't see them; only test-fixture noise fired) and C# `IDisposable` (cross-file type, unrecognizable deterministically).
-- **`arch-12`** — **zero TP lost**: the 5 dropped corpus hits (`embedder_cache.py`) are all FP-verdicted, and all 28 whole-project hits were bare/literal/member/no-arg keys that cannot mismatch. Survivors: 0.
-
-**Tests.** Green: `test_checks` **369** commands, `test_collect` 109/0, `test_corpus` **1,158/0**. New helper `mpair 'ACQUIRE_RE' 'RELEASE_RE'` in `lib.sh` (whole-file two-pattern presence test). `groups/safety.md` and `groups/arch.md` NOTEs updated. `results/*.tsv` and `report.xlsx` not regenerated, as in rounds 3-7. `test_corpus.sh` already supported multiple rows per language (round 7), so `safety-01`'s pairs run in production `collect.sh` unchanged.
-
-**Not pursued.** `solid-07` (21 live FP) — round-3 judgment call (TP and FP share the `*_id: str` shape). `ddd-07` — already 0 hits (a prior round tightened it). `safety-07`/`tests-04` — semantic FPs, unchanged.

@@ -396,6 +396,88 @@ mbranch() {  # mbranch 'DECL_RE' 'BRANCH_RE' MAX -> file:line:text for functions
     }' "$1" "$2" "$3"
 }
 
+mnoassert() {  # mnoassert 'DECL_RE' 'ASSERT_RE' -> file:line:text for test functions whose body has zero assertions
+  # Used by tests-09: the tautology rows catch an assertion that cannot fail, but
+  # the commoner violation is a test method with NO assertion at all — the body
+  # exercises code and verifies nothing. A per-file count (tests-13) misses this
+  # when the file has other tests that DO assert; this measures each test
+  # function's own extent and flags the declaration when it contains no line
+  # matching ASSERT_RE. Extent: identical rules to mfunc()/mbranch() (python by
+  # indentation, brace languages by brace balance); see mfunc for the caveats.
+  # DECL_RE must match only test functions (naming convention per language), so
+  # setup/teardown and plain helpers are never enumerated. Residual false positive:
+  # a test that asserts only through a custom helper whose name ASSERT_RE does not
+  # list is flagged — keep ASSERT_RE broad (mock-assert/verify/should) and dismiss
+  # such hits at review time.
+  perl -e '
+    my ($decl, $assert) = @ARGV;
+    my $decl_re = qr/$decl/;
+    my $assert_re = qr/$assert/;
+    while (defined(my $f = <STDIN>)) {
+      chomp $f; next unless -f $f && -r $f;
+      open(my $fh, "<", $f) or next;
+      my @l = <$fh>; close $fh;
+      my $py = $f =~ /\.py$/;
+      my @instr;
+      if ($py) {   # a heredoc-style literal continuing at column 0 is not dedent
+        my $q = "";
+        for my $j (0 .. $#l) {
+          $instr[$j] = ($q ne "");
+          my $t = $l[$j];
+          while (1) {
+            if ($q eq "") { $t =~ s/^.*?("""|\x27\x27\x27)//s ? ($q = $1) : last }
+            else          { $t =~ s/^.*?\Q$q\E//s ? ($q = "") : last }
+          }
+        }
+      }
+      my %seen_end;
+      for my $i (0 .. $#l) {
+        next unless $l[$i] =~ $decl_re;
+        my $end;
+        if ($py) {
+          my ($ind) = $l[$i] =~ /^(\s*)/;
+          my ($depth, $sig) = (0, $i);
+          for my $j ($i .. $#l) {      # a wrapped signature closes at the def indent; skip past it
+            my $t = $l[$j]; $t =~ s/(["\x27])(?:\\.|(?!\1).)*\1/_/g;
+            for my $c ($t =~ /([()])/g) { $c eq "(" ? $depth++ : $depth-- }
+            $sig = $j;
+            last if $depth <= 0;
+          }
+          $end = $sig;
+          for my $j ($sig + 1 .. $#l) {
+            next if $l[$j] =~ /^\s*$/ || $instr[$j];
+            my ($jind) = $l[$j] =~ /^(\s*)/;
+            last if length($jind) <= length($ind);
+            $end = $j;
+          }
+        } else {
+          my ($depth, $opened) = (0, 0);
+          for my $j ($i .. $#l) {
+            my $t = $l[$j];
+            $t =~ s/(["\x27`])(?:\\.|(?!\1).)*\1/_/g;
+            $t =~ s{//.*$}{};
+            for my $c ($t =~ /([{}])/g) { $c eq "{" ? ($depth++, $opened = 1) : $depth-- }
+            if ($opened) { if ($depth <= 0) { $end = $j; last } }
+            elsif ($t =~ /;\s*$/) { $end = -1; last }   # a declaration with no body is not a test
+          }
+        }
+        next unless defined $end && $end >= $i;
+        next if $seen_end{$end}++;
+        my $has = 0;
+        for my $j ($i .. $end) {
+          next if $py && $instr[$j];
+          my $t = $l[$j]; chomp $t;
+          $t =~ s/(["\x27`])(?:\\.|(?!\1).)*\1/_/g;
+          $py ? ($t =~ s/#.*$//) : ($t =~ s{//.*$}{});
+          if ($t =~ $assert_re) { $has = 1; last }
+        }
+        next if $has;
+        my $line = $l[$i]; chomp $line;
+        print "$f:", $i + 1, ":$line\n";
+      }
+    }' "$1" "$2"
+}
+
 msig() {  # msig 'TARGET_RE' — filter file:line:text hits by `def` signature membership
   # Used by smells-08: `x: T | None = None` is a null parameter default inside a
   # signature and an ordinary Optional field in a class body, and mgrep is

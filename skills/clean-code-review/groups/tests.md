@@ -158,7 +158,7 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
 
-NOTE for agent: also flag test methods whose entire body contains no assertion keyword at all (`expect`, `assert`, `verify`, `should`, `XCTAssert`, `Assert.`). Read the test body, not just the grep hit.
+NOTE for agent: the scripted rows flag two shapes — a tautological assertion (`assertTrue(true)`, `assert True`, `XCTAssertTrue(true, ...)`), AND, for python/swift/typescript/javascript, a test function whose whole body contains no assertion token at all (`assert`/`.assert*`/`expect`/`XCTAssert`/`verify`/`should`/`measure`). For csharp/java/kotlin this per-function no-assertion check is NOT scripted — read those test bodies yourself and flag any that assert nothing. Residual false positive on the scripted no-assertion rows: a test that verifies only through a custom helper whose name is not `verify*`/`assert*` is flagged even though it asserts — before dismissing, open the helper and confirm it asserts.
 
 ---
 

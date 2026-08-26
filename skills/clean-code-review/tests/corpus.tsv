@@ -362,6 +362,7 @@ tests-09	javascript	tgrp/foo.test.js	MATCH	  expect(true).toBe(true); // TODO re
 tests-09	javascript	tgrp/foo.test.js	NOMATCH	  expect(flags.enabled).toBe(true);
 tests-09	python	tgrp/test_foo.py	MATCH	    assert True  # placeholder
 tests-09	python	tgrp/test_foo.py	NOMATCH	    assert result is True
+tests-09	python	tgrp/test_foo.py	NOMATCH	    assert True in hashed_values
 tests-09	csharp	tgrp/FooTests.cs	MATCH	Assert.IsTrue(true);
 tests-09	csharp	tgrp/FooTests.cs	NOMATCH	Assert.IsTrue(result.IsValid);
 tests-09	swift	tgrp/FooTests.swift	MATCH	XCTAssertTrue(true)
@@ -370,6 +371,34 @@ tests-09	kotlin	tgrp/src/test/FooTest.kt	MATCH	assertTrue(true)
 tests-09	kotlin	tgrp/src/test/FooTest.kt	NOMATCH	assertTrue(result.isSuccess)
 tests-09	java	tgrp/src/test/FooTest.java	MATCH	assertTrue(true);
 tests-09	java	tgrp/src/test/FooTest.java	NOMATCH	assertTrue(user.isActive());
+tests-09	swift	tgrp/FooTests.swift	MATCH	XCTAssertTrue(true, "should pass")
+tests-09	csharp	tgrp/FooTests.cs	MATCH	Assert.IsTrue(true, "msg");
+tests-09	kotlin	tgrp/src/test/FooTest.kt	MATCH	assertTrue(true, "msg")
+tests-09	java	tgrp/src/test/FooTest.java	MATCH	assertTrue(true, "msg");
+tests-09	python	tgrp/test_noassert.py	MATCH	def test_no_assertion():
+tests-09	python	tgrp/test_noassert.py	FILL	    service.do_work()
+tests-09	python	tgrp/test_noassert.py	NOMATCH	def test_has_assertion():
+tests-09	python	tgrp/test_noassert.py	FILL	    assert service.do_work() == 1
+tests-09	python	tgrp/test_noassert.py	NOMATCH	def test_mock_assert():
+tests-09	python	tgrp/test_noassert.py	FILL	    mock.assert_called_once_with(x)
+tests-09	swift	tgrp/NoAssertTests.swift	MATCH	func testNoAssertion() {
+tests-09	swift	tgrp/NoAssertTests.swift	FILL	    service.checkout(cart)
+tests-09	swift	tgrp/NoAssertTests.swift	FILL	}
+tests-09	swift	tgrp/NoAssertTests.swift	NOMATCH	func testHasAssertion() {
+tests-09	swift	tgrp/NoAssertTests.swift	FILL	    XCTAssertTrue(cart.isEmpty)
+tests-09	swift	tgrp/NoAssertTests.swift	FILL	}
+tests-09	typescript	tgrp/noassert.test.ts	MATCH	it("does work", () => {
+tests-09	typescript	tgrp/noassert.test.ts	FILL	    service.doWork();
+tests-09	typescript	tgrp/noassert.test.ts	FILL	});
+tests-09	typescript	tgrp/noassert.test.ts	NOMATCH	it("verifies work", () => {
+tests-09	typescript	tgrp/noassert.test.ts	FILL	    expect(service.doWork()).toBe(1);
+tests-09	typescript	tgrp/noassert.test.ts	FILL	});
+tests-09	javascript	tgrp/noassert.test.js	MATCH	it("does work", () => {
+tests-09	javascript	tgrp/noassert.test.js	FILL	    service.doWork();
+tests-09	javascript	tgrp/noassert.test.js	FILL	});
+tests-09	javascript	tgrp/noassert.test.js	NOMATCH	it("verifies work", () => {
+tests-09	javascript	tgrp/noassert.test.js	FILL	    expect(service.doWork()).toBe(1);
+tests-09	javascript	tgrp/noassert.test.js	FILL	});
 safety-02	typescript	safety/safety-02.ts	MATCH	const userId = sessionMap.get(token)!;
 safety-02	typescript	safety/safety-02.ts	NOMATCH	const name = user!.profile.name;
 safety-02	csharp	safety/safety-02.cs	MATCH	var start = booking.StartDate.Value.AddDays(1);
@@ -381,11 +410,19 @@ safety-02	swift	safety/safety-02.swift	NOMATCH	@IBOutlet var label: UILabel!
 safety-02	kotlin	safety/safety-02.kt	MATCH	val name = user!!.name
 safety-02	kotlin	safety/safety-02.kt	NOMATCH	val name = user?.name ?: "unknown"
 safety-03	python	safety/safety-03.py	MATCH	asyncio.create_task(send_welcome_email(user.id))
+safety-03	python	safety/safety-03.py	MATCH	asyncio.create_task(refresh(timeout=5))
 safety-03	python	safety/safety-03.py	NOMATCH	result = await asyncio.wait_for(refresh_cache(), timeout=10)
+safety-03	python	safety/safety-03.py	NOMATCH	rewrite_task = asyncio.create_task(refresh_cache())
+safety-03	python	safety/safety-03.py	NOMATCH	tasks = [tg.create_task(worker(c)) for c in items]
 safety-03	csharp	safety/safety-03.cs	MATCH	        _analyticsService.TrackEventAsync(eventName);
 safety-03	csharp	safety/safety-03.cs	NOMATCH	        await _analyticsService.TrackEventAsync(eventName);
 safety-03	swift	safety/safety-03.swift	MATCH	Task { await analytics.flushEvents() }
 safety-03	swift	safety/safety-03.swift	NOMATCH	let task = session.dataTask(with: request)
+safety-03	swift	safety/safety-03.swift	NOMATCH	animationTask = Task { try? await Task.sleep(for: .seconds(1)) }
+safety-03	swift	safety/safety-03.swift	NOMATCH	Task {
+safety-03	swift	safety/safety-03.swift	FILL	    do { try await store.save(user) }
+safety-03	swift	safety/safety-03.swift	FILL	    catch { logger.error("save failed") }
+safety-03	swift	safety/safety-03.swift	FILL	}
 safety-03	kotlin	safety/safety-03.kt	MATCH	GlobalScope.launch { syncRepository.push() }
 safety-03	kotlin	safety/safety-03.kt	NOMATCH	flow.onEach { render(it) }.launchIn(viewModelScope)
 safety-03	java	safety/safety-03.java	MATCH	CompletableFuture.runAsync(() -> auditService.record(event));
@@ -563,6 +600,11 @@ safety-16	kotlin	safety/Money.kt	MATCH	    val totalPrice: Double = 0.0
 safety-16	kotlin	safety/Money.kt	NOMATCH	    val totalPrice: BigDecimal = BigDecimal.ZERO
 safety-16	swift	safety/Money.swift	MATCH	    let totalPrice: Double
 safety-16	swift	safety/Money.swift	NOMATCH	    let totalPrice: Decimal
+safety-16	swift	safety/Money.swift	MATCH	    func getPriceString(value: Double) -> String { return "" }
+safety-16	swift	safety/Money.swift	MATCH	    func balance() -> Double { return 0 }
+safety-16	swift	safety/Money.swift	MATCH	        amount = sum / Double(divider)
+safety-16	swift	safety/Money.swift	NOMATCH	    func feedbackValue() -> Double { return 0 }
+safety-16	swift	safety/Money.swift	NOMATCH	        exchangePrice = Decimal.fromDoubleValue(rawValue)
 smells-02	typescript	smells/params.ts	MATCH	export function createOrder(id: string, customer: Customer, items: Item[], coupon: Coupon) {
 smells-02	typescript	smells/params.ts	NOMATCH	export function createOrder(id: string, customer: Customer, items: Item[]) {
 smells-02	javascript	smells/params.js	MATCH	function createOrder(id, customer, items, coupon) {

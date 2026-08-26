@@ -217,3 +217,34 @@ Precision round on the three highest-volume checks the earlier rounds never touc
 **What each fix does.** `safety-02` — a perl `-ne` drop of `(var|let) NAME: TYPE!` declaration lines after mgrep (BSD-grep has no `-P`; lib.sh stays GNU-grep-free); swift row only. `smells-03` — reuses the existing `msig ':\s*bool'`, keeping a `name: bool` hit only inside a `def(...)` span, so dataclass fields, locals and module constants drop while wrapped-signature params stay; python row only. `safety-19` — matches the `(?<!\.)` already on its ts/js/python rows; swift row only.
 
 **Tests.** Green: `test_checks` 365 commands, `test_collect` 109/0, `test_corpus` **1,109/0** (+8: NOMATCH decls/fields/constants/`.system(`, MATCH wrapped param + `Process()`). `lib.sh` unchanged — no new helper. `results/*.tsv` and `report.xlsx` not regenerated, as in rounds 3-5.
+
+## Round 7 (2026-08-25, three parallel agents)
+
+Three checks never touched by rounds 1-6 (verified: current script reproduces the baseline hit count). Two recall-first (safety-16, tests-09), one precision (safety-03). Each fixed and swept separately, then merged onto main.
+
+### Corpus (46 files, 2026-08-24 verdicts + new-hit adjudication)
+
+| check | fix | hits | TP | FP | precision |
+|---|---|---|---|---|---|
+| `safety-16` | swift: broaden beyond `name: Double` annotations to money-named return types, `Double`/`Float` params, and `Double(…)` casts (guarded money-word lexicon) | 2 → **4** | 0 → **1** | 2 → **3** | 0% → **25%** |
+| `tests-09` | `mnoassert()` flags a test function whose whole body holds zero assertion tokens; py/swift/ts/js rows + message-tautology forms | 0 → **18** | 0 → **17** | 0 → **1** | n/a → **94%** |
+| `safety-03` | swift: `mbody`-drop `Task{}` bodies containing `catch` + drop assigned `x = Task{`; python: drop `create_task`/`ensure_future` on an assignment RHS | 14 → **2** | 2 → **2** | 12 → **0** | 14% → **100%** |
+| **total** | | **16 → 24** | **2 → 20** | **14 → 4** | **13% → 83%** |
+
+### Whole projects (git-tracked files only; `.venv`/`node_modules`/`Pods`/nested worktrees excluded)
+
+| check | archon-search | moonset | financialwell | dddd | total |
+|---|---|---|---|---|---|
+| `safety-16` | 0 → 0 | 0 → 0 | 13 → **19** | 0 → 0 | 13 → **19** |
+| `safety-03` | 79 → 5 | 11 → 3 | 7 → 7 | 4 → 4 | 101 → **19** |
+| `tests-09` | 1 → 90 | 1 → 7 | 0 → 28 | 0 → 0 | 2 → **125** |
+
+### Verification
+
+- **`safety-16`** — purely additive (original annotation branch kept as the first alternation), so zero prior hits drop. The 6 new financialwell hits adjudicated **5 TP / 1 FP** (the FP is `updateExchangePrice` — a conversion rate, same rate-exclusion the baseline used). Python left untouched: its 46 raw hits are all `.venv` dependency noise, 0 real recall.
+- **`tests-09`** — new-hit precision **17/18 (94%)**, every corpus hit read in source; the 3 `test_sync.py` + swift `LockScreenUITests.swift:123` match `llmonly.tsv` leads exactly. The one FP asserts indirectly via `side_effect=AssertionError`, invisible to any regex. FP guards added for `beforeEach`/`afterAll` hooks, `expectTypeOf<>()`, swift `measure {}`, and helper-delegated `verify…()`.
+- **`safety-03`** — **zero TP lost**: every dropped corpus hit already carried an `FP` verdict (swift do/catch bodies 278/428/479/532/570/758/884, tracked `animationTask = Task{}` 162; python assigned 3227/7757/4963/4965). The 2 TP (354/671, bare `Task { try? … }`) retained. 5 archon survivors are genuine bare `create_task` or string-literal mentions.
+
+**Tests.** Green: `test_checks` **369** commands, `test_collect` 109/0, `test_corpus` **1,133/0**. New helper `mnoassert 'DECL_RE' 'ASSERT_RE'` in `lib.sh` (mirrors `mbranch`'s extent machinery). `groups/safety.md` and `groups/tests.md` NOTEs updated. `results/*.tsv` and `report.xlsx` not regenerated, as in rounds 3-6.
+
+**Not pursued.** `safety-07` (20 FP) and `tests-04` (20 FP) — the false positives are semantic (legit deferred imports; incidental fixture timestamps), not regex-separable. `solid-07` — rejected in round 3. `safety-11` broadening — noisy (330 raw swift hits from `DispatchQueue…now()`).

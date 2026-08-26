@@ -14,9 +14,12 @@ tests-01	src/util.js:1:export const f = () => 1;
 tests-04	test_mod.py:3:    time.sleep(1)
 tests-08	src/__tests__/main.test.ts:2:it.skip("x", () => { expect(true).toBe(true); });
 tests-08	src/__tests__/main.test.ts:2:it.skip("x", () => { expect(true).toBe(true); });
+tests-09	AppTests.swift:2:class AppTests: XCTestCase { func testPlaceholder() { let sut = ItemHandler() } }
+tests-09	AppTests/Checkout.swift:1:class Checkout { func testRun() { service.checkout(cart) } }
 tests-09	src/__tests__/main.test.ts:2:it.skip("x", () => { expect(true).toBe(true); });
 tests-09	src/__tests__/main.test.ts:2:it.skip("x", () => { expect(true).toBe(true); });
 tests-09	test_mod.py:4:    assert True
+tests-09	tests/login_flow.py:1:def test_login_flow():
 tests-13	App.Tests/Checkout.cs:0
 tests-13	App.Tests/SvcTests.cs:0
 tests-13	AppTests.swift:0

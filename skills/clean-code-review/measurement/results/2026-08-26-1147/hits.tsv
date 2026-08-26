@@ -1,4 +1,3 @@
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	arch-05	469	return IngestResult(doc_id=doc_id, chunks_created=0, status="error", error=str(e), code="parse_error")
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	clarity-06	95	class RagFusionSubQueryInfo:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	clarity-09	1717	if k != "include_metadata" and v is not None and v is not False
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	clarity-09	1801	if rerank is False and len(collections) > 1 and self._reranker is not None:
@@ -31,13 +30,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pi
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	ddd-01	66	@dataclass
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	ddd-01	94	@dataclass
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	ddd-01	107	@dataclass
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-06	436	doc_id = hashlib.sha256(str(path.resolve()).encode()).hexdigest()
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-06	450	_size_bytes = os.path.getsize(path)  # for human-readable message
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-06	504	mtime = path.stat().st_mtime
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-06	908	for file_path in path.glob(glob_pattern):
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-06	909	if file_path.is_symlink():
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-06	911	if not file_path.is_file():
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-06	3374	doc_id = hashlib.sha256(str(Path(source_path).resolve()).encode()).hexdigest()
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-07	176	ingested_by=ingested_by,  # type: ignore[arg-type]
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-07	294	import yaml  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-07	1047	return await self._search_graph_mode(  # type: ignore[return-value]
@@ -60,6 +52,15 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pi
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-11	1005	last_indexed=datetime.now(UTC),
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-11	3502	last_indexed=datetime.now(UTC),
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-11	3538	last_indexed=datetime.now(UTC),
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	1242	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	1336	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2131	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2255	assert scope_filter is None, "scope_filter must be None in graph-mode paths"
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2327	assert scope_filter is None, "scope_filter must be None in graph-mode paths — check the 422 guard"
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2407	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2839	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2925	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2968	assert scope_filter is None, (
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-01	1	file-level: 3635 lines
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-02	313	def __init__(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-02	421	async def ingest_file(
@@ -210,6 +211,10 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pi
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-07	3382	self, doc_id: str, collection: str, namespace: str
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-10	517	enricher: MarkdownEnricher | CodeEnricher = CodeEnricher()
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-10	522	enricher = MarkdownEnricher()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-10	3578	store = SearchStore(cfg.db_path)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-10	3592	chunker = DocumentChunker(cfg.chunk_size)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-10	3593	ast_chunker = ASTChunker(cfg.chunk_size)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-10	3594	parser = DocumentParser(max_tasks_per_child=cfg.ingest.max_tasks_per_child)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-15	3161	elif graph_mode == "local":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	tests-01	53	class SearchPipelineResult:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	596	if r["name"] == name and (r.get("namespace") or DEFAULT_NAMESPACE) == namespace
@@ -231,10 +236,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/st
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-17	2950	async def _hybrid_search_with_trace(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	ddd-01	34	@dataclass
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	ddd-01	45	@dataclass
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	311	self._db_path.mkdir(parents=True, exist_ok=True)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	1985	mtime = Path(source_path).stat().st_mtime
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	2312	produced by ``str(path.resolve())`` at ingest time.  Relative paths
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	2320	doc_id = hashlib.sha256(str(Path(source_path).resolve()).encode()).hexdigest()
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	258	from archon_search.constants import INGESTED_BY_VALUES, LEGACY_INGESTED_BY  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	280	from archon_search.config import SearchConfig as _SearchConfig  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	308	import lancedb  # noqa: PLC0415
@@ -305,11 +306,9 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/st
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	2239	skip_fts_optimize: bool = False,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	2307	skip_fts_optimize: bool = False,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	271	def __init__(self, db_path: str | Path, config: "SearchConfig | None" = None) -> None:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	584	async def get_collection_meta(self, name: str, namespace: str = DEFAULT_NAMESPACE) -> "CollectionMeta | None":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	590	return None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	599	return None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1133	progress_cb: "Callable[[int, int, str], None] | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1360	) -> "CollectionMeta | None":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1364	return None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1734	embedding_model: str | None = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1941	progress_cb: Callable[[int, int], None] | None = None,
@@ -345,7 +344,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/gr
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	clarity-17	375	async def write_graph(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	clarity-17	1442	async def delete_defref_graph_by_doc(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	clarity-17	2039	async def delete_orphan_nodes_and_edges(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	safety-06	168	self._db_path.mkdir(parents=True, exist_ok=True)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	safety-07	166	import lancedb  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	safety-07	213	def _nodes_schema():  # type: ignore[return]
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	safety-07	222	import pyarrow as pa  # noqa: PLC0415
@@ -378,9 +376,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/gr
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-02	1018	async def vector_search_nodes(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-02	1442	async def delete_defref_graph_by_doc(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-03	1449	delete_doc_owned_code_symbols: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-07	411	# ponytail: LanceDB when_matched_update column-list semantics assumed; verify
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-07	977	# ponytail: IvfFlat(distance_type="cosine") + idx.columns/idx.name reflection
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-07	1681	# ponytail: LanceDB's _where_in helper generates simple equality predicates and cannot filter
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	650	async def pagerank_score(self, collection: str, entity_id: str, ns: str) -> float | None:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	662	return None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	671	return None
@@ -404,59 +399,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/gr
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	solid-07	1394	doc_id: str,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	solid-07	1418	doc_id: str,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	solid-07	1445	doc_id: str,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	366	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	421	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	435	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	437	return McpErrorResponse(error=str(exc), code="graph_communities_not_built")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	448	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	490	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	504	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	577	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	579	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	581	return McpErrorResponse(error=str(exc), code="graph_communities_not_built")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	601	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	670	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	686	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	769	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	771	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	791	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	883	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	932	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	934	return McpErrorResponse(error=str(exc), code="graph_communities_not_built")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	942	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	967	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1093	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1095	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1097	return McpErrorResponse(error=str(exc), code="graph_communities_not_built")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1181	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1183	return McpErrorResponse(error=str(exc), code="store_busy")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1190	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1249	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1251	return McpErrorResponse(error=str(exc), code="store_busy")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1258	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1268	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1271	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1293	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1296	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1309	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1312	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1328	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1331	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1355	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1358	return McpErrorResponse(error=str(exc), code="store_busy")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1361	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1397	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1457	return McpErrorResponse(error=str(exc), code=_ERR_SCHEMA)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1460	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1557	error=f"invalid archive: {exc}", code="validation_error"
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1565	error=f"invalid manifest: {exc}", code="validation_error"
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1640	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1652	error=f"invalid expires_at: {exc}", code="validation_error"
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1814	error=f"Failed to write .search.env — rotation aborted: {exc}",
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1825	return McpErrorResponse(error=str(exc), code="validation_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	1984	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	2090	return McpErrorResponse(error=str(exc), code="internal_error")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	2178	return McpErrorResponse(error=str(exc), code="internal_error")
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-11	1004	search_url="http://mcp",
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	clarity-09	871	if graph_mode is not None or (rag_fusion and _explain_rf_config.enabled):
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	clarity-16	258	def create_app(
@@ -470,9 +412,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/se
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	clarity-17	292	async def search(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	clarity-17	604	async def search_with_context(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	clarity-17	794	async def explain(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-06	1543	if not archive_path.exists():
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-06	1549	with tarfile.open(archive_path, "r:gz") as tf:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-06	1808	key_file.parent.mkdir(parents=True, exist_ok=True)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	211	from fastmcp.server.dependencies import get_http_request  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	287	from archon_search.rag_fusion import RAGFusionDependencyError  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	353	from archon_search.config import RAGFusionConfig  # noqa: PLC0415
@@ -524,10 +463,7 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/se
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-03	1275	include_description_embedding: bool = False,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-03	1513	force_overwrite: bool = False,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-03	1514	ignore_schema_version: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-07	208	# ponytail: lazy import with fallback — test stubs replace fastmcp with a plain
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	131	def _validate_scope_filter(scope_filter: str | None) -> "McpErrorResponse | None":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	135	return None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	142	) -> "McpErrorResponse | None":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	170	return None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	235	meta: Any = None,  # pre-fetched CollectionMeta; skips the get_collection_meta call
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	261	writer: TelemetryWriter | None = None,
@@ -640,6 +576,12 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/se
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-07	1832	new_key_id: str = result["new_key_id"]  # type: ignore[assignment]
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-07	1863	resolved_salience_mode: str,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-09	88	_mcp_rotate_lock = asyncio.Lock()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	354	_rf_config = RAGFusionConfig()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	362	_hyde_config = HyDEConfig()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	656	_swc_rf_config = RAGFusionConfig()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	664	_swc_hyde_config = HyDEConfig()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	870	_explain_rf_config = RAGFusionConfig()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	877	_explain_hyde_config = HyDEConfig()
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	1003	col_router = MultiCollectionRouter(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	1561	reader = ImportArchiveReader(archive_path)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-15	1705	elif status == "revoked":
@@ -659,15 +601,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/ev
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	ddd-01	256	@dataclass
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	ddd-01	358	@dataclass
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	ddd-01	476	@dataclass
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	111	if not path.exists():
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	115	data = tomllib.loads(path.read_text())
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	153	data = tomllib.loads(config_path.read_text())
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	277	data = tomllib.loads(config_path.read_text())
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	406	raw = json.loads(Path(path).read_text())
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	511	corpus_dir = (corpus_root / "corpus").resolve()
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	513	return str(Path(source_path).resolve().relative_to(corpus_dir))
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	903	(corpus_root / "corpus" / d.relative_path).resolve()
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-06	905	corpus_dir = (corpus_root / "corpus").resolve()
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-07	22	import tomli as tomllib  # type: ignore[no-redef]
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-07	848	async def _build_code_lane_ingest_pipeline(db_path: Path, graph_store) -> "SearchPipeline":  # type: ignore[name-defined]  # noqa: F821
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	safety-11	491	generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -693,12 +626,23 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/ev
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-07	382	reranker_model_id: str | None = None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-07	562	def _gold_collections_for(query_id: str, corpus: EvalCorpus) -> set[str]:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-07	1278	def _gold_fn(query_id: str) -> set[str]:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	629	store = SearchStore(db_path)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	657	community_backend = DispatchingCommunityStore(community_backend_map)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	670	chunker = DocumentChunker(chunk_size=256)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	671	parser = DocumentParser()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	800	store = SearchStore(db_path)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	805	chunker = DocumentChunker(chunk_size=chunk_size)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	811	parser = DocumentParser()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	825	graph_store = GraphStore(db_path=str(db_path))
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	827	graph_config = GraphConfig(enabled=True)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	987	router = MultiCollectionRouter(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	1097	_graph_store_for_communities = GraphStore(db_path=str(lancedb_root))
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	1124	_graph_config = GraphConfig(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-10	1130	_community_builder = CommunityBuilder(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-15	451	elif isinstance(v, (int, float)):
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-15	640	elif backend == "deterministic":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	safety-01	310	self._pool = ProcessPoolExecutor(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	safety-06	86	time.sleep(_PARSE_WORKER_WATCHDOG_POLL_S)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	safety-06	264	return path.read_text(encoding="utf-8", errors="replace")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	safety-06	271	raw = path.read_text(encoding="utf-8", errors="replace")
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	safety-07	160	from docling.datamodel.pipeline_options import (  # noqa: PLC0415 — heavy, worker-only import
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	safety-07	163	from docling.document_converter import (  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	safety-07	353	from markitdown import MarkItDown  # noqa: PLC0415
@@ -707,6 +651,7 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pa
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	solid-06	119	self.path = path
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	solid-06	120	self.cause = cause
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	solid-09	50	_worker_converter: DocumentConverter | None = None
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	solid-10	310	self._pool = ProcessPoolExecutor(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	solid-15	242	elif suffix in _PDF_EXTENSIONS:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	solid-15	244	elif suffix in _OFFICE_EXTENSIONS:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	solid-15	246	elif suffix in _IMAGE_EXTENSIONS:
@@ -715,8 +660,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/em
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	smells-08	55	def __init__(self, max_size: int, providers: list[str] | None = None) -> None:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	smells-12	171	except Exception as exc:  # noqa: BLE001 — one bad model must not abort the rest
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	smells-12	176	except Exception as exc:  # noqa: BLE001 — same: never fail startup
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/sync_suppression.py	safety-06	61	path.parent.mkdir(parents=True, exist_ok=True)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/sync_suppression.py	safety-06	80	path.unlink(missing_ok=True)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/sync_suppression.py	safety-11	62	atomic_write_json(path, {"suppressed_at": datetime.now(UTC).isoformat()})
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/sync_suppression.py	smells-10	18	Path resolution mirrors ``archon_search.jobs.model.get_jobs_file()``: resolved
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/sync_suppression.py	tests-01	36	def get_sync_suppressed_file() -> Path:
@@ -1158,8 +1101,11 @@ moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Prese
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/SleepTimerView.swift	safety-11	253	rotationSegmentStart = Date()
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/SleepTimerView.swift	safety-11	257	rotationOffset += Date().timeIntervalSince(start) * Self.rotationDegreesPerSecond
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/SleepTimerView.swift	solid-15	346	switch viewModel.timerState {
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/Components/ControlButtonsView.swift	solid-10	85	private let generator = UINotificationFeedbackGenerator()
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/Components/ControlButtonsView.swift	solid-10	86	private let impact = UIImpactFeedbackGenerator(style: .heavy)
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/Views/Components/ControlButtonsView.swift	tests-01	44	struct ControlButtonsView: View {
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Infrastructure/Audio/AVFoundationAudioService.swift	clarity-16	62	func play(tracks: [AudioTrack]) throws {
+moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Infrastructure/Audio/AVFoundationAudioService.swift	safety-05	249	if options.contains(.shouldResume) {
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Infrastructure/Audio/AVFoundationAudioService.swift	smells-03	172	func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Infrastructure/Audio/AVFoundationAudioService.swift	smells-12	150	try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Infrastructure/Audio/AVFoundationAudioService.swift	solid-07	42	internal func currentVolume(forTrackId trackId: String) -> Float? {
@@ -1341,6 +1287,11 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Vi
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-08	73	var viewmodel = TransactionViewModel()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-08	309	var style = ToastStyle()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-09	72	static var calculatorViewModel = CalculatorViewModel()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-10	59	var missingContainerView = MissingContainerViewController()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-10	72	static var calculatorViewModel = CalculatorViewModel()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-10	73	var viewmodel = TransactionViewModel()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-10	534	let strategy = TransactionsViewControllerHistoryStrategy()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-10	535	strategy.viewModel = TransactionsViewModel()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	solid-15	253	switch AddTransactionViewController.calculatorViewModel.state {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	tests-01	15	class AddTransactionViewController: LocalizableViewController, UITextFieldDelegate, UITableViewDelegate, UITableViewDataSource, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateLeftAlignedLayout, TransactionViewModelAction, MissingContainerDelegate, UIGestureRecognizerDelegate {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	arch-08	124	ModelManager.shared.databaseHandler.loadDefaultDatabase()
@@ -1375,6 +1326,10 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Ho
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-08	75	var onboardingWizard = OnboardingWizardView()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-08	129	var cellView = DemoDataViewCell()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-08	169	var cellView = NoRecentDataViewCell()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-10	15	var viewmodel = HomeViewModel()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-10	16	var applogViewModel = AppLogViewModel()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-10	17	var emailComposer = MailComposer()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-10	234	let model = DatePriceDataModel(period: PeriodModel(datetime: datetime, period: .Month))
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-15	329	switch rowType {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-15	341	switch rowType {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	solid-15	353	switch rowType {
@@ -1430,7 +1385,6 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Vi
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	solid-10	41	var filterTagViewModel = FilterTagSelectViewModel()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	solid-15	264	switch rowType {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	tests-01	12	class FilterViewModel {
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	arch-02	9	import UIKit
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	arch-08	12	private let fileManagerWrapper = FileManagerWrapper.shared
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	arch-08	197	let displayLocale = Locale(identifier: LanguageManager.shared.effectiveLanguageCode)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	arch-08	246	let displayLocale = Locale(identifier: LanguageManager.shared.effectiveLanguageCode)
@@ -1465,10 +1419,7 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Mo
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	468	let name = locale.localizedString(forCurrencyCode: locale.currencyCode!)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	470	base.name = name!
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	521	if curr.value.country.contains(country!) {
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-05	331	if ModelCurrencies.allCurrencies.count == 0 {
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-05	371	if ModelCurrencies.allCurrencies.count == 0 {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-06	425	currencyDG.wait()
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-08	379	let task = session.dataTask(with: urlRequest) { data, response, error in
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-13	106	assertionFailure("exchange implementation error: euro to ...")
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-13	130	assertionFailure("exchange implementation error: local to ...")
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-13	156	assertionFailure("exchange implementation error: foreign to ...")
@@ -1589,6 +1540,9 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Mo
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-11	247	dbValue.updateDatetime = Date()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-11	252	dbValue.updateDatetime = Date()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-11	344	dbValue.datetime = Date()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-16	193	func updateExchangePrice(doubleValue: Double) {
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-16	452	var exchangePrice: Double? = 0.0
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-16	459	var exchangePrice: Double? = dbValue.exchangePrice?.doubleValue ?? nil
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-02	211	func updatePrice(from decimalValue: Decimal, currency: Currency? = nil, exchangePrice: Decimal? = nil, setIsExpense: Bool? = nil) {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-03	211	func updatePrice(from decimalValue: Decimal, currency: Currency? = nil, exchangePrice: Decimal? = nil, setIsExpense: Bool? = nil) {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-03	231	func updatePrice(from stringValue: String, currency: Currency? = nil, setIsExpense: Bool? = nil) {
@@ -1678,6 +1632,7 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Im
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Import/ImportTransactionsImportFailedViewController.swift	solid-06	18	@IBOutlet var closeButton: UIButton!
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Import/ImportTransactionsImportFailedViewController.swift	solid-08	12	var viewModel = ImportViewModel()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Import/ImportTransactionsImportFailedViewController.swift	solid-08	13	var message = ""
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Import/ImportTransactionsImportFailedViewController.swift	solid-10	12	var viewModel = ImportViewModel()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Import/ImportTransactionsImportFailedViewController.swift	tests-01	11	class ImportTransactionsImportFailedViewController: LocalizableViewController {
 financialwell	/Users/manczg/Documents/development/financialwell/UITests/FrenchLocaleE2ESmokeTests.swift	clarity-16	210	func testOnboardingFlowInFrench() throws {
 financialwell	/Users/manczg/Documents/development/financialwell/UITests/FrenchLocaleE2ESmokeTests.swift	clarity-17	210	func testOnboardingFlowInFrench() throws {
@@ -1794,6 +1749,7 @@ dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-tr
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	safety-02	492	const point = weeklyTrend[i]!
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	safety-07	84	// eslint-disable-next-line react-refresh/only-export-components -- Task 3.2 requires this chart selector to be exported.
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	smells-08	110	function chartValue(point: WeeklyTrendPoint, durationScale: DurationScale): number | null {
+dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	arch-02	4	import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm'
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	clarity-09	190	if (typeof error === 'object' && error !== null && 'code' in error) {
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	clarity-09	146	if (
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	clarity-16	425	export async function syncRepositoryPrSizes(input: {

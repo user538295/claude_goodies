@@ -24,6 +24,7 @@ Open the **Summary** sheet. One row per scriptable check:
 - `script misses` — LLM findings the script did not flag (= found − overlap). Unverified.
 - `script coverage %` — overlap / LLM-only found: the recall proxy.
 - `est. true hits` — hits total × precision: the script's haul corrected for false positives; the fair number to compare against `LLM-only found`.
+- `quality rate` (col S) — `TP / LLM-only found`: the script's confirmed haul relative to the unaided-LLM haul, per check. Higher is better — above 1 (100%) means the script confirmed more real violations than the LLM-only pass surfaced; below 1 means the LLM-only pass found proportionally more. `IFERROR(…,0)` so a check with zero LLM-only findings reads 0 (a wart: such a check is actually a script win, not a loss — read those alongside the TP and LLM-only columns).
 
 Grey rows = the check's pattern ran on every file but matched nothing in this corpus (not evidence the check is broken — this corpus just doesn't exercise it). The **Method** sheet records model, sampling rules, and matching tolerance; a future run is only comparable if those match. The **Files** sheet shows per-file hit counts and which files were processed.
 
@@ -58,6 +59,14 @@ This confirms the cumulative effect of rounds 1-8: hits fell **2,602 → 1,811**
 - LLM-only is a fresh single pass (979 findings vs the baseline's 830), so coverage is measured against this run's findings.
 
 Model, file set, and ±3-line matching are unchanged, so precision is comparable to the baseline.
+
+## Full rerun (2026-08-26, 15:58, sonnet agents)
+
+Complete re-run from scratch on the frozen 46-file corpus with the live scripts, and a new `quality rate` column (S) added to every check sheet. Script sweep upfront (46 files, 0 cap warnings); adjudication in 18 packets (≤150 hits) and the LLM-only pass in 19 file batches, all `model: sonnet`. `results/*.tsv` and `report.xlsx` regenerated; deliverable `2026-08-26-15-58-report.xlsx`. Prior 11:47 data archived under `results/2026-08-26-1147/`.
+
+**Headline:** 1,855 hits, all 1,855 adjudicated, 661 LLM-only findings. Overall precision **71.8%** (moonset 85%, financialwell 78%, archon-search 70%, dddd 60%, udemy 15%). Script coverage of LLM findings (recall proxy, ±3 lines): **66%** (437/661). Overall quality rate (TP / LLM-only) **2.02** — the script confirmed ~2× the real violations the unaided LLM pass surfaced. 43 of 60 scriptable checks fired.
+
+Model, file set, and ±3-line matching unchanged from the baseline, so precision stays comparable. The LLM-only pass is a fresh single run (661 findings vs the 08-26 11:47 run's 979); run-to-run variance in that pass is not measured, so coverage and quality rate move with it.
 
 ## Improvements (2026-08-24)
 

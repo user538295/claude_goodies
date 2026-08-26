@@ -50,9 +50,11 @@ When the point is non-technical and has no underlying mechanism, the plain state
 Before delivering, strip everything in parentheses. What remains must:
 
 - stand on its own and name the specific consequence in context — not a vague quality like "more reliable" or "easier to maintain";
-- contain no insider vocabulary — "race condition", "coupling", "idempotent", "cascade failure", or any term a non-engineer would have to look up.
+- contain no insider vocabulary — "race condition", "coupling", "idempotent", "cascade failure", or any term a non-engineer would have to look up;
+- **read at ELI17 ("Explain Like I'm 17")** — a 17-year-old with no domain knowledge can follow it (Flesch–Kincaid grade ≤ 11);
+- **obey STE100** (ASD Simplified Technical English rules, not its dictionary): active voice, one idea per sentence, sentence length ≤ 20 words for an instruction and ≤ 25 for a description, and one meaning per word.
 
-If the leftover fails either test, rewrite it as the observable consequence. The stakes must stand on their own even when the mechanism needs expertise.
+If the leftover fails any test, rewrite it as the observable consequence. The stakes must stand on their own even when the mechanism needs expertise.
 
 ---
 

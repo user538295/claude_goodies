@@ -32,7 +32,7 @@ If step 1 or 2 identifies a companion plan path but that file **does not exist**
 
 ### Step 2: Implement (TDD)
 
-**Determine the most appropriate agent type for this task, then spawn it with `model: "sonnet"` to perform the implementation.** Pass it the full task description, sub-items, the working directory, the task-breakdown file path, and — when Step 1 detected one — the **companion plan path**. Instruct it to follow these instructions exactly:
+**Determine the most appropriate agent type for this task, then spawn it to perform the implementation.** Pass it the full task description, sub-items, the working directory, the task-breakdown file path, and — when Step 1 detected one — the **companion plan path**. Instruct it to follow these instructions exactly:
 
  **You MUST follow these instructions**:
 
@@ -81,7 +81,7 @@ In Cursor or other harnesses without `Monitor`, fall back to the *task-relevant 
 
 If the test command reports failures:
 
-1. Spawn the same agent type as Step 2 with `model: "sonnet"`. Pass it: the full test failure output, the task description, the companion plan path with the "read it first" instruction if one was detected in Step 1 (the acceptance criteria live there), the SCOPE and FORBIDDEN constraints from Step 2, the working directory, and — on retries — the output and changes from all prior fix attempts so the agent knows what was already tried and why it failed.
+1. Spawn the same agent type as Step 2. Pass it: the full test failure output, the task description, the companion plan path with the "read it first" instruction if one was detected in Step 1 (the acceptance criteria live there), the SCOPE and FORBIDDEN constraints from Step 2, the working directory, and — on retries — the output and changes from all prior fix attempts so the agent knows what was already tried and why it failed.
 2. Re-run the same command.
 3. Repeat until green, or three consecutive fix attempts all fail — in which case stop and report the failures for human review.
 
@@ -102,7 +102,7 @@ Commit all changes for this task — implementation files AND the updated task-b
 Output a concise report for this task in the following exact form. Do NOT prose, you MUST report it and in the exact form. This is non-negotiable.
 > **Task [N.M] Implementation report:**
 > - Implemented: [What was imlemented]
-> - Tests: [Test results summary]
-> - Feature loss or deviation: [Any feature loss or deviation from the task spec (be extremely precise)]
-> - Unresolvable oscillations: [Any unresolvable oscillations from the review loop]
+> - Tests: [Test results summary, max 250 chars]
+> - Feature loss or deviation: [Any feature loss or deviation from the task spec (be extremely precise); max 250 chars]
+> - Unresolvable oscillations: [Any unresolvable oscillations from the review loop; max 250 chars]
 > - Task [N.M] — checked at line [NNN] and committed ([full-hash])

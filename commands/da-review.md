@@ -15,8 +15,8 @@ Use the following severity rubrics:
 
 For each issue found, provide:
 - Severity label
-- Short description of the problem (one-line short, MAX 256 chars)
-- Why it matters / what could go wrong
+- filename:line_number (omit when no file location applies — e.g. a plan-level, conceptual, or cross-cutting finding; never invent one)
+- Short description of the problem and why it matters / what could go wrong. **Must be under 250 chars**
 
 Group findings by severity (Critical first). At the end, give a one-sentence overall verdict.
 

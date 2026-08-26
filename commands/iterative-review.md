@@ -31,13 +31,13 @@ find ~/.claude/commands ~/.claude/plugins ~/.claude/skills ./.claude/commands ./
    - The current state of the target (diff / changed files / plan)
    - The full findings and fix history from all prior cycles (if any)
    - Instruction to label every issue with severity and a short ID prefixed by the current cycle number (`C1-I-1`, `C1-I-2`, …). Do not soften findings.
-   - Every findings is a one-line short sentence, **MAX 256 chars** about the issue very clearly.
+   - Every findings must be in this format: [short ID] - [filename:line_number] - [one-line short description which must be under 250 chars]
 
-   **If `/brooks-review` is available** (per the check above), in the SAME parallel batch also spawn one agent **with `model: "claude-opus-4-8", effort: "medium"`** that invokes the `brooks-review` skill (fully qualified `brooks-lint:brooks-review`) via the Skill tool on the same target. Instruct it to: review read-only — make NO file edits and NO commits; map each Brooks-Lint finding onto the severity rubric above; and label each with a cycle-prefixed ID using a `B` marker (`C1-B-1`, `C1-B-2`, …). Its findings are peers of the devil's advocate findings in every step below.
+   **If `/brooks-review` is available** (per the check above), in the SAME parallel batch also spawn one agent **with `model: "claude-opus-4-8", effort: "medium"`** that invokes the `brooks-review` skill (fully qualified `brooks-lint:brooks-review`) via the Skill tool on the same target. Instruct it to: review read-only — make NO file edits and NO commits; map each Brooks-Lint finding onto the severity rubric above; and label each with a cycle-prefixed ID using a `B` marker (`C1-B-1`, `C1-B-2`, …). Its findings are peers of the devil's advocate findings in every step below. The Brooks review findings also must be in this format: [short ID] - [filename:line_number] - [one-line short description which must be under 250 chars]
 
-1b. **Cycle 1 only — clean code catalog pass.** If `/clean-code-review` is available (per the check above), spawn **one `general-purpose` agent in the SAME parallel batch as step 1** (do not set `model` — it inherits the default) whose only job is to invoke the `clean-code-review` skill (fully qualified `claude-goodies:clean-code-review`) via the Skill tool and return that skill's output verbatim and unabridged — the full synthesizer report with every finding line intact, not a summary of it. Instruct it: review read-only — make NO file edits and NO commits. The agent type must be `general-purpose`, not `devils-advocate`: `/clean-code-review` is itself a fan-out orchestrator that spawns its own 7 group agents plus a synthesizer, and only `general-purpose` has the Agent and Skill tools needed for that. Pass it the same target (no argument = its `local` default, which is a superset of this command's default of uncommitted changes — `local` also covers untracked files; a git ref/range or file paths pass through verbatim). Its severity rubric is identical to the one above — take its finding lines as-is and re-label each with a cycle-prefixed `CC` ID (`C1-CC-1`, `C1-CC-2`, …). Its findings are peers of the devil's advocate findings in every step below. Do not repeat this pass in later cycles — from cycle 2 on, the loop is driven by the DA agents and the Brooks-Lint reviewer.
+1b. **Cycle 1 only — clean code catalog pass.** If `/clean-code-review` is available (per the check above), spawn **one `general-purpose` agent in the SAME parallel batch as step 1** whose only job is to invoke the `clean-code-review` skill (fully qualified `claude-goodies:clean-code-review`) via the Skill tool and return that skill's output verbatim and unabridged — the full synthesizer report with every finding line intact, not a summary of it. Instruct it: review read-only — make NO file edits and NO commits. The agent type must be `general-purpose`, not `devils-advocate`: `/clean-code-review` is itself a fan-out orchestrator that spawns its own 7 group agents plus a synthesizer, and only `general-purpose` has the Agent and Skill tools needed for that. Pass it the same target (no argument = its `local` default, which is a superset of this command's default of uncommitted changes — `local` also covers untracked files; a git ref/range or file paths pass through verbatim). Its severity rubric is identical to the one above — take its finding lines as-is and re-label each with a cycle-prefixed `CC` ID (`C1-CC-1`, `C1-CC-2`, …). Its findings are peers of the devil's advocate findings in every step below. Do not repeat this pass in later cycles — from cycle 2 on, the loop is driven by the DA agents and the Brooks-Lint reviewer. The findings also must be in this format: [short ID] - [filename:line_number] - [one-line short description which must be under 250 chars] 
 
-2. **Consolidate** findings across all DA agents, the Brooks-Lint reviewer (if it ran), and the clean code catalog (cycle 1), deduplicating by root cause. Every findings must be a one-line short sentence, MAX 256 chars about the issue, very clearly.
+2. **Consolidate** findings across all DA agents, the Brooks-Lint reviewer (if it ran), and the clean code catalog (cycle 1), deduplicating by root cause. Every findings must be in this format: [short ID] - [filename:line_number] - [one-line short description which must be under 250 chars]
 
 3. If the consolidated list contains no Critical, Major issues — the review loop is complete. Go to the summary below. (This ends the review loop only — not the calling skill's turn.)
 
@@ -54,11 +54,11 @@ find ~/.claude/commands ~/.claude/plugins ~/.claude/skills ./.claude/commands ./
 ## Review Summary
 
 ### Changes Made
-All fixes applied across all cycles: issue ID → severity → what changed.
+All fixes applied across all cycles: issue ID → severity → what changed. Must be under 12 lines and every line must be under 250 chars.
 
 ### Remaining Open Issues
-- Unresolvable oscillations with explanation
-- Unfixed Minor issues
+- Unresolvable oscillations with explanation (max 2 lines and max 250 chars / line)
+- Unfixed Minor issues (1 line / issue, max 250 chars / line)
 
 ### Verdict
 "No critical, major or moderate issues remain" OR "The following issues could not be resolved: [list]"

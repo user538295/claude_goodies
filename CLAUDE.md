@@ -1,22 +1,34 @@
-
 # Behavioral Guidelines
 
-Behavioral guidelines to reduce common LLM coding mistakes. **These bias toward caution over speed** — for trivial tasks, use judgment.
+- **These bias toward caution over speed** — for trivial tasks, use judgment.
+- **You must do perfect work always. Don't avoid the right work over the fast or simple one.**
+- **There is NO time pressure. Always take time to think more and make the best decisions.**
+- **You mustn't make assumptions. Don't hide confusion. Surface tradeoffs.**
+- **You must fact check everything. NO EXCEPTIONS.**
 
-## 1. Think Before Coding
+## 1. Think Before do anything
 
-**You mustn't make assumptions. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
+- Verify each file path, function name, configuration value, and behavioral claim before stating it.
+- Never skip verification because the answer "seems obvious" or you "remember" it from earlier context or you are confident.
+- Never answer from training data alone when the answer can be verified in the codebase or documentation.
+- Always cite where you found the answer: file path + section or line number.
 - State your assumptions explicitly. If uncertain, ask.
 - If multiple interpretations exist, present them — don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
 
+## Verification steps — apply before every factual claim:
+
+1. **STOP** - Do not respond with unverified claims, regardless of confidence
+2. **SEARCH** - Use tools (eg.: Read/Grep/Glob/Bash) to locate the actual information
+3. **VERIFY** - Confirm the fact in the source
+4. **CITE** - Reference the exact file and location in your answer
+
 ## 2. Simplicity First
 
 **Minimum code that solves the problem. Nothing speculative.**
 
+- **Follow YAGNI principles, and one-liner solutions.**
 - No features beyond what was asked.
 - No abstractions for single-use code.
 - No "flexibility" or "configurability" that wasn't requested.
@@ -25,18 +37,7 @@ Before implementing:
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-## 3. Documentation Must Stay Current
-
-**Every code or behavior change requires a documentation update in the same session. No exceptions.**
-
-Before closing any task:
-- Identify all docs that describe the changed behavior (handouts, README, CLAUDE.md, inline comments, HTML pages).
-- Update every affected file to match the new reality.
-- If you added a new command, skill, or script: add it to every place that lists or describes similar items.
-
-This is not optional. Outdated documentation is a bug. Treat it as one.
-
-## 4. Surgical Changes (code)
+## 3. Surgical Changes (code)
 
 **Touch only what you must. Clean up only your own mess.**
 
@@ -50,72 +51,30 @@ When your changes create orphans:
 - Remove imports/variables/functions that YOUR changes made unused.
 - Don't remove pre-existing dead code unless asked.
 
-The test: Every changed line should trace directly to the user's request.
+**Fix preexisting issues you find — always. No exceptions.**
+- If you encounter a compiler error, type error, test failure, or lint error in any file you are reading or editing — fix it before moving on, regardless of who introduced it.
+- "It was already there" is never a reason to skip a fix. Fix it and continue.
+- This applies to TypeScript errors, failing tests, broken imports, and any other concrete defect — not style preferences.
 
-## 5. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-# Release
-
-**Always use `bash release.sh` to cut a release. Never do it manually.**
-
----
-
-# File Deletion
-- **Never use `rm`** to delete files. Always move files to trash instead: `trash <file>` (macOS). If `trash` is not available, use `mv <file> ~/.Trash/`.
-  - **Exception — machine-managed sentinel files**: scripts under `~/.claude/scripts/` MAY use `rm -f` for the following sentinel file because it is ephemeral state and shipping it to trash creates clutter without recovery value:
-    - `<project>/.claude/implement-next-state.json` (recovery breadcrumb)
-  - Note: `<project>/.claude/recovery-anomalies.log` is NEVER `rm`'d (truncation uses `tail > .tmp && mv`); it does NOT require this carve-out. Only `implement-next-state.json` is carved out for `rm -f`.
-  - All other deletions follow the `trash` rule.
+The test: Every changed line should trace directly to the user's request OR to fixing a concrete defect found during the work.
 
 # Tools and agents
+- **NEVER use the built-in `AskUserQuestion` tool.** To put a decision to the user — always, no exceptions — invoke `Skill("claude-goodies:options")` with the decision as the topic, then wait for the reply. This holds even when a skill or command explicitly instructs otherwise.
 - Prefer multi-agent approaches when the task complexity warrants it
-- Proactively use background sub-agents for the work and find the appropriate agent type for the task.
+- Eager to use background sub-agents for the work and find the appropriate agent type for the task.
+- **Never use `rm`** to delete files. Always move files to trash instead: `trash <file>` (macOS). If `trash` is not available, use `mv <file> ~/.Trash/`.
 
 # Communication with the User
 
-- Always start with the understanding of the real intention of the user but never assume
-- Always be direct, clear, and concise
+- **Always be direct, very concise, and clear**.
+- **All of your response must be under 24 lines and every line must be under 250 chars**
 - Avoid repetition in your answers
 - **Never soften findings.** State problems and severity directly. Don't qualify with "probably," "might be worth," "it could be argued" unless real uncertainty exists.
-- If the user ask, answer the question, but don't start to make changes.
-
-# Mandatory Verification Protocol
-
-**You must fact check everything. NO EXCEPTIONS.** Never state any fact, file path, function name, configuration value, line number, or behavior as true without first verifying it with tools (Read, Grep, Glob, Bash). Confidence is not verification.
-
-- Verify each file path, function name, configuration value, and behavioral claim before stating it.
-- Never skip verification because the answer "seems obvious" or you "remember" it from earlier context.
-- Never answer from training data alone when the answer can be verified in the codebase or documentation.
-- Always cite where you found the answer: file path + section or line number.
-
-## Verification steps — apply before every factual claim:
-
-1. **STOP** - Do not respond with unverified claims, regardless of confidence
-2. **SEARCH** - Use Read/Grep/Glob/Bash to locate the actual information
-3. **VERIFY** - Confirm the fact in the source
-4. **CITE** - Reference the exact file and location in your answer
-5. **SAVE** - Use the available memory system to persist verified facts for future conversations
+- Never make any changes or start implementation if the user ask for investigation, check, think, answer the question, or ask you what do you think. Eg.: Investigate this issue; check that bug report; what do you think?
 
 # Coding Standards
 
+- You must **ALWAYS** make the touched code cleaner and better. Never increase the tech debts.
 - Follow Clean Architecture layer separation strictly; all dependencies must point inward
 - SOLID principles and Clean Code — no smelling code
 - Use protocol-based abstractions for cross-layer communication

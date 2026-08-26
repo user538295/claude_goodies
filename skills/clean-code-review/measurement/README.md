@@ -43,13 +43,13 @@ Record the model and any rule changes in the Method sheet (edit the rows in `bui
 
 ## Baseline (2026-08-24, sonnet agents)
 
-2,602 hits, 2,602 adjudicated, 830 LLM-only findings. Overall precision **41%** (archon-search 47%, dddd 41%, financialwell 41%, moonset 22%, udemy 18%). Script coverage of LLM findings: 46%. 19 of 60 scriptable checks produced zero hits on this corpus. See `2026-08-24-report.xlsx`. Data archived under `results/2026-08-24/`.
+2,602 hits, 2,602 adjudicated, 830 LLM-only findings. Overall precision **41%**. Script coverage of LLM findings: 46%. 19 of 60 scriptable checks produced zero hits on this corpus. 
 
 ## Full rerun (2026-08-26, sonnet agents)
 
-The whole measurement re-run from scratch on the frozen 46-file corpus with the **live round-8 scripts** (the workbook had gone stale — rounds 3-8 changed patterns without regenerating it). `results/*.tsv` and `report.xlsx` regenerated; deliverable `2026-08-26-report.xlsx`.
+The whole measurement re-run from scratch on the frozen 46-file corpus with the **live round-8 scripts** (the workbook had gone stale — rounds 3-8 changed patterns without regenerating it). `results/*.tsv` and `report.xlsx` regenerated.
 
-**Headline:** 1,811 hits, all 1,811 adjudicated, 979 LLM-only findings. Overall precision **74.9%** (archon-search 75%, moonset 79%, financialwell 77%, dddd 75%, udemy 15%). Script coverage of LLM findings (recall proxy, ±3 lines): **60%** (588/979). 43 of 60 scriptable checks fired; 17 produced zero hits on this corpus.
+**Headline:** 1,811 hits, all 1,811 adjudicated, 979 LLM-only findings. Overall precision **74.9%**. Script coverage of LLM findings (recall proxy, ±3 lines): **60%** (588/979). 43 of 60 scriptable checks fired; 17 produced zero hits on this corpus.
 
 This confirms the cumulative effect of rounds 1-8: hits fell **2,602 → 1,811** and corpus-wide precision rose **41% → 75%** on a clean, full re-adjudication (not a verdict-join).
 
@@ -62,18 +62,8 @@ Model, file set, and ±3-line matching are unchanged, so precision is comparable
 
 ## Full rerun (2026-08-26, 15:58, sonnet agents)
 
-Complete re-run from scratch on the frozen 46-file corpus with the live scripts, and a new `quality rate` column (S) added to every check sheet. Script sweep upfront (46 files, 0 cap warnings); adjudication in 18 packets (≤150 hits) and the LLM-only pass in 19 file batches, all `model: sonnet`. `results/*.tsv` and `report.xlsx` regenerated; deliverable `2026-08-26-15-58-report.xlsx`. Prior 11:47 data archived under `results/2026-08-26-1147/`.
+Complete re-run from scratch on the frozen 46-file corpus with the live scripts, and a new `quality rate` column (S) added to every check sheet. Script sweep upfront (46 files, 0 cap warnings); adjudication in 18 packets (≤150 hits) and the LLM-only pass in 19 file batches, all `model: sonnet`. `results/*.tsv` and `report.xlsx` regenerated. 
 
-**Headline:** 1,855 hits, all 1,855 adjudicated, 661 LLM-only findings. Overall precision **71.8%** (moonset 85%, financialwell 78%, archon-search 70%, dddd 60%, udemy 15%). Script coverage of LLM findings (recall proxy, ±3 lines): **66%** (437/661). Overall quality rate (TP / LLM-only) **2.02** — the script confirmed ~2× the real violations the unaided LLM pass surfaced. 43 of 60 scriptable checks fired.
+**Headline:** 1,855 hits, all 1,855 adjudicated, 661 LLM-only findings. Overall precision **71.8%**. Script coverage of LLM findings (recall proxy, ±3 lines): **66%** (437/661). Overall quality rate (TP / LLM-only) **2.02** — the script confirmed ~2× the real violations the unaided LLM pass surfaced. 43 of 60 scriptable checks fired.
 
 Model, file set, and ±3-line matching unchanged from the baseline, so precision stays comparable. The LLM-only pass is a fresh single run (661 findings vs the 08-26 11:47 run's 979); run-to-run variance in that pass is not measured, so coverage and quality rate move with it.
-
-## Improvements (2026-08-24)
-
-Precision **41% → 46.5%**; false positives 1,538 → 1,222.
-
-- **`smells-08`** narrowed to returns + typed params — 555 → 327 hits, 32% → **54%**, 3 TPs lost.
-- **`SKIP_TESTS`** in `collect.sh` — `ddd-01/solid-06/08/09` skip test files (their NOTEs already say to) — 91 hits, **0 TPs lost**.
-
-Verified: re-ran all 46 files; only those five checks moved, zero novel hits.
-

@@ -1266,3 +1266,29 @@ arch-14	typescript	arch/envinline.ts	MATCH	const region = process.env.AWS_REGION
 arch-14	typescript	arch/envinline.ts	NOMATCH	const region = config.awsRegion;
 arch-14	java	arch/EnvInline.java	MATCH	String key = System.getenv("API_KEY");
 arch-14	java	arch/EnvInline.java	NOMATCH	String key = config.getApiKey();
+smells-21	python	smells/anytype.py	MATCH	    rows: dict[str, Any] = {}
+smells-21	python	smells/anytype.py	MATCH	    value = cast(Any, payload)
+smells-21	python	smells/anytype.py	NOMATCH	from typing import TYPE_CHECKING, Any, Optional
+smells-21	python	smells/anytype.py	NOMATCH	    rows: dict[str, Receipt] = {}
+safety-13	python	safety/validate.py	NOMATCH	    assert False
+safety-13	python	safety/validate.py	NOMATCH	    assert False, "unreachable state"
+safety-13	python	safety/validate.py	NOMATCH	    assert None
+safety-13	python	safety/validate.py	MATCH	    assert scope_filter is None, "must be None in graph-mode"
+solid-10	swift	solid/HomeViewController.swift	MATCH	    var viewmodel = HomeViewModel()
+solid-10	swift	solid/HomeViewController.swift	MATCH	        authenticationService = AuthenticationService()
+solid-10	swift	solid/HomeViewController.swift	NOMATCH	        let origin = CGPoint(x: 0, y: 0)
+solid-10	swift	solid/AppContainer.swift	NOMATCH	        let repo = UserDefaultsTimerRepository()
+safety-02	swift	safety/safety-02.swift	MATCH	return value * exchangePrice!
+safety-02	swift	safety/safety-02.swift	MATCH	let s = "\(components.year!)-\(components.month!)"
+safety-02	swift	safety/safety-02.swift	NOMATCH	AppLog.fail(error, message: "Couldn't save budget!")
+safety-02	swift	safety/safety-02.swift	NOMATCH	// let compressed = try ModelCrypto.decrypt(data: tmpFile.data!)
+safety-02	csharp	safety/safety-02.cs	MATCH	return dict[key]!;
+safety-02	csharp	safety/safety-02.cs	MATCH	var s = maybe!;
+safety-02	csharp	safety/safety-02.cs	MATCH	var interp = $"value is {config.Setting!}";
+safety-02	csharp	safety/safety-02.cs	NOMATCH	Console.WriteLine("out of range!");
+safety-02	csharp	safety/safety-02.cs	NOMATCH	bool ok = !flag;
+safety-02	typescript	safety/safety-02.ts	NOMATCH	let releasePrList!: () => void
+safety-02	typescript	safety/safety-02.ts	NOMATCH	private field!: string
+safety-02	typescript	safety/safety-02.ts	MATCH	const t = `count ${arr[0]!}`
+safety-02	typescript	safety/safety-02.ts	MATCH	const v = cfg.value! + 1
+safety-02	typescript	safety/safety-02.ts	NOMATCH	const s = "boom!"

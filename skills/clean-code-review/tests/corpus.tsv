@@ -82,7 +82,7 @@ smells-08	javascript	smells/smells-08.js	NOMATCH	if (cache !== null && cache.has
 smells-08	javascript	smells/smells-08.js	NOMATCH	let selectedItem = null;
 smells-08	python	smells/smells-08.py	MATCH	def find_user(user_id: int) -> Optional[User]:
 smells-08	python	smells/smells-08.py	FILL	def search(
-smells-08	python	smells/smells-08.py	MATCH	    scope_filter: str | None = None,
+smells-08	python	smells/smells-08.py	NOMATCH	    scope_filter: str | None = None,
 smells-08	python	smells/smells-08.py	FILL	):
 smells-08	python	smells/smells-08.py	MATCH	def search_all(query, scope_filter=None):
 smells-08	python	smells/smells-08.py	NOMATCH	if result is None: raise LookupError(user_id)
@@ -94,7 +94,7 @@ smells-08	csharp	smells/smells-08.cs	MATCH	public void Reset(User? user = null) 
 smells-08	csharp	smells/smells-08.cs	NOMATCH	if (user == null) throw new KeyNotFoundException(id);
 smells-08	csharp	smells/smells-08.cs	NOMATCH	_cachedUser = null;
 smells-08	swift	smells/smells-08.swift	MATCH	    return nil
-smells-08	swift	smells/smells-08.swift	MATCH	func search(query: String, scopeFilter: String? = nil) {
+smells-08	swift	smells/smells-08.swift	NOMATCH	func search(query: String, scopeFilter: String? = nil) {
 smells-08	swift	smells/smells-08.swift	NOMATCH	func findUser(id: String) -> User? {
 smells-08	swift	smells/smells-08.swift	NOMATCH	guard user != nil else { throw UserError.missing }
 smells-08	swift	smells/smells-08.swift	NOMATCH	timer = nil
@@ -400,7 +400,7 @@ tests-09	javascript	tgrp/noassert.test.js	NOMATCH	it("verifies work", () => {
 tests-09	javascript	tgrp/noassert.test.js	FILL	    expect(service.doWork()).toBe(1);
 tests-09	javascript	tgrp/noassert.test.js	FILL	});
 safety-02	typescript	safety/safety-02.ts	MATCH	const userId = sessionMap.get(token)!;
-safety-02	typescript	safety/safety-02.ts	NOMATCH	const name = user!.profile.name;
+safety-02	typescript	safety/safety-02.ts	MATCH	const name = user!.profile.name;
 safety-02	csharp	safety/safety-02.cs	MATCH	var start = booking.StartDate.Value.AddDays(1);
 safety-02	csharp	safety/safety-02.cs	NOMATCH	volumeSlider.Value = DEFAULT_VOLUME;
 safety-02	swift	safety/safety-02.swift	MATCH	let vc = storyboard.instantiateViewController(withIdentifier: "detail") as! DetailViewController

@@ -60,6 +60,15 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pi
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-11	1005	last_indexed=datetime.now(UTC),
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-11	3502	last_indexed=datetime.now(UTC),
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-11	3538	last_indexed=datetime.now(UTC),
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	1242	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	1336	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2131	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2255	assert scope_filter is None, "scope_filter must be None in graph-mode paths"
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2327	assert scope_filter is None, "scope_filter must be None in graph-mode paths — check the 422 guard"
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2407	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2839	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2925	assert scope_filter is None, (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	safety-13	2968	assert scope_filter is None, (
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-01	1	file-level: 3635 lines
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-02	313	def __init__(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-02	421	async def ingest_file(
@@ -95,73 +104,8 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pi
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-03	3299	rag_fusion: bool = False,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-03	3371	skip_fts_optimize: bool = False,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-03	3441	force: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	325	language_detector: LanguageDetector | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	328	graph_extractor: GraphExtractor | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	329	graph_store: GraphStore | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	330	graph_config: GraphConfig | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	331	graph_expander: "GraphExpander | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	332	defref_extractor: "DefRefExtractor | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	333	ast_chunker: ASTChunker | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	334	ppr_walker: "PPRWalker | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	394	async def warmup_models(self, embedder: Embedder | None = None) -> None:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	426	_vector_collector: list[list[float]] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	427	_chunk_collector: list[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	432	collection_root: Path | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	433	chunk_ttl_seconds: int | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	434	chunk_scopes: list[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	893	progress_cb: Callable[[int, int], None | Awaitable[None]] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	895	exclude_paths: frozenset[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	896	on_file_complete: Callable[[Path], None] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	901	collection_root: Path | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	903	chunk_ttl_seconds: int | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	904	chunk_scopes: list[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1026	filters: SearchFilters | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1027	query_vector: list[float] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1029	rag_fusion_generator: "RAGFusionGenerator | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1030	rag_fusion_config: "RAGFusionConfig | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1031	graph_mode: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1032	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1233	filters: "SearchFilters | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1234	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1319	filters: "SearchFilters | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1320	scope_filter: "str | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1465	filters: "SearchFilters | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1690	filters: SearchFilters | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1691	query_vector: list[float] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1693	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1743	collection: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1745	collections: list[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1749	query_vector: list[float] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1750	embedder: Embedder | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1752	rag_fusion_generator: "RAGFusionGenerator | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1753	rag_fusion_config: "RAGFusionConfig | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1754	graph_mode: Literal["naive", "local", "global", "ppr"] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	1755	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2114	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2247	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2324	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2385	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2572	query_vector: list[float] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2575	rag_fusion_failure_reason: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2576	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2629	query_vector: list[float] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2631	rag_fusion_generator: "RAGFusionGenerator | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2632	rag_fusion_config: "RAGFusionConfig | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2633	filters: SearchFilters | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2634	graph_mode: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	2635	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3209	filters: SearchFilters | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3210	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3297	filters: SearchFilters | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3298	query_vector: list[float] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3300	rag_fusion_generator: "RAGFusionGenerator | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3301	rag_fusion_config: "RAGFusionConfig | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3302	scope_filter: str | None = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3414	async def get_collection_meta(self, name: str, namespace: str = DEFAULT_NAMESPACE) -> CollectionMeta | None:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3421	cursor: str | None = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3423	) -> tuple[list[DocumentInfo], str | None, int]:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3558	embedder_backend: EmbedderBackend | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-08	3559	reranker_backend: RerankerBackend | None = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-12	297	except Exception:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-12	409	except Exception:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	smells-12	414	except Exception:
@@ -212,128 +156,116 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pi
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-10	522	enricher = MarkdownEnricher()
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	solid-15	3161	elif graph_mode == "local":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pipeline.py	tests-01	53	class SearchPipelineResult:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	596	if r["name"] == name and (r.get("namespace") or DEFAULT_NAMESPACE) == namespace
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	1370	if r["name"] == collection and (r.get("namespace") or DEFAULT_NAMESPACE) == namespace
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	1800	if not has_ttl_cols and any(c.expires_at is not None or c.scopes is not None for c in chunks):
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	2168	if filters and (filters.indexed_after or filters.indexed_before):
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	517	if not isinstance(parsed, list) or any(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	540	if not isinstance(parsed, list) or any(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	1202	if progress_cb is not None and (
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	1815	if not has_acl_provenance_cols and any(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	504	def _row_to_meta(row: "dict[str, Any]") -> "CollectionMeta":
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	694	async def migrate_per_collection_model(self) -> None:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	1218	async def update_collection_meta(self, meta: "CollectionMeta") -> None:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	1481	async def _do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	1935	async def reindex_metadata(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	2062	async def hybrid_search(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	2329	async def list_documents(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	2950	async def _hybrid_search_with_trace(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-17	2950	async def _hybrid_search_with_trace(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	679	if r["name"] == name and (r.get("namespace") or DEFAULT_NAMESPACE) == namespace
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	1479	if r["name"] == collection and (r.get("namespace") or DEFAULT_NAMESPACE) == namespace
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	1908	if not has_ttl_cols and any(c.expires_at is not None or c.scopes is not None for c in chunks):
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	591	if not isinstance(parsed, list) or any(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	614	if not isinstance(parsed, list) or any(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-09	1299	if progress_cb is not None and (
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	578	def _row_to_meta(row: "dict[str, Any]") -> "CollectionMeta":
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	794	async def migrate_per_collection_model(self) -> None:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	1315	async def update_collection_meta(self, meta: "CollectionMeta") -> None:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	1589	async def _do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	2040	async def reindex_metadata(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	2179	async def hybrid_search(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	2457	async def list_documents(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-16	3083	async def _hybrid_search_with_trace(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	clarity-17	3083	async def _hybrid_search_with_trace(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	ddd-01	34	@dataclass
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	ddd-01	45	@dataclass
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	311	self._db_path.mkdir(parents=True, exist_ok=True)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	1985	mtime = Path(source_path).stat().st_mtime
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	2312	produced by ``str(path.resolve())`` at ingest time.  Relative paths
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	2320	doc_id = hashlib.sha256(str(Path(source_path).resolve()).encode()).hexdigest()
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	258	from archon_search.constants import INGESTED_BY_VALUES, LEGACY_INGESTED_BY  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	280	from archon_search.config import SearchConfig as _SearchConfig  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	308	import lancedb  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	367	import pyarrow as pa  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	395	import pyarrow as pa  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	505	from archon_search.collection_meta import CollectionMeta  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	791	import pyarrow as pa  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	813	import pyarrow as pa  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	851	import pyarrow as pa  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	872	import pyarrow as pa  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	893	import pyarrow as pa  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	920	import pyarrow as pa  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1313	from archon_search.collection_meta import CollectionMeta  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1493	from archon_search.collection_meta import CollectionMeta  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1639	from archon_search.collection_meta import CollectionMeta  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1640	from datetime import timezone  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1868	from lancedb.index import FTS  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1957	from archon_search.constants import LEGACY_INGESTED_BY  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2009	except Exception:  # noqa: BLE001
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2015	except Exception:  # noqa: BLE001
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2161	ingested_by=normalize_ingested_by(row.get("ingested_by")),  # type: ignore[arg-type]
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2895	from collections import Counter  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2922	import pyarrow.compute as pc  # noqa: PLC0415
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	3093	ingested_by=normalize_ingested_by(row.get("ingested_by")),  # type: ignore[arg-type]
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	330	now = time.monotonic()
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	336	self._ping_cache = (time.monotonic(), True)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	341	self._ping_cache = (time.monotonic(), False)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	1650	now = datetime.now(timezone.utc)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	1925	random.shuffle(texts)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	2474	now = datetime.now(timezone.utc)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	2573	now_utc_iso = normalize_iso_utc(datetime.now(timezone.utc))
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	2627	now_utc_iso = normalize_iso_utc(datetime.now(timezone.utc))
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	161	return f"{col} IN ({items})" if items else "1=0"
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	611	await table.delete(_where_eq("name", name) + " AND " + _where_eq("namespace", namespace))
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	744	await table.delete(_where_eq("name", name) + " AND " + ns_predicate)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	1294	await table.delete(_where_eq("name", meta.name) + " AND namespace IS NULL")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	1462	await table.delete(_where_eq("name", meta.name) + " AND namespace IS NULL")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2480	"expires_at IS NOT NULL AND expires_at >= " + _sql_quote_str(now_iso)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2481	+ " AND expires_at <= " + _sql_quote_str(cutoff_iso)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2493	"(" + base_pred + ") AND ("
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2494	+ "expires_at > " + _sql_quote_str(cursor_expires_at)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2495	+ " OR (expires_at = " + _sql_quote_str(cursor_expires_at)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2496	+ " AND chunk_id > " + _sql_quote_str(cursor_chunk_id) + "))"
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2574	expired_pred = "expires_at IS NOT NULL AND expires_at < " + _sql_quote_str(now_utc_iso)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2589	await table.delete("(" + expired_pred + ") AND " + _where_in("doc_id", batch_doc_ids))
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2628	pred = "expires_at IS NOT NULL AND expires_at < " + _sql_quote_str(now_utc_iso)
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2876	predicate = "language = " + _sql_quote_str("")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-01	1	file-level: 3105 lines
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	168	def _centroid_sum_valid(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1128	async def apply_rewrite_migration(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1298	async def update_description(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1481	async def _do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1631	async def _do_subtract_meta_on_delete(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1727	async def ingest_chunks(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1935	async def reindex_metadata(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2062	async def hybrid_search(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2183	async def hybrid_search_with_trace(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2233	async def delete_document(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2301	async def delete_by_source_path(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2437	async def query_expiring_chunks(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2635	async def fetch_adjacent_chunks(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2950	async def _hybrid_search_with_trace(
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	1732	_locked_by_caller: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	1733	_is_continuation: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	1939	dry_run: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	1940	normalize_timestamps: bool = True,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	2239	skip_fts_optimize: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	2307	skip_fts_optimize: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	271	def __init__(self, db_path: str | Path, config: "SearchConfig | None" = None) -> None:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	584	async def get_collection_meta(self, name: str, namespace: str = DEFAULT_NAMESPACE) -> "CollectionMeta | None":
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	590	return None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	599	return None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1133	progress_cb: "Callable[[int, int, str], None] | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1360	) -> "CollectionMeta | None":
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1364	return None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1734	embedding_model: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1941	progress_cb: Callable[[int, int], None] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2068	filters: "SearchFilters | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2189	filters: "SearchFilters | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2190	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2330	self, collection: str, limit: int = 100, cursor: str | None = None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2331	) -> tuple[list[DocumentInfo], str | None, int]:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2443	cursor: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2444	) -> tuple[list[dict], str | None]:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2779	) -> int | None:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2793	return None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2798	return None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2956	filters: "SearchFilters | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2957	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	340	except Exception:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	754	except Exception as exc:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	1927	except Exception as e:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	2009	except Exception:  # noqa: BLE001
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	2015	except Exception:  # noqa: BLE001
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	338	self._db_path.mkdir(parents=True, exist_ok=True)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-06	2438	produced by ``str(path.resolve())`` at ingest time.  Relative paths
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	279	from archon_search.constants import INGESTED_BY_VALUES, LEGACY_INGESTED_BY  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	301	from archon_search.config import SearchConfig as _SearchConfig  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	336	import lancedb  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	404	import pyarrow as pa  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	432	import pyarrow as pa  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	579	from archon_search.collection_meta import CollectionMeta  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	888	import pyarrow as pa  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	910	import pyarrow as pa  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	948	import pyarrow as pa  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	969	import pyarrow as pa  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	990	import pyarrow as pa  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1017	import pyarrow as pa  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1422	from archon_search.collection_meta import CollectionMeta  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1601	from archon_search.collection_meta import CollectionMeta  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1747	from archon_search.collection_meta import CollectionMeta  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1748	from datetime import timezone  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	1973	from lancedb.index import FTS  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2064	from archon_search.constants import LEGACY_INGESTED_BY  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2126	except Exception:  # noqa: BLE001
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2132	except Exception:  # noqa: BLE001
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	2287	ingested_by=normalize_ingested_by(row.get("ingested_by")),  # type: ignore[arg-type]
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	3033	from collections import Counter  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	3060	import pyarrow.compute as pc  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-07	3224	ingested_by=normalize_ingested_by(row.get("ingested_by")),  # type: ignore[arg-type]
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	367	now = time.monotonic()
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	373	self._ping_cache = (time.monotonic(), True)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	378	self._ping_cache = (time.monotonic(), False)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	1758	now = datetime.now(timezone.utc)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	2030	random.shuffle(texts)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	2602	now = datetime.now(timezone.utc)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	2701	now_utc_iso = normalize_iso_utc(datetime.now(timezone.utc))
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-11	2755	now_utc_iso = normalize_iso_utc(datetime.now(timezone.utc))
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	165	return f"{col} IN ({items})" if items else "1=0"
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	703	await table.delete(_where_eq("name", name) + " AND " + _where_eq("namespace", namespace))
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	842	await table.delete(_where_eq("name", name) + " AND " + ns_predicate)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	1403	await table.delete(_where_eq("name", meta.name) + " AND namespace IS NULL")
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	1570	await table.delete(_where_eq("name", meta.name) + " AND namespace IS NULL")
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2608	"expires_at IS NOT NULL AND expires_at >= " + _sql_quote_str(now_iso)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2609	+ " AND expires_at <= " + _sql_quote_str(cutoff_iso)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2621	"(" + base_pred + ") AND ("
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2622	+ "expires_at > " + _sql_quote_str(cursor_expires_at)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2623	+ " OR (expires_at = " + _sql_quote_str(cursor_expires_at)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2624	+ " AND chunk_id > " + _sql_quote_str(cursor_chunk_id) + "))"
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2702	expired_pred = "expires_at IS NOT NULL AND expires_at < " + _sql_quote_str(now_utc_iso)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2717	await table.delete("(" + expired_pred + ") AND " + _where_in("doc_id", batch_doc_ids))
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2756	pred = "expires_at IS NOT NULL AND expires_at < " + _sql_quote_str(now_utc_iso)
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	3014	predicate = "language = " + _sql_quote_str("")
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-01	1	file-level: 3236 lines
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	172	def _centroid_sum_valid(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1225	async def apply_rewrite_migration(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1407	async def update_description(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1589	async def _do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1739	async def _do_subtract_meta_on_delete(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	1835	async def ingest_chunks(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2040	async def reindex_metadata(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2179	async def hybrid_search(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2309	async def hybrid_search_with_trace(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2359	async def delete_document(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2427	async def delete_by_source_path(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2565	async def query_expiring_chunks(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	2763	async def fetch_adjacent_chunks(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-02	3083	async def _hybrid_search_with_trace(
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	206	def _has_missing_acl_provenance(chunks: list[ChunkRecord], has_acl_provenance_cols: bool) -> bool:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	482	async def drop_collection(self, name: str, *, _locked_by_caller: bool = False) -> None:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	1840	_locked_by_caller: bool = False,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	1841	_is_continuation: bool = False,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	2044	dry_run: bool = False,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	2045	normalize_timestamps: bool = True,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	2365	skip_fts_optimize: bool = False,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-03	2433	skip_fts_optimize: bool = False,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	658	async def get_collection_meta(self, name: str, namespace: str = DEFAULT_NAMESPACE) -> "CollectionMeta | None":
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	673	return None
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	682	return None
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1469	) -> "CollectionMeta | None":
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	1473	return None
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2459	) -> tuple[list[DocumentInfo], str | None, int]:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2572	) -> tuple[list[dict], str | None]:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2917	) -> int | None:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2931	return None
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-08	2936	return None
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	377	except Exception:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	851	except Exception as exc:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	2032	except Exception as e:
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	2126	except Exception:  # noqa: BLE001
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-12	2132	except Exception:  # noqa: BLE001
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	smells-21	335	def _import_lancedb_and_mkdir() -> Any:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-06	65	self.timeout_s = timeout_s
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-07	1465	self, db: "lancedb.db.AsyncConnection", collection: str, doc_id: str
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-07	2236	doc_id: str,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-07	2638	doc_id: str,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-07	2722	doc_id: str,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-07	1573	self, db: "lancedb.db.AsyncConnection", collection: str, doc_id: str
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-07	2362	doc_id: str,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-07	2766	doc_id: str,
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	solid-07	2860	doc_id: str,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	clarity-09	1524	if (
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	clarity-09	2187	if eid not in exempt_edge_ids
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	clarity-16	289	async def ensure_graph_tables(self, collection: str, ns: str) -> None:
@@ -385,11 +317,7 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/gr
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	671	return None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	788	) -> GraphNode | None:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	817	return None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	1448	preserve_node_ids: frozenset[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	1637	limit: int | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	1900	self, table_name: str, context_label: str, predicate: str | None = None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	1921	return None
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-08	2339	self, collection: str, ns: str, extraction_method_filter: str | None = None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-12	1009	except Exception as exc:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-12	1143	except Exception:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/graph_store.py	smells-12	1159	except Exception:
@@ -530,70 +458,10 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/se
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	142	) -> "McpErrorResponse | None":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	170	return None
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	235	meta: Any = None,  # pre-fetched CollectionMeta; skips the get_collection_meta call
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	261	writer: TelemetryWriter | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	262	config: SearchConfig | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	263	embedder_cache: EmbedderCache | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	264	job_store: JobStore | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	265	hyde_generator: "HyDEGenerator | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	266	rag_fusion_generator: "RAGFusionGenerator | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	267	key_store: "KeyStore | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	268	doc_id_hasher: Callable[[str], str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	269	graph_store: "GraphStore | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	294	collection: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	295	collections: list[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	297	file_type: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	298	source_path_prefix: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	299	source_path_glob: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	300	indexed_after: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	301	indexed_before: str | None = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	302	language: _LanguageParamSearch = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	305	graph_mode: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	306	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	606	collection: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	609	file_type: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	610	source_path_prefix: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	611	source_path_glob: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	612	indexed_after: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	613	indexed_before: str | None = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	614	language: _LanguageParamSearchWithContext = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	617	graph_mode: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	618	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	796	collection: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	797	collections: list[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	802	graph_mode: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	803	scope_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1139	collection: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1140	chunk_ttl_seconds: int | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1141	chunk_scopes: list[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1196	collection: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1197	ctx: Context | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1198	chunk_ttl_seconds: int | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1199	chunk_scopes: list[str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1316	collection: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1318	cursor: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1336	collection: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1337	namespace: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1626	label: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1627	expires_at: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1681	namespace: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1755	async def rotate_key(grace_seconds: int | None = None) -> dict[str, Any]:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1865	) -> tuple[dict[str, Any] | None, int]:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1873	return None, 1
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1904	salience_mode: Literal["frequency", "tfidf", "importance"] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	1989	salience_mode: Literal["frequency", "tfidf", "importance"] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2115	file_path: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2116	depth: int | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2117	direction: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2118	extraction_method_filter: str | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2190	writer: TelemetryWriter | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2191	config: SearchConfig | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2193	embedder_cache: EmbedderCache | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2194	job_store: JobStore | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2195	hyde_generator: "HyDEGenerator | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2196	rag_fusion_generator: "RAGFusionGenerator | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2197	key_store: "KeyStore | None" = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2198	doc_id_hasher: Callable[[str], str] | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-08	2199	graph_store: "GraphStore | None" = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-10	203	Uses fastmcp.server.dependencies.get_http_request() (public API) which handles
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-12	446	except Exception as exc:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	smells-12	464	except Exception:
@@ -681,13 +549,7 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/ev
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-02	1850	async def _execute_retrieval_query(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-02	1936	async def _execute_graph_retrieval_query(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-03	709	defref_enabled: bool = False,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-08	613	community_backend_map: dict | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-08	614	lancedb_root: Path | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-08	1019	thresholds_path: Path | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-08	1020	baseline_path: Path | None = None,
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-08	1023	lancedb_root: Path | None = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-08	1255	def _corpus_for_trace(t: QueryEvalTrace) -> int | None:
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-08	1534	skip_fields: frozenset[str] | None = None,
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-10	746	:class:`~archon_search.eval.backends._FixedWindowChunkerAdapter`
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	smells-12	1242	except Exception as exc:  # pragma: no cover — defensive
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	solid-07	380	embedding_model_id: str | None = None
@@ -713,7 +575,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/pa
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/parser.py	solid-15	246	elif suffix in _IMAGE_EXTENSIONS:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	safety-07	171	except Exception as exc:  # noqa: BLE001 — one bad model must not abort the rest
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	safety-07	176	except Exception as exc:  # noqa: BLE001 — same: never fail startup
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	smells-08	55	def __init__(self, max_size: int, providers: list[str] | None = None) -> None:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	smells-12	171	except Exception as exc:  # noqa: BLE001 — one bad model must not abort the rest
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/embedder_cache.py	smells-12	176	except Exception as exc:  # noqa: BLE001 — same: never fail startup
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/sync_suppression.py	safety-06	61	path.parent.mkdir(parents=True, exist_ok=True)
@@ -733,50 +594,50 @@ archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	4415	from archon_search.store import _where_in  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	4422	from archon_search.store import _where_in  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	4478	real_lock.acquire = tracked_acquire  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6335	store._do_update_meta_on_add = fake_update  # type: ignore[assignment]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6713	db = store._require_connected()  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6716	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6719	async def fake_open_table(name: str):  # noqa: ANN202
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6722	table.create_index = fake_create_index  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6723	db.open_table = fake_open_table  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6729	assert captured_fts[0].language == "French"  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6746	db = store._require_connected()  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6749	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6752	async def fake_open_table(name: str):  # noqa: ANN202
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6755	table.create_index = fake_create_index  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6756	db.open_table = fake_open_table  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6763	assert captured_fts[0].language == "English"  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6780	db = store._require_connected()  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6783	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6786	async def fake_open_table(name: str):  # noqa: ANN202
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6789	table.create_index = fake_create_index  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6790	db.open_table = fake_open_table  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6796	assert captured_fts[0].language == "English"  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7128	store.get_collection_meta = AsyncMock(return_value=mock_meta)  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7153	store.get_collection_meta = AsyncMock(return_value=mock_meta)  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7186	store.get_collection_meta = AsyncMock(return_value=mock_meta)  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7204	store.get_collection_meta = AsyncMock(return_value=None)  # type: ignore[method-assign]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7298	store.migrate_a = migrate_a  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7299	store.migrate_b = migrate_b  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7334	store.migrate_noop = noop_migrate  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7381	store.migrate_fn = migrate_fn  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7418	store.migrate_ok = migrate_ok  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7556	store.migrate_rewrite_dummy = dummy_transform  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7608	store.migrate_rewrite_dummy = dummy_transform  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7683	store.migrate_rewrite_dummy = dummy_transform  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7686	mock_table.query.return_value.to_list = AsyncMock(return_value=[])  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7736	store.migrate_rewrite_blocking = blocking_transform  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7810	store.migrate_rewrite_fail = failing_transform  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7858	store.migrate_rewrite_cancel = cancelling_transform  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7913	store.migrate_rewrite_midway_cancel = midway_cancel_transform  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7983	store.migrate_rewrite_identity = _identity_transform  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-01	1	file-level: 8271 lines
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6328	store._do_update_meta_on_add = fake_update  # type: ignore[assignment]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6706	db = store._require_connected()  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6709	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6712	async def fake_open_table(name: str):  # noqa: ANN202
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6715	table.create_index = fake_create_index  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6716	db.open_table = fake_open_table  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6722	assert captured_fts[0].language == "French"  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6739	db = store._require_connected()  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6742	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6745	async def fake_open_table(name: str):  # noqa: ANN202
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6748	table.create_index = fake_create_index  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6749	db.open_table = fake_open_table  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6756	assert captured_fts[0].language == "English"  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6773	db = store._require_connected()  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6776	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6779	async def fake_open_table(name: str):  # noqa: ANN202
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6782	table.create_index = fake_create_index  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6783	db.open_table = fake_open_table  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	6789	assert captured_fts[0].language == "English"  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7121	store.get_collection_meta = AsyncMock(return_value=mock_meta)  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7146	store.get_collection_meta = AsyncMock(return_value=mock_meta)  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7179	store.get_collection_meta = AsyncMock(return_value=mock_meta)  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7197	store.get_collection_meta = AsyncMock(return_value=None)  # type: ignore[method-assign]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7291	store.migrate_a = migrate_a  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7292	store.migrate_b = migrate_b  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7327	store.migrate_noop = noop_migrate  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7374	store.migrate_fn = migrate_fn  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7411	store.migrate_ok = migrate_ok  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7549	store.migrate_rewrite_dummy = dummy_transform  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7601	store.migrate_rewrite_dummy = dummy_transform  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7676	store.migrate_rewrite_dummy = dummy_transform  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7679	mock_table.query.return_value.to_list = AsyncMock(return_value=[])  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7729	store.migrate_rewrite_blocking = blocking_transform  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7803	store.migrate_rewrite_fail = failing_transform  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7851	store.migrate_rewrite_cancel = cancelling_transform  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7906	store.migrate_rewrite_midway_cancel = midway_cancel_transform  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	safety-07	7976	store.migrate_rewrite_identity = _identity_transform  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-01	1	file-level: 8264 lines
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-02	31	def _chunk(doc_id: str, idx: int, text: str = "hello", dim: int = _DIM) -> ChunkRecord:
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-02	211	async def _ingest_doc(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-02	6331	async def fake_update(db, collection, batch_vectors, distinct_doc_count, *, embedding_model, embedding_dim, namespace):
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-03	6716	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-03	6749	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-03	6783	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-02	6324	async def fake_update(db, collection, batch_vectors, distinct_doc_count, *, embedding_model, embedding_dim, namespace):
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-03	6709	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-03	6742	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-03	6776	async def fake_create_index(col_arg: str, config: FTS, replace: bool = False) -> None:  # noqa: ARG001
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	smells-12	2171	except Exception as exc:
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	38	indexed_at=datetime.now(timezone.utc).isoformat(),
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	3271	indexed_at=datetime.now(timezone.utc).isoformat(),
@@ -791,10 +652,10 @@ archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	4066	indexed_at=datetime.now(timezone.utc).isoformat(),
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	4105	indexed_at=datetime.now(timezone.utc).isoformat(),
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	4143	indexed_at=datetime.now(timezone.utc).isoformat(),
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	5086	indexed_at=datetime.now(timezone.utc).isoformat(),
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	5094	indexed_at=datetime.now(timezone.utc).isoformat(),
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	5102	indexed_at=datetime.now(timezone.utc).isoformat(),
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	6511	indexed_at=datetime.now(timezone.utc).isoformat(),
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	5079	indexed_at=datetime.now(timezone.utc).isoformat(),
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	5087	indexed_at=datetime.now(timezone.utc).isoformat(),
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	5095	indexed_at=datetime.now(timezone.utc).isoformat(),
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-04	6504	indexed_at=datetime.now(timezone.utc).isoformat(),
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	576	store._db = mock_db
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	593	store._db = mock_db
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	636	store._db = mock_db
@@ -860,128 +721,128 @@ archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4648	meta = SearchStore._row_to_meta(row)
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4658	meta = SearchStore._row_to_meta(row)
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4679	meta = SearchStore._row_to_meta(row)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4700	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4702	await db.create_table("_archon_collection_meta", schema=SearchStore._meta_schema())
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4733	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4735	[f for f in SearchStore._meta_schema() if f.name != "description_embedding_json"]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4767	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4770	[f for f in SearchStore._meta_schema() if f.name != "description_embedding_json"]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4819	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4866	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4867	result = await store._do_read_meta_unlocked(db, "some-col")
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4888	db = connected_store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4889	result = await connected_store._do_read_meta_unlocked(db, "read-unlocked-col")
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4912	db = connected_store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4913	await connected_store._do_write_meta_unlocked(db, "write-unlocked-col", meta)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4931	db = connected_store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4933	await connected_store._do_write_meta_unlocked(db, "upsert-unlocked-col", meta2)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4950	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4957	await store._do_write_meta_unlocked(db, "auto-create-col", meta)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4981	db = connected_store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4982	await connected_store._do_write_meta_unlocked(db, "b5-unlocked-col", meta)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5006	db = connected_store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5010	await connected_store._do_write_meta_unlocked(db, col, meta_alpha)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5011	await connected_store._do_write_meta_unlocked(db, col, meta_beta)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5015	await connected_store._do_write_meta_unlocked(db, col, updated_alpha)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5061	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5062	result = await store._do_fetch_doc_vectors_unlocked(db, "nonexistent-col", _doc_id())
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5108	db = connected_store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5109	result = await connected_store._do_fetch_doc_vectors_unlocked(db, col_name, doc_a)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5125	db = connected_store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5127	result = await connected_store._do_fetch_doc_vectors_unlocked(db, col_name, missing_doc)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5149	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5151	result_col_a = await store._do_fetch_doc_vectors_unlocked(db, col_a, doc_a)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5152	result_col_b_for_doc_a = await store._do_fetch_doc_vectors_unlocked(db, col_b, doc_a)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5168	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5170	await store._do_fetch_doc_vectors_unlocked(db, "some-col", "not-a-valid-hex-id")
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5183	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5186	await store._do_fetch_doc_vectors_unlocked(db, "_reserved-col", _doc_id())
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5301	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5304	signal = await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5326	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5333	await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5353	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5360	signal = await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5381	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5389	await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5410	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5418	signal = await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5436	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5443	signal = await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5461	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5468	signal = await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5489	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5497	await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5517	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5519	signal = await store._do_update_meta_on_add(
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5787	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5794	await store._do_subtract_meta_on_delete(db, col, [[1.0, 1.0], [2.0, 2.0]])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5809	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5816	await store._do_subtract_meta_on_delete(db, col, [[1.0, 1.0], [3.0, 3.0]])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5834	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5841	await store._do_subtract_meta_on_delete(db, col, [])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5857	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5866	await store._do_subtract_meta_on_delete(db, col, [[1.0]])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5881	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5888	await store._do_subtract_meta_on_delete(db, col, [[1.0]])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5904	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5911	await store._do_subtract_meta_on_delete(db, col, [[1.0, 1.0], [2.0, 2.0]])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5924	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5927	await store._do_subtract_meta_on_delete(db, col, [[1.0, 2.0]])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5941	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5948	await store._do_subtract_meta_on_delete(db, col, [[1.0], [2.0], [3.0]])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5962	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5970	await store._do_subtract_meta_on_delete(db, col, [[1.0], [2.0]])
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6335	store._do_update_meta_on_add = fake_update  # type: ignore[assignment]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6713	db = store._require_connected()  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6746	db = store._require_connected()  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6780	db = store._require_connected()  # type: ignore[attr-defined]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6950	schema = SearchStore._meta_schema()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6969	meta = SearchStore._row_to_meta(row)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6989	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6992	[f for f in SearchStore._meta_schema() if f.name != "schema_version"]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6997	await store._run_startup_migrations()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7002	await store._run_startup_migrations()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7034	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7039	await store._run_startup_migrations()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7057	meta = SearchStore._row_to_meta(row)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7242	specs = SearchStore._all_migrations()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7289	store._locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7326	store._locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7357	store._locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7376	store._locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7404	store._locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7449	db = store._require_connected()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7452	[f for f in SearchStore._meta_schema() if f.name not in ("schema_version", "default_ttl_seconds")]
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7457	await store._run_startup_migrations()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7489	store._migrate_schema_version = make_recorder("_migrate_schema_version")
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7490	store._migrate_community_rebuild_job_id = make_recorder("_migrate_community_rebuild_job_id")
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7491	store._migrate_metadata_reindex_job_id = make_recorder("_migrate_metadata_reindex_job_id")
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7494	await store._run_startup_migrations()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7547	store._collection_locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7548	store._validate_collection = MagicMock()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7566	store._require_connected = MagicMock(return_value=mock_db)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7600	store._collection_locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7601	store._validate_collection = MagicMock()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7617	store._require_connected = MagicMock(return_value=mock_db)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7649	store._collection_locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7650	store._validate_collection = MagicMock()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7675	store._collection_locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7676	store._validate_collection = MagicMock()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7692	store._require_connected = MagicMock(return_value=mock_db)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7722	store._collection_locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7723	store._validate_collection = MagicMock()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7747	store._require_connected = MagicMock(return_value=mock_db)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7793	store._collection_locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7794	store._validate_collection = MagicMock()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7819	store._require_connected = MagicMock(return_value=mock_db)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7848	store._collection_locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7849	store._validate_collection = MagicMock()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7869	store._require_connected = MagicMock(return_value=mock_db)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7897	store._collection_locks = {}
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7898	store._validate_collection = MagicMock()
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7925	store._require_connected = MagicMock(return_value=mock_db)
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7997	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4698	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4700	await db.create_table("_archon_collection_meta", schema=SearchStore._meta_schema())
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4729	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4731	[f for f in SearchStore._meta_schema() if f.name != "description_embedding_json"]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4761	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4764	[f for f in SearchStore._meta_schema() if f.name != "description_embedding_json"]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4812	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4859	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4860	result = await store._do_read_meta_unlocked(db, "some-col")
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4881	db = connected_store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4882	result = await connected_store._do_read_meta_unlocked(db, "read-unlocked-col")
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4905	db = connected_store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4906	await connected_store._do_write_meta_unlocked(db, "write-unlocked-col", meta)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4924	db = connected_store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4926	await connected_store._do_write_meta_unlocked(db, "upsert-unlocked-col", meta2)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4943	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4950	await store._do_write_meta_unlocked(db, "auto-create-col", meta)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4974	db = connected_store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4975	await connected_store._do_write_meta_unlocked(db, "b5-unlocked-col", meta)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	4999	db = connected_store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5003	await connected_store._do_write_meta_unlocked(db, col, meta_alpha)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5004	await connected_store._do_write_meta_unlocked(db, col, meta_beta)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5008	await connected_store._do_write_meta_unlocked(db, col, updated_alpha)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5054	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5055	result = await store._do_fetch_doc_vectors_unlocked(db, "nonexistent-col", _doc_id())
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5101	db = connected_store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5102	result = await connected_store._do_fetch_doc_vectors_unlocked(db, col_name, doc_a)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5118	db = connected_store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5120	result = await connected_store._do_fetch_doc_vectors_unlocked(db, col_name, missing_doc)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5142	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5144	result_col_a = await store._do_fetch_doc_vectors_unlocked(db, col_a, doc_a)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5145	result_col_b_for_doc_a = await store._do_fetch_doc_vectors_unlocked(db, col_b, doc_a)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5161	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5163	await store._do_fetch_doc_vectors_unlocked(db, "some-col", "not-a-valid-hex-id")
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5176	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5179	await store._do_fetch_doc_vectors_unlocked(db, "_reserved-col", _doc_id())
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5294	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5297	signal = await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5319	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5326	await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5346	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5353	signal = await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5374	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5382	await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5403	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5411	signal = await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5429	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5436	signal = await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5454	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5461	signal = await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5482	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5490	await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5510	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5512	signal = await store._do_update_meta_on_add(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5780	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5787	await store._do_subtract_meta_on_delete(db, col, [[1.0, 1.0], [2.0, 2.0]])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5802	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5809	await store._do_subtract_meta_on_delete(db, col, [[1.0, 1.0], [3.0, 3.0]])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5827	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5834	await store._do_subtract_meta_on_delete(db, col, [])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5850	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5859	await store._do_subtract_meta_on_delete(db, col, [[1.0]])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5874	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5881	await store._do_subtract_meta_on_delete(db, col, [[1.0]])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5897	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5904	await store._do_subtract_meta_on_delete(db, col, [[1.0, 1.0], [2.0, 2.0]])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5917	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5920	await store._do_subtract_meta_on_delete(db, col, [[1.0, 2.0]])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5934	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5941	await store._do_subtract_meta_on_delete(db, col, [[1.0], [2.0], [3.0]])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5955	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	5963	await store._do_subtract_meta_on_delete(db, col, [[1.0], [2.0]])
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6328	store._do_update_meta_on_add = fake_update  # type: ignore[assignment]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6706	db = store._require_connected()  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6739	db = store._require_connected()  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6773	db = store._require_connected()  # type: ignore[attr-defined]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6943	schema = SearchStore._meta_schema()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6962	meta = SearchStore._row_to_meta(row)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6982	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6985	[f for f in SearchStore._meta_schema() if f.name != "schema_version"]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6990	await store._run_startup_migrations()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	6995	await store._run_startup_migrations()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7027	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7032	await store._run_startup_migrations()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7050	meta = SearchStore._row_to_meta(row)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7235	specs = SearchStore._all_migrations()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7282	store._locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7319	store._locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7350	store._locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7369	store._locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7397	store._locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7442	db = store._require_connected()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7445	[f for f in SearchStore._meta_schema() if f.name not in ("schema_version", "default_ttl_seconds")]
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7450	await store._run_startup_migrations()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7482	store._migrate_schema_version = make_recorder("_migrate_schema_version")
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7483	store._migrate_community_rebuild_job_id = make_recorder("_migrate_community_rebuild_job_id")
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7484	store._migrate_metadata_reindex_job_id = make_recorder("_migrate_metadata_reindex_job_id")
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7487	await store._run_startup_migrations()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7540	store._collection_locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7541	store._validate_collection = MagicMock()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7559	store._require_connected = MagicMock(return_value=mock_db)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7593	store._collection_locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7594	store._validate_collection = MagicMock()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7610	store._require_connected = MagicMock(return_value=mock_db)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7642	store._collection_locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7643	store._validate_collection = MagicMock()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7668	store._collection_locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7669	store._validate_collection = MagicMock()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7685	store._require_connected = MagicMock(return_value=mock_db)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7715	store._collection_locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7716	store._validate_collection = MagicMock()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7740	store._require_connected = MagicMock(return_value=mock_db)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7786	store._collection_locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7787	store._validate_collection = MagicMock()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7812	store._require_connected = MagicMock(return_value=mock_db)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7841	store._collection_locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7842	store._validate_collection = MagicMock()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7862	store._require_connected = MagicMock(return_value=mock_db)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7890	store._collection_locks = {}
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7891	store._validate_collection = MagicMock()
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7918	store._require_connected = MagicMock(return_value=mock_db)
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-05	7990	db = store._require_connected()
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	196	def test_store_double_disconnect_safe(tmp_path: Path) -> None:
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	236	async def test_store_ensure_collection_idempotent(
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	444	async def test_store_rebuild_fts_index_idempotent(
@@ -993,9 +854,9 @@ archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	2894	async def test_delete_collection_meta_noop_when_table_absent(tmp_path: Path) -> None:
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	2905	async def test_delete_collection_meta_noop_when_row_missing(connected_store: SearchStore) -> None:
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	2947	async def test_update_collection_meta_valid_namespace_passes(connected_store: SearchStore) -> None:
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	4716	async def test_migrate_description_embedding_concurrent_calls(tmp_path: Path) -> None:
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	6142	async def test_delete_document_no_full_scan_spy(tmp_path) -> None:
-archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	6934	async def test_list_chunks_raw_nonexistent_collection_yields_nothing(
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	4714	async def test_migrate_description_embedding_concurrent_calls(tmp_path: Path) -> None:
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	6135	async def test_delete_document_no_full_scan_spy(tmp_path) -> None:
+archon-search	/Users/manczg/Documents/development/archon-search/tests/test_store.py	tests-09	6927	async def test_list_chunks_raw_nonexistent_collection_yields_nothing(
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_sync.py	safety-07	1010	from archon_search.sync import SearchCollectionSync  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_sync.py	safety-07	1022	from archon_search.progress import CollectionProgress, IndexingStateStore, IndexingStatus  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/tests/test_sync.py	safety-07	1023	from archon_search.sync import SearchCollectionSync  # noqa: PLC0415
@@ -1134,9 +995,6 @@ moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Prese
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-01	1	file-level: 1003 lines
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-02	212	init(
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-08	189	availableMusicTracks.indices.contains(idx) else { return nil }
-moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-08	217	audioService: AudioServiceProtocol? = nil,
-moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-08	218	soundPreferenceService: SoundPreferenceServiceProtocol? = nil,
-moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-08	219	musicPreferenceService: MusicPreferenceServiceProtocol? = nil
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-12	295	} catch {
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-12	339	try? audioService?.play(tracks: all)
 moonset	/Users/manczg/Documents/development/moonset/moonset-app/MoonsetApp/Presentation/ViewModels/SleepTimerViewModel.swift	smells-12	380	try? audioService?.play(tracks: resolvedSounds)
@@ -1274,6 +1132,7 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Vi
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	safety-02	417	viewmodel.updatePrice(from: InputValue.text!)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	safety-02	420	AddTransactionViewController.calculatorViewModel.updateInputValue(text: InputValue.text!)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	safety-02	528	let navController = tabBarController?.viewControllers![3] as! UINavigationController
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	safety-02	537	transactionsViewController!.strategy = strategy
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	safety-02	549	let controller: MissingContainerViewController = segue.destination as! MissingContainerViewController
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	safety-02	559	let controller: CurrencyViewController = segue.destination as! CurrencyViewController
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Views/AddTransactionViewController.swift	safety-02	565	let controller: DateViewController = segue.destination as! DateViewController
@@ -1351,6 +1210,7 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Ho
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	clarity-16	366	func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	clarity-16	488	func handleMoreLessEvent(at indexPath: IndexPath) {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	safety-01	38	NotificationCenter.default.addObserver(self, selector: #selector(startImportWizardIfNecessary), name: UIApplication.didBecomeActiveNotification, object: nil)
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	safety-02	91	guard let selectedItem = viewmodel.getPredictedTransaction(at: tableView.indexPathForSelectedRow!.row) else {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	safety-02	95	let controller: AddTransactionViewController = segue.destination as! AddTransactionViewController
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	safety-02	154	let controller = storyBoard.instantiateViewController(withIdentifier: "AddTransactionView") as! AddTransactionViewController
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Home/HomeViewController.swift	safety-02	455	let controller = storyBoard.instantiateViewController(withIdentifier: "AddTransactionView") as! AddTransactionViewController
@@ -1394,8 +1254,12 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Vi
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	clarity-16	259	func getRowHeight(at indexPath: IndexPath) -> CGFloat {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	safety-02	163	return UIImage(named: "filter controls half selected.png")!
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	safety-02	165	return UIImage(named: "filter controls normal.png")!
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	safety-02	334	return model.fromDate!.toString()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	safety-02	361	return model.toDate!.toString()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	safety-02	368	guard let decimalValue = Decimal.fromDoubleValue(value!) else {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	safety-16	364	private func getPriceString(value: Double?) -> String {
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	safety-16	387	model.minPrice = doubleValue
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	safety-16	403	model.maxPrice = doubleValue
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	smells-07	287	return 9999 // TODO: should calculate the proper height; MaG
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	smells-08	236	return nil
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/ViewModels/FilterViewModel.swift	smells-08	247	return nil
@@ -1444,6 +1308,7 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Mo
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	ddd-01	15	var useInverse: Bool = false
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	ddd-01	23	var currencyDict: [String: Currency] = Dictionary()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	ddd-01	24	var currencyArray: [Currency] = []
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	72	guard currency != nil && currency!.isValid() && toCurrency != nil && toCurrency!.isValid() else {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	75	return exchange(from: currency!, value: value, toCurrency: toCurrency!, exchangePrice: &exchangePrice)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	97	return value * exchangePrice!
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	104	return value * exchangePrice!
@@ -1465,6 +1330,7 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Mo
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	443	let currency = currencyDict[locale.currencyCode!]
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	468	let name = locale.localizedString(forCurrencyCode: locale.currencyCode!)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	470	base.name = name!
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	477	base = currency!.copy()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-02	521	if curr.value.country.contains(country!) {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-05	331	if ModelCurrencies.allCurrencies.count == 0 {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	safety-05	371	if ModelCurrencies.allCurrencies.count == 0 {
@@ -1526,23 +1392,6 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Mo
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-10	193	let logger = PerformanceLogger()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-10	329	let logger = PerformanceLogger()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-10	369	let logger = PerformanceLogger()
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	36	//            print("(Locale(identifier: \"\(country.preferredLocale)\") as Locale, 0), // \(country.country), [\(locale.groupingSeparator ?? "")|\(locale.decimalSeparator ?? "")] (\(locale.currencySymbol ?? "")) \(locale.currency?.identifier ?? "")")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	41	//            print("\(country.country),\"\(locale.groupingSeparator ?? "")\",\"\(locale.decimalSeparator ?? "")\",\(locale.currencySymbol ?? ""),\(locale.currency?.identifier ?? ""),\(comment)")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	166	AppLog.warning(false, "Can't get country code for localeId: \(localeIdentifier).")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	183	AppLog.warning(false, "Couldn't get the country name for localeId: \(localeIdentifier)")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	225	// print("\(locale),\(country!),\(curr.code),\(curr.symbol)")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	230	//            print("\(formatter.locale.identifier) - \(formatter.locale.region?.identifier) - \(formatter.currencyCode) - \(curr.code) =  \(formatter.currencySymbol) - \(curr.symbol)")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	290	AppLog.fail(message: "Couldn't parse currencies: Could not convert JSON to dictionary")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	293	// print(exchangeDict.description)
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	321	AppLog.fail(error, message: "Getting currency: Error trying to convert JSON to dictionary")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	358	AppLog.fail(error, message: "Failed to load local exchange rates.")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	381	AppLog.fail(error!, message: "Couldn't request JSON from the Internet: \(urlRequest.debugDescription)", skipAssert: true)
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	388	AppLog.fail(message: "Error fetching currency data: HTTP error: \(httpResponse.statusCode)")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	395	AppLog.warning(message: "No currency data received")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	403	AppLog.warning(message: "Couldn't parse currency data from online")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	412	AppLog.fail(error, message: "Failed to write exchange rates file")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	424	AppLog.info(message: "Start waiting for currencies...")
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-12	426	AppLog.info(message: "End waiting for currencies. Elapsed time: \(stopper.elapsedTime())")
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-15	86	if currency.code == "EUR" {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-15	88	if toCurrency.code == "EUR" {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/ModelCurrencies.swift	solid-15	112	if toCurrency.code == "EUR" {
@@ -1572,7 +1421,9 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Mo
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	clarity-16	120	func getRecurrencyInText() -> String {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	clarity-16	146	func getRecurrencyFrequencyText() -> String {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	clarity-16	432	func set(transaction: Transaction, tags: [Transaction_Tag]? = nil) {
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	190	currency = newCurrency!.copy()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	208	updatePrice(from: dbValue.priceInDevisa!, currency: currency, exchangePrice: Decimal(doubleValue))
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	217	self.currency = currency!.copy() // take a copy
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	240	updatePrice(from: decValue!, currency: currency, setIsExpense: setIsExpense)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	310	let formatter = ModelManager.shared.currencies.baseNumberFormatter.copy() as! NumberFormatter
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	312	formatter.maximumFractionDigits = numberOfDigits!
@@ -1581,7 +1432,9 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Mo
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	332	let result = priceInText(price: dbValue.priceInDevisa!, numberOfDigits)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	336	return result!
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	397	let tmp = Transaction_Tag(name: tag.name, category: tag.category!, transactionId: tag.transactionId)
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	409	AppLog.assertion(tag.category != nil && tag.category!.id == category.id)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	445	self.currency = currency.copy() // set currency before dbvalue to prevent exchange price overwrite!
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	460	let priceInBase = ModelManager.shared.currencies.exchange(from: currency, value: dbValue.priceInDevisa!.doubleValue, toCurrency: ModelManager.shared.currencies.getBaseCurrency(), exchangePrice: &exchangePrice)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	461	AppLog.warning(priceInBase != nil && priceInBase!.equal(dbValue.priceInBase.doubleValue, precise: 4), "Devisa exchange check: Wrong base or devisa price saved! tID:\(dbValue.id ?? -1)")
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	478	self.tags = tags!
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-02	504	if isExpense() && dbValue.priceInDevisa! > 0 {
@@ -1590,17 +1443,15 @@ financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Mo
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-11	247	dbValue.updateDatetime = Date()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-11	252	dbValue.updateDatetime = Date()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-11	344	dbValue.datetime = Date()
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-16	221	self.currency.basePrice = exchangePrice?.doubleValue ?? 1.0
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-16	448	self.currency.basePrice = self.dbValue.exchangePrice?.doubleValue ?? 1.0
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-16	453	let priceInDevisa = ModelManager.shared.currencies.exchange(from: currency, value: dbValue.priceInBase.doubleValue, toCurrency: ModelManager.shared.currencies.getBaseCurrency(), exchangePrice: &exchangePrice)
+financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	safety-16	460	let priceInBase = ModelManager.shared.currencies.exchange(from: currency, value: dbValue.priceInDevisa!.doubleValue, toCurrency: ModelManager.shared.currencies.getBaseCurrency(), exchangePrice: &exchangePrice)
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-02	211	func updatePrice(from decimalValue: Decimal, currency: Currency? = nil, exchangePrice: Decimal? = nil, setIsExpense: Bool? = nil) {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-03	211	func updatePrice(from decimalValue: Decimal, currency: Currency? = nil, exchangePrice: Decimal? = nil, setIsExpense: Bool? = nil) {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-03	231	func updatePrice(from stringValue: String, currency: Currency? = nil, setIsExpense: Bool? = nil) {
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-08	211	func updatePrice(from decimalValue: Decimal, currency: Currency? = nil, exchangePrice: Decimal? = nil, setIsExpense: Bool? = nil) {
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-08	231	func updatePrice(from stringValue: String, currency: Currency? = nil, setIsExpense: Bool? = nil) {
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-08	317	func basePriceInText(_ numberOfDigits: Int? = nil) -> String {
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-08	325	func devisaPriceInText(_ numberOfDigits: Int? = nil) -> String? {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-08	327	return nil
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-08	330	return nil
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-08	384	init(from transaction: Transaction, tags: [Transaction_Tag]? = nil) {
-financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-08	432	func set(transaction: Transaction, tags: [Transaction_Tag]? = nil) {
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-10	15	return ModelManager.shared.currencies.getBaseCurrency()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-10	19	return ModelManager.shared.currencies.getDefaultCurrency()
 financialwell	/Users/manczg/Documents/development/financialwell/FinancialWell/Models/TransactionModel.swift	smells-10	186	let newCurrency = ModelManager.shared.currencies.getCurrency(from: code)
@@ -1790,6 +1641,7 @@ dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-tr
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	clarity-16	145	export function WeeklyTrendChart(props: WeeklyTrendChartProps) {
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	clarity-17	145	export function WeeklyTrendChart(props: WeeklyTrendChartProps) {
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	safety-02	122	const p = points[j]!
+dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	safety-02	132	if (!current || current.at(-1)!.i + 1 !== point.i) {
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	safety-02	216	(p.i < lineComparisonBucketCount! ? 'previous' : 'current'),
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	safety-02	251	const segmentEnd = run[i + 1]!
 dddd	/Users/manczg/Documents/development/dddd/src/components/dashboard/weekly-trend-chart.tsx	safety-02	492	const point = weeklyTrend[i]!
@@ -1800,6 +1652,7 @@ dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	clar
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	clarity-16	425	export async function syncRepositoryPrSizes(input: {
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	safety-02	297	let best = candidates[0]!
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	safety-02	300	const candidate = candidates[index]!
+dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	safety-02	347	return ancestors[0]!.sha
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	safety-08	439	const fetchResult = await fetch(input.repoPath)
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	smells-08	335	): Promise<string | null> {
 dddd	/Users/manczg/Documents/development/dddd/src/collector/pr-size-sync.ts	smells-08	344	return null
@@ -1825,6 +1678,8 @@ dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashbo
 dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	safety-02	131	owner: 'owner' in overrides ? overrides.owner! : 'gde-mit',
 dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	safety-02	132	repo: 'repo' in overrides ? overrides.repo! : 'alpha-svc',
 dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	safety-02	692	const rc = (await db.select().from(repositories).where(eq(repositories.path, path.join(testRoot, 'Charlie'))))[0]!
+dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	safety-02	1129	expect(d.prSize!.teamBreakdown).toHaveLength(1)
+dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	safety-02	1130	expect(d.prSize!.teamBreakdown[0].team).toBe('Alpha')
 dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	smells-01	1	file-level: 1149 lines
 dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	smells-02	671	const makeTeam = async (team: string, prevH: number, curH: number, n0: number) => {
 dddd	/Users/manczg/Documents/development/dddd/tests/metrics/pr-cycle-time-dashboard.test.ts	smells-10	19	const databaseUrl = process.env.DATABASE_URL?.trim()
@@ -1840,6 +1695,12 @@ udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shoote
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerControls.cs	solid-07	292	public InputAction FindAction(string actionNameOrId, bool throwIfNotFound = false)
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerControls.cs	solid-10	370	public CharacterActions @Character => new CharacterActions(this);
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerControls.cs	tests-01	18	public partial class @PlayerControls: IInputActionCollection2, IDisposable
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	safety-01	100	controls.Character.Movement.performed += context => moveInput = context.ReadValue<Vector2>();
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	safety-01	101	controls.Character.Movement.canceled += context => moveInput = Vector2.zero;
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	safety-01	103	controls.Character.Aim.performed += context => aimInput = context.ReadValue<Vector2>();
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	safety-01	104	controls.Character.Aim.canceled += context => aimInput = Vector2.zero;
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	safety-01	109	controls.Character.Run.performed += context =>
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	safety-01	114	controls.Character.Run.canceled += context =>
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	smells-10	100	controls.Character.Movement.performed += context => moveInput = context.ReadValue<Vector2>();
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	smells-10	101	controls.Character.Movement.canceled += context => moveInput = Vector2.zero;
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerMovement.cs	smells-10	103	controls.Character.Aim.performed += context => aimInput = context.ReadValue<Vector2>();
@@ -1851,6 +1712,7 @@ udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shoote
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/Player.cs	solid-06	7	public PlayerControls controls;
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/Player.cs	solid-10	10	controls = new PlayerControls();
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/Player.cs	tests-01	5	public class Player : MonoBehaviour
+udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerWeaponController.cs	safety-01	13	player.controls.Character.Fire.performed += context => Shoot(); // When fire input (mouse left click) perfomed, then call the Shoot() function. Don't forget to set the priority of the animation!
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerWeaponController.cs	smells-10	13	player.controls.Character.Fire.performed += context => Shoot(); // When fire input (mouse left click) perfomed, then call the Shoot() function. Don't forget to set the priority of the animation!
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/PlayerWeaponController.cs	tests-01	5	public class PlayerWeaponController : MonoBehaviour
 udemy-top-down-shooter	/Users/manczg/Documents/development/udemy-top-down-shooter/Assets/LeftHandTargetTransform.cs	tests-01	5	public class LeftHandTargetTransform : MonoBehaviour

@@ -1233,3 +1233,36 @@ safety-01	swift	safety/Observer.swift	MATCH	        NotificationCenter.default.a
 safety-01	swift	safety/ObserverOk.swift	NOMATCH	        NotificationCenter.default.addObserver(self, selector: #selector(handle), name: UIApplication.didBecomeActiveNotification, object: nil)
 safety-01	swift	safety/ObserverOk.swift	FILL	        NotificationCenter.default.removeObserver(self)
 safety-01	swift	safety/ObserverSpy.swift	NOMATCH	    override func addObserver(_ observer: Any, selector aSelector: Selector, name aName: NSNotification.Name?, object anObject: Any?) {
+safety-22	typescript	safety/logsec.ts	MATCH	console.log("user password", password);
+safety-22	typescript	safety/logsec.ts	NOMATCH	console.log("user logged in", userId);
+safety-22	python	safety/logsec.py	MATCH	print(f"secret is {secret}")
+safety-22	python	safety/logsec.py	NOMATCH	print(f"user {user_id} ok")
+safety-22	java	safety/LogSec.java	MATCH	logger.info("ssn=" + ssn);
+safety-22	java	safety/LogSec.java	NOMATCH	logger.info("request done");
+safety-23	typescript	safety/pathinj.ts	MATCH	fs.readFile(req.params.path, cb);
+safety-23	typescript	safety/pathinj.ts	NOMATCH	fs.readFile("./config.json", cb);
+safety-23	typescript	safety/pathinj.ts	NOMATCH	fs.readFile("./filename.ext", "utf8", cb);
+safety-23	python	safety/pathinj.py	MATCH	data = open(request.args["file"]).read()
+safety-23	python	safety/pathinj.py	NOMATCH	data = open(SETTINGS_PATH).read()
+safety-23	java	safety/PathInj.java	MATCH	new FileInputStream(params.get("f"));
+safety-23	java	safety/PathInj.java	NOMATCH	new FileInputStream(CONFIG_FILE);
+safety-24	typescript	safety/floateq.ts	MATCH	if (price == 19.99) {
+safety-24	typescript	safety/floateq.ts	NOMATCH	if (version == "1.2.3") {
+safety-24	python	safety/floateq.py	MATCH	if ratio != 0.5:
+safety-24	python	safety/floateq.py	NOMATCH	if count == 5:
+safety-24	python	safety/floateq.py	NOMATCH	if exchange_price == 0.0:
+safety-24	java	safety/FloatEq.java	MATCH	if (total == 3.14) {
+safety-24	java	safety/FloatEq.java	NOMATCH	if (n == 42) {
+safety-24	typescript	safety/floateq.ts	NOMATCH	if (price == 0.0) {
+arch-13	typescript	arch/unbounded.ts	MATCH	return userRepo.findAll();
+arch-13	typescript	arch/unbounded.ts	NOMATCH	return userRepo.findAll(pageable);
+arch-13	python	arch/unbounded.py	MATCH	users = User.objects.all()
+arch-13	python	arch/unbounded.py	NOMATCH	users = User.objects.filter(active=True)
+arch-13	java	arch/Unbounded.java	MATCH	String q = "SELECT * FROM orders";
+arch-13	java	arch/Unbounded.java	NOMATCH	String q = "SELECT * FROM orders LIMIT 100";
+arch-14	python	arch/envinline.py	MATCH	if os.environ["ENV"] == "prod":
+arch-14	python	arch/envinline.py	NOMATCH	env = settings.environment
+arch-14	typescript	arch/envinline.ts	MATCH	const region = process.env.AWS_REGION;
+arch-14	typescript	arch/envinline.ts	NOMATCH	const region = config.awsRegion;
+arch-14	java	arch/EnvInline.java	MATCH	String key = System.getenv("API_KEY");
+arch-14	java	arch/EnvInline.java	NOMATCH	String key = config.getApiKey();

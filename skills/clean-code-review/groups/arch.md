@@ -168,6 +168,32 @@ NOTE for agent: this check compares the code against itself — the vocabulary c
 
 ---
 
+### arch-13 · Major · Unbounded Query Without Pagination
+**Scriptable**: Yes
+**Rule**: A query that fetches every row (`findAll()`, `.objects.all()`, `SELECT *` with no `LIMIT`) has a result set that grows without bound — it works in dev and degrades or exhausts memory in production as the table fills, and no test on a small dataset ever reveals it.
+**Scope**: `diff`
+**Finding action template**: Bound the query at `{file}:{line}` — add pagination (a limit/offset or cursor) or a `WHERE` filter that caps the result set
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+
+NOTE for agent: this is a scale defect that only surfaces in production, never a lint rule. The pattern matches the unbounded ORM forms with empty arguments (`findAll()`, `.objects.all()`, `.query(...).all()`) and `SELECT *` on a line that carries no `limit`/`top`/`fetch first`. Dismiss when the result is provably bounded another way — a `WHERE` clause on a unique or small-cardinality column, a table known to hold few rows (a config/enum lookup), or a limit applied on the next line that the single-line pattern cannot see (read the diff). A `findAll` that already takes a `Pageable`/limit argument is not matched and is not a finding.
+
+---
+
+### arch-14 · Major · Environment Variable Read Inline in Business Logic
+**Scriptable**: Yes
+**Rule**: Reading `os.environ` / `process.env` / `System.getenv` / `Environment.GetEnvironmentVariable` directly inside business logic couples that logic to the process environment and to a global, untyped, unvalidated source — the value cannot be tested without mutating the environment and its absence fails deep in a decision instead of at startup.
+**Scope**: `diff`
+**Finding action template**: Read the env var once at the composition root and inject it into `{ClassName}` as typed, validated configuration instead of reading it inline at `{file}:{line}`
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+
+NOTE for agent: complements arch-11 (a hardcoded address) from the other direction — that finding is a value frozen into code, this is a value pulled from the ambient environment mid-logic. Dismiss env reads inside test files (the scripted pass already skips them via SKIP_TESTS), and reads that already sit at the composition root or in a dedicated config/settings module whose only job is to load and validate the environment (that is the correct place). Flag a read that drives a branch, a default, or a computation inside a domain/use-case function. A read fed straight into a validated config object at startup is not a finding.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -180,4 +206,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=arch findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (12 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (14 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`

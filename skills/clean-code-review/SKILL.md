@@ -1,5 +1,5 @@
 ---
-description: Structured clean code review — 110 checks across 7 groups (clarity, smells, solid, arch, tests, safety, ddd). Flexible targets — local changes (default), staged/unstaged/untracked, a git ref/range, or explicit files (works without git). Runs scripted detections, spawns one agent per group, synthesizes findings.
+description: Structured clean code review — 115 checks across 7 groups (clarity, smells, solid, arch, tests, safety, ddd). Flexible targets — local changes (default), staged/unstaged/untracked, a git ref/range, or explicit files (works without git). Runs scripted detections, spawns one agent per group, synthesizes findings.
 ---
 
 # /clean-code-review
@@ -15,7 +15,7 @@ description: Structured clean code review — 110 checks across 7 groups (clarit
 
 **Groups** (case-insensitive): `clarity` · `smells` · `solid` · `arch` · `tests` · `safety` · `ddd`. Omit to run all 7.
 
-Expected check counts: clarity=17, smells=23, solid=15, arch=12, tests=13, safety=21, ddd=9 (110 total).
+Expected check counts: clarity=17, smells=23, solid=15, arch=14, tests=13, safety=24, ddd=9 (115 total).
 
 ## Severity
 - **Critical**: blocks correctness, security, or safety

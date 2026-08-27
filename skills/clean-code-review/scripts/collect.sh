@@ -285,7 +285,7 @@ FILTER_EXEMPT=" clarity-16 clarity-17 smells-01 smells-20 tests-13 "
 # an explicit list rather than "every non-tests-* check" because most checks DO
 # apply to test code (safety-07 alone contributes 55 true positives there).
 # tests/test_collect.sh asserts this set against the groups/*.md notes.
-SKIP_TESTS=" ddd-01 safety-06 solid-06 solid-08 solid-09 "
+SKIP_TESTS=" ddd-01 safety-06 solid-06 solid-08 solid-09 arch-14 "
 
 run_checks() {
   local tsv id lang cmd list raw="$OUT/.raw_hits" errf="$OUT/.check_err"

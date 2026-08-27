@@ -336,6 +336,45 @@ NOTE for agent: the pattern flags comparison against a string literal (`x == "sh
 
 ---
 
+### safety-22 · Critical · Sensitive Data Written to Logs
+**Scriptable**: Yes
+**Rule**: A logging, print, or console call whose arguments name a credential (`password`, `secret`, `api_key`, `access_token`, `private_key`, `ssn`, `card_number`, `authorization`) leaks that value into log files, aggregators, and crash reports where it outlives the request and escapes access control.
+**Scope**: `diff`
+**Finding action template**: Remove the sensitive value from the log call at `{file}:{line}` — log a redacted placeholder or a non-reversible identifier instead
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+
+NOTE for agent: distinct from safety-14 (a hardcoded credential in source) — this is the runtime *leak* of a secret through a log sink. The pattern matches a log/print token followed by a secret-named identifier on the same line; it cannot see field names it does not know, so also flag a log call that passes a whole object (`logger.info(user)`, `console.log(req.body)`) whose shape carries secrets. Dismiss when the named value is provably not the secret itself — a boolean `hasPassword`, a length `passwordLength`, an already-redacted or masked string, or a field name used only as a map key with no value interpolated.
+
+---
+
+### safety-23 · Critical · User-Controlled Path Reaching the Filesystem
+**Scriptable**: Yes
+**Rule**: A filesystem open/read/write whose path derives from request input (`req`, `request`, `params`, `query`, `body`, `argv`, user input) without normalization lets an attacker traverse with `../` or absolute paths to read or overwrite files outside the intended directory.
+**Scope**: `diff`
+**Finding action template**: Resolve and confine the path at `{file}:{line}` — canonicalize it and verify it stays within an allowed base directory before opening
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+
+NOTE for agent: this completes the injection trio with safety-19 (command/eval) and safety-15 (SQL) — same taint principle, filesystem sink. The pattern only catches the request-derived value and the open call on one line; when the tainted path is assigned to a variable first and opened later, follow it in the diff yourself. Dismiss when the path is confined before use — a canonicalized path checked against a base dir, a value constrained to a fixed allow-list, or a filename component with traversal characters already stripped. A constant or config-derived path is never a finding.
+
+---
+
+### safety-24 · Major · Float Equality Comparison
+**Scriptable**: Yes
+**Rule**: Comparing a floating-point value with `==`/`!=` against a decimal literal is unreliable — the value that results from arithmetic almost never equals the literal bit-for-bit, so the branch silently never (or always) fires.
+**Scope**: `diff`
+**Finding action template**: Replace the exact float comparison at `{file}:{line}` with a tolerance check (`abs(a - b) < epsilon`) or compare a decimal/integer-minor-unit type
+
+**Detection**:
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+
+NOTE for agent: distinct from safety-16 (money stored as float) — this is the *comparison* bug, not the storage choice; both can be true of one line. The pattern flags `==`/`!=`/`===`/`!==` against a decimal literal (`x == 3.14`) in either order. Dismiss a comparison against `0.0`/`0` used purely as a sentinel where exactness is intended and the value is never the result of arithmetic (e.g. a freshly initialized field), and dismiss version strings or dotted identifiers the literal guard already excludes. Also flag, by reading the diff, the variable-to-variable form (`a == b` where both are `float`/`double`) that the literal-only pattern cannot see.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -348,4 +387,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=safety findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### safety-NN` check headers in this file (21 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=safety failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### safety-NN` check headers in this file (24 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=safety failed=<brief reason>`

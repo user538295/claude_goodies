@@ -67,3 +67,13 @@ Complete re-run from scratch on the frozen 46-file corpus with the live scripts,
 **Headline:** 1,855 hits, all 1,855 adjudicated, 661 LLM-only findings. Overall precision **71.8%**. Script coverage of LLM findings (recall proxy, ±3 lines): **66%** (437/661). Overall quality rate (TP / LLM-only) **2.02** — the script confirmed ~2× the real violations the unaided LLM pass surfaced. 43 of 60 scriptable checks fired.
 
 Model, file set, and ±3-line matching unchanged from the baseline, so precision stays comparable. The LLM-only pass is a fresh single run (661 findings vs the 08-26 11:47 run's 979); run-to-run variance in that pass is not measured, so coverage and quality rate move with it.
+
+## Full rerun (2026-08-27, sonnet agents)
+
+Complete re-run from scratch on the frozen 46-file corpus with the **live round-8 scripts** (which now include the checks added since 08-26: arch-13/14, safety-22/23/24, and the safety-25 split). Script sweep upfront (46 files, 0 cap warnings); then a workflow orchestrated the LLM phases — adjudication in 15 packets (≤150 hits, split on file boundaries; the three largest single files exceed the cap and are judged whole) and the LLM-only pass as **one agent per file (46 agents)**. All `model: sonnet`. The run crossed a 3pm session-limit reset (34 agents completed, then the remaining 27 re-ran after reset); no data was affected — every hit is adjudicated exactly once. `results/*.tsv` and `report.xlsx` regenerated.
+
+**Headline:** 1,856 hits, all 1,856 adjudicated, 891 LLM-only findings. Overall precision **68.1%** (1,264 TP / 592 FP). Script coverage of LLM findings (recall proxy, ±3 lines): **85%** (760/891). Overall quality rate (TP / LLM-only) **1.42**. 44 of 60 scriptable checks fired (16 zero-hit on this corpus).
+
+The two remaining zero-precision noise generators (≥10 hits, 0 TP): **safety-15** (18 hits) and **tests-06** (12 hits) — fix the pattern or demote to judgment-only. Highest-precision scripted checks this run: smells-02 (100%, 72/72), arch-08 (100%, 39/39), clarity-16 (96%, 54/56), tests-05 (95%, 276/291).
+
+**Method deltas vs the 08-26 15:58 run:** LLM-only ran one agent per file (46) rather than 19 file batches — more independent (no cross-file contamination) and it surfaced more findings (891 vs 661), which raises coverage and lowers quality rate relative to that run. Precision moved 71.8% → 68.1%, partly from the five newly-added checks entering the corpus for the first time. Model, file set, and ±3-line matching are unchanged, so precision stays comparable across runs.

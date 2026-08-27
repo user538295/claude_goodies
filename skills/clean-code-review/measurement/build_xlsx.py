@@ -229,9 +229,10 @@ def main():
     ws = wb.create_sheet("Method")
     for row in [
         ["model", "sonnet (adjudication + LLM-only agents)"],
-        ["run date", "2026-08-26 (full fresh rerun, live scripts; quality rate column added)"],
-        ["execution", "collect.sh sweep upfront (all 46 files); then sonnet agents chunked by packet (<=150 hits/agent): adjudicate + LLM-only -> rebuild xlsx"],
+        ["run date", "2026-08-27 (full fresh rerun, live scripts)"],
+        ["execution", "collect.sh sweep upfront (all 46 files); then sonnet agents orchestrated by a workflow: adjudicate per packet (<=150 hits, file-boundary split; large single files flushed whole) + LLM-only one agent per file -> assemble TSVs -> rebuild xlsx. Run split across a 3pm session-limit reset (34 agents, then the remaining 27); no data affected."],
         ["adjudication sample", "all hits, every file (no per-check cap)"],
+        ["LLM-only granularity", "one agent per file (46 agents), hits withheld — not packet-chunked"],
         ["aggregates", "Excel formulas over data_hits/data_adj/data_llm; results cached at build time so the file displays without a recalc"],
         ["precision", "TP / adjudicated script hits (formula)"],
         ["script coverage %", "overlap / LLM-only found (recall proxy, formula)"],

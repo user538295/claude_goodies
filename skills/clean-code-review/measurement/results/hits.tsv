@@ -272,7 +272,6 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/st
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	744	await table.delete(_where_eq("name", name) + " AND " + ns_predicate)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	1294	await table.delete(_where_eq("name", meta.name) + " AND namespace IS NULL")
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	1462	await table.delete(_where_eq("name", meta.name) + " AND namespace IS NULL")
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2045	where=f"chunk_id = '{chunk_id}'",
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2480	"expires_at IS NOT NULL AND expires_at >= " + _sql_quote_str(now_iso)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2481	+ " AND expires_at <= " + _sql_quote_str(cutoff_iso)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/store.py	safety-15	2493	"(" + base_pred + ") AND ("
@@ -458,6 +457,7 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/se
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	2090	return McpErrorResponse(error=str(exc), code="internal_error")
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-05	2178	return McpErrorResponse(error=str(exc), code="internal_error")
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-11	1004	search_url="http://mcp",
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	arch-14	1790	if _os.environ.get(_ENV_VAR):
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	clarity-09	871	if graph_mode is not None or (rag_fusion and _explain_rf_config.enabled):
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	clarity-16	258	def create_app(
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	clarity-16	292	async def search(
@@ -496,7 +496,7 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/se
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	1621	from archon_search.key_manager import ENV_VAR as _ENV_VAR, get_key_file as _get_key_file  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	1642	from datetime import datetime  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	1832	new_key_id: str = result["new_key_id"]  # type: ignore[assignment]
-archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	1859	from archon_search.graph_inspector import inspect_collection, inspect_cross_collection  # noqa: PLC0415
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	1859	from archon_search.graph_inspector import _edge_sort_key, inspect_collection, inspect_cross_collection  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-07	1860	from archon_search.graph_types import DEFAULT_IMPACT_DEPTH, ImpactDirection  # noqa: PLC0415
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-11	1496	timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	safety-11	1497	job_uuid = str(uuid4())
@@ -644,6 +644,7 @@ archon-search	/Users/manczg/Documents/development/archon-search/archon_search/se
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-10	1561	reader = ImportArchiveReader(archive_path)
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/server/mcp.py	solid-15	1705	elif status == "revoked":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	arch-09	623	if backend == "live" and os.environ.get("ARCHON_SEARCH_EVAL_BACKENDS") == "1":
+archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	arch-14	623	if backend == "live" and os.environ.get("ARCHON_SEARCH_EVAL_BACKENDS") == "1":
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	clarity-09	567	if lbl.query_id == query_id and lbl.grade > 0 and lbl.doc_id in doc_col
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	clarity-16	144	def load_thresholds(config_path: Path) -> EvalThresholds:
 archon-search	/Users/manczg/Documents/development/archon-search/archon_search/eval/runner.py	clarity-16	399	def load_baseline(path: Path) -> EvalBaseline:

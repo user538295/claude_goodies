@@ -375,14 +375,15 @@ NOTE for agent: distinct from safety-16 (money stored as float) — this is the 
 
 ---
 
-### safety-25 · Major · Unsynchronised Shared Mutable State or Unpropagated Cancellation
+### safety-25 · Major · Unsynchronised Shared Mutable State
 **Scriptable**: No
-**Rule**: State reachable from more than one thread, coroutine, or async continuation and mutated without a lock, atomic, or confinement — or a compound read-modify-write on such state that is not atomic — races and corrupts. Related: a cancellation or timeout the code receives or creates but never forwards to the work it should stop leaks that work.
+**Rule**: State reachable from more than one thread, coroutine, or async continuation and mutated without a lock, atomic, or confinement — or a compound read-modify-write on such state that is not atomic — races and corrupts.
 **Scope**: `diff`
-**Finding action template**: Guard shared state `{name}` at `{file}:{line}` with a lock or atomic (or confine it to one owner), or propagate the cancellation token to `{downstreamCall}`
-**How to check**: For each new/changed mutation of state that outlives a single execution context (a shared field, module global, captured variable, or a container handed to concurrent workers), decide whether concurrent access is possible and unguarded. Flag: a compound update on shared state (`counter += 1`, `if key not in d: d[key] = …`, `list.append` on a shared list from concurrent tasks) with no lock/atomic; state mutated from a spawned thread/task while another context can read it; a `CancellationToken`/`AbortSignal`/structured cancellation that is caught or created and never passed to the downstream call. Dismiss request-scoped or thread-confined state, immutable state, single-threaded code where no `await` interleaves the two steps, and mutations already inside a lock/atomic/actor.
+**Finding action template**: Guard shared state `{name}` at `{file}:{line}` with a lock or atomic (or confine it to one owner)
 
-NOTE for agent: this extends safety-05 (check-then-act) and safety-06 (blocking I/O in async) to the wider concurrency surface — do not re-report a hit those two already own. The hazard requires genuine concurrency: prove two contexts can reach the state before flagging, and dismiss on suspicion when you cannot.
+**How to check**: For each new/changed mutation of state that outlives a single execution context (a shared field, module global, captured variable, or a container handed to concurrent workers), decide whether concurrent access is possible and unguarded. Flag: a compound update on shared state (`counter += 1`, `if key not in d: d[key] = …`, `list.append` on a shared list from concurrent tasks) with no lock/atomic; state mutated from a spawned thread/task while another context can read it. Dismiss request-scoped or thread-confined state, immutable state, single-threaded code where no `await` interleaves the two steps, and mutations already inside a lock/atomic/actor.
+
+NOTE for agent: this extends safety-05 (check-then-act) and safety-06 (blocking I/O in async) to the wider concurrency surface — do not re-report a hit those two already own. Unpropagated cancellation belongs to safety-32, not here. The hazard requires genuine concurrency: prove two contexts can reach the state before flagging, and dismiss on suspicion when you cannot.
 
 ---
 
@@ -391,6 +392,7 @@ NOTE for agent: this extends safety-05 (check-then-act) and safety-06 (blocking 
 **Rule**: A failure branch that recovers — a `catch`/`except`/`rescue` that returns a fallback, or an early error-return with a default — while emitting no log, metric, or trace record makes the failure invisible in production, so it cannot be diagnosed or alerted on.
 **Scope**: `diff`
 **Finding action template**: Record the failure at `{file}:{line}` — emit a log, metric, or trace on the branch (or let it propagate to a layer that records it) so it is diagnosable
+
 **How to check**: For each new error-handling branch in the diff (a `catch`/`except`/`rescue`, or a failure early-return such as `if (!ok) return default`), check whether it records the failure (a logger/metric/trace call) or propagates it to a caller that will. Flag branches that recover to a fallback or default with no signal. Dismiss branches that re-throw or propagate the error, expected control paths that are not failures (a cache miss, a validation returning a typed error to the caller), and test files.
 
 NOTE for agent: smells-12 owns whether an exception should have been swallowed at all; this owns the observability of a failure the code has *deliberately* recovered from — the two co-fire only when a genuine swallow is also unlit, in which case report smells-12. safety-07 owns suppression comments. This is the counterweight to solid-12 (no logging inside the domain): satisfy both by recording the failure at the boundary/adapter, not in a domain type.
@@ -402,9 +404,70 @@ NOTE for agent: smells-12 owns whether an exception should have been swallowed a
 **Rule**: A long-lived container that only ever grows — an instance field, module global, cache, or queue appended to or inserted into with no size cap, eviction policy, or TTL — grows without bound until it exhausts memory.
 **Scope**: `diff`
 **Finding action template**: Bound `{container}` at `{file}:{line}` with a max size, an eviction policy (LRU/TTL), or periodic pruning so it cannot grow without bound
+
 **How to check**: For each collection, cache, map, or queue written in the diff that outlives a single request (a field, module-level global, or captured variable), check for a bound: a max size, eviction, TTL, or a removal path that keeps it bounded. Flag an append/insert into an unbounded long-lived container. Dismiss request-scoped or local collections discarded when the function returns, containers with a known small fixed cardinality, and containers that already carry a cap or eviction. You may read the repository to confirm a bounding mechanism defined elsewhere on the type.
 
 NOTE for agent: distinct from safety-01, which owns an unclosed handle (file, connection, socket, timer, executor, observer) on a code path — this owns growth of an in-memory container over the object's lifetime. A per-request cache with no eviction and a module-level list that every call appends to are the archetypes.
+
+---
+
+### safety-28 · Major · Inverted or Wrong Condition
+**Scriptable**: No
+**Rule**: A guard or branch condition that is logically inverted or uses the wrong operator — `&&` where `||` is meant (or the reverse), a missing or spurious `!`, `<` where `<=`/`>` is meant, `==` where `!=` — so the branch admits the cases it should reject or rejects the cases it should admit.
+**Scope**: `diff`
+**Finding action template**: Correct the condition at `{file}:{line}` to `{correctForm}` — as written it routes `{concreteInput}` to the wrong branch
+
+**How to check**: For each new/changed conditional in the diff, work out which inputs take each branch and compare that against what the surrounding code clearly intends (variable names, comments, the branch bodies). Flag only when you can name a concrete input the condition routes the wrong way. Dismiss when the condition is defensible, when intent is unclear, or when you are merely suspicious.
+
+NOTE for agent: correctness check — the classic logic bug, not a style call. The precision bar is a **named failure**: a specific value or state and the wrong branch it takes. If you cannot state input → wrong outcome, do not flag. safety-28 owns a wrong *logical or comparison operator* in a non-iteration guard. A `<`/`<=` (or inclusive/exclusive) boundary error in a loop, index, slice, or range belongs to safety-29, not here; a wrong *variable or operand* (rather than the operator itself) belongs to safety-30. Distinct from safety-24 (float equality comparison) and smells-19 (exception as control flow).
+
+---
+
+### safety-29 · Major · Off-by-One / Boundary Error
+**Scriptable**: No
+**Rule**: A loop bound, index, slice, or range comparison off by one — `<=` where `<` is meant (or the reverse), an index that reads one past the end or skips the first/last element, or an inclusive/exclusive range mismatch between where a value is produced and where it is consumed.
+**Scope**: `diff`
+**Finding action template**: Fix the boundary at `{file}:{line}` to `{correctBound}` — as written it {overruns/skips} `{concreteElement}`
+
+**How to check**: For each new/changed loop, index expression, slice, or range in the diff, evaluate the first and last iteration (or the boundary value) concretely. Flag only when a specific index is read out of range, an element is processed twice, or a first/last element is skipped. Dismiss when the bounds are correct or intent is ambiguous.
+
+NOTE for agent: correctness check. The **named failure** is the boundary element and what goes wrong at it — an out-of-range read, a duplicated element, or an omitted one. No concrete boundary case → no finding. safety-29 owns the `<`/`<=` and inclusive/exclusive boundary in loops, indices, slices, and ranges — do not also report that same boundary bug under safety-28.
+
+---
+
+### safety-30 · Major · Wrong Variable or Operator
+**Scriptable**: No
+**Rule**: A computation that uses the wrong operand — a sibling or copy-paste variable (`x` where `y` was meant), the wrong field of an object, or the wrong arithmetic/bitwise operator (`+` where `*`, `-` where `+`, `|` where `&`) — producing a wrong result that the types still accept.
+**Scope**: `diff`
+**Finding action template**: Use `{correctSymbol}` at `{file}:{line}` instead of `{wrongSymbol}` — the current form computes `{wrongResult}` for `{concreteInput}`
+
+**How to check**: For each new/changed assignment or expression in the diff, check each operand and operator against what the surrounding code intends — a repeated near-identical block where one line kept a sibling's variable, a field that does not match the computation's purpose, an operator inconsistent with the name or unit. Flag only when you can name the wrong result for a concrete input. Dismiss when the code is defensible or intent is unclear.
+
+NOTE for agent: correctness check — the copy-paste and typo bugs the compiler cannot catch because the wrong operand type-checks. **Named failure required**: concrete input → wrong value. safety-30 owns a wrong operand (variable or field) or a wrong *arithmetic/bitwise* operator; a wrong *logical or comparison operator* in a condition belongs to safety-28. Distinct from safety-21, which owns the `==`-on-objects reference-equality error in Java specifically.
+
+---
+
+### safety-31 · Major · Missing Early Return / Fallthrough
+**Scriptable**: No
+**Rule**: A guard that detects an invalid or terminal state but does not stop execution — no `return`/`break`/`throw`/`continue` — so control falls through into code that assumes the state was already handled and then uses the invalid value.
+**Scope**: `diff`
+**Finding action template**: Stop execution after the guard at `{file}:{line}` (return/throw/break) — without it, `{concreteInvalidState}` falls through into `{code}` that assumes validity
+
+**How to check**: For each new/changed guard in the diff (a validation, a null/empty check, an error detection, a `switch`/`if` handling a case), check whether the branch actually exits or is followed by the required stop. Flag only when a concrete invalid input passes the guard and reaches code that misuses it. Dismiss deliberate fallthrough that is correct, and cases where later code independently handles the state.
+
+NOTE for agent: correctness check — includes a missing `break` in a `switch` that falls into the next case, and a validation whose body logs but does not `return`. **Named failure required**: the invalid input and the unsafe code it reaches. Distinct from smells-12 (swallowed exception) and safety-26 (a failure path that recovers but goes unlogged) — here the failure is not handled at all.
+
+---
+
+### safety-32 · Major · Unpropagated Cancellation
+**Scriptable**: No
+**Rule**: A cancellation token, deadline, or timeout that the code receives or creates but never forwards to the downstream call it should stop — so cancelling the caller leaves the inner work running.
+**Scope**: `diff`
+**Finding action template**: Forward the cancellation token/deadline to `{downstreamCall}` at `{file}:{line}` so cancelling the caller stops the downstream work
+
+**How to check**: For each new/changed function in the diff that receives or creates a `CancellationToken`/`AbortSignal`/`context.Context`/structured-cancellation scope, check whether every long-running or outward call it makes is passed that token. Flag a token that is accepted or created and then dropped — an inner call made without it, or a `catch` of a cancellation that swallows it instead of propagating. Dismiss functions with no cancellable downstream work, and a token deliberately withheld to protect a critical section.
+
+NOTE for agent: distinct from safety-08, which owns a call that has *no* timeout or cancellation token at all — safety-32 owns a token that *exists* but is not forwarded. Distinct from safety-03 (fire-and-forget async without error handling). Split out of safety-25, which owns only shared-state races.
 
 ---
 
@@ -420,4 +483,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=safety findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### safety-NN` check headers in this file (27 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=safety failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### safety-NN` check headers in this file (32 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=safety failed=<brief reason>`

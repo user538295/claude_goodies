@@ -18,13 +18,13 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p><strong>Code done — get the deep read before it ships.</strong> Runs 110 checks across 7 groups (clarity, smells, SOLID, arch, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, or explicit paths — no git required for file-path mode.</p>
+      <p><strong>Code done — get the deep read before it ships.</strong> Runs 126 checks across 7 groups (clarity, smells, SOLID, arch, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, or explicit paths — no git required for file-path mode.</p>
       <p>Scripted detections run first via <code>collect.sh</code> and are handed to the group agents as precomputed hits — agents confirm or dismiss each one rather than re-running detection. Vendor and generated files are excluded upfront. Per-check findings can be capped on very large diffs; the report notes it when that happens.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>When to use</h2>
-      <p>You've written the code and want a structured review before opening a PR — not a vibe check, a systematic pass across 110 named criteria. Use <code>/clean-code-review</code> when you want findings grouped, labeled by severity, and synthesized into a clear action list.</p>
+      <p>You've written the code and want a structured review before opening a PR — not a vibe check, a systematic pass across 126 named criteria. Use <code>/clean-code-review</code> when you want findings grouped, labeled by severity, and synthesized into a clear action list.</p>
       <p>The skill declares no trigger phrases — invoke it directly with <code>/clean-code-review</code>.</p>
     </section>
 
@@ -57,7 +57,7 @@
 
 **5 findings · 0 Critical · 4 Major · 0 Moderate · 1 Minor** (post-deduplication)
 **Target:** staged unstaged untracked
-**Groups run:** clarity, smells, solid, arch, tests, safety, ddd · 110 checks declared
+**Groups run:** clarity, smells, solid, arch, tests, safety, ddd · 126 checks declared
 **Languages detected:** typescript
 
 ---

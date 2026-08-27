@@ -18,7 +18,7 @@ The regex layer does NOT need this benchmark — it is fully covered by
 - `swift/Checkout.swift` + `swift/CheckoutTests.swift` — 13 planted violations
 - `planted.tsv` — the catalog: check, file, line, detect (scripted/judgment), description
 
-96 rows covering the original **85 checks** at least once. The 25 checks added later (safety-08 through safety-21, smells-20 through smells-23, arch-11, tests-13, ddd-06 through ddd-09, arch-12) are all scriptable or judgment-only and already covered by `tests/corpus.tsv` where scriptable; they have no planted violation here yet — of the 110 checks that exist today, this fixture exercises 85.
+96 rows covering the original **85 checks** at least once. The 36 checks added later (safety-08 through safety-27, smells-20 through smells-25, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) are scriptable or judgment-only and covered by `tests/corpus.tsv` where scriptable; they have no planted violation here yet — of the 121 checks that exist today, this fixture exercises 85.
 
 **Never "fix" these files.** Broken is their job. For a scriptable check,
 `tests/corpus.tsv` (semantic MATCH/NOMATCH, see `tests/test_corpus.sh`) is the

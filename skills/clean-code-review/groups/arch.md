@@ -194,6 +194,16 @@ NOTE for agent: complements arch-11 (a hardcoded address) from the other directi
 
 ---
 
+### arch-15 · Major · Multi-Write Without a Transaction Boundary
+**Scriptable**: No
+**Rule**: A code path that performs two or more persistent writes that must all succeed or all fail — two tables or aggregates, or a database write plus an external publish/enqueue — with no surrounding transaction, unit-of-work, outbox, or idempotency mechanism leaves the system in an inconsistent state when a later write fails.
+**How to check**: For each new/changed write path in the diff, count the persistent side effects: writes to two different tables/aggregates, a DB write followed by a message published to a bus/queue, or a dual-write to two stores. If two or more must stay consistent and no transaction, `unit_of_work`, `@Transactional`/`with transaction`, outbox, or idempotency key covers them, flag it. Dismiss single-write paths, pure reads, writes already inside one transactional scope, and independent writes with no consistency requirement between them. You may read the repository to confirm whether an enclosing transaction wraps the call.
+**Finding action template**: Make the writes at `{file}:{line}` atomic — wrap them in one transaction, or add an outbox/idempotency key / compensating action so a partial failure cannot leave inconsistent state
+
+NOTE for agent: this is the consistency-boundary counterpart to the durability checks — it fires on the *write path*, not on schema. An at-least-once handler (a queue, webhook, or event consumer) that mutates state with no idempotency key is a finding here even with a single write, because a redelivery double-applies it. Dismiss when the second effect is best-effort by design and its failure is explicitly tolerated (a cache warm, a fire-and-forget metric).
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -206,4 +216,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=arch findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (14 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (15 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`

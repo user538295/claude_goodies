@@ -375,6 +375,39 @@ NOTE for agent: distinct from safety-16 (money stored as float) — this is the 
 
 ---
 
+### safety-25 · Major · Unsynchronised Shared Mutable State or Unpropagated Cancellation
+**Scriptable**: No
+**Rule**: State reachable from more than one thread, coroutine, or async continuation and mutated without a lock, atomic, or confinement — or a compound read-modify-write on such state that is not atomic — races and corrupts. Related: a cancellation or timeout the code receives or creates but never forwards to the work it should stop leaks that work.
+**Scope**: `diff`
+**Finding action template**: Guard shared state `{name}` at `{file}:{line}` with a lock or atomic (or confine it to one owner), or propagate the cancellation token to `{downstreamCall}`
+**How to check**: For each new/changed mutation of state that outlives a single execution context (a shared field, module global, captured variable, or a container handed to concurrent workers), decide whether concurrent access is possible and unguarded. Flag: a compound update on shared state (`counter += 1`, `if key not in d: d[key] = …`, `list.append` on a shared list from concurrent tasks) with no lock/atomic; state mutated from a spawned thread/task while another context can read it; a `CancellationToken`/`AbortSignal`/structured cancellation that is caught or created and never passed to the downstream call. Dismiss request-scoped or thread-confined state, immutable state, single-threaded code where no `await` interleaves the two steps, and mutations already inside a lock/atomic/actor.
+
+NOTE for agent: this extends safety-05 (check-then-act) and safety-06 (blocking I/O in async) to the wider concurrency surface — do not re-report a hit those two already own. The hazard requires genuine concurrency: prove two contexts can reach the state before flagging, and dismiss on suspicion when you cannot.
+
+---
+
+### safety-26 · Moderate · Unobservable Failure Path
+**Scriptable**: No
+**Rule**: A failure branch that recovers — a `catch`/`except`/`rescue` that returns a fallback, or an early error-return with a default — while emitting no log, metric, or trace record makes the failure invisible in production, so it cannot be diagnosed or alerted on.
+**Scope**: `diff`
+**Finding action template**: Record the failure at `{file}:{line}` — emit a log, metric, or trace on the branch (or let it propagate to a layer that records it) so it is diagnosable
+**How to check**: For each new error-handling branch in the diff (a `catch`/`except`/`rescue`, or a failure early-return such as `if (!ok) return default`), check whether it records the failure (a logger/metric/trace call) or propagates it to a caller that will. Flag branches that recover to a fallback or default with no signal. Dismiss branches that re-throw or propagate the error, expected control paths that are not failures (a cache miss, a validation returning a typed error to the caller), and test files.
+
+NOTE for agent: smells-12 owns whether an exception should have been swallowed at all; this owns the observability of a failure the code has *deliberately* recovered from — the two co-fire only when a genuine swallow is also unlit, in which case report smells-12. safety-07 owns suppression comments. This is the counterweight to solid-12 (no logging inside the domain): satisfy both by recording the failure at the boundary/adapter, not in a domain type.
+
+---
+
+### safety-27 · Major · Unbounded In-Memory Growth
+**Scriptable**: No
+**Rule**: A long-lived container that only ever grows — an instance field, module global, cache, or queue appended to or inserted into with no size cap, eviction policy, or TTL — grows without bound until it exhausts memory.
+**Scope**: `diff`
+**Finding action template**: Bound `{container}` at `{file}:{line}` with a max size, an eviction policy (LRU/TTL), or periodic pruning so it cannot grow without bound
+**How to check**: For each collection, cache, map, or queue written in the diff that outlives a single request (a field, module-level global, or captured variable), check for a bound: a max size, eviction, TTL, or a removal path that keeps it bounded. Flag an append/insert into an unbounded long-lived container. Dismiss request-scoped or local collections discarded when the function returns, containers with a known small fixed cardinality, and containers that already carry a cap or eviction. You may read the repository to confirm a bounding mechanism defined elsewhere on the type.
+
+NOTE for agent: distinct from safety-01, which owns an unclosed handle (file, connection, socket, timer, executor, observer) on a code path — this owns growth of an in-memory container over the object's lifetime. A per-request cache with no eviction and a module-level list that every call appends to are the archetypes.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -387,4 +420,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=safety findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### safety-NN` check headers in this file (24 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=safety failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### safety-NN` check headers in this file (27 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=safety failed=<brief reason>`

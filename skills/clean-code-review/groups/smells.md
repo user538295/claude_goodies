@@ -324,6 +324,28 @@ NOTE for agent: `printStackTrace()` with no other handling is the target — dis
 
 ---
 
+### smells-24 · Major · Error Semantics
+**Scriptable**: No
+**Rule**: An error the caller cannot act on correctly: a fallback that silently substitutes a wrong or degraded result as if it were correct, an exception type too generic for the caller to tell a recoverable failure from a fatal one, or an error message that exposes internal detail (a stack trace, SQL, a file path, a secret) to an end user.
+**Scope**: `diff`
+**Finding action template**: Give the error at `{file}:{line}` actionable semantics — a specific exception type, an honest failure result instead of a silent degraded value, or a user-facing message with no internal detail
+**How to check**: For each new/changed error path in the diff, ask what the caller — or the end user — can do with it. Flag: a `catch` that returns a plausible-but-wrong default so callers treat a failure as success; a throw/raise of a base `Exception`/`Error` where callers must distinguish causes; an error surfaced to a user that leaks internals. Dismiss errors that are already specific and actionable, internal-only messages, and deliberate degraded modes that are logged and documented as such.
+
+NOTE for agent: distinct from smells-11 (error-handling isolation), smells-12 (swallowed exceptions), safety-10 (cause discarded on rethrow), and arch-05 (an infrastructure exception *type* leaking across a layer). This owns the *design of the error contract* — whether the caller and the user get something they can act on.
+
+---
+
+### smells-25 · Moderate · Accidental Quadratic or Repeated Work
+**Scriptable**: No
+**Rule**: A change that introduces avoidable algorithmic cost — a nested loop over the same or a related collection that turns a linear task into O(n²), a lookup or recomputation repeated every iteration that could be hoisted out, or materialising a whole collection only to take its first element or a single value.
+**Scope**: `diff`
+**Finding action template**: Reduce the cost at `{file}:{line}` — replace the inner scan with a set/map lookup, hoist the invariant work out of the loop, or take the single value without materialising the whole collection
+**How to check**: For each new/changed loop or comprehension in the diff, check its cost against the data it runs on. Flag: an inner `.find`/`.includes`/`in list`/nested loop over a collection whose size grows with input (O(n²)); a query, sort, compile, or allocation performed inside a loop that does not depend on the loop variable; a full `list()`/`.toList()`/`sorted()` built only to read `[0]` or test `any()`. Dismiss provably small or fixed-size collections, and cases where the simpler code is correct and the cost is negligible.
+
+NOTE for agent: distinct from clarity-16, which measures cyclomatic complexity as a *readability* cost — this is *runtime* cost. Do not flag micro-optimisations with no measurable effect; the finding is a worse complexity class or a per-iteration cost that scales with input.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -336,4 +358,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=smells findings=N checks=M ok`
-where N is the number of finding lines and M is the total count of `### smells-NN` check headers in this file (23 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=smells failed=<brief reason>`
+where N is the number of finding lines and M is the total count of `### smells-NN` check headers in this file (25 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=smells failed=<brief reason>`

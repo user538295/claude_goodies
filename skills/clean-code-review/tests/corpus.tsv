@@ -1292,3 +1292,4 @@ safety-02	typescript	safety/safety-02.ts	NOMATCH	private field!: string
 safety-02	typescript	safety/safety-02.ts	MATCH	const t = `count ${arr[0]!}`
 safety-02	typescript	safety/safety-02.ts	MATCH	const v = cfg.value! + 1
 safety-02	typescript	safety/safety-02.ts	NOMATCH	const s = "boom!"
+smells-21	python	smells/test_anytype.py	NOMATCH	    rows: dict[str, Any] = {}

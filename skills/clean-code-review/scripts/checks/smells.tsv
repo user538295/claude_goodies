@@ -52,7 +52,7 @@ smells-20	java	grep -E '\.java$' | while IFS= read -r f; do [ -f "$f" ] || conti
 smells-20	kotlin	grep -E '\.kts?$' | while IFS= read -r f; do [ -f "$f" ] || continue; if grep -qE 'override\s+fun\s+equals\s*\(' "$f" && ! grep -qE 'override\s+fun\s+hashCode\s*\(' "$f"; then grep -nE 'override\s+fun\s+equals\s*\(' "$f" | head -1 | awk -v f="$f" '{print f":"$0}'; fi; done
 smells-21	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mgrep ':\s*any\b|[,<]\s*any\s*[>,]|\bas\s+any\b|<any>|^(?!\s*(?:import\b|export\s*\{|//|\*|/\*))(?!\s*[\w$]+\s+as\s+[\w$]+\s*,?\s*$).*\bas\s+(?!const\b|unknown\s*(?:[;,)\]}]|$)|Record<\s*string\s*,\s*unknown\s*>|HTML\w*Element\b)[A-Za-z_$(\[]'
 smells-21	csharp	grep -E '\.cs$' | mgrep '^(?!\s*(//|\*|/\*))[^\n]*\bdynamic\s+\w+\s*[=;)]'
-smells-21	python	grep -E '\.py$' | mgrep ':\s*Any\b|->\s*Any\b|\[[^\]\n]*\bAny\b|\bcast\(\s*Any\b'
+smells-21	python	grep -E '\.py$' | grep -vE '(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$' | mgrep ':\s*Any\b|->\s*Any\b|\[[^\]\n]*\bAny\b|\bcast\(\s*Any\b'
 smells-21	swift	grep -E '\.swift$' | grep -vE 'Tests?\.swift$|(^|/)[^/]*Tests?/' | mgrep '^(?!\s*(?://|\*|/\*))(?!\s*@IB(?:Outlet|Action)\b).*\b(?:var|let)\s+\w+\s*:\s*[\w.\[\]<>, ]*[\w\]>]!(?!=)'
 smells-22	python	grep -E '\.py$' | mgrep '^\s*from\s+[\w.]+\s+import\s+\*'
 smells-22	java	grep -E '\.java$' | mgrep '^\s*import\s+[\w.]+\.\*\s*;'

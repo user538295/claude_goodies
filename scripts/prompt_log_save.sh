@@ -17,6 +17,11 @@ cwd=$(echo "$input" | jq -r '.cwd // ""')
 [ -z "$prompt" ] && exit 0
 [ -z "$cwd" ] && exit 0
 
+# Background-task notifications reach this hook as if they were prompts. They
+# are not, so they get no log entry and no working-time start. Matched on the
+# full opening tag: real prompts do sometimes start with "<".
+case "$prompt" in '<task-notification>'*) exit 0 ;; esac
+
 session_map="$_CLAUDE_SESSION_MAP_DIR/${session_id}"
 [ ! -f "$session_map" ] && create_session_file "$session_id" "$cwd"
 

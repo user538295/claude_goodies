@@ -200,6 +200,53 @@ cp "$MAIN" "$WORKROOT/corrupt.jsonl"
 printf 'this is not json\n' >> "$WORKROOT/corrupt.jsonl"
 assert_eq "corrupt line is skipped" "$MAIN_TOTAL" "$(engine total "$WORKROOT/corrupt.jsonl")"
 
+# ------------------------------------------------------- headless / SDK mode --
+# Headless runs (claude -p, the SDK, cron) mark prompts promptSource "sdk", and
+# they carry no effort anywhere — hence "effort: unknown". CC also injects
+# <task-notification> back into the session as a user entry that is shaped
+# EXACTLY like a real sdk prompt (promptSource "sdk", isMeta unset), so only the
+# opening tag tells them apart. Real prompts do sometimes start with "<" (six
+# "<Role…" prompts exist in this machine's transcripts), so the guard is
+# anchored on the exact tag and never on a bare "<".
+#
+# haiku-4-5 = 1/5:
+#   req1 = 10000+20000 in, 2000+4000 out -> 30000*1 + 6000*5 = 60000 -> $0.06
+#   req2 = 5000 in, 1000 out             ->  5000*1 + 1000*5 = 10000 -> $0.01
+#   file total                           -> 35000*1 + 7000*5 = 70000 -> $0.07
+HEADLESS="$WORKROOT/headless.jsonl"
+hasst() { # ts id in out — headless entries carry no effort field at all
+  printf '{"type":"assistant","timestamp":"%s","requestId":"req_%s","message":{"id":"%s","model":"claude-haiku-4-5","role":"assistant","stop_reason":"end_turn","content":[{"type":"text","text":"a"}],"usage":{"input_tokens":%s,"output_tokens":%s,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0},"speed":"standard"}}}\n' \
+    "$1" "$2" "$2" "$3" "$4"
+}
+{
+  usr '2026-08-28T10:00:00.000Z' '"sdk"' 'false' '"headless one"'
+  hasst '2026-08-28T10:00:10.000Z' msg_h1 10000 2000
+  usr '2026-08-28T10:00:20.000Z' 'null' 'false' '[{"type":"tool_result","content":"ok"}]'
+  usr '2026-08-28T10:00:30.000Z' '"sdk"' 'false' '"<task-notification>\n<task-id>a164</task-id>\n<status>completed</status>\n</task-notification>"'
+  hasst '2026-08-28T10:00:40.000Z' msg_h2 20000 4000
+  usr '2026-08-28T10:01:00.000Z' '"sdk"' 'false' '"headless two"'
+  hasst '2026-08-28T10:01:10.000Z' msg_h3 5000 1000
+} > "$HEADLESS"
+
+H1='est. used token: input: 30000, output: 6000, cache_create: 0, cache_read: 0, total_tokens: 36000, price: $0.06, model: claude-haiku-4-5, effort: unknown'
+H2='est. used token: input: 5000, output: 1000, cache_create: 0, cache_read: 0, total_tokens: 6000, price: $0.01, model: claude-haiku-4-5, effort: unknown'
+
+# Two sdk prompts -> exactly two requests. Before sdk was accepted this was 0;
+# if the injected notification split too it would be 3.
+assert_eq "sdk prompts segment the session" "2" \
+  "$(engine segments "$HEADLESS" | wc -l | tr -d ' ')"
+assert_eq "the injected task-notification does not open a request" "$H1" \
+  "$(engine segments "$HEADLESS" | sed -n '1p' | cut -d"$(printf '\037')" -f3)"
+assert_eq "second sdk request is totaled on its own" "$H2" \
+  "$(engine segments "$HEADLESS" | sed -n '2p' | cut -d"$(printf '\037')" -f3)"
+# The Stop hook uses mode=last: it must report the LAST request, not the running
+# session total ($0.07) — the defect seen in headless session 6c4e5d92.
+assert_eq "mode=last on a headless transcript reports one request, not the total" "$H2" \
+  "$(engine last "$HEADLESS" | cut -d"$(printf '\037')" -f5)"
+assert_eq "headless file total still counts every entry" \
+  'est. used token: input: 35000, output: 7000, cache_create: 0, cache_read: 0, total_tokens: 42000, price: $0.07, model: claude-haiku-4-5, effort: unknown' \
+  "$(engine total "$HEADLESS")"
+
 # ---------------------------------------------------------------- aggregator --
 cat > "$WORKROOT/expected.txt" <<'EOF'
 session: <sid>.jsonl

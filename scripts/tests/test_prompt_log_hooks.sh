@@ -83,6 +83,30 @@ else
   esac
 fi
 
+# CC injects <task-notification> back into the session through UserPromptSubmit,
+# so it used to land in the log as a "## HH:MM:SS" user prompt. It is not a
+# prompt and must be skipped — without a .pstart either, or the next turn would
+# time from the notification instead of from the real prompt.
+sid_note="aaaaaaaa-0000-0000-0000-000000000002"
+log_note="$(mk_log "$sid_note")"
+printf '{"session_id":"%s","prompt":"<task-notification>\\n<task-id>a164</task-id>\\n<status>completed</status>\\n</task-notification>","cwd":"%s"}\n' \
+  "$sid_note" "$WORKROOT/proj" | bash "$SCRIPTS/prompt_log_save.sh" > "$WORKROOT/note.out" 2>/dev/null
+rc=$?
+assert_eq "save.sh exits 0 on an injected notification" "0" "$rc"
+assert_eq "save.sh does not log an injected notification" "0" "$(wc -c < "$log_note" | tr -d ' ')"
+if [ -f "$HOME/.claude/session-maps/$sid_note.pstart" ]; then
+  fail "save.sh must not start the working-time clock for an injected notification"
+fi
+
+# Positive control: real prompts DO start with "<" sometimes, so the guard must
+# key on the exact tag, not on a leading angle bracket.
+sid_angle="aaaaaaaa-0000-0000-0000-000000000003"
+log_angle="$(mk_log "$sid_angle")"
+printf '{"session_id":"%s","prompt":"<Role>reviewer</Role> please check this","cwd":"%s"}\n' \
+  "$sid_angle" "$WORKROOT/proj" | bash "$SCRIPTS/prompt_log_save.sh" >/dev/null 2>&1
+assert_grep "save.sh still logs a real prompt that starts with '<'" \
+  '^<Role>reviewer</Role> please check this$' "$log_angle"
+
 # ------------------------------------------------- prompt_log_stop.sh --------
 # Normal turn: response block, working time from .pstart, est-line, switch line.
 sid1="bbbbbbbb-0000-0000-0000-000000000001"

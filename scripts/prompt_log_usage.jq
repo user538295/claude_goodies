@@ -58,12 +58,22 @@ def ts_epoch:
   else (try (sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601) catch null)
   end;
 
+# CC injects notifications back into the session as user entries shaped exactly
+# like a real headless prompt — promptSource "sdk", isMeta unset — so the
+# opening tag is the only thing that separates them. Anchored on the full tag,
+# never on a bare "<": real prompts do start with "<" (e.g. "<Role…").
+def is_injected:
+  (.message.content | type) == "string"
+  and (.message.content | startswith("<task-notification>"));
+
 # A request starts at a prompt the user actually sent. Tool results, slash
 # commands and other meta entries are user entries too, and must not split.
+# "sdk" is how headless runs (claude -p, the SDK, cron) mark their prompts.
 def is_start:
   .type == "user"
-  and ((.promptSource // "") | . == "typed" or . == "queued")
-  and (.isMeta != true);
+  and ((.promptSource // "") | . == "typed" or . == "queued" or . == "sdk")
+  and (.isMeta != true)
+  and (is_injected | not);
 
 def is_usage:
   .type == "assistant"

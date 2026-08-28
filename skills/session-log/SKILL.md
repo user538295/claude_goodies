@@ -35,7 +35,7 @@ Read `$ARGUMENTS` and act:
 
 ### usage — Total the current session (main agent + every sub-agent)
 
-1. Resolve and run the aggregator, showing its output verbatim — do NOT reformat it. When the user supplied extra arguments (a session id, a transcript path, `--check`), pass them through in place of `--latest`:
+1. Resolve and run the aggregator and print its stdout verbatim inside a ```text fence — do NOT reformat, realign, summarize, or drop fields. When the user supplied extra arguments (a session id, a transcript path, `--check`), pass them through in place of `--latest`:
    ```
    p="${CLAUDE_PLUGIN_ROOT:-}"; [ -n "$p" ] || p=$(jq -r 'first(.plugins | to_entries[] | select(.key | startswith("claude-goodies@")) | .value[0].installPath) // empty' "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null); [ -f "$p/skills/session-log/scripts/prompt_log_usage.sh" ] || p="$HOME/.claude"; bash "$p/skills/session-log/scripts/prompt_log_usage.sh" --latest
    ```

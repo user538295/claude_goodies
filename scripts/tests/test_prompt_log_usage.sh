@@ -206,6 +206,23 @@ cp "$MAIN" "$WORKROOT/corrupt.jsonl"
 printf 'this is not json\n' >> "$WORKROOT/corrupt.jsonl"
 assert_eq "corrupt line is skipped" "$MAIN_TOTAL" "$(engine total "$WORKROOT/corrupt.jsonl")"
 
+# Streamed copies: sub-agent transcripts write one line per content block with
+# GROWING output_tokens snapshots (input/cache constant); the final copy holds
+# the message's final usage and is the one to count — not the first (defect
+# seen in session d1e03925: a sub-agent reported 47 of its 16718 out tokens).
+#   haiku-4-5 = 1/5: 15000*1 + 3000*5 = 30000 -> 3 cents = $0.03, tokens 18000
+STREAMED="$WORKROOT/streamed.jsonl"
+{
+  usr '2026-08-28T10:00:00.000Z' '"typed"' 'false' '"streamed prompt"'
+  asst '2026-08-28T10:00:01.000Z' msg_x claude-haiku-4-5 high 10000 3 0 0 0 standard
+  asst '2026-08-28T10:00:02.000Z' msg_x claude-haiku-4-5 high 10000 150 0 0 0 standard
+  asst '2026-08-28T10:00:03.000Z' msg_x claude-haiku-4-5 high 10000 2000 0 0 0 standard
+  asst '2026-08-28T10:00:04.000Z' msg_y claude-haiku-4-5 high 5000 1000 0 0 0 standard
+} > "$STREAMED"
+assert_eq "growing streamed copies count the final snapshot, not the first" \
+  'est. used token: input: 15000, output: 3000, cache_create: 0, cache_read: 0, total_tokens: 18000, price: $0.03, model: claude-haiku-4-5, effort: high' \
+  "$(engine total "$STREAMED")"
+
 # ------------------------------------------------------- headless / SDK mode --
 # Headless runs (claude -p, the SDK, cron) mark prompts promptSource "sdk", and
 # they carry no effort anywhere — hence "effort: unknown". CC also injects

@@ -14,9 +14,12 @@
 #                     are concatenated: the id dedupe then also collapses an
 #                     entry that shows up in more than one file.
 #
-# One API response is written to the transcript once per content block, each
-# copy carrying the same message.usage, so entries are deduped by message.id
-# (falling back to requestId, then the line number) before anything is counted.
+# One API response is written to the transcript once per content block. Main
+# transcripts repeat the same final message.usage on every copy, but sub-agent
+# transcripts write streaming snapshots whose output_tokens grow copy by copy —
+# so copies are collapsed by message.id (falling back to requestId, then the
+# line number) with the LAST copy winning: each repeat replaces the usage the
+# earlier copy contributed.
 
 def US: "\u001f";
 def prices: $P[0];
@@ -157,22 +160,27 @@ def blank_seg:
       | (if ($e | is_usage | not) then .
          else
            ($e.message.id // $e.requestId // ("#" + (.n | tostring))) as $k
-           | if (.cur.seen[$k] // false) then .
-             else
-               ($e.message.model // "") as $model
-               | ($model + (if ($e | is_fast) then "|fast" else "" end)) as $bk
-               | ($e | usage_of) as $u
-               | .cur.seen[$k] = true
-               | .cur.buckets[$bk] =
-                   ( (.cur.buckets[$bk]
-                      // { model: $model, fast: ($e | is_fast),
-                           in: 0, out: 0, cr: 0, c5m: 0, c1h: 0 })
-                     | .in += $u.in | .out += $u.out | .cr += $u.cr
-                     | .c5m += $u.c5m | .c1h += $u.c1h )
-               | .cur.efforts[($e.effort // "unknown")] = true
-               | .cur.lm = $model
-               | .cur.le = ($e.effort // "")
-             end
+           | ($e.message.model // "") as $model
+           | ($model + (if ($e | is_fast) then "|fast" else "" end)) as $bk
+           | ($e | usage_of) as $u
+           | (.cur.seen[$k] // null) as $prev
+           # A later copy of the same message supersedes the earlier snapshot:
+           # back out what that copy added before adding the fresh numbers.
+           | (if $prev == null then .
+              else .cur.buckets[$prev.bk] |=
+                     ( .in -= $prev.u.in | .out -= $prev.u.out | .cr -= $prev.u.cr
+                       | .c5m -= $prev.u.c5m | .c1h -= $prev.u.c1h )
+              end)
+           | .cur.seen[$k] = { bk: $bk, u: $u }
+           | .cur.buckets[$bk] =
+               ( (.cur.buckets[$bk]
+                  // { model: $model, fast: ($e | is_fast),
+                       in: 0, out: 0, cr: 0, c5m: 0, c1h: 0 })
+                 | .in += $u.in | .out += $u.out | .cr += $u.cr
+                 | .c5m += $u.c5m | .c1h += $u.c1h )
+           | .cur.efforts[($e.effort // "unknown")] = true
+           | .cur.lm = $model
+           | .cur.le = ($e.effort // "")
          end)
     )
 | .segs += [.cur]

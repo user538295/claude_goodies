@@ -33,9 +33,9 @@ Read `$ARGUMENTS` and act:
    - If off: `Session logging: off\nRun /session-log on to enable.`
 3. If on, run the aggregator for the current session and show its output verbatim — do NOT reformat it:
    ```
-   bash "${CLAUDE_PLUGIN_ROOT}"/scripts/prompt_log_usage.sh --latest
+   p="${CLAUDE_PLUGIN_ROOT:-}"; [ -n "$p" ] || p=$(jq -r 'first(.plugins | to_entries[] | select(.key | startswith("claude-goodies@")) | .value[0].installPath) // empty' "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null); [ -f "$p/scripts/prompt_log_usage.sh" ] || p="$HOME/.claude"; bash "$p/scripts/prompt_log_usage.sh" --latest
    ```
-   It prints one `est. used token:` line per request, one per sub-agent transcript, and a `TOTAL` line. Instead of `--latest` it also takes a session id or a transcript path; add `--check` to compare our total against `ccusage session` when ccusage is installed. If `${CLAUDE_PLUGIN_ROOT}` is unset or the script is missing, skip this step silently — do not report an error.
+   It prints one `est. used token:` line per request, one per sub-agent transcript, and a `TOTAL` line. Instead of `--latest` it also takes a session id or a transcript path; add `--check` to compare our total against `ccusage session` when ccusage is installed. If the resolution finds no script — no plugin install and no synced copy — skip this step silently; do not report an error.
 
 ## What a logged request looks like
 

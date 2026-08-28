@@ -57,7 +57,7 @@ ln -s ~/.claude/commands/implement-next.md .cursor/commands/implement-next.md</c
       </ol>
       <p><strong>Loop body (repeats until all tasks complete):</strong></p>
       <ol>
-        <li><strong>Progress:</strong> Runs <code>bash ~/.claude/scripts/plan-progress.sh &lt;plan-file&gt;</code> and shows the first two lines of output. Exit 1 → all tasks complete, stop. Exit 2/3 → halt with error. Exit 0 → note <code>NEXT_TASK_NAME</code> and continue.</li>
+        <li><strong>Progress:</strong> Runs <code>plan-progress.sh &lt;plan-file&gt;</code> from the installed plugin (falling back to <code>~/.claude/scripts/</code>) and shows the first two lines of output. Exit 1 → all tasks complete, stop. Exit 2/3 → halt with error. Exit 0 → note <code>NEXT_TASK_NAME</code> and continue.</li>
         <li><strong>Spawn subagent:</strong> Uses the runtime's subagent primitive (Claude Code <code>Agent</code> tool, Cursor <code>Task</code> tool, or inline <code>/implement-next</code> in headless harnesses) with a strict scoped prompt. The prompt enforces ONE-task-only, requires Steps A–F completion (implementation, <code>/iterative-review</code>, tests pass, plan checked off, single commit, report), and forbids <code>--no-verify</code> / <code>--amend</code> / bundling tasks / nested <code>/implement-all</code> calls / scope creep. Then waits for the subagent to return.</li>
         <li><strong>Recovery check — verify the task landed:</strong> Checks that the task is checked off in the plan file and that related files are committed. If either is missing, re-spawns the subagent for this task (Step 2) and repeats. Reports any anomalies to the user.</li>
       </ol>

@@ -11,7 +11,7 @@ Plan file: $ARGUMENTS
 Run:
 
 ```
-bash "${CLAUDE_PLUGIN_ROOT}"/scripts/plan-progress.sh "$ARGUMENTS"
+p="${CLAUDE_PLUGIN_ROOT:-}"; [ -n "$p" ] || p=$(jq -r 'first(.plugins | to_entries[] | select(.key | startswith("claude-goodies@")) | .value[0].installPath) // empty' "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null); [ -f "$p/scripts/plan-progress.sh" ] || p="$HOME/.claude"; bash "$p/scripts/plan-progress.sh" "$ARGUMENTS"
 ```
 
 **Exit 0 (normal):** print the human-readable block verbatim. Read `NEXT_TASK_NAME` from the machine-readable lines, then read $ARGUMENTS to extract the full task details: description, sub-items, and — for a self-contained plan — acceptance criteria. (For a task-breakdown file with a companion plan, per-task acceptance criteria are the `S#`/`C#` the task `completes`; those are **defined in the companion plan**, not in $ARGUMENTS — see below.)
@@ -28,7 +28,7 @@ If step 1 or 2 identifies a companion plan path but that file **does not exist**
 
 **Exit 1:** all tasks are complete — stop here, report completion.
 
-**Any other exit code or script not found (fallback):** read the appropriate template from `"${CLAUDE_PLUGIN_ROOT}"/scripts/` (`progress-header-phased.template` if the plan has `###` headings within the task section (`## Tasks` / `## Task breakdown`), `progress-header-flat.template` otherwise), compute the placeholder values by reading $ARGUMENTS directly, substitute them, and print the result. Then continue as normal — including the companion-plan detection above — a failed script must not block progress.
+**Any other exit code or script not found (fallback):** read the appropriate template from the `scripts/` directory the snippet above resolved — `$p/scripts/` (`progress-header-phased.template` if the plan has `###` headings within the task section (`## Tasks` / `## Task breakdown`), `progress-header-flat.template` otherwise), compute the placeholder values by reading $ARGUMENTS directly, substitute them, and print the result. Then continue as normal — including the companion-plan detection above — a failed script must not block progress.
 
 ### Step 2: Implement (TDD)
 

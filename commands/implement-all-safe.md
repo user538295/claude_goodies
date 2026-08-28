@@ -28,7 +28,7 @@ Each iteration:
 
 #### 1. **Progress** Run, replacing `<plan-path>` with the resolved file path:
    ```
-   bash "${CLAUDE_PLUGIN_ROOT}"/scripts/plan-progress.sh "<plan-path>"
+   p="${CLAUDE_PLUGIN_ROOT:-}"; [ -n "$p" ] || p=$(jq -r 'first(.plugins | to_entries[] | select(.key | startswith("claude-goodies@")) | .value[0].installPath) // empty' "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null); [ -f "$p/scripts/plan-progress.sh" ] || p="$HOME/.claude"; bash "$p/scripts/plan-progress.sh" "<plan-path>"
    ```
    - Exit 1 → all tasks complete — stop.
    - Exit 2 or 3 → stop and report the error.

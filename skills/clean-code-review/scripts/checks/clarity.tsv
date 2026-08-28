@@ -5,6 +5,7 @@ clarity-06	csharp	grep -E '\.cs$' | mgrep '\b(class|interface|record|enum|struct
 clarity-06	swift	grep -E '\.swift$' | mgrep '\b(class|struct|protocol|enum)\s+[A-Z]\w*(Manager|Processor|Handler|Helper|Utils?|Data|Info|Wrapper|Impl|Base|Thing|Stuff)\b'
 clarity-06	kotlin	grep -E '\.kts?$' | mgrep '\b(class|interface|object|enum\s+class)\s+[A-Z]\w*(Manager|Processor|Handler|Helper|Utils?|Data|Info|Wrapper|Impl|Base|Thing|Stuff)\b'
 clarity-06	java	grep -E '\.java$' | mgrep '\b(class|interface|enum)\s+[A-Z]\w*(Manager|Processor|Handler|Helper|Utils?|Data|Info|Wrapper|Impl|Base|Thing|Stuff)\b'
+clarity-06	cpp	grep -E '\.(cpp|cc|cxx|c\+\+|hpp|hh|hxx|h|c)$' | mgrep '\b(class|struct|enum|union)\s+[A-Z]\w*(Manager|Processor|Handler|Helper|Utils?|Data|Info|Wrapper|Impl|Base|Thing|Stuff)\b'
 clarity-09	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mgrep '^(?!\s*(?://|\*|/\*|(?:export\s+)?(?:const|let|var)\s+\w+\s*=|return\b))[^;]*(?:&&|\|\|)[^;]*(?:&&|\|\|)'
 clarity-09	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mgrep '^(?!\s*(?://|\*|/\*|(?:export\s+)?(?:const|let|var)\s+\w+\s*=|return\b))[^;]*(?:&&|\|\|)[^;]*(?:&&|\|\|)'
 clarity-09	python	grep -E '\.py$' | mgrep '^\s*(?:if|elif|while)\b[^#]*\b(?:and|or)\b[^#]*\b(?:and|or)\b'
@@ -12,6 +13,7 @@ clarity-09	csharp	grep -E '\.cs$' | mgrep '^(?!\s*(?://|\*|/\*|(?:export\s+)?(?:
 clarity-09	java	grep -E '\.java$' | mgrep '^(?!\s*(?://|\*|/\*|(?:export\s+)?(?:const|let|var)\s+\w+\s*=|return\b))[^;]*(?:&&|\|\|)[^;]*(?:&&|\|\|)'
 clarity-09	kotlin	grep -E '\.kts?$' | mgrep '^(?!\s*(?://|\*|/\*|(?:val|var)\s+\w+\s*=|return\b))[^;]*(?:&&|\|\|)[^;]*(?:&&|\|\|)'
 clarity-09	swift	grep -E '\.swift$' | mgrep '^(?!\s*(?://|\*|/\*|(?:(?:private|public|internal|fileprivate|static|final|lazy)\s+)*(?:let|var)\s+\w+\s*=|return\b))[^;]*(?:&&|\|\|)[^;]*(?:&&|\|\|)'
+clarity-09	cpp	grep -E '\.(cpp|cc|cxx|c\+\+|hpp|hh|hxx|h|c)$' | mgrep '^(?!\s*(?://|\*|/\*|(?:static\s+)?(?:constexpr\s+)?(?:const\s+)?(?:auto|bool)\s+\w+\s*=|return\b))[^;]*(?:&&|\|\|)[^;]*(?:&&|\|\|)'
 clarity-09	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mcond '^\s*\}?\s*(?:else\s+)?(?:if|while)\s*\(' 2 '&&|\|\|' '//'
 clarity-09	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mcond '^\s*\}?\s*(?:else\s+)?(?:if|while)\s*\(' 2 '&&|\|\|' '//'
 clarity-09	python	grep -E '\.py$' | mcond '^\s*(?:if|elif|while)\b' 2 '\band\b|\bor\b' '#'
@@ -19,6 +21,7 @@ clarity-09	csharp	grep -E '\.cs$' | mcond '^\s*\}?\s*(?:else\s+)?(?:if|while)\s*
 clarity-09	java	grep -E '\.java$' | mcond '^\s*\}?\s*(?:else\s+)?(?:if|while)\s*\(' 2 '&&|\|\|' '//'
 clarity-09	kotlin	grep -E '\.kts?$' | mcond '^\s*\}?\s*(?:else\s+)?(?:if|while)\s*\(' 2 '&&|\|\|' '//'
 clarity-09	swift	grep -E '\.swift$' | mcond '^\s*(?:\}?\s*(?:else\s+)?(?:if|while)|guard)\b' 2 '&&|\|\|' '//'
+clarity-09	cpp	grep -E '\.(cpp|cc|cxx|c\+\+|hpp|hh|hxx|h|c)$' | mcond '^\s*\}?\s*(?:else\s+)?(?:if|while)\s*\(' 2 '&&|\|\|' '//'
 clarity-16	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mbranch '^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\b|=>\s*\{\s*$|^\s*(?:(?:public|private|protected|static|async|get|set|override|readonly)\s+)*[\w$]+\s*(?:<[^>]*>)?\s*\([^;]*\)\s*(?::[^{;]*)?\{\s*$' '\b(if|else|for|while|switch|case|catch)\b|\?[^?:.]' 10 | grep -vE ':[0-9]+:[[:space:]]*(describe|it|test|suite|context|before(Each|All)|after(Each|All))[[:space:].(]'
 clarity-16	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mbranch '^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\b|=>\s*\{\s*$|^\s*(?:(?:public|private|protected|static|async|get|set|override|readonly)\s+)*[\w$]+\s*(?:<[^>]*>)?\s*\([^;]*\)\s*(?::[^{;]*)?\{\s*$' '\b(if|else|for|while|switch|case|catch)\b|\?[^?:.]' 10 | grep -vE ':[0-9]+:[[:space:]]*(describe|it|test|suite|context|before(Each|All)|after(Each|All))[[:space:].(]'
 clarity-16	python	grep -E '\.py$' | mbranch '^\s*(?:async\s+)?def\s+\w+' '\b(if|elif|for|while|except)\b' 10
@@ -26,6 +29,7 @@ clarity-16	csharp	grep -E '\.cs$' | mbranch '^\s*(?:(?:public|private|protected|
 clarity-16	swift	grep -E '\.swift$' | mbranch '^\s*(?:[@\w]+\s+)*(?:func\s+\w+|init[?!]?\s*[(<]|deinit\b|subscript\s*[(<]|var\s+\w+\s*:[^=]*\{\s*$)' '\b(if|else|while|switch|case|catch|guard)\b|\bfor\b(?!\s*:)|\?[^?:.]' 10
 clarity-16	kotlin	grep -E '\.kts?$' | mbranch '^\s*(?:[@\w]+\s+)*(?:fun\s|init\s*\{|constructor\s*\()' '\b(if|else|for|while|when|catch)\b|\?[^?:.]' 10
 clarity-16	java	grep -E '\.java$' | mbranch '^\s*(?:(?:public|private|protected|static|final|abstract|synchronized|native|default|strictfp)\s+)+[\w<>\[\],\.\?]+(?:\s+\w+)?\s*(?:<[^>]*>)?\s*\(|->\s*\{\s*$' '\b(if|else|for|while|switch|case|catch)\b|\?[^?:.]' 10
+clarity-16	cpp	grep -E '\.(cpp|cc|cxx|c\+\+|hpp|hh|hxx|h|c)$' | mbranch '^\s*(?:(?:virtual|static|inline|explicit|constexpr|friend|extern|unsigned|signed|const)\s+)*[A-Za-z_][\w:]*(?:\s*<[^;<>]*>)?[\s*&]+[A-Za-z_][\w:]*\s*\(' '\b(if|else|for|while|switch|case|catch)\b|\?[^?:.]' 10
 clarity-17	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mfunc '^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\b|=>\s*\{\s*$|^\s*(?:(?:public|private|protected|static|async|get|set|override|readonly)\s+)*[\w$]+\s*(?:<[^>]*>)?\s*\([^;]*\)\s*(?::[^{;]*)?\{\s*$' 150
 clarity-17	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mfunc '^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\b|=>\s*\{\s*$|^\s*(?:(?:public|private|protected|static|async|get|set|override|readonly)\s+)*[\w$]+\s*(?:<[^>]*>)?\s*\([^;]*\)\s*(?::[^{;]*)?\{\s*$' 150
 clarity-17	python	grep -E '\.py$' | mfunc '^\s*(?:async\s+)?def\s+\w+' 150
@@ -33,3 +37,4 @@ clarity-17	csharp	grep -E '\.cs$' | mfunc '^\s*(?:(?:public|private|protected|in
 clarity-17	swift	grep -E '\.swift$' | mfunc '^\s*(?:[@\w]+\s+)*(?:func\s+\w+|init[?!]?\s*[(<]|deinit\b|subscript\s*[(<]|var\s+\w+\s*:[^=]*\{\s*$)' 150
 clarity-17	kotlin	grep -E '\.kts?$' | mfunc '^\s*(?:[@\w]+\s+)*(?:fun\s|init\s*\{|constructor\s*\()' 150
 clarity-17	java	grep -E '\.java$' | mfunc '^\s*(?:(?:public|private|protected|static|final|abstract|synchronized|native|default|strictfp)\s+)+[\w<>\[\],\.\?]+(?:\s+\w+)?\s*(?:<[^>]*>)?\s*\(|->\s*\{\s*$' 150
+clarity-17	cpp	grep -E '\.(cpp|cc|cxx|c\+\+|hpp|hh|hxx|h|c)$' | mfunc '^\s*(?:(?:virtual|static|inline|explicit|constexpr|friend|extern|unsigned|signed|const)\s+)*[A-Za-z_][\w:]*(?:\s*<[^;<>]*>)?[\s*&]+[A-Za-z_][\w:]*\s*\(' 150

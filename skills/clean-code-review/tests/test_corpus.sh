@@ -131,6 +131,10 @@ gen_br java 'public void branchy() {'   'public void f$N() {
   if (a) { b(); }
   if (c) { d(); }
 }'
+gen_br cpp  'void branchy() {'          'void f$N() {
+  if (a) { b(); }
+  if (c) { d(); }
+}'
 { printf 'func branchy() {\n'; for i in $(seq 1 12); do echo '  if x { y() }'; done; printf '}\n'; } > thr/branchy.swift
 for i in $(seq 1 12); do printf 'func f%d() {\n  if a { b() }\n  if c { d() }\n}\n' "$i"; done > thr/spread.swift
 { printf 'def branchy():\n'; for i in $(seq 1 12); do echo "    if x$i: pass"; done; } > thr/branchy.py
@@ -180,6 +184,10 @@ gen_fn java  'public void longOne() {'             'public int f$N() {
   int x = 1;
   return x;
 }'
+gen_fn cpp   'void longOne() {'                    'int f$N() {
+  int x = 1;
+  return x;
+}'
 { printf 'def long_one():\n'; for i in $(seq 1 157); do echo "    l$i = 1"; done; } > thr/longfn.py
 for i in $(seq 1 40); do printf 'def f%d():\n    x = 1\n    return x\n\n' "$i"; done > thr/manyfns.py
 
@@ -192,6 +200,7 @@ run_thr clarity-16 csharp     "thr/branchy.cs"    "thr/spread.cs"
 run_thr clarity-16 swift      "thr/branchy.swift" "thr/spread.swift"
 run_thr clarity-16 kotlin     "thr/branchy.kt"    "thr/spread.kt"
 run_thr clarity-16 java       "thr/branchy.java"  "thr/spread.java"
+run_thr clarity-16 cpp        "thr/branchy.cpp"   "thr/spread.cpp"
 run_thr clarity-16 python     "thr/branchy.py"    "thr/docprose.py"
 run_thr clarity-16 typescript "thr/branchy.ts"    "thr/suite.ts"
 run_thr clarity-16 swift      "thr/branchy.swift" "thr/labels.swift"
@@ -202,6 +211,7 @@ run_thr clarity-17 csharp     "thr/longfn.cs"    "thr/manyfns.cs"
 run_thr clarity-17 swift      "thr/longfn.swift" "thr/manyfns.swift"
 run_thr clarity-17 kotlin     "thr/longfn.kt"    "thr/manyfns.kt"
 run_thr clarity-17 java       "thr/longfn.java"  "thr/manyfns.java"
+run_thr clarity-17 cpp        "thr/longfn.cpp"   "thr/manyfns.cpp"
 run_thr smells-01  all        "thr/huge.ts"    "thr/long.ts"
 
 echo ""

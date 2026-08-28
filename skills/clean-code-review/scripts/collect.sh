@@ -29,7 +29,7 @@ NONCODE_EXT_RE='\.(md|txt|json|yml|yaml|toml|xml|csv|svg|png|jpg|jpeg|gif|ico|lo
 # Test-file naming conventions, per language. This is the union of the file
 # gates the `tests-*` rows in checks/tests.tsv already use, so the two stay
 # consistent — see SKIP_TESTS below for who uses it.
-TEST_FILE_RE='(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$|(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/|(Tests?|Spec)\.kts?$|(^|/)src/test/|\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/|Tests?\.java$|Tests?\.swift$|(^|/)[^/]*Tests?/'
+TEST_FILE_RE='(^|/)(test_[^/]+|[^/]+_test)\.py$|(^|/)tests?/|conftest\.py$|(Test|Tests)\.cs$|(^|/)[^/]*\.Tests?/|(Tests?|Spec)\.kts?$|(^|/)src/test/|\.(test|spec|cy|e2e|stories)\.(ts|tsx|js|jsx|mts|mjs)$|(^|/)__tests__/|Tests?\.java$|Tests?\.swift$|(^|/)[^/]*Tests?/|(_test|_tests|_unittest)\.(c|cc|cxx|cpp|h|hpp|hxx)$|(^|/)test_[^/]+\.(c|cc|cxx|cpp)$|(Test|Tests)\.(c|cc|cxx|cpp)$'
 
 # ---------------------------------------------------------------- helpers
 # PCRE matching helpers (mgrep/mgrepc/mwc) are shared with the test suite.
@@ -246,6 +246,7 @@ while IFS= read -r f; do
     *.swift)                echo swift ;;
     *.kt|*.kts)             echo kotlin ;;
     *.java)                 echo java ;;
+    *.cpp|*.cc|*.cxx|*.c++|*.hpp|*.hh|*.hxx|*.h|*.c) echo cpp ;;
     *)
       base="${f##*/}"
       ext=".${base##*.}"

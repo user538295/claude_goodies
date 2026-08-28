@@ -43,7 +43,7 @@ $PRECOMPUTED shape for smells-01: `{ check_id: "smells-01", file, line_count }` 
 **Finding action template**: Wrap parameters of `{functionName}` in a `{SuggestedParamObject}` record/struct
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/smells.tsv`.
 
 NOTE for agent: python, csharp, java, kotlin and swift join a wrapped signature to its continuation lines before counting, so a multi-line signature is flagged at its declaration line and nested parens, brackets, braces and quoted defaults do not inflate the count. Typescript/javascript still count commas on one line only (see the trade-off below) — count parameters by hand for a wrapped TS/JS signature in the diff. Dismiss hits where the commas are still not parameter separators: generic type arguments (`Map<String, Item>`) are the remaining case, since `<`/`>` cannot be told from comparison operators. For Python, `self`/`cls` do not count toward the limit. For TypeScript and Swift, a single destructured or labelled parameter object is one parameter, not several.
 
@@ -60,7 +60,7 @@ The typescript/javascript pattern additionally requires a `{` or `=>` right afte
 **Finding action template**: Split `{functionName}(…, bool {param})` into two functions: `{nameWhenTrue}()` and `{nameWhenFalse}()`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
 No scripted detection for:
 - javascript: non-scriptable — JavaScript has no type annotations; agent must read the diff for functions that use a boolean flag to select behavior
 
@@ -95,7 +95,7 @@ NOTE for agent: Dismiss `isLoading`, `isError`, `isActive`, `enabled`, `disabled
 **Finding action template**: Delete commented-out block at `{file}:{line}` — use `git log` to recover if needed
 
 **Detection** (code syntax inside a whole-line comment, not a keyword whitelist):
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/smells.tsv`.
 
 > Agent note: `mcomment` blanks string literals, then keeps a comment body only when it carries code syntax — it ends at a block edge (`{`/`}`), it assigns to an identifier path or to a declared name (`let`/`var`/`const`/`val` …), it is a single balanced `ident(...)` call, or it opens with a declaration keyword (a control keyword additionally needs a condition). A body that reads as English is dropped even when it matches: a sentence break (`word.` followed by a space or end of line) or three consecutive all-lowercase non-keyword words. So a lone `// return the cached value` no longer arrives and neither does a wrapped prose line that happens to start with `for`/`if`/`return`. TODO/FIXME/HACK/XXX comments belong to smells-07 and commented-out `debugger`/`set_trace`/`printStackTrace` to smells-23; `mcomment` skips both, so never re-report them here.
 >
@@ -112,7 +112,7 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 **Finding action template**: Move `{tag}` at `{file}:{line}` to an issue tracker entry and delete the comment
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/smells.tsv`.
 
 ---
 
@@ -123,7 +123,7 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 **Finding action template**: Replace null return/parameter in `{functionName}` with `Optional<{Type}>` / Null Object / overload
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/smells.tsv`.
 
 NOTE for agent: the hits are return statements, nullable return-type annotations, and null parameter defaults. Ternary else-branches (`? … : null`) and null-valued object-literal properties no longer produce hits at all. Neither do variable, property and field declarations: `let`/`const`/`var`/`val` declarations are excluded in the pattern, and for python `msig` keeps an annotated `= None` default only when the line sits inside a `def` signature's parentheses, so a dataclass field or a `self.x: T | None = None` attribute is not flagged while the last parameter of a wrapped signature still is. Swift is anchored on `return nil` rather than on a `-> Type?` declaration, so a function that returns an optional is flagged at the nil-returning line inside it, which may sit several lines below the signature. Still dismiss `null` in null-check guards (`if (x == null)`), and dismiss a parameter that is already `Optional<Type>`/`T?` with a documented default — that shape is this check's own remedy, not the smell. Conversely, positively flag a function whose return type is `Optional`/`T | None`/`T?` that returns null/None/nil as a success-or-error *sentinel* (e.g. a validator returning an error object, or None-for-OK) — the caller cannot tell success from failure without a null check, and that is the null-return smell rather than legitimate absence.
 
@@ -146,7 +146,7 @@ NOTE for agent: the hits are return statements, nullable return-type annotations
 **Finding action template**: Tell `{rootObject}` what to do instead of chaining through `{chain}` — add a method to the intermediate type
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/smells.tsv`.
 
 NOTE for agent: the pattern counts **hops**, not calls — three or more `.name` / `.name(...)` / `?.name` segments in a row, in any mix. `a.b.c()`, `a.getB().getC().doD()` and `a.b.c.d` all qualify; two hops (`order.shipping.city`) do not. This matches the Rule's "longer than 2 hops" and is why singleton reach-throughs such as `ModelManager.shared.accounts.getUIImage(...)` now appear.
 
@@ -173,7 +173,7 @@ What the pattern still cannot judge, and you must: Demeter violations require tr
 **Finding action template**: Handle `{exceptionType}` specifically in `{file}:{line}` or re-throw — empty/generic catch hides failures
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/smells.tsv`.
 
 NOTE for agent: The TS/JS detection above only catches same-line empty catches (including optional-binding `catch {}`). Agents must also check for log-and-continue catches (any catch whose body only calls a logger then swallows the error) — these require reading the diff, not just pattern matching.
 
@@ -257,7 +257,7 @@ The swift row does read the block body: it flags a `catch` whose body is empty o
 **Finding action template**: Add a hash implementation to `{ClassName}` at `{file}:{line}` built from the same fields equality uses
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 3 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 4 language(s). Patterns: `scripts/checks/smells.tsv`.
 No scripted detection for:
 - typescript: not applicable — no built-in equality or hash contract
 - javascript: not applicable — no built-in equality or hash contract
@@ -275,7 +275,7 @@ NOTE for agent: the detection reports the file's equality declaration when no ha
 **Finding action template**: Replace the unconstrained type at `{file}:{line}` with the concrete shape, a union, or a generic parameter
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 4 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 5 language(s). Patterns: `scripts/checks/smells.tsv`.
 No scripted detection for:
 - javascript: not applicable — untyped by nature
 - java: non-scriptable — raw generic types cannot be told from legitimate `Object` use by pattern alone
@@ -298,7 +298,7 @@ For the swift alternative: `@IBOutlet`/`@IBAction` outlets are already excluded 
 **Finding action template**: Replace the wildcard import at `{file}:{line}` with explicit imports of the names actually used
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 3 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 4 language(s). Patterns: `scripts/checks/smells.tsv`.
 No scripted detection for:
 - typescript: not applicable — `import * as ns` is namespaced and idiomatic, not a wildcard
 - javascript: not applicable — `import * as ns` is namespaced and idiomatic, not a wildcard
@@ -316,7 +316,7 @@ NOTE for agent: dismiss the established exceptions where a wildcard is the docum
 **Finding action template**: Remove the leftover debugging statement at `{file}:{line}` — replace a `printStackTrace()` with real error handling or a logger call
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/smells.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/smells.tsv`.
 No scripted detection for:
 - swift: not applicable — Swift has no breakpoint statement, and `debugPrint` is a legitimate formatting API rather than a leftover marker
 

@@ -60,7 +60,7 @@ tests-01's `grep -vE` exclusion and tests-04/05/06/08/09's `grep -E` inclusion u
 **Finding action template**: Create a test file for `{moduleName}` — no test file exists yet
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/tests.tsv`.
 
 NOTE for agent: this check is file-level, not diff-level. The scripted pass already does the repo lookup: inside a git repository it lists the tracked and untracked-but-not-ignored files, and drops a module when some test-shaped file's stem — test markers stripped, non-alphanumerics removed — equals the module's stem, so `FooBarTests.swift`, `foo-bar.test.tsx` and `test_foo_bar.py` all count as covering `FooBar`/`foo-bar`/`foo_bar` while `FooBarPickerTests.swift` does not. Outside a git repository the lookup is skipped and nothing is dropped, so re-check by hand there. Because the match is on stems, a module tested from a differently-named test file still arrives as a hit — verify before reporting. Only flag if **no test file at all** exists for a new module — do not flag if the module already has a test file even if the specific new symbol lacks a dedicated test. Only flag symbols that appear in the diff as *newly added* (lines starting with `+` in the diff). Do not flag pre-existing public symbols in a touched file — those were tested before this change.
 
@@ -95,7 +95,7 @@ If the precomputed hits contain multiple tests-01 entries for the same file (one
 **Finding action template**: Replace `{pattern}` in `{testName}` with a deterministic alternative — inject time/random as a dependency
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/tests.tsv`.
 
 NOTE for agent: Dismiss `setTimeout`/`setInterval` when the test uses `jest.useFakeTimers()` or equivalent clock-control. Dismiss `new Date()` when the test subject is date-independent (the date is incidental, not the thing being tested).
 
@@ -108,7 +108,7 @@ NOTE for agent: Dismiss `setTimeout`/`setInterval` when the test uses `jest.useF
 **Finding action template**: Rewrite `{testName}` to test through the public interface — remove access to `{privateSymbol}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/tests.tsv`.
 
 NOTE for agent: For Swift: Flag only reflection-based access to private internals (Mirror, NSInvocation). `@testable import` is the standard Swift mechanism for testing internal members and is NOT a violation.
 
@@ -123,7 +123,7 @@ NOTE for agent: For Python the script already drops `from pkg._internal import X
 **Finding action template**: Reset `{fieldName}` in `setUp`/`@BeforeEach` in `{testClass}`, or make it a local variable per test
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/tests.tsv`.
 
 NOTE for agent: only flag mutable instance fields that are reassigned inside individual `@Test`/`it()`/`test()` methods without a corresponding reset in a `setUp`/`@BeforeEach`/`before` block. Dismiss `let sut;` or `let subject;` declared at describe-scope and reset in `beforeEach`/`setUp` — that is the correct pattern. Flag only mutable fields that are assigned inside `it()`/`test()` bodies without a corresponding reset. The scripted pass encodes only the cheap half of that rule: outside Python the declaration must sit at exactly one indentation level, so locals inside test bodies no longer appear. It deliberately does NOT skip files that contain a fixture hook — a file that resets one field in `setUp` and leaks another is exactly this bug, so the reset check stays yours to make. Consequence to watch: a two-space codebase can still surface a depth-two local.
 
@@ -145,7 +145,7 @@ NOTE for agent: only flag mutable instance fields that are reassigned inside ind
 **Finding action template**: Remove skip marker from `{testName}` — fix the underlying issue or delete the test
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/tests.tsv`.
 
 ---
 
@@ -156,7 +156,7 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 **Finding action template**: Add a meaningful assertion to `{testName}` — the test currently cannot fail
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/tests.tsv`.
 
 NOTE for agent: the scripted rows flag two shapes — a tautological assertion (`assertTrue(true)`, `assert True`, `XCTAssertTrue(true, ...)`), AND, for python/swift/typescript/javascript, a test function whose whole body contains no assertion token at all (`assert`/`.assert*`/`expect`/`XCTAssert`/`verify`/`should`/`measure`). For csharp/java/kotlin this per-function no-assertion check is NOT scripted — read those test bodies yourself and flag any that assert nothing. Residual false positive on the scripted no-assertion rows: a test that verifies only through a custom helper whose name is not `verify*`/`assert*` is flagged even though it asserts — before dismissing, open the helper and confirm it asserts.
 
@@ -196,7 +196,7 @@ NOTE for agent: the scripted rows flag two shapes — a tautological assertion (
 **Finding action template**: Add assertions to `{file}` that verify the observable outcome, or delete the module if it is a placeholder
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/tests.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/tests.tsv`.
 
 NOTE for agent: the detection is file-level — it names test modules where the assertion count is zero, and carries no line number, so anchor the finding at the first test declaration in the file. This is distinct from tests-09, which finds individual assertions that cannot fail; here there are none at all. The pattern requires the file to contain a test-declaration marker (`def test_`/`class Test...` in python, `@Test` in java/kotlin, `[Fact]`/`[Test]`/`[TestMethod]` in csharp, `func test...` in swift, a `describe(`/`it(`/`test(` call in typescript/javascript) before it counts assertions. The java/kotlin (`@Test`) and csharp (`[Fact]`/`[Test]`/`[TestMethod]`) markers are annotation/attribute matches and only match real test declarations. The other four are name-based and over-match: the python marker (`class\s+\w*Test\w*`) matches any class whose name merely *contains* "Test" anywhere — e.g. a plain `class TestDataFactory` helper with zero assertions triggers tests-13 even though it declares no test methods; the swift marker (`func test\w*`) matches any function whose name *starts with* "test", test method or not; the typescript/javascript marker matches any call to a function literally named `describe`, `it`, or `test`, whatever that function does. So a shared helper, fixture, factory, builder, constants module, or DTO in python/swift/typescript/javascript is NOT automatically safe from the pattern — if its class or function name happens to match one of these markers, it will be flagged and DOES need dismissal: confirm the named declaration is not an actual test (no test methods, no test base class) before dismissing. Dismiss a module whose verification genuinely lives in a custom helper, but only after confirming that helper asserts.
 

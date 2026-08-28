@@ -16,9 +16,10 @@ The regex layer does NOT need this benchmark — it is fully covered by
 - `typescript/orderService.ts` + `typescript/inventory.test.ts` — 29 planted violations
 - `csharp/OrderProcessing.cs` + `csharp/OrderProcessingTests.cs` — 20 planted violations
 - `swift/Checkout.swift` + `swift/CheckoutTests.swift` — 13 planted violations
+- `cpp/order_processing.cpp` + `cpp/order_processing_test.cpp` — 23 planted violations
 - `planted.tsv` — the catalog: check, file, line, detect (scripted/judgment), description
 
-96 rows covering the original **85 checks** at least once. The 41 checks added later (safety-08 through safety-32, smells-20 through smells-25, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) are scriptable or judgment-only and covered by `tests/corpus.tsv` where scriptable; they have no planted violation here yet — of the 126 checks that exist today, this fixture exercises 85.
+119 rows across **5 languages**, exercising **88 of the 126 checks** at least once. The C++ fixture (added 2026-08-28) is the first to plant `safety-16`, `safety-17`, and `safety-19`, which previously had no fixture anywhere. The remaining unplanted checks (the rest of safety-08 through safety-32, smells-20 through smells-25, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) are scriptable or judgment-only and covered by `tests/corpus.tsv` where scriptable; they have no planted violation here yet.
 
 **Never "fix" these files.** Broken is their job. For a scriptable check,
 `tests/corpus.tsv` (semantic MATCH/NOMATCH, see `tests/test_corpus.sh`) is the
@@ -33,7 +34,7 @@ measure them — do it when you can.
 From this directory, invoke the skill in file mode:
 
 ```
-/clean-code-review python/order_service.py python/test_order_service.py typescript/orderService.ts typescript/inventory.test.ts csharp/OrderProcessing.cs csharp/OrderProcessingTests.cs swift/Checkout.swift swift/CheckoutTests.swift
+/clean-code-review python/order_service.py python/test_order_service.py typescript/orderService.ts typescript/inventory.test.ts csharp/OrderProcessing.cs csharp/OrderProcessingTests.cs swift/Checkout.swift swift/CheckoutTests.swift cpp/order_processing.cpp cpp/order_processing_test.cpp
 ```
 
 ## How to score
@@ -84,6 +85,15 @@ but should be **dismissed** by their judgment rules:
   the ddd-01 recall point.
 - `solid-06` on `swift/Checkout.swift:138` (`var heading`) — a function-local
   variable, not a field; the planted finding on that line is solid-08.
+- `solid-06`/`ddd-01`/`solid-07`/`safety-16` on the plain data structs in
+  `cpp/order_processing.cpp` (`Address`, `LineItem`, `Order` — public fields like
+  `street`, `quantity`, `total`, `currency`) — these are idiomatic public data
+  carriers / value objects, not encapsulation breaks; only the `OrderManager`
+  member `lastArchivedOrderId` (solid-06) and the `Money` mutator+field (ddd-01)
+  are real. The line patterns cannot see the enclosing type's role, so expect and
+  dismiss the struct-field hits.
+- `tests-05` on `cpp/order_processing_test.cpp:7` IS a real finding (a test that
+  `#include`s the implementation `.cpp`), not a decoy — it is planted.
 
 Each trap that shows up in the report as a finding is a precision failure.
 

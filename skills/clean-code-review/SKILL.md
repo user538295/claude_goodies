@@ -58,7 +58,7 @@ The script needs no GNU grep or other extras — detection patterns run via perl
 
 ## Step 3 — Language gate
 
-If `languages.txt` is empty, abort the review: `No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java. Unanalysed: {contents of unanalysed.txt}.` Do not spawn agents.
+If `languages.txt` is empty, abort the review: `No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java, C++. Unanalysed: {contents of unanalysed.txt}.` Do not spawn agents.
 
 ## Step 4 — Spawn review agents
 
@@ -126,4 +126,4 @@ Present the synthesizer output directly, **exactly once** — do not repeat, re-
   - `tests/test_collect.sh` — target resolution, filtering, caps, numbered diff
   - `tests/test_checks.sh` — every detection command executes cleanly
   - `tests/test_corpus.sh` — pattern semantics: per check+language, `tests/corpus.tsv` defines code that MUST match and near-misses that must NOT. When adding or changing a detection pattern, add its MATCH/NOMATCH rows to `corpus.tsv`.
-- **Recall benchmark** (manual eval, not CI): `benchmark/` contains deliberately flawed Python, TypeScript, C#, and Swift files with 96 catalogued violations (`benchmark/planted.tsv`) plus precision traps. The catalogue covers the original 85 checks; the 41 added later (safety-08 through safety-32, smells-20 through smells-25, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) have no planted violations yet, so a benchmark run cannot measure their recall. The eleven judgment checks arch-15, safety-25/26/27/28/29/30/31/32, and smells-24/25 are non-scriptable, so `tests/corpus.tsv` does not cover them either — they ship unmeasured until the fixtures catch up. Run the skill on those files and score against the catalog after changing agent prompts or models — see `benchmark/README.md`. Never "fix" the benchmark files.
+- **Recall benchmark** (manual eval, not CI): `benchmark/` contains deliberately flawed Python, TypeScript, C#, Swift, and C++ files with 119 catalogued violations (`benchmark/planted.tsv`) plus precision traps. The catalogue exercises 88 of the 126 checks; the C++ fixture added safety-16/17/19, but most of the checks added later (the rest of safety-08 through safety-32, smells-20 through smells-25, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) still have no planted violations, so a benchmark run cannot measure their recall. The eleven judgment checks arch-15, safety-25/26/27/28/29/30/31/32, and smells-24/25 are non-scriptable, so `tests/corpus.tsv` does not cover them either — they ship unmeasured until the fixtures catch up. Run the skill on those files and score against the catalog after changing agent prompts or models — see `benchmark/README.md`. Never "fix" the benchmark files.

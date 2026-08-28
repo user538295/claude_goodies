@@ -100,3 +100,27 @@ solid-08	swift/Checkout.swift	138	scripted	var heading assigned once, never reas
 smells-14	swift/Checkout.swift	142	judgment	street/city/zip clump in deliveryLabel and deliveryConfirmation
 tests-10	swift/CheckoutTests.swift	20	judgment	test name describes switch/subclass/constant internals, not behaviour
 safety-06	csharp/OrderProcessing.cs	1054	scripted	blocking .Result inside async BuildAsync
+# C++ fixture (added 2026-08-28) — cpp/order_processing.cpp + cpp/order_processing_test.cpp
+clarity-06	cpp/order_processing.cpp	99	scripted	noise-word class name OrderManager
+clarity-07	cpp/order_processing.cpp	104	judgment	comment restates WHAT the accumulation loop below does
+clarity-08	cpp/order_processing.cpp	120	judgment	magic number 50 as the maximum line count per order
+clarity-16	cpp/order_processing.cpp	112	scripted	canSubmitOrder has 13 branches
+smells-02	cpp/order_processing.cpp	158	scripted	formatDeliveryLabel takes 4 parameters
+smells-06	cpp/order_processing.cpp	144	scripted	two-line commented-out loyalty discount code
+smells-07	cpp/order_processing.cpp	151	scripted	TODO comment committed
+smells-10	cpp/order_processing.cpp	153	scripted	order.customer().address().cityName() three-hop Demeter chain
+smells-12	cpp/order_processing.cpp	181	scripted	empty catch (...) swallows appendReceiptLine failure
+solid-06	cpp/order_processing.cpp	101	scripted	public mutable lastArchivedOrderId on behaviour class OrderManager
+solid-09	cpp/order_processing.cpp	96	scripted	namespace-scope mutable static g_nextReceiptNumber
+solid-10	cpp/order_processing.cpp	152	scripted	new SmtpEmailSender() constructed inside notifyCustomer
+solid-15	cpp/order_processing.cpp	131	judgment	switch dispatching surcharge behaviour on the PaymentMethod enum
+arch-08	cpp/order_processing.cpp	146	scripted	ServiceLocator::resolve<ITaxRateProvider>() inside business code
+ddd-01	cpp/order_processing.cpp	24	scripted	Money value object exposes setAmount plus a public mutable amount field
+ddd-05	cpp/order_processing.cpp	89	judgment	OrderRepository::lineItemsForOrder returns inner aggregate member LineItem
+safety-01	cpp/order_processing.cpp	164	scripted	fopen receiptLog never fclosed on any path
+safety-16	cpp/order_processing.cpp	24	scripted	Money::amount holds money in a binary double
+safety-17	cpp/order_processing.cpp	171	scripted	md5 used to sign receipts
+safety-19	cpp/order_processing.cpp	177	scripted	std::system on a command string built from the order id
+tests-05	cpp/order_processing_test.cpp	7	scripted	test #includes the impl .cpp to reach internals
+tests-09	cpp/order_processing_test.cpp	31	scripted	test calls canSubmitOrder and asserts nothing
+tests-10	cpp/order_processing_test.cpp	23	judgment	test name describes the switch case and fee-rate constant, not behaviour

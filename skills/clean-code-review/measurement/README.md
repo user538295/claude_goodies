@@ -41,6 +41,17 @@ Prerequisites: `python3` with `openpyxl`; the five projects checked out at the p
 
 Record the model and any rule changes in the Method sheet (edit the rows in `build_xlsx.py`) — scores across runs are only comparable with the same model, file set, and rules. Do not "fix" anything in the five target projects to improve scores.
 
+## C++ corpus registered (2026-08-28, not yet scored)
+
+An `extrafood-cpp` project was appended to `files.tsv` (8 production files from
+`/Users/manczg/Documents/development/extrafood/cpp`, selected by the documented
+top-5 + p25/p50/p75 rule; that project has no unit-test files, so the test stratum
+is empty). These rows are **registered but not yet adjudicated** — no C++ numbers
+appear in `report.xlsx` yet. To score them, run the "How to re-run" steps above over
+the new rows (or the whole corpus) and regenerate the workbook. Until then, C++
+precision/recall is measured only by `../benchmark/` (planted violations) and the
+deterministic `../tests/` suites.
+
 ## Baseline (2026-08-24, sonnet agents)
 
 2,602 hits, 2,602 adjudicated, 830 LLM-only findings. Overall precision **41%**. Script coverage of LLM findings: 46%. 19 of 60 scriptable checks produced zero hits on this corpus. 

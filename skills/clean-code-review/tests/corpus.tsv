@@ -1293,3 +1293,525 @@ safety-02	typescript	safety/safety-02.ts	MATCH	const t = `count ${arr[0]!}`
 safety-02	typescript	safety/safety-02.ts	MATCH	const v = cfg.value! + 1
 safety-02	typescript	safety/safety-02.ts	NOMATCH	const s = "boom!"
 smells-21	python	smells/test_anytype.py	NOMATCH	    rows: dict[str, Any] = {}
+arch-02	cpp	arch/CreateOrderUseCase.cpp	MATCH	#include <QtWidgets/QApplication>
+arch-02	cpp	arch/CreateOrderUseCase.cpp	MATCH	#include <drogon/HttpController.h>
+arch-02	cpp	arch/CreateOrderUseCase.cpp	NOMATCH	#include <vector>
+arch-02	cpp	arch/CreateOrderUseCase.cpp	NOMATCH	#include "domain/OrderResult.h"
+arch-03	cpp	arch/Order.cpp	MATCH	#pragma db object table("orders")
+arch-03	cpp	arch/Order.cpp	MATCH	    #pragma db id auto
+arch-03	cpp	arch/Order.cpp	NOMATCH	#pragma once
+arch-03	cpp	arch/Order.cpp	NOMATCH	#pragma GCC diagnostic ignored "-Wunused-variable"
+arch-05	cpp	arch/PlaceOrderService.cpp	MATCH	    } catch (const soci::soci_error& e) {
+arch-05	cpp	arch/PlaceOrderService.cpp	MATCH	        std::string errorText = e.what();
+arch-05	cpp	arch/PlaceOrderService.cpp	NOMATCH	    } catch (const std::exception& e) {
+arch-05	cpp	arch/PlaceOrderService.cpp	NOMATCH	    } catch (const DomainError& e) {
+arch-08	cpp	arch/BillingService.cpp	MATCH	    auto& logger = Logger::instance();
+arch-08	cpp	arch/BillingService.cpp	MATCH	    auto mailer = ServiceLocator::resolve<IMailer>();
+arch-08	cpp	arch/BillingService.cpp	NOMATCH	    auto order = Order::create(customerId);
+arch-08	cpp	arch/BillingService.cpp	NOMATCH	    auto count = Session::getInstanceCount();
+arch-09	cpp	arch/PricingService.cpp	MATCH	#ifdef DEBUG
+arch-09	cpp	arch/PricingService.cpp	MATCH	    const char* stage = std::getenv("APP_ENV");
+arch-09	cpp	arch/PricingService.cpp	NOMATCH	#ifndef PRICING_SERVICE_H
+arch-09	cpp	arch/PricingService.cpp	NOMATCH	#if defined(__APPLE__)
+arch-11	cpp	arch/Config.cpp	MATCH	    const std::string baseUrl = "https://api.payments.acme.com/v2";
+arch-11	cpp	arch/Config.cpp	MATCH	#define ORDERS_DSN "postgresql://svc:pw@db.prod.acme.com:5432/orders"
+arch-11	cpp	arch/Config.cpp	NOMATCH	    const std::string baseUrl = config.paymentsBaseUrl();
+arch-11	cpp	arch/Config.cpp	NOMATCH	    const std::string docsUrl = "https://example.com/docs";
+arch-12	cpp	arch/arch-12.cpp	MATCH	    userCache.set("user:" + std::to_string(id), user);
+arch-12	cpp	arch/arch-12.cpp	MATCH	    cache_->del("user-" + key);
+arch-12	cpp	arch/arch-12.cpp	NOMATCH	    const std::string key = userCacheKey(id);
+arch-12	cpp	arch/arch-12.cpp	NOMATCH	    cache_->clear();
+arch-13	cpp	arch/arch-13.cpp	MATCH	    const std::string sql = "SELECT * FROM orders";
+arch-13	cpp	arch/arch-13.cpp	NOMATCH	    const std::string sql = "SELECT * FROM orders LIMIT 100";
+arch-14	cpp	arch/arch-14.cpp	MATCH	    const char* region = std::getenv("AWS_REGION");
+arch-14	cpp	arch/arch-14.cpp	NOMATCH	    const char* region = config.region();
+clarity-06	cpp	clarity/noise.cpp	MATCH	class ConnectionManager : public IConnection
+clarity-06	cpp	clarity/noise.cpp	NOMATCH	void RegisterPaymentHandler(IPaymentGateway* pGateway);
+clarity-09	cpp	clarity/Bool.cpp	FILL	void CheckUser(const CUser* pUser)
+clarity-09	cpp	clarity/Bool.cpp	FILL	{
+clarity-09	cpp	clarity/Bool.cpp	MATCH		if (pUser->IsActive() && pUser->HasCredit() && !pUser->IsBanned())
+clarity-09	cpp	clarity/Bool.cpp	FILL			Ship();
+clarity-09	cpp	clarity/Bool.cpp	NOMATCH		if (pUser->IsActive() && pUser->HasCredit())
+clarity-09	cpp	clarity/Bool.cpp	FILL			Hold();
+clarity-09	cpp	clarity/Bool.cpp	NOMATCH		const bool canShip = ready && stocked && !onHold;
+clarity-09	cpp	clarity/Bool.cpp	NOMATCH		// dismiss when a && b && c appears inside a comment
+clarity-09	cpp	clarity/Bool.cpp	MATCH		if (
+clarity-09	cpp	clarity/Bool.cpp	NOMATCH			pUser->IsActive() &&
+clarity-09	cpp	clarity/Bool.cpp	NOMATCH			pUser->HasCredit() &&
+clarity-09	cpp	clarity/Bool.cpp	NOMATCH			!pUser->IsBanned()
+clarity-09	cpp	clarity/Bool.cpp	FILL			)
+clarity-09	cpp	clarity/Bool.cpp	FILL		{
+clarity-09	cpp	clarity/Bool.cpp	FILL			Ship();
+clarity-09	cpp	clarity/Bool.cpp	FILL		}
+clarity-09	cpp	clarity/Bool.cpp	FILL	}
+clarity-16	cpp	clarity/Branchy.cpp	MATCH	void COverlapScanner::ScanOverlaps(int scheme)
+clarity-16	cpp	clarity/Branchy.cpp	FILL	{
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 1) { ReportOverlap(1); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 2) { ReportOverlap(2); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 3) { ReportOverlap(3); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 4) { ReportOverlap(4); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 5) { ReportOverlap(5); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 6) { ReportOverlap(6); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 7) { ReportOverlap(7); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 8) { ReportOverlap(8); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 9) { ReportOverlap(9); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 10) { ReportOverlap(10); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 11) { ReportOverlap(11); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (mScheme == 12) { ReportOverlap(12); }
+clarity-16	cpp	clarity/Branchy.cpp	FILL	}
+clarity-16	cpp	clarity/Branchy.cpp	NOMATCH	int COverlapScanner::GetNextIndex(int beginPos)
+clarity-16	cpp	clarity/Branchy.cpp	FILL	{
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (beginPos < 0) { return -1; }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		if (beginPos > mMax) { return mMax; }
+clarity-16	cpp	clarity/Branchy.cpp	FILL		return beginPos;
+clarity-16	cpp	clarity/Branchy.cpp	FILL	}
+clarity-17	cpp	clarity/LongFn.cpp	MATCH	void COverlapScanner::BuildIndex(int count)
+clarity-17	cpp	clarity/LongFn.cpp	FILL	{
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 1;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 2;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 3;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 4;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 5;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 6;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 7;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 8;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 9;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 10;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 11;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 12;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 13;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 14;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 15;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 16;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 17;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 18;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 19;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 20;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 21;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 22;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 23;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 24;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 25;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 26;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 27;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 28;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 29;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 30;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 31;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 32;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 33;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 34;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 35;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 36;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 37;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 38;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 39;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 40;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 41;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 42;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 43;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 44;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 45;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 46;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 47;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 48;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 49;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 50;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 51;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 52;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 53;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 54;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 55;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 56;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 57;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 58;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 59;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 60;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 61;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 62;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 63;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 64;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 65;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 66;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 67;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 68;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 69;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 70;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 71;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 72;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 73;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 74;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 75;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 76;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 77;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 78;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 79;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 80;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 81;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 82;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 83;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 84;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 85;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 86;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 87;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 88;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 89;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 90;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 91;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 92;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 93;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 94;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 95;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 96;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 97;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 98;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 99;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 100;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 101;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 102;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 103;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 104;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 105;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 106;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 107;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 108;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 109;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 110;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 111;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 112;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 113;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 114;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 115;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 116;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 117;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 118;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 119;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 120;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 121;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 122;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 123;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 124;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 125;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 126;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 127;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 128;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 129;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 130;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 131;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 132;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 133;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 134;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 135;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 136;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 137;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 138;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 139;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 140;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 141;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 142;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 143;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 144;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 145;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 146;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 147;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 148;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 149;
+clarity-17	cpp	clarity/LongFn.cpp	FILL		mTotal += 150;
+clarity-17	cpp	clarity/LongFn.cpp	FILL	}
+clarity-17	cpp	clarity/LongFn.cpp	NOMATCH	int COverlapScanner::GetTotal() const
+clarity-17	cpp	clarity/LongFn.cpp	FILL	{
+clarity-17	cpp	clarity/LongFn.cpp	FILL		return mTotal;
+clarity-17	cpp	clarity/LongFn.cpp	FILL	}
+ddd-01	cpp	ddd/money.cpp	FILL	class Money {
+ddd-01	cpp	ddd/money.cpp	FILL	public:
+ddd-01	cpp	ddd/money.cpp	MATCH	    void setAmount(long amount);
+ddd-01	cpp	ddd/money.cpp	NOMATCH	    long amount() const;
+ddd-01	cpp	ddd/money.cpp	NOMATCH	    void settle(const Payment& payment);
+ddd-01	cpp	ddd/money.cpp	FILL	private:
+ddd-01	cpp	ddd/money.cpp	NOMATCH	    long amount_;
+ddd-01	cpp	ddd/money.cpp	FILL	};
+ddd-01	cpp	ddd/money.cpp	FILL	struct Coordinate {
+ddd-01	cpp	ddd/money.cpp	MATCH	    double latitude;
+ddd-01	cpp	ddd/money.cpp	MATCH	    double longitude = 0.0;
+ddd-01	cpp	ddd/money.cpp	NOMATCH	    static const int kDimensions = 2;
+ddd-01	cpp	ddd/money.cpp	NOMATCH	    double distanceTo(const Coordinate& other) const;
+ddd-01	cpp	ddd/money.cpp	FILL	    void normalize() {
+ddd-01	cpp	ddd/money.cpp	NOMATCH	        double scale = 1.0;
+ddd-01	cpp	ddd/money.cpp	FILL	    }
+ddd-01	cpp	ddd/money.cpp	FILL	};
+ddd-06	cpp	ddd/bc.cpp	MATCH	#include "../inventory/stock.h"
+ddd-06	cpp	ddd/bc.cpp	MATCH	#include <orders/order_id.h>
+ddd-06	cpp	ddd/bc.cpp	MATCH	#include "billing/invoice.h"
+ddd-06	cpp	ddd/bc.cpp	NOMATCH	#include "../shared/money.h"
+ddd-06	cpp	ddd/bc.cpp	NOMATCH	#include "stock.h"
+ddd-06	cpp	ddd/bc.cpp	NOMATCH	#include <vector>
+ddd-06	cpp	ddd/bc.cpp	MATCH	#include "Inventory/Stock.h"
+ddd-06	cpp	ddd/bc.cpp	NOMATCH	#include "../core/entity.h"
+ddd-06	cpp	ddd/bc.cpp	NOMATCH	#include "Shared/Money.h"
+ddd-07	cpp	ddd/collection.cpp	FILL	class Order {
+ddd-07	cpp	ddd/collection.cpp	FILL	public:
+ddd-07	cpp	ddd/collection.cpp	MATCH	    std::vector<LineItem>& getItems() { return items_; }
+ddd-07	cpp	ddd/collection.cpp	MATCH	    std::map<std::string, LineItem>& getIndex() { return index_; }
+ddd-07	cpp	ddd/collection.cpp	MATCH	    std::set<Tag>& GetTags() { return tags_; }
+ddd-07	cpp	ddd/collection.cpp	NOMATCH	    const std::vector<LineItem>& getLines() const { return items_; }
+ddd-07	cpp	ddd/collection.cpp	NOMATCH	    std::vector<LineItem> getItemsCopy() const { return items_; }
+ddd-07	cpp	ddd/collection.cpp	NOMATCH	    int getCount() const { return static_cast<int>(items_.size()); }
+ddd-07	cpp	ddd/collection.cpp	NOMATCH	    std::vector<LineItem>& getItemsFor(const std::string& status);
+ddd-07	cpp	ddd/collection.cpp	FILL	private:
+ddd-07	cpp	ddd/collection.cpp	FILL	    std::vector<LineItem> items_;
+ddd-07	cpp	ddd/collection.cpp	FILL	};
+ddd-07	cpp	ddd/collection.cpp	MATCH	std::vector<LineItem>& Order::getAll() { return items_; }
+ddd-07	cpp	ddd/collection.cpp	FILL	void Order::compact() {
+ddd-07	cpp	ddd/collection.cpp	NOMATCH	    std::vector<LineItem>& alias = getAll();
+ddd-07	cpp	ddd/collection.cpp	FILL	}
+safety-01	cpp	safety/leak_new.cpp	MATCH	    m_pFont = new CFont(fontName, size);
+safety-01	cpp	safety/leak_new.cpp	NOMATCH	    auto font = std::make_unique<CFont>(fontName, size);
+safety-01	cpp	safety/leak_file.cpp	MATCH	    FILE* fp = fopen(path.c_str(), "rb");
+safety-01	cpp	safety/leak_file.cpp	NOMATCH	    std::ifstream in(path);
+safety-01	cpp	safety/leak_mem.cpp	MATCH	    char* buf = (char*)malloc(bufferSize);
+safety-01	cpp	safety/leak_mem.cpp	NOMATCH	    std::vector<char> buf(bufferSize);
+safety-01	cpp	safety/leak_lock.cpp	MATCH	    m_mutex.lock();
+safety-01	cpp	safety/leak_lock.cpp	NOMATCH	    std::lock_guard<std::mutex> guard(m_mutex);
+safety-03	cpp	safety/safety-03.cpp	MATCH	    std::async(std::launch::async, [this] { flushEvents(); });
+safety-03	cpp	safety/safety-03.cpp	MATCH	    worker.detach();
+safety-03	cpp	safety/safety-03.cpp	NOMATCH	    auto pending = std::async(std::launch::async, [this] { flushEvents(); });
+safety-03	cpp	safety/safety-03.cpp	NOMATCH	    worker.join();
+safety-05	cpp	safety/safety-05.cpp	MATCH	    if (std::filesystem::exists(tempPath)) { std::filesystem::remove(tempPath); }
+safety-05	cpp	safety/safety-05.cpp	MATCH	    if (cache.count(userId)) { cache.erase(userId); }
+safety-05	cpp	safety/safety-05.cpp	NOMATCH	    if (registry.find(name) != registry.end()) { return; }
+safety-05	cpp	safety/safety-05.cpp	NOMATCH	    if (items.size() == 0) { return; }
+safety-06	cpp	safety/safety-06.cpp	MATCH	    std::this_thread::sleep_for(std::chrono::milliseconds(kRetryBackoffMs));
+safety-06	cpp	safety/safety-06.cpp	MATCH	    worker.join();
+safety-06	cpp	safety/safety-06.cpp	MATCH	    const auto report = reportFuture.get();
+safety-06	cpp	safety/safety-06.cpp	NOMATCH	    co_await timer.async_wait(boost::asio::use_awaitable);
+safety-06	cpp	safety/safety-06.cpp	NOMATCH	    const auto* raw = handle.get();
+safety-07	cpp	safety/safety-07.cpp	MATCH	#pragma warning(disable : 4996)
+safety-07	cpp	safety/safety-07.cpp	MATCH	    const int rc = LegacyCall();  // NOLINTNEXTLINE(cert-err34-c)
+safety-07	cpp	safety/safety-07.cpp	NOMATCH	#pragma warning(push)
+safety-07	cpp	safety/safety-07.cpp	NOMATCH	#pragma once
+safety-08	cpp	safety/timeout.cpp	MATCH	    const CURLcode rc = curl_easy_perform(curl);
+safety-08	cpp	safety/timeout.cpp	NOMATCH	    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, kRequestTimeoutMs);
+safety-10	cpp	safety/rethrow.cpp	MATCH	        throw e;
+safety-10	cpp	safety/rethrow.cpp	MATCH	        throw ServiceException(e.what());
+safety-10	cpp	safety/rethrow.cpp	NOMATCH	        throw;
+safety-10	cpp	safety/rethrow.cpp	NOMATCH	        throw ServiceException("save failed", e);
+safety-11	cpp	safety/clock.cpp	MATCH	    const auto created = std::chrono::system_clock::now();
+safety-11	cpp	safety/clock.cpp	MATCH	    const int roll = rand() % kSides;
+safety-11	cpp	safety/clock.cpp	NOMATCH	    const auto created = clock_->Now();
+safety-11	cpp	safety/clock.cpp	NOMATCH	    std::srand(seed);
+safety-13	cpp	safety/validate.cpp	MATCH	    assert(amount > 0);
+safety-13	cpp	safety/validate.cpp	NOMATCH	    if (amount <= 0) { throw std::invalid_argument("amount must be positive"); }
+safety-13	cpp	safety/validate.cpp	NOMATCH	    static_assert(sizeof(int) == 4, "unexpected int width");
+safety-13	cpp	safety/validate.cpp	NOMATCH	// assert(amount > 0) is not a runtime guard here
+safety-14	cpp	safety/creds.cpp	MATCH	    const std::string apiKey = "sk-live-9f3a2b7c1d8e";
+safety-14	cpp	safety/creds.cpp	NOMATCH	    const char* apiKey = std::getenv("API_KEY");
+safety-15	cpp	safety/sql.cpp	MATCH	    std::string q = "SELECT id FROM users WHERE id = " + std::to_string(userId);
+safety-15	cpp	safety/sql.cpp	MATCH	    oss << "SELECT id FROM users WHERE id = " << userId;
+safety-15	cpp	safety/sql.cpp	NOMATCH	    std::string q = "SELECT id FROM users WHERE id = ?";
+safety-16	cpp	safety/money.cpp	MATCH	    double totalPrice;
+safety-16	cpp	safety/money.cpp	NOMATCH	    std::int64_t totalPriceCents = 0;
+safety-16	cpp	safety/money.cpp	NOMATCH	    double coffeeRatio = 1.0;
+safety-17	cpp	safety/crypto.cpp	MATCH	    MD5(payload.data(), payload.size(), digest);
+safety-17	cpp	safety/crypto.cpp	MATCH	    const EVP_MD* md = EVP_sha1();
+safety-17	cpp	safety/crypto.cpp	NOMATCH	    SHA256(payload.data(), payload.size(), digest);
+safety-17	cpp	safety/crypto.cpp	NOMATCH	    const EVP_MD* md = EVP_sha256();
+safety-18	cpp	safety/tls.cpp	MATCH	    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+safety-18	cpp	safety/tls.cpp	MATCH	    SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, nullptr);
+safety-18	cpp	safety/tls.cpp	NOMATCH	    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+safety-18	cpp	safety/tls.cpp	NOMATCH	    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, nullptr);
+safety-19	cpp	safety/exec.cpp	MATCH	    const int rc = std::system(command.c_str());
+safety-19	cpp	safety/exec.cpp	MATCH	    FILE* pipe = popen(cmd.c_str(), "r");
+safety-19	cpp	safety/exec.cpp	NOMATCH	    RegisterSubsystem(kAudioSubsystem);
+safety-19	cpp	safety/exec.cpp	NOMATCH	    logger.system("boot complete");
+safety-20	cpp	safety/deser.cpp	MATCH	    boost::archive::binary_iarchive ia(stream);
+safety-20	cpp	safety/deser.cpp	NOMATCH	    boost::archive::binary_oarchive oa(stream);
+safety-22	cpp	safety/logsecret.cpp	MATCH	    std::cerr << "login failed for " << user.password << std::endl;
+safety-22	cpp	safety/logsecret.cpp	MATCH	    printf("access token: %s", accessToken);
+safety-22	cpp	safety/logsecret.cpp	NOMATCH	    std::cerr << "login failed for " << user.email << std::endl;
+safety-22	cpp	safety/logsecret.cpp	NOMATCH	    logger.debug("hasPassword={}", hasPassword);
+safety-23	cpp	safety/path.cpp	MATCH	    std::ifstream in(request.path);
+safety-23	cpp	safety/path.cpp	MATCH	    FILE* fp = fopen(argv[1], "rb");
+safety-23	cpp	safety/path.cpp	NOMATCH	    std::ifstream in(kConfigPath);
+safety-23	cpp	safety/path.cpp	NOMATCH	    FILE* fp = fopen(kLogPath, "a");
+safety-24	cpp	safety/floateq.cpp	MATCH	    if (ratio == 0.5) { return; }
+safety-24	cpp	safety/floateq.cpp	NOMATCH	    if (std::fabs(ratio - 0.5) < kEpsilon) { return; }
+smells-02	cpp	smells/params.cpp	MATCH	Order CreateOrder(const std::string& id, const Customer& customer, const std::vector<Item>& items, const Coupon& coupon)
+smells-02	cpp	smells/params.cpp	FILL	{
+smells-02	cpp	smells/params.cpp	FILL	}
+smells-02	cpp	smells/params.cpp	NOMATCH	Order CreateOrderOk(const std::string& id, const Customer& customer, const std::vector<Item>& items)
+smells-02	cpp	smells/params.cpp	FILL	{
+smells-02	cpp	smells/params.cpp	FILL	}
+smells-02	cpp	smells/params.cpp	MATCH	bool COrderBook::AddEntry(int index, double price, double amount, bool partial) const
+smells-02	cpp	smells/params.cpp	FILL	{
+smells-02	cpp	smells/params.cpp	FILL	}
+smells-02	cpp	smells/params.cpp	MATCH	COrderBook::COrderBook(IReceiver* receiver, int capacity, double fee, bool strict)
+smells-02	cpp	smells/params.cpp	FILL	{
+smells-02	cpp	smells/params.cpp	FILL	}
+smells-02	cpp	smells/params.cpp	NOMATCH	    DoSomething(alpha, beta, gamma, delta);
+smells-02	cpp	smells/params.cpp	NOMATCH	    return BuildOrder(id, customer, items, coupon);
+smells-02	cpp	smells/params.cpp	MATCH	void CScanner::Configure(int width,
+smells-02	cpp	smells/params.cpp	FILL	                         int height,
+smells-02	cpp	smells/params.cpp	FILL	                         int depth,
+smells-02	cpp	smells/params.cpp	FILL	                         bool cached)
+smells-02	cpp	smells/params.cpp	FILL	{
+smells-02	cpp	smells/params.cpp	FILL	}
+smells-03	cpp	smells/smells-03.cpp	MATCH	void SaveUser(const User& user, bool overwrite)
+smells-03	cpp	smells/smells-03.cpp	NOMATCH	bool IsValid(const User& user) const
+smells-03	cpp	smells/smells-03.cpp	NOMATCH	    bool found = false;
+smells-06	cpp	smells/smells-06.cpp	MATCH	// printf("legacy path %d", mMode);
+smells-06	cpp	smells/smells-06.cpp	MATCH	// return mCachedToken;
+smells-06	cpp	smells/smells-06.cpp	NOMATCH	// the scanner keeps the interval list sorted by start offset
+smells-06	cpp	smells/smells-06.cpp	NOMATCH	/// Returns the cached token for the session
+smells-07	cpp	smells/smells-07.cpp	MATCH	// TODO: retry the scan when the source stream reopens
+smells-07	cpp	smells/smells-07.cpp	NOMATCH	// TODOs are tracked in the issue tracker, not in code
+smells-08	cpp	smells/smells-08.cpp	MATCH	    return nullptr;
+smells-08	cpp	smells/smells-08.cpp	MATCH	void Reset(User* user = nullptr) {
+smells-08	cpp	smells/smells-08.cpp	NOMATCH	    if (user == nullptr) { throw NotFound(id); }
+smells-08	cpp	smells/smells-08.cpp	NOMATCH	    mCachedUser = nullptr;
+smells-08	cpp	smells/smells-08.cpp	NOMATCH	    delete mBuffer, mBuffer = NULL;
+smells-10	cpp	smells/smells-10.cpp	MATCH	    const std::string city = order->GetCustomer()->GetAddress()->GetCity();
+smells-10	cpp	smells/smells-10.cpp	NOMATCH	    const std::string city = order.shipping.city;
+smells-12	cpp	smells/smells-12.cpp	MATCH	    catch (const std::exception& e) { LogError("import failed"); }
+smells-12	cpp	smells/smells-12.cpp	MATCH	    catch (...) {}
+smells-12	cpp	smells/smells-12.cpp	NOMATCH	    catch (const ParseError& e) { throw ImportFailed(e.What()); }
+smells-20	cpp	smells/NoHash.cpp	MATCH	    bool operator==(const Point& other) const { return x == other.x && y == other.y; }
+smells-20	cpp	smells/WithHash.hpp	NOMATCH	    bool operator==(const Point& other) const { return x == other.x; }
+smells-20	cpp	smells/WithHash.hpp	FILL	template <> struct std::hash<Point> { size_t operator()(const Point& p) const { return p.x; } };
+smells-21	cpp	smells/smells-21.cpp	MATCH	    void* payload = ParseBody(body);
+smells-21	cpp	smells/smells-21.cpp	MATCH	bool Register(const char* name, void* context);
+smells-21	cpp	smells/smells-21.cpp	NOMATCH	    Payload payload = ParseBody(body);
+smells-21	cpp	smells/smells-21.cpp	NOMATCH	void ResetScanner();
+smells-22	cpp	smells/wildcard.cpp	MATCH	using namespace std;
+smells-22	cpp	smells/wildcard.cpp	NOMATCH	using std::vector;
+smells-23	cpp	smells/debug.cpp	MATCH	    __debugbreak();
+smells-23	cpp	smells/debug.cpp	NOMATCH	    LogError("failed", e);
+solid-06	cpp	solid/user_profile.h	FILL	class UserProfile {
+solid-06	cpp	solid/user_profile.h	FILL	public:
+solid-06	cpp	solid/user_profile.h	MATCH	    int count;
+solid-06	cpp	solid/user_profile.h	MATCH	    std::vector<Track> tracks;
+solid-06	cpp	solid/user_profile.h	NOMATCH	    int getCount() const;
+solid-06	cpp	solid/user_profile.h	NOMATCH	    static const int kMax = 10;
+solid-06	cpp	solid/user_profile.h	FILL	private:
+solid-06	cpp	solid/user_profile.h	NOMATCH	    int hidden_;
+solid-06	cpp	solid/user_profile.h	FILL	};
+solid-06	cpp	solid/user_profile.h	FILL	struct Point {
+solid-06	cpp	solid/user_profile.h	MATCH	    double x;
+solid-06	cpp	solid/user_profile.h	FILL	};
+solid-06	cpp	solid/user_profile.cpp	FILL	void UserProfile::rename(const std::string& name) {
+solid-06	cpp	solid/user_profile.cpp	NOMATCH	    int local = 0;
+solid-06	cpp	solid/user_profile.cpp	FILL	}
+solid-07	cpp	solid/prim.h	MATCH	    std::string email;
+solid-07	cpp	solid/prim.h	NOMATCH	    EmailAddress email;
+solid-07	cpp	solid/prim.h	MATCH	    int userId;
+solid-07	cpp	solid/prim.h	NOMATCH	    UserId userId;
+solid-07	cpp	solid/prim.h	MATCH	    const char* url;
+solid-07	cpp	solid/prim.h	NOMATCH	    bool valid;
+solid-07	cpp	solid/prim.h	NOMATCH	    int android;
+solid-07	cpp	solid/prim_test.cpp	NOMATCH	    std::string email;
+solid-08	cpp	solid/invoice_total.cpp	FILL	void computeTotals() {
+solid-08	cpp	solid/invoice_total.cpp	MATCH	    int total = 0;
+solid-08	cpp	solid/invoice_total.cpp	MATCH	    auto rate = lookupRate();
+solid-08	cpp	solid/invoice_total.cpp	NOMATCH	    const int base = 0;
+solid-08	cpp	solid/invoice_total.cpp	NOMATCH	    int running = 0;
+solid-08	cpp	solid/invoice_total.cpp	FILL	    running += 1;
+solid-08	cpp	solid/invoice_total.cpp	NOMATCH	    std::vector<int> items = {};
+solid-08	cpp	solid/invoice_total.cpp	FILL	    items.push_back(1);
+solid-08	cpp	solid/invoice_total.cpp	FILL	}
+solid-09	cpp	solid/session_state.cpp	MATCH	int g_requestCount = 0;
+solid-09	cpp	solid/session_state.cpp	NOMATCH	const int kMaxRetries = 3;
+solid-09	cpp	solid/session_state.cpp	MATCH	static std::string g_currentUser;
+solid-09	cpp	solid/session_state.cpp	NOMATCH	static const char* kAppName = "billing";
+solid-09	cpp	solid/session_state.cpp	NOMATCH	extern int g_shared;
+solid-09	cpp	solid/session_state.cpp	FILL	class Session {
+solid-09	cpp	solid/session_state.cpp	FILL	private:
+solid-09	cpp	solid/session_state.cpp	MATCH	    static int instanceCount_;
+solid-09	cpp	solid/session_state.cpp	NOMATCH	    static constexpr int kLimit = 5;
+solid-09	cpp	solid/session_state.cpp	NOMATCH	    int perInstance_;
+solid-09	cpp	solid/session_state.cpp	FILL	};
+solid-10	cpp	solid/order_service.cpp	FILL	void OrderService::process() {
+solid-10	cpp	solid/order_service.cpp	MATCH	    UserRepository* repo = new UserRepository(db);
+solid-10	cpp	solid/order_service.cpp	MATCH	    auto store = std::make_unique<SearchStore>(dbPath);
+solid-10	cpp	solid/order_service.cpp	MATCH	    StripePaymentGateway gateway(apiKey);
+solid-10	cpp	solid/order_service.cpp	NOMATCH	    auto* sb = new std::stringstream();
+solid-10	cpp	solid/order_service.cpp	NOMATCH	    throw new ValidationError("missing field");
+solid-10	cpp	solid/order_service.cpp	NOMATCH	    int total = computeTotal(items);
+solid-10	cpp	solid/order_service.cpp	NOMATCH	    // StripePaymentGateway gateway(apiKey);
+solid-10	cpp	solid/order_service.cpp	NOMATCH	    UserRepository createRepo(Db& db);
+solid-10	cpp	solid/order_service.cpp	FILL	}
+solid-12	cpp	solid/order_entity.cpp	FILL	void Order::place() {
+solid-12	cpp	solid/order_entity.cpp	MATCH	    std::cout << "order placed" << std::endl;
+solid-12	cpp	solid/order_entity.cpp	MATCH	    logger.info("order placed");
+solid-12	cpp	solid/order_entity.cpp	NOMATCH	    stream_ << "order placed";
+solid-12	cpp	solid/order_entity.cpp	NOMATCH	    // std::cout << "debug";
+solid-12	cpp	solid/order_entity.cpp	FILL	}
+solid-12	cpp	solid/order_controller.cpp	NOMATCH	    std::cout << "order placed" << std::endl;
+solid-15	cpp	solid/shape_renderer.cpp	MATCH	    switch (shape->kind) {
+solid-15	cpp	solid/shape_renderer.cpp	MATCH	    if (payload.mode == "fast") {
+solid-15	cpp	solid/shape_renderer.cpp	MATCH	    auto* circle = dynamic_cast<Circle*>(shape);
+solid-15	cpp	solid/shape_renderer.cpp	NOMATCH	    switch (statusCode) {
+solid-15	cpp	solid/shape_renderer.cpp	NOMATCH	    if (name == "bob") {
+solid-15	cpp	solid/shape_renderer.cpp	NOMATCH	    auto* square = static_cast<Square*>(shape);
+tests-01	cpp	tgrp/prod/order_service.h	MATCH	class OrderService {
+tests-01	cpp	tgrp/prod/order_service.h	NOMATCH	class OrderRepository;
+tests-01	cpp	tgrp/prod/order_service.h	NOMATCH	#include <memory>
+tests-01	cpp	tgrp/prod/order_service.h	NOMATCH	    return total_ > 0;
+tests-01	cpp	tgrp/prod/order_service.cpp	MATCH	bool OrderService::Validate(const Order& order) const {
+tests-01	cpp	tgrp/prod/order_service.cpp	NOMATCH	    total_ = ComputeTotal(order);
+tests-04	cpp	tgrp/cpp/flaky_test.cpp	MATCH	    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+tests-04	cpp	tgrp/cpp/flaky_test.cpp	MATCH	    const auto now = std::chrono::system_clock::now();
+tests-04	cpp	tgrp/cpp/flaky_test.cpp	MATCH	    int roll = rand() % 6;
+tests-04	cpp	tgrp/cpp/flaky_test.cpp	NOMATCH	    std::mt19937 rng(42);
+tests-04	cpp	tgrp/cpp/flaky_test.cpp	NOMATCH	    const auto fixed = std::chrono::system_clock::from_time_t(1700000000);
+tests-04	cpp	tgrp/cpp/flaky_test.cpp	NOMATCH	    EXPECT_EQ(order.total(), 100);
+tests-05	cpp	tgrp/cpp/internals_test.cpp	MATCH	#define private public
+tests-05	cpp	tgrp/cpp/internals_test.cpp	MATCH	FRIEND_TEST(OrderServiceTest, ComputesDiscount);
+tests-05	cpp	tgrp/cpp/internals_test.cpp	MATCH	#include "order_service.cpp"
+tests-05	cpp	tgrp/cpp/internals_test.cpp	MATCH	  friend class OrderServiceTest;
+tests-05	cpp	tgrp/cpp/internals_test.cpp	NOMATCH	#define MAX_RETRIES 3
+tests-05	cpp	tgrp/cpp/internals_test.cpp	NOMATCH	#include "order_service.h"
+tests-05	cpp	tgrp/cpp/internals_test.cpp	NOMATCH	  friend class OrderBuilder;
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	MATCH	static int g_setupCount = 0;
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	MATCH	  static std::vector<Order> sharedOrders;
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	MATCH	int g_callCount = 0;
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	NOMATCH	const int kMaxRetries = 3;
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	NOMATCH	  static constexpr int kMaxAttempts = 5;
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	NOMATCH	  OrderService service_;
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	NOMATCH	TEST_F(SharedStateTest, ComputesTotal) {
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	NOMATCH	    int localTotal = ComputeTotal(order);
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	FILL	    EXPECT_EQ(localTotal, 100);
+tests-06	cpp	tgrp/cpp/SharedStateTest.cpp	FILL	}
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	MATCH	TEST_F(OrderTest, DISABLED_RetriesOnTimeout) {
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	MATCH	    GTEST_SKIP() << "requires a live network";
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	FILL	}
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	NOMATCH	TEST_F(OrderTest, SkipsArchivedUsers) {
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	NOMATCH	    bool disabled = false;
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	FILL	    EXPECT_FALSE(disabled);
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	FILL	}
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	MATCH	TEST_CASE("nightly reconciliation", "[.][slow]") {
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	FILL	    REQUIRE(Reconcile());
+tests-08	cpp	tgrp/cpp/skipped_test.cpp	FILL	}
+tests-09	cpp	tgrp/cpp/assert_test.cpp	MATCH	    EXPECT_TRUE(true);
+tests-09	cpp	tgrp/cpp/assert_test.cpp	MATCH	    ASSERT_EQ(1, 1);
+tests-09	cpp	tgrp/cpp/assert_test.cpp	MATCH	    REQUIRE(true);
+tests-09	cpp	tgrp/cpp/assert_test.cpp	MATCH	    SUCCEED();
+tests-09	cpp	tgrp/cpp/assert_test.cpp	NOMATCH	    EXPECT_TRUE(cart.IsEmpty());
+tests-09	cpp	tgrp/cpp/assert_test.cpp	NOMATCH	    REQUIRE(result.ok());
+tests-09	cpp	tgrp/cpp/assert_test.cpp	NOMATCH	    ASSERT_EQ(order.total(), 100);
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	MATCH	TEST(OrderServiceTest, CreatesOrder) {
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	FILL	    service.CreateOrder(payload);
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	FILL	}
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	NOMATCH	TEST(OrderServiceTest, ComputesTotal) {
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	FILL	    EXPECT_EQ(service.Total(), 42);
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	FILL	}
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	NOMATCH	TEST_F(OrderFixture, RejectsEmptyCart) {
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	FILL	    REQUIRE_FALSE(service.Accept(empty));
+tests-09	cpp	tgrp/cpp/noassert_test.cpp	FILL	}
+tests-13	cpp	tgrp/cpp/empty_test.cpp	FILE_MATCH	TEST(ReportTest, GeneratesReport) {
+tests-13	cpp	tgrp/cpp/empty_test.cpp	FILL	    report.Generate(rows);
+tests-13	cpp	tgrp/cpp/empty_test.cpp	FILL	}
+tests-13	cpp	tgrp/cpp/real_test.cpp	FILE_NOMATCH	TEST(ReportTest, GeneratesReport) {
+tests-13	cpp	tgrp/cpp/real_test.cpp	FILL	    EXPECT_TRUE(report.Generate(rows));
+tests-13	cpp	tgrp/cpp/real_test.cpp	FILL	}
+tests-13	cpp	tgrp/cpp/test_helpers.cpp	FILE_NOMATCH	std::string FormatDate(const Date& d) {
+tests-13	cpp	tgrp/cpp/test_helpers.cpp	FILL	    return d.ToIso();
+tests-13	cpp	tgrp/cpp/test_helpers.cpp	FILL	}

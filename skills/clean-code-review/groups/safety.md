@@ -28,9 +28,11 @@ For each precomputed hit: confirm it is a real violation (keep) or a false posit
 **Finding action template**: Wrap `{resource}` in `{using/try-with-resources/defer}` to guarantee cleanup at `{file}:{line}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: the patterns find resources being opened, and already exclude the scoped forms that guarantee cleanup on the same line (`with` in Python, `using` in C#, try-with-resources in Java). A hit is only a finding if nothing else guarantees the close — before flagging, read the surrounding lines for a `finally`, `defer`, `use {}`, `.close()` on every path, or a wrapper object that owns the lifetime. Dismiss resources handed to a caller or a container that takes ownership. The patterns cannot see multi-line ownership, so also apply the rule manually to resource-opening calls in the diff that produced no hit. Some rows use a per-file pairing pattern (unscoped `ProcessPoolExecutor`/`ThreadPoolExecutor` construction with no `.shutdown()` anywhere in the file; `NotificationCenter…addObserver` with no `removeObserver` anywhere in the file) — those hits have already been checked for an in-file release, so dismiss one only when the lifetime is owned elsewhere (release in another file, or the observer/executor handed off to a container).
+
+**C++**: the cpp rows pair an acquisition with its release per file — `new` with `delete`/`delete[]`, `fopen` with `fclose`, `malloc`/`calloc` with `free`, `lock()` with `unlock()` — so a hit means the file releases nowhere. Dismiss when RAII owns the lifetime (a `unique_ptr`/`shared_ptr`/`make_unique`, a `std::lock_guard`/`std::scoped_lock`, or a destructor that releases), and apply the rule by hand to ownership the line pattern cannot see.
 
 ---
 
@@ -46,6 +48,7 @@ No scripted detection for:
 - javascript: not applicable — no force unwrap syntax
 - python: not applicable
 - java: not applicable — no force unwrap syntax
+- cpp: not applicable — C++ has no null-forgiving/force-unwrap operator (no `!!`, `!`, `.Value`, `as!`); a raw-pointer deref is not a syntactic assertion.
 
 NOTE for agent: dismiss `!=` and `!==` comparisons. In TypeScript, dismiss `!` at end of type declarations (e.g. `field!: string` in class body). Only flag runtime dereferences. Dismiss TypeScript definite-assignment assertions on field declarations (`field!: Type`) and `!=`/`!==` operators. The pattern targets force-unwraps on expressions, not declarations.
 
@@ -60,7 +63,7 @@ For C#: the `.Value` pattern has a high false-positive rate. Only flag `Nullable
 **Finding action template**: Await `{asyncCall}` or attach an explicit `.catch()` error handler at `{file}:{line}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: For TypeScript/JavaScript the pattern only finds the explicit discard form — `void someCall()` / `void obj?.method()`, including `void x?.()`. It deliberately does not match `void 0` or a `: void` return annotation. That form is the *only* scriptable one, so the agent must still inspect the diff by hand for the far commoner shape: an async call that is neither awaited nor given `.then()`/`.catch()` and whose return value is simply dropped (`this.service.sendEmail(x)` on a statement line). A `void` hit is a finding when the callee can return a promise — check its declared return type; dismiss it when the callee is genuinely synchronous. For C#: grep finds all Async method calls. The agent must check: (1) is the calling method declared `async`? (2) is there an `await` on this line or is the result assigned? If neither, flag it. For Swift the pattern reads each `Task {` closure body via `mbody` and drops a hit whose body carries a `catch` (its own `do`/`catch` — the dominant false positive), and it drops a `Task` assigned to a variable (`x = Task {`), which is tracked and cancellable rather than fire-and-forget. For Python `asyncio.create_task`/`ensure_future` and `x.create_task`, a hit whose call is the right-hand side of an assignment is dropped: an assigned task is later awaitable/cancellable (e.g. `t = asyncio.create_task(...)`, a `TaskGroup`'s `tasks = [tg.create_task(...) ...]`), so only a bare, discarded call survives. A `create_task` mentioned inside a string literal is a residual false positive the pattern cannot see.
 
@@ -83,7 +86,7 @@ NOTE for agent: For TypeScript/JavaScript the pattern only finds the explicit di
 **Finding action template**: Replace check-then-act on `{sharedState}` with an atomic operation (`computeIfAbsent`, compare-and-swap, or a lock covering both steps)
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: Only flag when the check and act steps can be interleaved by a separate thread, coroutine, asynchronous continuation, or concurrent process. TOCTOU on filesystem paths (`fs.existsSync` then `fs.writeFileSync`, `os.path.exists` then `open()`) is a race against external processes even in single-threaded runtimes — flag these. Dismiss when both the check and the act operate on a local variable or a request-scoped object that cannot be accessed by any other execution context. Python `if x in y:` (membership test) is NOT a safety-05 violation — it does not probe the filesystem. Flag only `os.path.exists`, `Path(...).exists()`, and similar filesystem checks before open/modify operations. The script no longer flags membership predicates (`.has`/`.includes`/`.contains`); a bare existence read with no create/delete/write to the same path afterward, and an `assert`, are not check-then-act. Also treat as a race a value snapshotted from a shared store (`list_tables()`, a cache or count read) then acted on before re-checking — even when the check line reads as a pure local test — since a line-local pattern cannot span snapshot→check→act.
 
@@ -96,9 +99,11 @@ NOTE for agent: Only flag when the check and act steps can be interleaved by a s
 **Finding action template**: Replace blocking `{call}` inside async `{methodName}` with its async equivalent
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: this rule fires ONLY when the blocking call starves an async runtime — an event loop or an async thread-pool. Blocking a plain thread is fine and often correct, so the enclosing scope decides the verdict, not the call itself. Procedure: from the hit, trace UP to the nearest enclosing function declaration and check for the async marker. FLAG only if that declaration is `async def` (Python), `suspend fun` (Kotlin), `async func` / an awaited actor method (Swift), an `async Task`/`async ValueTask`/`async void` method (C#), or the body runs as an `await`-reached coroutine or an async request handler on a hot path. DISMISS in every synchronous context, and these cues are decisive, not hints: a plain `def`/`func`/method with no `async` keyword; a daemon or worker thread body; a CLI command handler (`main`, `__main__`, Click/Typer/argparse); an installer, setup, bootstrap, or migration routine; a sync polling/retry/backoff helper (`_poll_*`, `_wait_*`, `withRetry`); or startup/init code that runs before the event loop. Swift `DispatchGroup.wait()`, `DispatchSemaphore` waits, and PromiseKit `.wait()` are synchronous-concurrency primitives — dismiss unless the enclosing function itself carries `async`. When you cannot find an enclosing `async` declaration, dismiss — do not flag on suspicion. Also dismiss any hit in a test file — a blocking call in a synchronous test method cannot violate this rule, and the collector already excludes test files for this check. For Java `.get()` and `.join()`, only flag when called on a `CompletableFuture`, `Future`, or `CompletionStage` variable — dismiss getter methods, map lookups, and `String.join()`. For C#: dismiss `.Result` on types named `Result<T>`, `Option<T>`, `Either<L,R>`, or similar functional result types — flag `.Result` and `.Wait()` only when the containing type is `Task`, `ValueTask`, or their generic variants. In Swift the bare `sleep(...)` alternative excludes `Task.sleep(...)`, which suspends the task rather than blocking a thread and is therefore not a violation of this rule; `Thread.sleep`, C `sleep`, and semaphore/dispatch-group waits still match. The Python pattern now flags blocking filesystem/`tarfile`/`zipfile`/`shutil`/`subprocess`/`os`/`Path` calls too, not just `time.sleep` — apply the same trace-up rule: flag only inside an `async def`, dismiss in synchronous code. Blocking calls hidden behind custom app methods still produce no hit — read the diff for those by hand.
+
+**C++**: there is no language-level async marker to trace up to, so flag a blocking wait (`std::this_thread::sleep_for`, `future.get()`, `condition_variable::wait`, a `.lock()` on a hot path) only inside a coroutine (`co_await`/`co_return`) or a documented async/event-loop callback. Dismiss it in ordinary synchronous or worker-thread code.
 
 ---
 
@@ -109,7 +114,7 @@ NOTE for agent: this rule fires ONLY when the blocking call starves an async run
 **Finding action template**: Remove suppression of `{warningName}` at `{file}:{line}` — fix the underlying issue or document why it is intentional
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 ---
 
@@ -120,7 +125,7 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 **Finding action template**: Give `{call}` a timeout or cancellation token at `{file}:{line}` so a hung dependency cannot stall the caller
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 4 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/safety.tsv`.
 No scripted detection for:
 - java: non-scriptable — the timeout is set on the client or request builder, usually several lines from the call
 - kotlin: non-scriptable — same as java; `withTimeout` wraps the call from an enclosing line
@@ -145,6 +150,7 @@ No scripted detection for:
 - java: not applicable — no `async void` form
 - kotlin: covered by safety-03, which owns `launch {}` and `GlobalScope`
 - swift: covered by safety-03, which owns detached `Task {}`
+- cpp: not applicable — C++ has no `async`/`await` keywords or `async void` method form.
 
 NOTE for agent: this check is about the declaration; safety-03 owns un-awaited call sites. Dismiss the one legitimate use, an event handler required by a framework signature, but only when the body cannot throw or catches everything it can throw.
 
@@ -157,7 +163,7 @@ NOTE for agent: this check is about the declaration; safety-03 owns un-awaited c
 **Finding action template**: Preserve the original failure at `{file}:{line}` — use bare `throw`, or pass the caught exception as the cause
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 4 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 5 language(s). Patterns: `scripts/checks/safety.tsv`.
 No scripted detection for:
 - python: non-scriptable — a missing `from e` can only be judged against the enclosing `except` block
 - kotlin: non-scriptable — same as python
@@ -174,9 +180,11 @@ NOTE for agent: this is distinct from smells-12, which owns exceptions that are 
 **Finding action template**: Inject a clock, random source, or identifier generator into `{ClassName}` instead of calling `{call}` directly at `{file}:{line}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: tests-04 owns this inside test files; these patterns deliberately exclude test paths so the two never overlap. The vocabulary covers wall clocks (`new Date()`, `Date.now`, `datetime.now`, `time.time`, `time.monotonic`, `DateTime.UtcNow`, `Instant.now`), randomness (`Math.random`, `random.*`, `secrets.*`, `crypto.getRandomValues`, `Int.random`), and fresh identifiers (`crypto.randomUUID`, `uuidv4()`, `nanoid()`, `uuid4()`, `Guid.NewGuid`, `UUID()`). Flag when the value affects a decision, a stored record, or an output the caller can observe. Dismiss logging timestamps, metrics, cache keys, and one-off scripts, where injecting a source buys nothing — in particular, `time.monotonic()`/`performance.now()` bracketing a block purely to record its latency is a metric, not a finding, whereas the same call driving a TTL or expiry decision is. Treat a naive local-time call as a finding on its own even when testability is not at stake.
+
+**C++**: the sources matched are `rand()`/`std::rand`, `std::random_device`, `std::mt19937`, `time(nullptr)`, `GetTickCount`, and `std::chrono::…::now()`.
 
 ---
 
@@ -195,6 +203,7 @@ No scripted detection for:
 - java: not applicable — no default parameter values
 - kotlin: not applicable — default expressions are evaluated per call
 - swift: not applicable — default expressions are evaluated per call
+- cpp: not applicable — C++ evaluates default arguments at every call, so the shared-mutable-default trap does not exist.
 
 NOTE for agent: this is always a finding when the default is mutated anywhere in the body. When the default is only read, it is still a latent trap and stays a finding, though the fix is cheaper.
 
@@ -207,7 +216,7 @@ NOTE for agent: this is always a finding when the default is mutated anywhere in
 **Finding action template**: Replace the assertion at `{file}:{line}` with an explicit check that raises `{ExceptionType}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 2 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 3 language(s). Patterns: `scripts/checks/safety.tsv`.
 No scripted detection for:
 - typescript: not applicable — no assertion statement stripped by an optimiser
 - javascript: not applicable — no assertion statement stripped by an optimiser
@@ -228,7 +237,7 @@ For Swift the pattern matches `assert(...)` and `assertionFailure(...)` only. Bo
 **Finding action template**: Move `{name}` out of source at `{file}:{line}` into configuration or a secret store, and rotate the exposed value
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: dismiss obvious non-secrets — empty strings, placeholders such as `changeme` or `xxx`, values that are plainly test fixtures, and public identifiers that merely have a secret-sounding name (e.g. `stripePublicApiKey = "pk_live_51Hxxxxxxxxxxxx"` — a publishable key, not a secret, even though the variable name ends in `ApiKey`). Flag anything that looks like a live credential even in a test file: committed test credentials are frequently real. Unlike safety-15, this pattern does not exclude comment lines — a commented-out credential (`// password = "..."`) still gets flagged, because a committed secret stays exposed in history whether or not the line is live code. When the value is genuinely a secret, say so plainly in the action and include rotation, because deleting the line does not un-expose it.
 
@@ -241,7 +250,7 @@ NOTE for agent: dismiss obvious non-secrets — empty strings, placeholders such
 **Finding action template**: Replace the concatenated query at `{file}:{line}` with a parameterised statement binding `{value}` as a parameter
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: the pattern requires both a statement shape and an interpolation or concatenation on the same line, and skips comment lines, so most hits are real. Python additionally matches a bare clause fragment that carries the same injection surface without ever naming `SELECT`: a `where`/`values(` line that interpolates a value *inside* a quoted literal (`where=f"chunk_id = '{chunk_id}'"`), and a SQL predicate assembled by `+`-concatenation or f-string interpolation of a variable — an uppercase `OR`/`AND` connective spliced between expressions (`pred + " OR " + other`), an `IN (...)` list (`f"col IN ({items})"`), or an `IS NULL`/comparison/`LIKE`/`=` predicate whose value is concatenated (`"col >= " + quote(v)`, `"path LIKE " + p`). The SQL keywords are matched case-sensitively (uppercase) so English prose `or`/`and`/`in` concatenated for display does not match. Dismiss a hit when every interpolated part is a compile-time constant the caller cannot influence — a fixed table name from an enum, for example. Dismiss the safe placeholder forms that only look similar: `%s` with a separate parameter tuple, `?`, `$1`, and `@named` bindings. When the value comes from outside the program, the severity stands as written.
 
@@ -254,7 +263,7 @@ NOTE for agent: the pattern requires both a statement shape and an interpolation
 **Finding action template**: Change `{field}` at `{file}:{line}` to a decimal type or an integer count of minor units
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
 No scripted detection for:
 - javascript: not applicable — every number is binary floating-point, so the finding is the absence of a decimal library rather than a type choice
 
@@ -269,7 +278,7 @@ NOTE for agent: this is a correctness check and is distinct from solid-07, which
 **Finding action template**: Replace weak primitive `{algorithm}` at `{file}:{line}` with a modern one (SHA-256+/HMAC for hashing, AES-GCM for encryption)
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: dismiss when the weak primitive is provably not security-relevant — a non-cryptographic checksum for cache keys, ETags, or deduplication where an adversary gains nothing from a collision. MD5/SHA-1 for password hashing, token or signature generation, or integrity verification of untrusted data is always a finding. A password stored with a plain fast hash (even SHA-256) rather than a KDF (bcrypt/scrypt/argon2/PBKDF2) is a related finding you may raise here.
 
@@ -282,7 +291,7 @@ NOTE for agent: dismiss when the weak primitive is provably not security-relevan
 **Finding action template**: Remove the verification bypass at `{file}:{line}` and trust the system CA store — pin a certificate only through a proper pinning API, never by accepting all
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
 No scripted detection for:
 - swift: non-scriptable — disabling verification lives inside a `URLSessionDelegate` `didReceive challenge` method that calls the completion handler with `.useCredential`/`URLCredential(trust:)`, spread across several lines; agent must read the delegate body in the diff.
 
@@ -297,7 +306,7 @@ NOTE for agent: dismiss only when the bypass is unreachable in production — gu
 **Finding action template**: Replace the shell/eval call at `{file}:{line}` with an argument-array exec (`execFile`/`spawn`/`subprocess.run([...])`/`ProcessBuilder` with a list) or remove the dynamic evaluation
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: the finding is the injection surface, not proof of a reachable exploit — flag it whenever any part of the command or evaluated string could carry a value the program did not fix at author time. Dismiss when every argument is a compile-time constant the caller cannot influence. For C#, `Process.Start` on a fixed filename or a URL (opening a browser) is not shell execution — dismiss those; flag when a shell (`cmd.exe`/`/bin/sh` with `/c`/`-c`) or an interpolated command line is involved. `eval`/`exec` on any non-constant input is always a finding.
 
@@ -310,7 +319,7 @@ NOTE for agent: the finding is the injection surface, not proof of a reachable e
 **Finding action template**: Replace the unsafe deserializer at `{file}:{line}` with a data-only format (JSON / `yaml.safe_load` / `unarchivedObject(ofClass:)`) or restrict it to an explicit allow-list of types
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: dismiss when the serialized bytes provably never cross a trust boundary — a value the program itself wrote to a location only it can write, within the same process lifetime. Dismiss `yaml.load(..., Loader=SafeLoader)` and `yaml.safe_load` — those are the safe forms. Any deserialization of a request body, a user-supplied file, a queue message, or cache/session data from a shared store is a finding.
 
@@ -331,6 +340,7 @@ No scripted detection for:
 - csharp: not applicable — `==` is overloaded to value equality for `string`
 - kotlin: not applicable — `==` compiles to `.equals()`; `===` is the explicit reference check
 - swift: not applicable — `==` is value equality via `Equatable`
+- cpp: not applicable — for `std::string`, `==` is a value comparison, so the reference-identity pitfall this check targets does not apply.
 
 NOTE for agent: the pattern flags comparison against a string literal (`x == "shipped"`), the unambiguous form. Also flag, by reading the diff, the variable-to-variable form (`a == b` where both are `String` or a boxed type such as `Integer`) — the pattern cannot see the types. Dismiss `== null`/`!= null` (identity is correct there) and comparisons of `char` literals written in single quotes (those are value types). The pattern's comment guard only suppresses full-line comments, so also dismiss a `==`/`!=` that appears inside a **trailing** `//` comment (e.g. `doStuff(); // status == "old"`).
 
@@ -343,7 +353,7 @@ NOTE for agent: the pattern flags comparison against a string literal (`x == "sh
 **Finding action template**: Remove the sensitive value from the log call at `{file}:{line}` — log a redacted placeholder or a non-reversible identifier instead
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: distinct from safety-14 (a hardcoded credential in source) — this is the runtime *leak* of a secret through a log sink. The pattern matches a log/print token followed by a secret-named identifier on the same line; it cannot see field names it does not know, so also flag a log call that passes a whole object (`logger.info(user)`, `console.log(req.body)`) whose shape carries secrets. Dismiss when the named value is provably not the secret itself — a boolean `hasPassword`, a length `passwordLength`, an already-redacted or masked string, or a field name used only as a map key with no value interpolated.
 
@@ -356,7 +366,7 @@ NOTE for agent: distinct from safety-14 (a hardcoded credential in source) — t
 **Finding action template**: Resolve and confine the path at `{file}:{line}` — canonicalize it and verify it stays within an allowed base directory before opening
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: this completes the injection trio with safety-19 (command/eval) and safety-15 (SQL) — same taint principle, filesystem sink. The pattern only catches the request-derived value and the open call on one line; when the tainted path is assigned to a variable first and opened later, follow it in the diff yourself. Dismiss when the path is confined before use — a canonicalized path checked against a base dir, a value constrained to a fixed allow-list, or a filename component with traversal characters already stripped. A constant or config-derived path is never a finding.
 
@@ -369,7 +379,7 @@ NOTE for agent: this completes the injection trio with safety-19 (command/eval) 
 **Finding action template**: Replace the exact float comparison at `{file}:{line}` with a tolerance check (`abs(a - b) < epsilon`) or compare a decimal/integer-minor-unit type
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/safety.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/safety.tsv`.
 
 NOTE for agent: distinct from safety-16 (money stored as float) — this is the *comparison* bug, not the storage choice; both can be true of one line. The pattern flags `==`/`!=`/`===`/`!==` against a decimal literal (`x == 3.14`) in either order. Dismiss a comparison against `0.0`/`0` used purely as a sentinel where exactness is intended and the value is never the result of arithmetic (e.g. a freshly initialized field), and dismiss version strings or dotted identifiers the literal guard already excludes. Also flag, by reading the diff, the variable-to-variable form (`a == b` where both are `float`/`double`) that the literal-only pattern cannot see.
 

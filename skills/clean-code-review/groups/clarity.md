@@ -72,7 +72,7 @@ Output findings only — one line per finding, no prose.
 **Finding action template**: Remove noise word from `{name}` or replace with a meaningful term
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/clarity.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/clarity.tsv`.
 
 NOTE for agent: Anchored to declaration sites (class/interface/etc.) — import sites and usage sites are excluded. Dismiss framework types (HttpMessageHandler, EventHandler, RequestHandler, FormData, ChangeEvent, IFormatProvider, ThreadPoolExecutor, Metadata, ErrorRequestHandler).
 
@@ -102,7 +102,7 @@ NOTE for agent: Anchored to declaration sites (class/interface/etc.) — import 
 **Finding action template**: Extract condition into a named predicate `{suggestedName}({params})`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/clarity.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/clarity.tsv`.
 
 NOTE for agent: the pattern finds two or more `&&`/`||` (or `and`/`or` in Python) within one statement, i.e. three or more joined terms. It is no longer restricted to `if`/`while`/`guard`: ternary conditions, JSX render guards (`{a && b && (`), inline callback predicates and assertion arguments now produce hits too. The brace blind spot is gone — `if (validate({ key: 1 }) && a && b)` is found; the scan now stops at `;`, not `{`.
 
@@ -185,9 +185,11 @@ NOTE for agent: Look for a ternary expression (`condition ? thenBranch : elseBra
 **Finding action template**: Reduce complexity in `{functionName}` (currently {N} branches) by extracting branch groups into named functions
 
 **Detection** (per-function branch count — branch lines between the declaration and the closing line):
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/clarity.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/clarity.tsv`.
 
 > Agent note: each hit is one function carrying more than 10 branch lines, already measured — `mbranch` resolves the extent exactly as `mfunc` does (python by indentation, brace languages by brace balance) and counts branch keywords inside it, ignoring comments and string bodies. The matched text is the declaration line. The count is line-granular, so a line with `case 'a': case 'b': case 'c':` counts once though it is three branches — the measurement floors, it does not inflate. Confirm the branch count before reporting and dismiss hits where the "function" is generated code or a test-harness block rather than a unit of logic. Nested functions are counted independently AND inside their enclosing function, so a branchy closure charges both.
+>
+> **C++**: the declaration pattern matches both free functions (`Ret name(...)`) and out-of-line or in-class methods (`Ret Class::method(...)`, `virtual Ret method(...)`); the leading return-type token is what separates a declaration from a call, and Allman and K&R brace styles both work because the body is found by brace balance. A header prototype ending in `;` opens no body and is skipped.
 >
 > Anchor all clarity-16 findings at the line of the function's declaration/signature (the `def`, `function`, `fun`, `func`, or method-header line) — that is the `line` the hit already carries. Do not anchor at the first statement or closing brace, nor at line 1.
 >
@@ -202,9 +204,11 @@ Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/chec
 **Finding action template**: Extract logical sub-unit `{suggestedName}` from `{functionName}` (currently {N} lines)
 
 **Detection** (per-function span — declaration line through closing line):
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/clarity.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/clarity.tsv`.
 
 > Agent note: each hit is one function that spans more than 150 lines, already measured — `mfunc` walks python bodies by indentation and brace-language bodies by brace balance. The matched text is the declaration line. Confirm the span before reporting (a brace inside a block comment or a multi-line string literal can inflate it) and dismiss hits where the "function" is generated code or a test-harness block (`describe`/`suite`) rather than a unit of logic. The declaration regex is loose by design — the 150-line threshold does the filtering — so an anonymous callback or a computed property can appear; those are still functions and still count. Nested functions are reported independently, so an inner long function and its long enclosing function are two findings.
+>
+> **C++**: the declaration pattern matches both free functions (`Ret name(...)`) and out-of-line or in-class methods (`Ret Class::method(...)`, `virtual Ret method(...)`); the leading return-type token is what separates a declaration from a call, and Allman and K&R brace styles both work because the span is measured by brace balance. A header prototype ending in `;` opens no body and is skipped.
 >
 > Anchor all clarity-17 findings at the line of the function's declaration/signature (the `def`, `function`, `fun`, `func`, or method-header line) — that is the `line` the hit already carries. Do not anchor at line 1.
 >

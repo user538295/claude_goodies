@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Validates that every detection command in scripts/checks/*.tsv executes
-# without errors (pattern compiles, pipeline runs) across all 7 languages.
+# without errors (pattern compiles, pipeline runs) across all 8 languages.
 # Run: bash tests/test_checks.sh
 set -u
 
@@ -31,6 +31,8 @@ printf 'public class OrderHelper { public bool Run(bool f) { return f; } }\n' > 
 printf 'class ItemHandler { var count: Int = 99 }\n' > src/App.swift
 printf 'class CartUtils { var total = 123 }\n' > src/Cart.kt
 printf 'public class UserInfo { public int age = 7; }\n' > src/User.java
+printf 'class OrderManager {\npublic:\n  int count = 42;\n  bool process(bool flag) { return flag; }\n};\n' > src/widget.cpp
+printf '#include <gtest/gtest.h>\nTEST(WidgetSuite, DoesThing) { OrderManager m; m.process(true); }\n' > WidgetTests.cpp
 printf 'import { it } from "vitest";\nit.skip("x", () => { expect(true).toBe(true); });\n' > src/__tests__/main.test.ts
 printf 'import time\ndef test_x():\n    time.sleep(1)\n    assert True\n' > test_mod.py
 printf 'public class SvcTests { [Fact] public void Placeholder() { } }\n' > App.Tests/SvcTests.cs
@@ -51,7 +53,7 @@ printf 'class Checkout { func testRun() { service.checkout(cart) } }\n' > AppTes
 
 OUT="$("$SCRIPT" 2>"$WORKROOT/checks_err")" || { echo "collect.sh failed: $(cat "$WORKROOT/checks_err")"; exit 1; }
 
-for lang in typescript javascript python csharp swift kotlin java; do
+for lang in typescript javascript python csharp swift kotlin java cpp; do
   grep -qx "$lang" "$OUT/languages.txt" || { echo "FAIL: $lang not detected"; FAIL=1; }
 done
 

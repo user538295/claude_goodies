@@ -36,7 +36,7 @@ You receive:
 **Finding action template**: Replace framework type `{FrameworkType}` in use case `{UseCaseName}` with a framework-agnostic input/output model
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: only flag if the importing class is a use case — not a controller, presenter, or infrastructure adapter. Use-case classes importing types named *Request/*Response from local ./dto or ./models paths are NOT violations. Flag only imports from framework packages (express, fastify, nestjs, koa, etc.). Include sqlalchemy, rest_framework, starlette, and the ORM query builders (drizzle-orm, typeorm, @prisma/client, mongoose, sequelize, knex, @mikro-orm) — these are framework imports commonly found in use cases.
 
@@ -51,7 +51,7 @@ The patterns now skip files that structurally cannot host a use case, so you sho
 **Finding action template**: Remove ORM annotation `{annotation}` from domain entity `{EntityName}` — introduce a separate persistence model with a mapper
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: only flag if the annotated class is in a domain package, not in persistence/infrastructure. Dismiss [Required], [MaxLength], [MinLength], [Range], [RegularExpression] from System.ComponentModel.DataAnnotations — these are validation attributes, not ORM annotations, and are appropriate on domain types and DTOs.
 
@@ -72,7 +72,7 @@ NOTE for agent: only flag if the annotated class is in a domain package, not in 
 **Finding action template**: Translate `{InfraException}` at the infrastructure boundary — expose a domain exception to callers instead
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: only flag if the catch is in application service, use case, or domain code — not in a repository/adapter.
 
@@ -105,7 +105,7 @@ NOTE for agent: only flag if the catch is in application service, use case, or d
 **Finding action template**: Replace service-locator call in `{className}` with constructor injection — make the dependency explicit
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: dismiss service-locator calls inside DI configuration / module setup files — those are expected.
 
@@ -120,7 +120,7 @@ NOTE for agent: dismiss service-locator calls inside DI configuration / module s
 **Finding action template**: Replace environment branch in `{className}` with an injectable strategy or configuration value
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: only flag if found inside domain, use-case, or application-service classes. Dismiss in infrastructure adapters, config classes, or entry points.
 
@@ -147,7 +147,7 @@ For **new files** (where the entire file is in the diff and no counterpart exist
 **Finding action template**: Move the address at `{file}:{line}` into configuration and inject it into `{ClassName}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: the patterns already skip comments, `localhost`, the loopback address `127.0.0.1` (but not `::1` or `0.0.0.0` — those are not excluded and will be flagged), specification URLs such as `www.w3.org`, the RFC 2606 / RFC 6761 reserved documentation and testing hosts (`example.com`/`.net`/`.org` and any host whose last label is `.example`, `.invalid` or `.test` — e.g. `http://invalid.example/route`), and test paths (test-file naming and test directories, same exclusion as safety-11, plus — for TypeScript/JavaScript — `*.fixture.*` files and `fixtures/` directories). The loopback and documentation-host exclusions also hold when a `user:pass@` userinfo precedes the host (e.g. `postgresql://user:pw@127.0.0.1/db` is skipped). Dismiss remaining non-addresses: namespace identifiers that merely look like URLs, documentation links, and fixed third-party endpoints that genuinely never vary by environment. This overlaps clarity-08 in surface only — a magic string is fixed by naming a constant, whereas this finding is only fixed by moving the value out of the code, so report it here and not there.
 
@@ -160,7 +160,7 @@ NOTE for agent: the patterns already skip comments, `localhost`, the loopback ad
 **Finding action template**: Centralise cache-key construction for `{entity}` in one function — write uses `{keyShapeA}`, `{operation}` uses `{keyShapeB}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`. Two forms are matched, both on a cache-named receiver (`cache`, `_cache`, `userCache`, `_GRAMMAR_CACHE`, `redisClient`, `cachedGreyScaledImages`, …): lifecycle **method calls** (`.get(`/`.set(`/`.delete(`/`.removeValue(`/`.popitem(` …) and **subscript access** (`cache[key]`, `cache[key] = v`, `del cache[key]`). A hit fires **only when the key is a computed, multi-part expression** — an f-string/template (`f"user:{id}"`, `` `user:${id}` ``, `$"user:{id}"`), a string interpolation (`"user-$id"`, `"\(id)"`), a concatenation (`"user:" + id`), a `.format(` call, or a tuple key (`cache[(a, b)]`). A bare-variable key (`cache.get(model_name)`, `cache[model]`), a plain literal key (`cache["config"]`), a member-access key (`cache[url.path]`), a key-builder call (`cache[buildKey(id)]`), and every keyless operation (`cache.clear()`, `cache.popitem()`, `cache.removeAll()`) are **not** matched: a key that is not composed from parts cannot be built one way on write and another on read, so it carries no lifecycle-mismatch risk. The matched vocabulary is library API surface and language syntax, not domain words. Identifiers ending in the `…_cached` / `…Cached` participle (`status_cached_json`, `maint_cached`) are excluded — they name snapshot values, not caches.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`. Two forms are matched, both on a cache-named receiver (`cache`, `_cache`, `userCache`, `_GRAMMAR_CACHE`, `redisClient`, `cachedGreyScaledImages`, …): lifecycle **method calls** (`.get(`/`.set(`/`.delete(`/`.removeValue(`/`.popitem(` …) and **subscript access** (`cache[key]`, `cache[key] = v`, `del cache[key]`). A hit fires **only when the key is a computed, multi-part expression** — an f-string/template (`f"user:{id}"`, `` `user:${id}` ``, `$"user:{id}"`), a string interpolation (`"user-$id"`, `"\(id)"`), a concatenation (`"user:" + id`), a `.format(` call, or a tuple key (`cache[(a, b)]`). A bare-variable key (`cache.get(model_name)`, `cache[model]`), a plain literal key (`cache["config"]`), a member-access key (`cache[url.path]`), a key-builder call (`cache[buildKey(id)]`), and every keyless operation (`cache.clear()`, `cache.popitem()`, `cache.removeAll()`) are **not** matched: a key that is not composed from parts cannot be built one way on write and another on read, so it carries no lifecycle-mismatch risk. The matched vocabulary is library API surface and language syntax, not domain words. Identifiers ending in the `…_cached` / `…Cached` participle (`status_cached_json`, `maint_cached`) are excluded — they name snapshot values, not caches.
 
 **Known scripted blind spot — you must compensate by reading the diff**: when key construction happens at the *call site* of a wrapper (`setCachedData(\`${endpoint}:${cacheTime}\`, …)` vs `getCachedData(endpoint, …)`), the wrapper's internals all use the same opaque parameter and look consistent. The script flags the wrapper's cache operations but not the call sites. **Whenever a hit sits inside a wrapper function that takes the key as a parameter, trace every call site of that wrapper and compare the key expressions there.** This is where real mismatches hide.
 
@@ -175,7 +175,7 @@ NOTE for agent: this check compares the code against itself — the vocabulary c
 **Finding action template**: Bound the query at `{file}:{line}` — add pagination (a limit/offset or cursor) or a `WHERE` filter that caps the result set
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: this is a scale defect that only surfaces in production, never a lint rule. The pattern matches the unbounded ORM forms with empty arguments (`findAll()`, `.objects.all()`, `.query(...).all()`) and `SELECT *` on a line that carries no `limit`/`top`/`fetch first`. Dismiss when the result is provably bounded another way — a `WHERE` clause on a unique or small-cardinality column, a table known to hold few rows (a config/enum lookup), or a limit applied on the next line that the single-line pattern cannot see (read the diff). A `findAll` that already takes a `Pageable`/limit argument is not matched and is not a finding.
 
@@ -188,7 +188,7 @@ NOTE for agent: this is a scale defect that only surfaces in production, never a
 **Finding action template**: Read the env var once at the composition root and inject it into `{ClassName}` as typed, validated configuration instead of reading it inline at `{file}:{line}`
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/arch.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
 NOTE for agent: complements arch-11 (a hardcoded address) from the other direction — that finding is a value frozen into code, this is a value pulled from the ambient environment mid-logic. Dismiss env reads inside test files (the scripted pass already skips them via SKIP_TESTS), and reads that already sit at the composition root or in a dedicated config/settings module whose only job is to load and validate the environment (that is the correct place). Flag a read that drives a branch, a default, or a computation inside a domain/use-case function. A read fed straight into a validated config object at startup is not a finding.
 

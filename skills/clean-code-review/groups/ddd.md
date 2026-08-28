@@ -37,7 +37,7 @@ Since aggregate boundaries are not always explicit, use these heuristics:
 **Finding action template**: Make `{ClassName}` immutable — remove setters, mark fields `readonly`/`val`/`final`, return a new instance from any "change" operation
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/ddd.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/ddd.tsv`.
 No scripted detection for:
 - csharp: non-scriptable — C# setter syntax `set { }` / `set;` appears on any auto-property with a setter, not just value-object properties; agent must read the diff to identify setter-bearing auto-properties on classes that should be value objects or immutable
 
@@ -46,6 +46,8 @@ NOTE for agent: only flag if the class name or doc comment indicates a Value Obj
 **Swift**: only stored `var` properties declared at type-member indentation are matched. Computed properties (`var body: some View {`, `var isRunning: Bool { … }`) and function-local `var`s are no longer matched — neither is a public mutable field. Files whose name or path marks them as presentation or service code (`*View.swift`, `*ViewController.swift`, `*ViewModel.swift`, `*Service.swift`, `*Manager.swift`, `*Repository.swift`, `Presentation/`, `Views/`, `Services/`, `Infrastructure/`, …) are skipped. **The remaining hits still carry no proof of value-object-ness** — a line-level pattern cannot see the enclosing class name or whether it has an identity field. You must read the class before flagging; expect to dismiss ordinary manager/model classes that merely hold mutable state.
 
 **Python**: a `@dataclass` without `frozen=True` is matched, since a mutable dataclass is the standard shape of a mutable value object. The hit anchors on the decorator line — read the class immediately below it. Flag it when the class is an identity-free data carrier (`Money`, `EvalQualityFloors`, `SearchPipelineResult`). Dismiss when the class has an identity field (`id`, `uuid`, a natural key) — that is an Entity, not a Value Object — and dismiss deliberate accumulators/builders whose whole purpose is to be filled in incrementally (`ReindexResult` counters incremented during a run). `@dataclass(frozen=True)` is not matched.
+
+**C++**: hits are public non-`const` data members and `void setX(...)` mutators; flag one only when the enclosing class is named as a value object (`Money`, `Email`, `Coordinate`) — the pattern cannot see the class name. Dismiss identity-bearing entities.
 
 ---
 
@@ -92,7 +94,7 @@ NOTE for agent: only flag if the class name or doc comment indicates a Value Obj
 **Finding action template**: Replace direct import of `{ForeignType}` from bounded context `{ForeignBC}` in `{ClassName}` with an ACL adapter or integration event
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/ddd.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/ddd.tsv`.
 No scripted detection for:
 - swift: non-scriptable — Swift has no path-based imports; a cross-bounded-context reference within a single module produces no import statement, and separate-module `import ModuleName` lines carry no path segment that names the BC. Agent must read the diff to spot references to another BC's domain types.
 
@@ -107,7 +109,7 @@ NOTE for agent: only flag when the import crosses a clear bounded-context bounda
 **Finding action template**: Return an immutable/read-only view from `{ClassName}.{methodName}()` instead of the live `{collectionType}` — use `Collections.unmodifiableList`, `List.copyOf`, `IReadOnlyList`, `toList()`, `asSequence()`, etc.
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 5 language(s). Patterns: `scripts/checks/ddd.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/ddd.tsv`.
 No scripted detection for:
 - javascript: non-scriptable — plain JS has no return-type annotations, so a mutable-collection return has no reliable line-level signal; agent must read the diff to identify getters on aggregate classes that return a live array/map/set
 - swift: not applicable — Swift's `Array`/`Dictionary`/`Set` are value types with copy-on-write semantics, so returning one hands the caller a copy, not the live collection; there is no mutable-collection leak to detect. (A leak would require exposing a `class`-based/reference collection or an `inout`/`unsafe` escape — rare; agent may flag those by reading the diff.)

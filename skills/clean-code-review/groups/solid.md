@@ -68,9 +68,11 @@ Output findings only — one line per finding, no prose.
 **Finding action template**: Make `{fieldName}` in `{ClassName}` private — add an accessor/property if external read access is needed
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/solid.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/solid.tsv`.
 
 NOTE for agent: dismiss data classes, DTOs, records, structs, and value objects — public fields are expected there. For TypeScript: flag `public` instance properties in classes where the value can be set from outside the class after construction. For C#: flag `public` fields (not properties) and `public` auto-properties with a `set` accessor on a class that should be a value type. Dismiss in test files (files matching test naming conventions — `*Test.kt`, `*Spec.kt`, `*Tests.swift`, `src/__tests__/`, etc.) — public `var` is normal for test fixtures and `sut` fields. For Swift and Kotlin the pattern only accepts a declaration at exactly one indentation level (one tab, two spaces, or four spaces), so it sees type-body members and not locals inside function bodies; a member nested inside an inner type is therefore missed, and in a two-space codebase a local at depth two still slips through. It also skips computed properties (`var body: some View {`) and anything narrowed with `private(set)`, and it does accept attributed declarations — `@IBOutlet var`, `@Published var`, `@StateObject var` are non-private mutable members and are flagged; judge those against the rule like any other (a plain `@Published var` a view writes back to is a violation, one the view only reads should have been `private(set)`).
+
+**C++**: the pattern tracks access labels — a member is public when it sits under a `public:` label or in a `struct` (default public), and declarations opening with `const`/`constexpr`/`static` are already excluded. Dismiss members of a value object or POD that is legitimately a data carrier.
 
 ---
 
@@ -80,7 +82,7 @@ NOTE for agent: dismiss data classes, DTOs, records, structs, and value objects 
 **Finding action template**: Wrap `{primitiveType} {name}` in a `{SuggestedValueObject}` value object or enum
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/solid.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/solid.tsv`.
 
 NOTE for agent: the pattern only recognises a fixed vocabulary of domain names (email, url, phone, postal code, currency, amount, price, and the `*Id` / `*Code` / `*Mode` suffixes) carried as text or numbers. It is a starting point, not the whole check — the rule covers any domain concept, so still read the diff for domain-specific ones the vocabulary does not know. The patterns exclude files matching the test naming conventions, so every hit is production code. Dismiss hits at genuine system boundaries where a primitive is correct: serialisation shapes (DTOs, wire contracts, database rows), framework-required signatures, and the constructor of the value object itself, which must accept the primitive it wraps.
 
@@ -93,7 +95,7 @@ NOTE for agent: the pattern only recognises a fixed vocabulary of domain names (
 **Finding action template**: Declare `{variable}` as `{const/val/final/readonly}` — it is only assigned once
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 4 language(s). Patterns: `scripts/checks/solid.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 5 language(s). Patterns: `scripts/checks/solid.tsv`.
 No scripted detection for:
 - python: skip — Python has no const keyword
 - csharp: non-scriptable — C# has no readonly locals; `const` requires compile-time constants. Agent must check the diff for mutable local variables that are reassigned, which is the actual violation. Dismiss `var` declarations whose value is immediately used and never reassigned.
@@ -110,7 +112,7 @@ NOTE for agent: only flag if the variable is assigned exactly once in its scope.
 **Finding action template**: Remove global mutable `{name}` — scope it locally or pass it explicitly as a parameter
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/solid.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/solid.tsv`.
 
 NOTE for agent: Dismiss only true constants (primitive values, frozen objects, immutable types). Do NOT dismiss `const`/`val`/`readonly` bindings to mutable containers like `Map`, `Set`, `Array`, `List`, `Dictionary`, `WeakMap` — these are global mutable state regardless of the binding's immutability. Examples that SHOULD be flagged: `export const cache = new Map()`, `val registry = mutableMapOf<String, User>()`, `static readonly List<Foo> items = new()`. Dismiss in test files. Also flag singleton patterns that hold mutable state (e.g. a class with a private static `_instance` field and a public `get_instance()` method holding mutable data) — these are not detectable by the scriptable pattern above, which targets direct variable declarations. Apply this judgment to the diff. Dismiss Python module-level names matching UPPER_CASE_CONVENTION — these are module constants, not mutable state; the Python pattern already excludes them, along with the `logger = logging.getLogger(...)` idiom and `Annotated`/`TypeVar`/`NewType` aliases, and in exchange it now flags any other module-level binding, not just list/dict/set literals. Swift and Kotlin add the in-type equivalent of a module global: `static var` (Swift) and `@JvmStatic var` (Kotlin). A Kotlin `companion object { var … }` spans lines and is still invisible to the pattern — judge it from the diff.
 
@@ -123,7 +125,7 @@ NOTE for agent: Dismiss only true constants (primitive values, frozen objects, i
 **Finding action template**: Remove `new {ConcreteClass}()` from `{methodName}` — inject it via constructor
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/solid.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/solid.tsv`.
 No scripted detection for:
 - kotlin: non-scriptable — pattern too broad; judge from diff
 
@@ -146,7 +148,7 @@ NOTE for agent: dismiss instantiations in factory methods, builders, infrastruct
 **Finding action template**: Remove logging from `{ClassName}` — move to application or infrastructure layer
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/solid.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/solid.tsv`.
 
 NOTE for agent: only flag if the class is in a domain/entity/aggregate/business-logic package. Dismiss logging in controllers, services, repositories, or infrastructure.
 
@@ -177,7 +179,7 @@ The rows now apply that layer test to the file list before matching: a file reac
 **Finding action template**: Replace type-dispatch in `{functionName}` on `{typeField}` with polymorphism — strategy, visitor, or factory
 
 **Detection**:
-Scripted (hits arrive in `$PRECOMPUTED`): 6 language(s). Patterns: `scripts/checks/solid.tsv`.
+Scripted (hits arrive in `$PRECOMPUTED`): 7 language(s). Patterns: `scripts/checks/solid.tsv`.
 No scripted detection for:
 - kotlin: non-scriptable — `\bis\s+[A-Z]\w+` matches all type-check expressions including prose in comments and legitimate single-expression guards; agent must check the diff for `when` blocks or `if/else` chains that dispatch on type identity across multiple branches
 

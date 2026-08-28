@@ -7,7 +7,8 @@
 # Output: fields are separated by US (\u001f), never by tab — an empty field
 #         between two tabs is swallowed by the shell's `read`.
 #         last     -> "<start_epoch>US<end_epoch>US<model>US<effort>US<est-line>"
-#         segments -> one "<HH:MM:SS>US<prompt head>US<est-line>" per request
+#         segments -> one "<HH:MM:SS>US<duration_secs>US<prompt head>US<est-line>"
+#                     per request
 #         total    -> one "<est-line>" for the whole stream
 #         merge    -> same accumulation as total, used when several transcripts
 #                     are concatenated: the id dedupe then also collapses an
@@ -66,14 +67,26 @@ def is_injected:
   (.message.content | type) == "string"
   and (.message.content | startswith("<task-notification>"));
 
-# A request starts at a prompt the user actually sent. Tool results, slash
-# commands and other meta entries are user entries too, and must not split.
-# "sdk" is how headless runs (claude -p, the SDK, cron) mark their prompts.
-def is_start:
+# Slash/skill invocations carry promptSource null and the command tags as
+# content (either tag may come first) — they are real request starts too,
+# unlike the isMeta command-expansion entries that follow them.
+def is_command_start:
   .type == "user"
-  and ((.promptSource // "") | . == "typed" or . == "queued" or . == "sdk")
   and (.isMeta != true)
-  and (is_injected | not);
+  and ((.message.content | type) == "string")
+  and (.message.content | startswith("<command-name>") or startswith("<command-message>"));
+
+# A request starts at a prompt the user actually sent. Tool results and other
+# meta entries are user entries too, and must not split. "sdk" is how headless
+# runs (claude -p, the SDK, cron) mark their prompts; "suggestion_accepted" is
+# a prompt suggestion the user accepted.
+def is_start:
+  ( .type == "user"
+    and ((.promptSource // "")
+         | . == "typed" or . == "queued" or . == "sdk" or . == "suggestion_accepted")
+    and (.isMeta != true)
+    and (is_injected | not) )
+  or is_command_start;
 
 def is_usage:
   .type == "assistant"
@@ -87,7 +100,8 @@ def head_text:
     | if type == "string" then .
       elif type == "array" then (map(select(.type == "text") | .text) | join(" "))
       else "" end )
-  | gsub("[\r\n\t]"; " ") | .[0:60] | sub(" +$"; "");
+  | gsub("<[^>]*>"; " ") | gsub("[\r\n\t]"; " ") | gsub(" +"; " ")
+  | sub("^ +"; "") | .[0:60] | sub(" +$"; "");
 
 # cache_creation splits the write into 5m/1h buckets; older entries only carry
 # the flat cache_creation_input_tokens, which was always a 5m write.
@@ -117,7 +131,7 @@ def render:
   | "est. used token: input: \($in), output: \($out), cache_create: \($cc), cache_read: \($cr), total_tokens: \($in + $out + $cc + $cr), price: \(money($cents)), model: \(if $models == "" then "-" else $models end), effort: \(if $efforts == "" then "-" else $efforts end)";
 
 def blank_seg:
-  { started: false, start: null, end: null, head: "",
+  { started: false, cmd: false, start: null, end: null, head: "",
     seen: {}, buckets: {}, efforts: {}, lm: "", le: "" };
 
 ($mode == "last" or $mode == "segments") as $split
@@ -128,11 +142,18 @@ def blank_seg:
          then .segs += [.cur]
               | .cur = ( blank_seg
                          | .started = true
+                         | .cmd = ($e | is_command_start)
                          | .start = ($e.timestamp | ts_epoch)
                          | .head = ($e | head_text) )
          else . end)
+      # end tracks assistant entries only: a request's working time runs from
+      # the prompt to the last answer, so a local command or meta entry typed
+      # afterwards must not stretch it.
       | ($e.timestamp | ts_epoch) as $ts
-      | (if $ts == null then . else (.cur.start //= $ts) | .cur.end = $ts end)
+      | (if $ts == null then .
+         else (.cur.start //= $ts)
+              | (if $e.type == "assistant" then .cur.end = $ts else . end)
+         end)
       | (if ($e | is_usage | not) then .
          else
            ($e.message.id // $e.requestId // ("#" + (.n | tostring))) as $k
@@ -155,12 +176,18 @@ def blank_seg:
          end)
     )
 | .segs += [.cur]
+# Zero-usage command segments (/clear, /model) are not requests and are
+# skipped; a zero-usage TYPED prompt (no answer yet) still counts as one.
 | if $mode == "segments" then
     ( .segs[]
-      | select(.started)
-      | ((.start // 0) | strflocaltime("%H:%M:%S")) + US + .head + US + render )
+      | select(.started and ((.cmd | not) or ((.seen | length) > 0)))
+      | ((.start // 0) | strflocaltime("%H:%M:%S")) + US
+        + (if .start != null and .end != null then ((.end - .start) | tostring) else "0" end) + US
+        + .head + US + render )
   elif $mode == "last" then
-    ( ((.segs | map(select(.started)) | last) // .segs[0]) as $s
+    ( ( (.segs | map(select(.started and ((.seen | length) > 0))) | last)
+        // (.segs | map(select(.started)) | last)
+        // .segs[0] ) as $s
       | (($s.start // 0) | tostring) + US
         + (($s.end // 0) | tostring) + US
         + $s.lm + US + $s.le + US + ($s | render) )

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Golden test for the shared usage/price engine (scripts/prompt_log_usage.jq)
-# and the aggregator CLI (scripts/prompt_log_usage.sh), over a synthetic
+# Golden test for the shared usage/price engine (skills/session-log/scripts/prompt_log_usage.jq)
+# and the aggregator CLI (skills/session-log/scripts/prompt_log_usage.sh), over a synthetic
 # session tree: one main transcript + four sub-agent transcripts (cascaded
 # spawnDepth 0/1/2 plus one under workflows/**).
 #
 # Every expected number below is hand-computed from the price table in
-# scripts/prompt_log_prices.json using
+# skills/session-log/scripts/prompt_log_prices.json using
 #   cents = (in*r_in + out*r_out + cache_read*r_in/10
 #            + cache_5m*r_in*1.25 + cache_1h*r_in*2) / 10000
 # (r_* are $/MTok, so tokens*rate = dollars*1e6 = cents*1e4).
@@ -14,7 +14,7 @@
 set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SCRIPTS="$REPO/scripts"
+SCRIPTS="$REPO/skills/session-log/scripts"
 ENGINE="$SCRIPTS/prompt_log_usage.jq"
 PRICES="$SCRIPTS/prompt_log_prices.json"
 AGG="$SCRIPTS/prompt_log_usage.sh"
@@ -185,6 +185,12 @@ assert_eq "mode=last est-line" "$LAST_LINE" "$l_line"
 # One record per typed/queued prompt — meta and tool_result users excluded.
 assert_eq "mode=segments emits one record per prompt" "6" "$(engine segments "$MAIN" | wc -l | tr -d ' ')"
 
+# Field 2 is the request duration in seconds: prompt -> last ASSISTANT entry.
+# req1 runs 10:00:00 -> 10:00:11 (msg_b); the trailing meta /model entry at
+# 10:00:50 is a user entry and must not stretch the request.
+assert_eq "segments emit the request duration in seconds" "11" \
+  "$(engine segments "$MAIN" | sed -n '1p' | cut -d"$(printf '\037')" -f2)"
+
 # TOTAL over every file = merge; must equal the arithmetic sum of the parts:
 #   595 + 2 + 39 + 40 + 18 = 694 cents = $6.94
 #   in  222000+10000+50000+20000+30000 = 332000
@@ -236,9 +242,9 @@ H2='est. used token: input: 5000, output: 1000, cache_create: 0, cache_read: 0, 
 assert_eq "sdk prompts segment the session" "2" \
   "$(engine segments "$HEADLESS" | wc -l | tr -d ' ')"
 assert_eq "the injected task-notification does not open a request" "$H1" \
-  "$(engine segments "$HEADLESS" | sed -n '1p' | cut -d"$(printf '\037')" -f3)"
+  "$(engine segments "$HEADLESS" | sed -n '1p' | cut -d"$(printf '\037')" -f4)"
 assert_eq "second sdk request is totaled on its own" "$H2" \
-  "$(engine segments "$HEADLESS" | sed -n '2p' | cut -d"$(printf '\037')" -f3)"
+  "$(engine segments "$HEADLESS" | sed -n '2p' | cut -d"$(printf '\037')" -f4)"
 # The Stop hook uses mode=last: it must report the LAST request, not the running
 # session total ($0.07) — the defect seen in headless session 6c4e5d92.
 assert_eq "mode=last on a headless transcript reports one request, not the total" "$H2" \
@@ -247,33 +253,93 @@ assert_eq "headless file total still counts every entry" \
   'est. used token: input: 35000, output: 7000, cache_create: 0, cache_read: 0, total_tokens: 42000, price: $0.07, model: claude-haiku-4-5, effort: unknown' \
   "$(engine total "$HEADLESS")"
 
+# ------------------------------------------------- slash-command sessions ----
+# Slash/skill invocations land as user entries with promptSource null and the
+# command tags as content (both tag orders occur in real transcripts). They are
+# real requests. Zero-usage local commands (/clear, /model) must not surface as
+# requests, and mode=last must skip them; suggestion_accepted prompts (accepted
+# prompt suggestions) are requests too.
+#   cmd request: haiku 20000*1 + 4000*5 = 40000 -> $0.04, tokens 24000
+CMDS="$WORKROOT/commands.jsonl"
+{
+  usr '2026-08-28T10:00:00.000Z' '"typed"' 'false' '"plain first"'
+  hasst '2026-08-28T10:00:10.000Z' msg_c1 10000 2000
+  usr '2026-08-28T10:00:20.000Z' 'null' 'false' '"<command-message>iterative-review is running</command-message>\n<command-name>/claude-goodies:iterative-review</command-name>"'
+  hasst '2026-08-28T10:00:40.000Z' msg_c2 20000 4000
+  usr '2026-08-28T10:00:50.000Z' 'null' 'false' '"<command-name>/clear</command-name>\n<command-message>clear</command-message>"'
+} > "$CMDS"
+
+assert_eq "command prompts open segments; a zero-usage /clear does not surface" "2" \
+  "$(engine segments "$CMDS" | wc -l | tr -d ' ')"
+assert_match "command segment head is tag-stripped" \
+  '^iterative-review is running /claude-goodies:' \
+  "$(engine segments "$CMDS" | sed -n '2p' | cut -d"$(printf '\037')" -f3)"
+CMD_LAST='est. used token: input: 20000, output: 4000, cache_create: 0, cache_read: 0, total_tokens: 24000, price: $0.04, model: claude-haiku-4-5, effort: unknown'
+assert_eq "mode=last skips a trailing zero-usage command segment" "$CMD_LAST" \
+  "$(engine last "$CMDS" | cut -d"$(printf '\037')" -f5)"
+# 2026-08-28T10:00:20Z = 1787911220: the command prompt, not the session start.
+assert_eq "mode=last anchors at the command prompt, not the session start" "1787911220" \
+  "$(engine last "$CMDS" | cut -d"$(printf '\037')" -f1)"
+
+SUGG="$WORKROOT/sugg.jsonl"
+{
+  usr '2026-08-28T10:00:00.000Z' '"suggestion_accepted"' 'false' '"accepted suggestion"'
+  hasst '2026-08-28T10:00:05.000Z' msg_g1 1000 200
+} > "$SUGG"
+assert_eq "suggestion_accepted opens a segment" "1" \
+  "$(engine segments "$SUGG" | wc -l | tr -d ' ')"
+
+# A request's working time ends at the last assistant output — a local command
+# typed later (meta entry) belongs to the gap between requests, not to the work.
+META_END="$WORKROOT/meta_end.jsonl"
+{
+  usr '2026-08-28T10:00:00.000Z' '"typed"' 'false' '"prompt"'
+  hasst '2026-08-28T10:00:11.000Z' msg_m1 1000 200
+  usr '2026-08-28T10:00:50.000Z' 'null' 'true' '"<command-name>/model</command-name>"'
+} > "$META_END"
+assert_eq "a trailing meta command does not extend the request duration" "11" \
+  "$(engine segments "$META_END" | sed -n '1p' | cut -d"$(printf '\037')" -f2)"
+
 # ---------------------------------------------------------------- aggregator --
+# Without a .helpers state file no helpers line may appear.
+HOME="$WORKROOT" bash "$AGG" "$MAIN" > "$WORKROOT/no_helpers.txt" 2>&1
+if grep -q '^internal helpers:' "$WORKROOT/no_helpers.txt"; then
+  fail "aggregator prints a helpers line without a .helpers file"
+fi
+
+# Two finished internal helpers: 125000+61000 ms = 186 s = 00:03:06, 3+1 calls.
+mkdir -p "$WORKROOT/.claude/session-maps"
+printf '125000 3\n61000 1\n' > "$WORKROOT/.claude/session-maps/$SID.helpers"
+
 cat > "$WORKROOT/expected.txt" <<'EOF'
 session: <sid>.jsonl
 
-1. 10:00:00 "first prompt with newline"
+1. 10:00:00 (working time 00:00:11) "first prompt with newline"
 est. used token: input: 110000, output: 55000, cache_create: 20000, cache_read: 300000, total_tokens: 485000, price: $1.32, model: claude-sonnet-4-6, effort: high
-2. 10:01:00 "second prompt (queued)"
+2. 10:01:00 (working time 00:00:21) "second prompt (queued)"
 est. used token: input: 2000, output: 1000, cache_create: 150000, cache_read: 0, total_tokens: 153000, price: $2.32, model: claude-fable-5, effort: max
-3. 10:02:00 "third prompt interrupted with a very long text that must be"
+3. 10:02:00 (working time 00:00:30) "third prompt interrupted with a very long text that must be"
 est. used token: input: 20000, output: 10000, cache_create: 0, cache_read: 0, total_tokens: 30000, price: $0.21, model: claude-sonnet-5, effort: low
-4. 10:03:00 "fourth prompt fast"
+4. 10:03:00 (working time 00:00:20) "fourth prompt fast"
 est. used token: input: 80000, output: 40000, cache_create: 0, cache_read: 0, total_tokens: 120000, price: $2.10, model: claude-opus-5+claude-opus-5:fast, effort: high
-5. 10:04:00 "fifth prompt no answer"
+5. 10:04:00 (working time 00:00:00) "fifth prompt no answer"
 est. used token: input: 0, output: 0, cache_create: 0, cache_read: 0, total_tokens: 0, price: $0.00, model: -, effort: -
-6. 10:05:00 "sixth prompt unknown model"
+6. 10:05:00 (working time 00:00:40) "sixth prompt unknown model"
 est. used token: input: 10000, output: 5000, cache_create: 30000, cache_read: 0, total_tokens: 45000, price: $0.00, model: claude-test-9?, effort: high
 
-sub-agent: general-purpose (agent-a1), jsonl: <sid>/subagents/agent-a1.jsonl
+sub-agent: general-purpose (agent-a1), working time: 00:00:01, jsonl: <sid>/subagents/agent-a1.jsonl
 est. used token: input: 10000, output: 2000, cache_create: 0, cache_read: 0, total_tokens: 12000, price: $0.02, model: claude-haiku-4-5, effort: high
-sub-agent: Explore (agent-a2), jsonl: <sid>/subagents/agent-a2.jsonl
+sub-agent: Explore (agent-a2), working time: 00:00:00, jsonl: <sid>/subagents/agent-a2.jsonl
 est. used token: input: 50000, output: 10000, cache_create: 16000, cache_read: 100000, total_tokens: 176000, price: $0.39, model: claude-sonnet-4-6, effort: high
-sub-agent: general-purpose (agent-a3), jsonl: <sid>/subagents/agent-a3.jsonl
+sub-agent: general-purpose (agent-a3), working time: 00:00:00, jsonl: <sid>/subagents/agent-a3.jsonl
 est. used token: input: 20000, output: 4000, cache_create: 10000, cache_read: 200000, total_tokens: 234000, price: $0.40, model: claude-opus-5, effort: max
-sub-agent: workflow-step (agent-w1), jsonl: <sid>/subagents/workflows/wf_x/agent-w1.jsonl
+sub-agent: workflow-step (agent-w1), working time: 00:00:00, jsonl: <sid>/subagents/workflows/wf_x/agent-w1.jsonl
 est. used token: input: 30000, output: 6000, cache_create: 0, cache_read: 0, total_tokens: 36000, price: $0.18, model: claude-sonnet-5, effort: high
 
+internal helpers: 2 finished, cumulative run time 00:03:06, 4 tool calls (not added to TOTAL; token usage not recorded client-side)
+
 TOTAL (6 requests, 4 sub-agents)
+working time: 00:02:02
 est. used token: input: 332000, output: 133000, cache_create: 226000, cache_read: 600000, total_tokens: 1291000, price: $6.94, model: claude-fable-5+claude-haiku-4-5+claude-opus-5+claude-opus-5:fast+claude-sonnet-4-6+claude-sonnet-5+claude-test-9?, effort: high+low+max
 EOF
 

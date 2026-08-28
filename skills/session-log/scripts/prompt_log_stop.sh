@@ -70,5 +70,6 @@ fi
 } >> "$session_file"
 
 if [ -n "$model" ]; then printf '%s %s\n' "$model" "$effort" > "$last_file"; fi
-# Emptied rather than deleted, so the next Stop cannot reuse a stale start.
-if [ -f "$pstart_file" ]; then : > "$pstart_file"; fi
+# .pstart is kept: continuation Stops of the same request (background-task
+# notifications restart the turn) must still time from the prompt; the next
+# real prompt overwrites it (prompt_log_save.sh).

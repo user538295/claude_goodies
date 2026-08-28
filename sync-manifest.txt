@@ -30,20 +30,11 @@ commands/implement-all.md
 commands/implement-all-safe.md
 commands/implement-next.md
 commands/iterative-review.md
-commands/session-log.md
 
 # --- scripts ---
 scripts/plan-progress.sh
 scripts/progress-header-flat.template
 scripts/progress-header-phased.template
-scripts/prompt_log_lib.sh
-scripts/prompt_log_new_session.sh
-scripts/prompt_log_prices.json
-scripts/prompt_log_save.sh
-scripts/prompt_log_stop.sh
-scripts/prompt_log_subagent.sh
-scripts/prompt_log_usage.jq
-scripts/prompt_log_usage.sh
 scripts/task_section.awk
 
 # --- skills (each shipped skill ships its whole directory) ---
@@ -61,6 +52,7 @@ skills/options/
 skills/plain-language/
 skills/plan-maker/
 skills/quick-plan/
+skills/session-log/
 skills/skill-packager/
 skills/status_report/
 skills/wrap-up/

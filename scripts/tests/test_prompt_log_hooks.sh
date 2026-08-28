@@ -7,7 +7,7 @@
 set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SCRIPTS="$REPO/scripts"
+SCRIPTS="$REPO/skills/session-log/scripts"
 FAIL=0
 
 export TZ=UTC
@@ -112,7 +112,8 @@ assert_grep "save.sh still logs a real prompt that starts with '<'" \
 sid1="bbbbbbbb-0000-0000-0000-000000000001"
 log1="$(mk_log "$sid1")"
 # 13262s = 3h41m02s -> 03:41:02 (the clock may tick once mid-run, hence 0[0-9]).
-printf '%s\n' "$(( $(date +%s) - 13262 ))" > "$HOME/.claude/session-maps/$sid1.pstart"
+pstart1="$(( $(date +%s) - 13262 ))"
+printf '%s\n' "$pstart1" > "$HOME/.claude/session-maps/$sid1.pstart"
 printf '%s\n' "claude-sonnet-4-6 high" > "$HOME/.claude/session-maps/$sid1.last"
 stop_payload "$sid1" "$TRANSCRIPT" | bash "$SCRIPTS/prompt_log_stop.sh" > "$WORKROOT/stop.out" 2>/dev/null
 rc=$?
@@ -126,11 +127,15 @@ assert_grep "stop.sh writes the est-line" "^$EST\$" "$log1"
 assert_grep "stop.sh writes the switch line" \
   '^switched: model claude-sonnet-4-6 → claude-fable-5, effort high → max$' "$log1"
 assert_grep "stop.sh closes the block" '^---$' "$log1"
-# Consumed by emptying, not deleting: these scripts never call rm.
-assert_eq "stop.sh consumes <sid>.pstart" "0" \
-  "$(wc -c < "$HOME/.claude/session-maps/$sid1.pstart" | tr -d ' ')"
+# .pstart is kept: continuation Stops of the same request (background-task
+# notifications restart the turn) must still time from the original prompt.
+assert_eq "stop.sh keeps <sid>.pstart" "$pstart1" \
+  "$(cat "$HOME/.claude/session-maps/$sid1.pstart")"
 assert_eq "stop.sh rewrites <sid>.last" "claude-fable-5 max" \
   "$(cat "$HOME/.claude/session-maps/$sid1.last")"
+stop_payload "$sid1" "$TRANSCRIPT" | bash "$SCRIPTS/prompt_log_stop.sh" >/dev/null 2>&1
+assert_eq "a continuation stop still times from the prompt" "2" \
+  "$(grep -Ec '^working time: 03:41:0[0-9]$' "$log1")"
 
 # Unchanged model+effort -> no switch line.
 sid2="bbbbbbbb-0000-0000-0000-000000000002"
@@ -191,11 +196,13 @@ assert_eq "stop.sh exits 0 on garbage input" "0" "$rc"
 assert_eq "stop.sh stays silent on garbage input" "" "$(cat "$WORKROOT/garbage.out")"
 
 # ---------------------------------------------- prompt_log_subagent.sh -------
+# A real sub-agent transcript (the canonical fixture: 10:00:00 -> 10:00:20)
+# yields an enriched line: working time + est inline, jsonl path at the end.
 sid8="cccccccc-0000-0000-0000-000000000001"
 log8="$(mk_log "$sid8")"
 parent_dir="$WORKROOT/projects/-proj"
 mkdir -p "$parent_dir/$sid8/subagents"
-printf '{}\n' > "$parent_dir/$sid8/subagents/agent-9f3c2a1b.jsonl"
+cp "$TRANSCRIPT" "$parent_dir/$sid8/subagents/agent-9f3c2a1b.jsonl"
 sub_payload() { # sid agent_id agent_type
   printf '{"session_id":"%s","transcript_path":"%s","agent_id":"%s","agent_type":"%s"}\n' \
     "$1" "$parent_dir/$1.jsonl" "$2" "$3"
@@ -204,13 +211,61 @@ sub_payload "$sid8" "9f3c2a1b" "general-purpose" | bash "$SCRIPTS/prompt_log_sub
 rc=$?
 assert_eq "subagent.sh exits 0" "0" "$rc"
 assert_eq "subagent.sh writes nothing to stdout" "" "$(cat "$WORKROOT/sa.out")"
-assert_grep "subagent.sh logs the finish line with the jsonl path" \
-  "^[0-9]{2}:[0-9]{2}:[0-9]{2} sub-agent finished: general-purpose \(agent-9f3c2a1b\), jsonl: $parent_dir/$sid8/subagents/agent-9f3c2a1b\.jsonl\$" "$log8"
+assert_grep "subagent.sh logs an enriched finish line" \
+  "^[0-9]{2}:[0-9]{2}:[0-9]{2} sub-agent finished: general-purpose \(agent-9f3c2a1b\), working time: 00:00:20, $EST, jsonl: $parent_dir/$sid8/subagents/agent-9f3c2a1b\.jsonl\$" "$log8"
 
+# Empty agent_type but a real transcript: the type comes from the meta.json.
+sid8b="cccccccc-0000-0000-0000-000000000003"
+log8b="$(mk_log "$sid8b")"
+mkdir -p "$parent_dir/$sid8b/subagents"
+cp "$TRANSCRIPT" "$parent_dir/$sid8b/subagents/agent-11aa22bb.jsonl"
+printf '{"agentType":"claude-goodies:devils-advocate","description":"d"}\n' \
+  > "$parent_dir/$sid8b/subagents/agent-11aa22bb.meta.json"
+sub_payload "$sid8b" "11aa22bb" "" | bash "$SCRIPTS/prompt_log_subagent.sh" >/dev/null 2>&1
+assert_grep "subagent.sh resolves an empty agent_type from meta.json" \
+  'sub-agent finished: claude-goodies:devils-advocate \(agent-11aa22bb\), working time: 00:00:20, ' "$log8b"
+
+# A transcript with no usage entries: fall back to the short line.
+sid8c="cccccccc-0000-0000-0000-000000000005"
+log8c="$(mk_log "$sid8c")"
+mkdir -p "$parent_dir/$sid8c/subagents"
+printf '{}\n' > "$parent_dir/$sid8c/subagents/agent-beadbead.jsonl"
+sub_payload "$sid8c" "beadbead" "general-purpose" | bash "$SCRIPTS/prompt_log_subagent.sh" >/dev/null 2>&1
+assert_grep "subagent.sh falls back to the short line when the jsonl has no usage" \
+  "^[0-9]{2}:[0-9]{2}:[0-9]{2} sub-agent finished: general-purpose \(agent-beadbead\), jsonl: $parent_dir/$sid8c/subagents/agent-beadbead\.jsonl\$" "$log8c"
+
+# A TYPED agent whose jsonl is missing is a real anomaly: keep the marker —
+# and it is not an internal helper, so it must not touch the .helpers counter.
 sid9="cccccccc-0000-0000-0000-000000000002"
 log9="$(mk_log "$sid9")"
 sub_payload "$sid9" "deadbeef" "Explore" | bash "$SCRIPTS/prompt_log_subagent.sh" >/dev/null 2>&1
-assert_grep "subagent.sh marks a missing jsonl" ' \(not found\)$' "$log9"
+assert_grep "subagent.sh marks a missing jsonl for a typed agent" ' \(not found\)$' "$log9"
+if [ -e "$HOME/.claude/session-maps/$sid9.helpers" ]; then
+  fail "a typed agent with a missing jsonl must not be counted as a helper"
+fi
+
+# Internal helper agents (empty agent_type, no transcript anywhere) fire
+# SubagentStop too — dozens per long turn. They must not be logged, but their
+# activity is counted: one "<duration_ms> <tool_calls>" line per finish in
+# <sid>.helpers, defensively zeroed when the payload lacks the fields.
+sid10="cccccccc-0000-0000-0000-000000000004"
+log10="$(mk_log "$sid10")"
+printf '{"session_id":"%s","transcript_path":"%s","agent_id":"a7df9489b","agent_type":"","duration_ms":125000,"tool_calls_count":3}\n' \
+  "$sid10" "$parent_dir/$sid10.jsonl" \
+  | bash "$SCRIPTS/prompt_log_subagent.sh" > "$WORKROOT/sa_phantom.out" 2>/dev/null
+rc=$?
+assert_eq "subagent.sh exits 0 for a phantom helper agent" "0" "$rc"
+assert_eq "subagent.sh stays silent for a phantom helper agent" "" "$(cat "$WORKROOT/sa_phantom.out")"
+assert_eq "subagent.sh skips a phantom helper (no type, no jsonl)" "0" \
+  "$(wc -c < "$log10" | tr -d ' ')"
+assert_eq "subagent.sh records the helper's duration and tool calls" "125000 3" \
+  "$(cat "$HOME/.claude/session-maps/$sid10.helpers")"
+# Same helper shape without the optional payload fields -> zeros, appended.
+sub_payload "$sid10" "a7df9489c" "" | bash "$SCRIPTS/prompt_log_subagent.sh" >/dev/null 2>&1
+assert_eq "subagent.sh zero-fills a helper payload without the fields" "125000 3
+0 0" "$(cat "$HOME/.claude/session-maps/$sid10.helpers")"
+assert_eq "subagent.sh still writes nothing to the log for helpers" "0" \
+  "$(wc -c < "$log10" | tr -d ' ')"
 
 printf 'not json at all\n' | bash "$SCRIPTS/prompt_log_subagent.sh" > "$WORKROOT/sa_garbage.out" 2>/dev/null
 rc=$?

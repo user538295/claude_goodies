@@ -40,7 +40,7 @@
       </ul>
       <p><strong>Groups</strong> (case-insensitive, omit to run all 7):</p>
       <ul>
-        <li><code>clarity</code> (17 checks) · <code>smells</code> (23) · <code>solid</code> (15) · <code>arch</code> (12) · <code>tests</code> (13) · <code>safety</code> (21) · <code>ddd</code> (9)</li>
+        <li><code>clarity</code> (17 checks) · <code>smells</code> (25) · <code>solid</code> (15) · <code>arch</code> (15) · <code>tests</code> (13) · <code>safety</code> (32) · <code>ddd</code> (9)</li>
       </ul>
       <p>A token that matches a group name is always treated as a group, never as a file or ref — e.g. <code>/clean-code-review tests</code> selects the <code>tests</code> group, not a directory named <code>tests</code>.</p>
       <p><strong>Language gate:</strong> if no supported language file is detected in the target, the review aborts before spawning any agent: <em>"No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java. Unanalysed: {contents of unanalysed.txt}."</em></p>
@@ -91,7 +91,7 @@
 
 **2 findings · 1 Critical · 1 Major · 0 Moderate · 0 Minor** (post-deduplication)
 **Target:** ref: main..HEAD
-**Groups run:** safety · 21 checks declared
+**Groups run:** safety · 32 checks declared
 **Languages detected:** python
 
 ---

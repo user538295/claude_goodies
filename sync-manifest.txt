@@ -38,7 +38,12 @@ scripts/progress-header-flat.template
 scripts/progress-header-phased.template
 scripts/prompt_log_lib.sh
 scripts/prompt_log_new_session.sh
+scripts/prompt_log_prices.json
 scripts/prompt_log_save.sh
+scripts/prompt_log_stop.sh
+scripts/prompt_log_subagent.sh
+scripts/prompt_log_usage.jq
+scripts/prompt_log_usage.sh
 scripts/task_section.awk
 
 # --- skills (each shipped skill ships its whole directory) ---

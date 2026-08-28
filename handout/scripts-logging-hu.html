@@ -6,7 +6,7 @@
   <title>scripts-logging — Claude Code segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh -->
+  <!-- Source: scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh scripts/prompt_log_stop.sh scripts/prompt_log_subagent.sh scripts/prompt_log_usage.sh scripts/prompt_log_usage.jq scripts/prompt_log_prices.json -->
 </head>
 <body>
   <div class="card-page">
@@ -18,35 +18,40 @@
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p>Három shell szkript (<code>prompt_log_lib.sh</code>, <code>prompt_log_new_session.sh</code>, <code>prompt_log_save.sh</code>), amelyek automatikusan rögzítenek minden, a Claude Code-nak elküldött promptot projektenkénti Markdown naplófájlokba, sessionönként rendezve.</p>
+      <p>Hat shell szkript (<code>prompt_log_lib.sh</code>, <code>prompt_log_new_session.sh</code>, <code>prompt_log_save.sh</code>, <code>prompt_log_stop.sh</code>, <code>prompt_log_subagent.sh</code>, <code>prompt_log_usage.sh</code>), egy közös jq motor (<code>prompt_log_usage.jq</code>) és egy statikus ártáblázat (<code>prompt_log_prices.json</code>), amelyek automatikusan rögzítenek minden, a Claude Code-nak elküldött promptot — az asszisztens válaszával, a kérésre fordított idővel, a becsült token/ár sorral, a modell- és effort-váltásokkal, valamint minden befejeződött alügynökről egy sorral együtt — projektenkénti Markdown naplófájlokba, sessionönként rendezve. Az aggregátor kérésre összesíti a teljes sessiont, az alügynökök transcriptjeivel együtt.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>Mikor használd</h2>
-      <p>A naplózás engedélyezéséhez futtasd a <code>/session-log on</code> parancsot. Ez automatikusan beírja a szükséges hook bejegyzéseket a <code>~/.claude/settings.json</code> fájlba.</p>
+      <p>A naplózás engedélyezéséhez futtasd a <code>/session-log on</code> parancsot. Ez csak létrehozza a <code>~/.claude/prompt-logs/.enabled</code> sentinel fájlt — magukat a hookokat a plugin szállítja (lásd lentebb a <em>Hook bekötés</em> részt), így a <code>~/.claude/settings.json</code> fájlba semmi nem íródik.</p>
       <ul>
         <li><code>prompt_log_new_session.sh</code> — a <strong>SessionStart</strong> hook hívja hideg indításkor (nem érvényes resume, /clear, vagy /compact esetén)</li>
         <li><code>prompt_log_save.sh</code> — a <strong>UserPromptSubmit</strong> hook hívja minden alkalommal, amikor promptot küldesz</li>
-        <li><code>prompt_log_lib.sh</code> — belső, megosztott függvénykönyvtár; a fenti két szkript source-olja, közvetlenül soha nem hívod</li>
+        <li><code>prompt_log_stop.sh</code> — a <strong>Stop</strong> hook hívja, amikor az asszisztens befejezi a választ; hozzáfűzi a választ, a ráfordított időt és a becsült token/ár sort</li>
+        <li><code>prompt_log_subagent.sh</code> — a <strong>SubagentStop</strong> hook hívja minden alkalommal, amikor egy alügynök befejeződik; egy sort fűz hozzá az alügynök nevével és a transcriptjének útvonalával</li>
+        <li><code>prompt_log_lib.sh</code> — belső, megosztott függvénykönyvtár; a fenti szkriptek source-olják, közvetlenül soha nem hívod</li>
+        <li><code>prompt_log_usage.sh</code> — az önálló aggregátor; nem hook hívja, hanem te futtatod, ha összesíteni akarsz egy sessiont</li>
+        <li><code>prompt_log_usage.jq</code> — a közös token/ár motor, amelyet a <code>prompt_log_stop.sh</code> és az aggregátor egyaránt használ, így a kérésenkénti sorok és az összesítés soha nem mondhat ellent egymásnak</li>
+        <li><code>prompt_log_prices.json</code> — a statikus, MTok-onkénti ártáblázat, amelyet a motor olvas; verziókövetett fájl, így az árazás determinisztikus és offline is működik</li>
       </ul>
-      <p>Kézzel csak akkor indítsd őket, ha a logging beállítást debugolod, vagy ha olyan szkriptet írsz, amelynek programozottan kell létrehoznia vagy bővítenie egy session naplófájlt.</p>
-      <p><strong>Függőség:</strong> A <code>jq</code>-nak telepítve kell lennie és elérhetőnek kell lennie a <code>PATH</code>-ban. Ha a <code>jq</code> hiányzik, mindkét logging szkript csendesen kilép, hiba nélkül.</p>
+      <p>A hook szkripteket kézzel csak akkor indítsd, ha a logging beállítást debugolod, vagy ha olyan szkriptet írsz, amelynek programozottan kell létrehoznia vagy bővítenie egy session naplófájlt.</p>
+      <p><strong>Függőség:</strong> A <code>jq</code>-nak telepítve kell lennie és elérhetőnek kell lennie a <code>PATH</code>-ban. Ha a <code>jq</code> hiányzik, a logging szkriptek csendesen kilépnek, hiba nélkül.</p>
     </section>
 
     <section data-section="2b-configuration">
       <h2>Konfiguráció</h2>
       <h3>Naplózás be- és kikapcsolása</h3>
-      <p>A naplózást egy sentinel fájl vezérli: <code>~/.claude/prompt-logs/.enabled</code>. A <code>/session-log on</code> létrehozza, a <code>/session-log off</code> eltávolítja, a <code>/session-log status</code> pedig kiírja az aktuális állapotot. Ha a sentinel nincs meg, mindkét hook csendben kilép, így a hookok bekötve maradhatnak, és a beállítás túléli a plugin-frissítéseket.</p>
+      <p>A naplózást egy sentinel fájl vezérli: <code>~/.claude/prompt-logs/.enabled</code>. A <code>/session-log on</code> létrehozza, a <code>/session-log off</code> eltávolítja, a <code>/session-log status</code> pedig kiírja az aktuális állapotot, bekapcsolt naplózás esetén pedig az aggregátor összesítését is az aktuális sessionre. Ha a sentinel nincs meg, minden hook csendben kilép, így a hookok bekötve maradhatnak, és a beállítás túléli a plugin-frissítéseket.</p>
       <h3>Hook bekötés</h3>
-      <p>A hookok automatikusan bekötődnek a plugin <code>hooks/hooks.json</code> fájljából, amelyet a Claude Code magától megtalál — nem kell sem <code>settings.json</code>-t szerkeszteni, sem <code>hooks</code> mezőt felvenni a <code>plugin.json</code>-ba. Minden bejegyzés védelmezően oldja fel a szkript útvonalát:</p>
-      <pre><code>s='${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh'; s="${s//\\//}"; [ -f "$s" ] &amp;&amp; exec bash "$s"; exit 0</code></pre>
-      <p>Ezt az egysorost három windowsos Claude Code hiba alakította így; mindhármat <em>not planned</em> vagy <em>duplicate</em> címkével zárták upstream:</p>
+      <p>A hookok automatikusan bekötődnek a plugin <code>hooks/hooks.json</code> fájljából — nem kell <code>settings.json</code>-t szerkeszteni, és a plugin manifest sem deklarálhat saját <code>hooks</code> kulcsot: a Claude Code 2.1.231-en ez duplikált bekötésként hibára fut, és a plugin összes hookját kiregisztrálja. Mind a négy bejegyzés (<strong>SessionStart</strong>, <strong>UserPromptSubmit</strong>, <strong>Stop</strong>, <strong>SubagentStop</strong>) védelmezően oldja fel a szkript útvonalát:</p>
+      <pre><code>s="${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh"; s="${s//\\//}"; [ -f "$s" ] &amp;&amp; exec bash "$s"; exit 0</code></pre>
+      <p>Az egysorost az alakítja, ahogyan a Claude Code átadja a plugin gyökerét a hooknak, plusz két windowsos hiba, amelyeket <em>not planned</em> vagy <em>duplicate</em> címkével zártak upstream:</p>
       <ul>
-        <li><strong>Aposztrófok a placeholder körül.</strong> A Claude Code textuálisan helyettesíti be a <code>${CLAUDE_PLUGIN_ROOT}</code> értéket, így Windowson egy visszaperjeles útvonal kerül a command sztringbe. Az aposztrófok megakadályozzák, hogy a shell escape-ként megegye ezeket a visszaperjeleket (<a href="https://github.com/anthropics/claude-code/issues/22449">#22449</a>).</li>
+        <li><strong>Idézőjelek a placeholder körül.</strong> A Claude Code 2.1.231 már nem helyettesíti be textuálisan a <code>${CLAUDE_PLUGIN_ROOT}</code> értéket a command szövegébe — környezeti változóként exportálja, a behelyettesítést a shellre bízza. Az aposztrófok blokkolnák ezt a behelyettesítést, így az <code>$s</code> a nyers placeholder maradna, a <code>[ -f "$s" ]</code> ellenőrzés soha nem találna semmit, és a hook 0-val kilépne anélkül, hogy bármit csinálna; pontosan így haltak el csendben a logging hookok. Az idézőjelek Windowson is biztonságosak, mert a behelyettesített változó értékét a shell már nem vizsgálja újra escape-ekre — a régi, textuális behelyettesítésnél viszont igen, ezért volt korábban szükség aposztrófokra (<a href="https://github.com/anthropics/claude-code/issues/22449">#22449</a>).</li>
         <li><strong>Visszaperjel–perjel normalizálás.</strong> A Git Bash a <code>C:/Users/…</code> formát feloldja, a <code>C:\Users\…</code>-t nem, ezért az útvonalat átírjuk használat előtt.</li>
         <li><strong>Shell forma, nem exec forma.</strong> Az exec forma a <code>bash</code>-t a windowsos <code>PATH</code>-ról indítaná, ahol a Git for Windows alapértelmezett telepítése kihagyja a <code>Git\bin</code>-t (<a href="https://github.com/anthropics/claude-code/issues/22700">#22700</a>), a <code>C:\Windows\System32\bash.exe</code> WSL-stub pedig elsőbbséget kap és az egész TUI-t megfagyasztja (<a href="https://github.com/anthropics/claude-code/issues/37634">#37634</a>). Shell formában maradva a <code>bash</code> a Git Bash saját <code>PATH</code>-ján oldódik fel.</li>
       </ul>
-      <p>A <code>[ -f "$s" ]</code> ellenőrzés a becsületes tartalék: ahol a platform javíthatatlanul elrontja az útvonalat, a hook csendben 0-val kilép, így a naplózás ott egyszerűen nem elérhető, nem pedig minden promptnál hibasávot ír ki. Fontos: a <code>${CLAUDE_PLUGIN_ROOT}</code> pontosan így szerepeljen — a Claude Code ezt a konkrét tokent keresi, ezért a <code>$CLAUDE_PLUGIN_ROOT</code> vagy a <code>${CLAUDE_PLUGIN_ROOT:-…}</code> változatot soha nem helyettesíti be.</p>
+      <p>A <code>[ -f "$s" ]</code> ellenőrzés a becsületes tartalék: ahol a platform javíthatatlanul elrontja az útvonalat, a hook csendben 0-val kilép, így a naplózás ott egyszerűen nem elérhető, nem pedig minden promptnál hibasávot ír ki. A placeholdert pontosan <code>${CLAUDE_PLUGIN_ROOT}</code> alakban írd: ez mindkét működésmódot túléli — a régebbi Claude Code ezt a konkrét tokent cseréli le, mielőtt a shell egyáltalán látná, a 2.1.231 pedig a környezetből oldja fel —, míg a <code>$CLAUDE_PLUGIN_ROOT</code> vagy a <code>${CLAUDE_PLUGIN_ROOT:-…}</code> változat csak az újabbal működik.</p>
     </section>
 
     <section data-section="3-invocation">
@@ -59,11 +64,29 @@
       <h3><code>prompt_log_save.sh</code> — Prompt hozzáfűző</h3>
       <p>A <strong>UserPromptSubmit</strong> hook automatikusan hívja. JSON payloadot olvas a stdin-ről.</p>
       <pre><code>echo '{"session_id":"abc123","prompt":"your prompt text","cwd":"/path/to/project"}' | bash prompt_log_save.sh</code></pre>
-      <p>A prompt szövegét egy <code>HH:MM:SS</code> időbélyeges címsorral fűzi hozzá a session naplófájlhoz. Ha még nincs session map, belsőleg meghívja a <code>create_session_file</code> függvényt (elegáns késői inicializálás).</p>
+      <p>A prompt szövegét egy <code>HH:MM:SS</code> időbélyeges címsorral fűzi hozzá a session naplófájlhoz. Ha még nincs session map, belsőleg meghívja a <code>create_session_file</code> függvényt (elegáns késői inicializálás). Emellett a kérés kezdetének idejét (epoch másodpercben) beírja a <code>~/.claude/session-maps/&lt;session_id&gt;.pstart</code> fájlba, amelyből a Stop hook kiszámolja a ráfordított időt.</p>
+
+      <h3><code>prompt_log_stop.sh</code> — Válasz- és mérésrögzítő</h3>
+      <p>A <strong>Stop</strong> hook automatikusan hívja, amikor az asszisztens befejezi a választ. JSON payloadot olvas a stdin-ről.</p>
+      <pre><code>echo '{"session_id":"abc123","transcript_path":"/Users/alice/.claude/projects/Users-alice-projects-my-app/abc123.jsonl","last_assistant_message":"Kész.","effort":{"level":"high"}}' | bash prompt_log_stop.sh</code></pre>
+      <p>Egy <code>### HH:MM:SS response</code> címsort fűz hozzá az asszisztens utolsó üzenetével szó szerint, majd a <code>working time:</code> és az <code>est. used token:</code> sorokat, továbbá egy <code>switched:</code> sort, ha a modell vagy az effort eltér az előző kéréstől. Egyik hook payload sem tartalmazza a token-felhasználást, ezért a számok a transcriptből jönnek, <code>message.id</code> szerint deduplikálva — egy API-válasz tartalmi blokkonként külön assistant bejegyzést hoz létre, és mindegyik ugyanazt a usage értéket ismétli, így a naiv összeadás többszörösen felülszámolna.</p>
+      <p>Két viselkedés kritikus. A szkript írás nélkül kilép, ha a payloadban szerepel <code>agent_id</code>: az egy alügynök Stopja, nem a sessioné — az alügynököket a <strong>SubagentStop</strong> fedi le. És soha nem ír a stdout-ra, mindig 0-val lép ki: egy Stop hook 2-es kilépési kódja megakadályozná a session leállását, ezért egy naplózási hiba ott soha nem bukkanhat fel. Olvashatatlan transcript esetén a válasz és a ráfordított idő így is naplózódik, csak a usage sor marad ki.</p>
+
+      <h3><code>prompt_log_subagent.sh</code> — Alügynök-sor hozzáfűző</h3>
+      <p>A <strong>SubagentStop</strong> hook automatikusan hívja minden alkalommal, amikor egy alügynök befejeződik. JSON payloadot olvas a stdin-ről.</p>
+      <pre><code>echo '{"session_id":"abc123","transcript_path":"/Users/alice/.claude/projects/Users-alice-projects-my-app/abc123.jsonl","agent_id":"9f3c2a1b","agent_type":"general-purpose"}' | bash prompt_log_subagent.sh</code></pre>
+      <p>Egyetlen sort fűz hozzá: <code>HH:MM:SS sub-agent finished: &lt;agent_type&gt; (agent-&lt;agent_id&gt;), jsonl: &lt;útvonal&gt;</code>. A payload <code>transcript_path</code> mezője a szülő sessionre mutat, ezért az alügynök transcriptje ennek könyvtárából áll elő: <code>&lt;könyvtár&gt;/&lt;session_id&gt;/subagents/agent-&lt;agent_id&gt;.jsonl</code>; ha ez a fájl nincs meg, a sor <code>(not found)</code> jelzéssel zárul, nem pedig a semmibe mutat. A Stop szkripthez hasonlóan néma marad, és mindig 0-val lép ki.</p>
 
       <h3><code>prompt_log_lib.sh</code> — Megosztott függvénykönyvtár (belső)</h3>
-      <p>Közvetlenül nem hívod. A <code>create_session_file(session_id, cwd)</code> függvényt biztosítja. A fenti két szkript tetején source-olva van.</p>
+      <p>Közvetlenül nem hívod. A <code>create_session_file(session_id, cwd)</code> függvényt biztosítja, valamint a <code>fmt_hms</code> (másodperc → <code>HH:MM:SS</code>), a <code>switch_line</code> (a <code>switched:</code> sort állítja elő, vagy semmit, ha sem a modell, sem az effort nem változott) és a <code>resolve_project_key</code> (munkakönyvtár → a <code>~/.claude/projects/</code> alatti slug) tiszta segédfüggvényeket. A fenti szkriptek tetején source-olva van.</p>
       <pre><code>source "$(dirname "${BASH_SOURCE[0]}")/prompt_log_lib.sh"</code></pre>
+
+      <h3><code>prompt_log_usage.sh</code> — Session-aggregátor</h3>
+      <p>Az egyetlen szkript, amelyet magad futtatsz. Elfogad session id-t, transcript útvonalat, vagy a <code>--latest</code> kapcsolót az aktuális projekt legfrissebb transcriptjéhez.</p>
+      <pre><code>bash prompt_log_usage.sh --latest
+bash prompt_log_usage.sh a1b2c3d4e5f6 --check</code></pre>
+      <p>Kérésenként egy számozott sort ír ki (időbélyeg, a prompt eleje, és ugyanaz az <code>est. used token:</code> sor, amely a naplóban is szerepel), majd egy-egy sort minden alügynök-transcriptre, amelyet a <code>&lt;könyvtár&gt;/&lt;session_id&gt;/subagents/</code> alatt talál — rekurzívan keresve, így a workflow-kon belül indított ügynökök is beleszámítanak —, végül a <code>TOTAL (N requests, M sub-agents)</code> sort az összesített értékekkel. Minden transcript pontosan egyszer számít bele, bármilyen mélyen ágyazódnak is egymásba az alügynökök.</p>
+      <p>A <code>--check</code> keresztellenőrzés, nem árforrás: ha a <code>ccusage</code> elérhető a <code>PATH</code>-on, lefuttatja a <code>ccusage session -i &lt;session_id&gt; --json</code> parancsot, és a mi összegünk mellé kiírja az övét, jelezve az eltérést. Az eltérés arra utal, hogy a <code>prompt_log_prices.json</code> frissítésre szorul; az ártáblázat marad az egyetlen igazságforrás, így egy naplósor és egy későbbi összesítés soha nem mondhat ellent egymásnak. Ha a <code>ccusage</code> nincs telepítve, a kapcsoló csak egy kihagyást jelző megjegyzést ír ki.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -103,7 +126,34 @@
 Implement the next uncompleted task in plans/FEAT-001.md
 
 ---</code></pre>
-        <p>Minden további prompt egy új <code>## HH:MM:SS</code> szakaszt fűz ugyanahhoz a fájlhoz, így a session promptjairól teljes, időrendi feljegyzés épül.</p>
+        <p>Minden további prompt egy új <code>## HH:MM:SS</code> szakaszt fűz ugyanahhoz a fájlhoz, így a session promptjairól teljes, időrendi feljegyzés épül. A válasz és a mérések ugyanebbe a szakaszba kerülnek később, amikor az asszisztens befejezi a választ — lásd a 3. példát.</p>
+      </div>
+    </section>
+
+    <section data-section="5b-example-3">
+      <h2>3. példa — Egy teljes kérés-blokk</h2>
+      <div class="example">
+        <p><strong>Trigger:</strong> egy teljes kör — promptot küldesz, közben befejeződik egy háttérben futó alügynök, az asszisztens válaszol, és az előző kör óta modellt és effortot is váltottál.</p>
+        <p><strong>Eredmény a session naplófájlban:</strong></p>
+        <pre><code>## 14:02:11
+
+&lt;prompt&gt;
+
+---
+
+14:03:05 sub-agent finished: general-purpose (agent-9f3c2a1b), jsonl: /Users/…/&lt;sid&gt;/subagents/agent-9f3c2a1b.jsonl
+
+### 14:05:53 response
+
+&lt;last_assistant_message verbatim&gt;
+
+working time: 00:03:42
+est. used token: input: 2000, output: 1000, cache_create: 150000, cache_read: 0, total_tokens: 153000, price: $2.32, model: claude-fable-5, effort: max
+switched: model claude-sonnet-4-6 → claude-fable-5, effort high → max
+
+---</code></pre>
+        <p>Minden sor grepelhetőre van tervezve: a <code>^### .* response$</code>, az <code>^est\. used token:</code>, a <code>^switched:</code> és a <code>sub-agent finished:</code> mind pontosan egyféle sort emel ki. A <code>total_tokens</code> az input + output + cache_create + cache_read összege, a <code>cache_create</code> pedig az 5 perces és az 1 órás cache-írások együtt — külön áron számolva, mert az 1 órás írás az input-ár 2×-ét viszi, az 5 perces pedig 1,25×-ét.</p>
+        <p>Az ár becslés — innen az <code>est.</code> —, a verziókövetett táblázatból számolva; a táblázatból hiányzó modell $0-val számít, és <code>?</code> jelet kap a sor végén. A <code>switched:</code> sor csak akkor jelenik meg, ha a modell vagy az effort tényleg változott, és érdemes figyelni rá: a modellváltás nullázza a prompt cache-t, így a váltás utáni első kérés egy teljes cache-írást fizet meg.</p>
       </div>
     </section>
 

@@ -30,3 +30,6 @@ timestamp=$(date '+%H:%M:%S')
   printf '%s\n' "$prompt"
   printf '\n%s\n\n' '---'
 } >> "$session_file"
+
+# Start of the working time the Stop hook reports; it consumes this file.
+date +%s > "${session_map}.pstart"

@@ -6,7 +6,7 @@
   <title>scripts-logging — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh -->
+  <!-- Source: scripts/prompt_log_lib.sh scripts/prompt_log_new_session.sh scripts/prompt_log_save.sh scripts/prompt_log_stop.sh scripts/prompt_log_subagent.sh scripts/prompt_log_usage.sh scripts/prompt_log_usage.jq scripts/prompt_log_prices.json -->
 </head>
 <body>
   <div class="card-page">
@@ -18,35 +18,40 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p>Three shell scripts (<code>prompt_log_lib.sh</code>, <code>prompt_log_new_session.sh</code>, <code>prompt_log_save.sh</code>) that automatically capture every prompt submitted to Claude Code into per-project Markdown log files, organized by session.</p>
+      <p>Six shell scripts (<code>prompt_log_lib.sh</code>, <code>prompt_log_new_session.sh</code>, <code>prompt_log_save.sh</code>, <code>prompt_log_stop.sh</code>, <code>prompt_log_subagent.sh</code>, <code>prompt_log_usage.sh</code>), a shared jq engine (<code>prompt_log_usage.jq</code>) and a static price table (<code>prompt_log_prices.json</code>) that automatically capture every prompt submitted to Claude Code — together with the assistant's response, the working time, an estimated token/price line, model and effort switches, and one line per finished sub-agent — into per-project Markdown log files, organized by session. The aggregator totals a whole session on demand, sub-agent transcripts included.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>When to use</h2>
-      <p>Use <code>/session-log on</code> to enable logging. This writes the necessary hook entries to <code>~/.claude/settings.json</code> automatically.</p>
+      <p>Use <code>/session-log on</code> to enable logging. That only creates the sentinel file <code>~/.claude/prompt-logs/.enabled</code> — the hooks themselves ship with the plugin (see <em>Hook wiring</em> below), so nothing is written to <code>~/.claude/settings.json</code>.</p>
       <ul>
         <li><code>prompt_log_new_session.sh</code> — called by the <strong>SessionStart</strong> hook on cold startup (not on resume, /clear, or /compact)</li>
         <li><code>prompt_log_save.sh</code> — called by the <strong>UserPromptSubmit</strong> hook each time you submit a prompt</li>
-        <li><code>prompt_log_lib.sh</code> — an internal shared library; sourced by the two scripts above, never invoked directly</li>
+        <li><code>prompt_log_stop.sh</code> — called by the <strong>Stop</strong> hook when the assistant finishes a response; appends the response, the working time and the estimated token/price line</li>
+        <li><code>prompt_log_subagent.sh</code> — called by the <strong>SubagentStop</strong> hook each time a sub-agent finishes; appends one line naming the sub-agent and its transcript</li>
+        <li><code>prompt_log_lib.sh</code> — an internal shared library; sourced by the scripts above, never invoked directly</li>
+        <li><code>prompt_log_usage.sh</code> — the standalone aggregator; no hook calls it, you run it yourself to total a session</li>
+        <li><code>prompt_log_usage.jq</code> — the shared token/price engine, used by both <code>prompt_log_stop.sh</code> and the aggregator so the per-request lines and the totals can never disagree</li>
+        <li><code>prompt_log_prices.json</code> — the static per-MTok price table the engine reads; a checked-in file, so pricing is deterministic and works offline</li>
       </ul>
-      <p>Invoke them manually only when debugging the logging setup or when writing a script that needs to create or append to a session log file programmatically.</p>
-      <p><strong>Dependency:</strong> <code>jq</code> must be installed and on <code>PATH</code>. If <code>jq</code> is absent, both logging scripts exit silently without error.</p>
+      <p>Invoke the hook scripts manually only when debugging the logging setup or when writing a script that needs to create or append to a session log file programmatically.</p>
+      <p><strong>Dependency:</strong> <code>jq</code> must be installed and on <code>PATH</code>. If <code>jq</code> is absent, the logging scripts exit silently without error.</p>
     </section>
 
     <section data-section="2b-configuration">
       <h2>Configuration</h2>
       <h3>Enabling and disabling logging</h3>
-      <p>Logging is gated on a sentinel file, <code>~/.claude/prompt-logs/.enabled</code>. Run <code>/session-log on</code> to create it and <code>/session-log off</code> to remove it; <code>/session-log status</code> reports the current state. Both hooks exit silently when the sentinel is absent, so the hooks stay registered either way and the setting survives plugin updates.</p>
+      <p>Logging is gated on a sentinel file, <code>~/.claude/prompt-logs/.enabled</code>. Run <code>/session-log on</code> to create it and <code>/session-log off</code> to remove it; <code>/session-log status</code> reports the current state and, when logging is on, prints the aggregator's totals for the current session. Every hook exits silently when the sentinel is absent, so the hooks stay registered either way and the setting survives plugin updates.</p>
       <h3>Hook wiring</h3>
-      <p>The hooks are registered automatically from the plugin's <code>hooks/hooks.json</code>, which Claude Code auto-discovers — no <code>settings.json</code> edit and no <code>hooks</code> field in <code>plugin.json</code> are needed. Each entry resolves its script defensively:</p>
-      <pre><code>s='${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh'; s="${s//\\//}"; [ -f "$s" ] &amp;&amp; exec bash "$s"; exit 0</code></pre>
-      <p>That one-liner is shaped by three Claude Code bugs on Windows, all closed upstream as <em>not planned</em> or <em>duplicate</em>:</p>
+      <p>The hooks are registered automatically from the plugin's <code>hooks/hooks.json</code> — no <code>settings.json</code> edit is needed, and the plugin manifest must not declare a <code>hooks</code> key of its own: on Claude Code 2.1.231 that hard-errors as a duplicate registration and unregisters every hook the plugin provides. All four entries (<strong>SessionStart</strong>, <strong>UserPromptSubmit</strong>, <strong>Stop</strong>, <strong>SubagentStop</strong>) resolve their script defensively:</p>
+      <pre><code>s="${CLAUDE_PLUGIN_ROOT}/scripts/prompt_log_new_session.sh"; s="${s//\\//}"; [ -f "$s" ] &amp;&amp; exec bash "$s"; exit 0</code></pre>
+      <p>That one-liner is shaped by how Claude Code hands the plugin root to a hook, plus two Windows bugs closed upstream as <em>not planned</em> or <em>duplicate</em>:</p>
       <ul>
-        <li><strong>Single quotes around the placeholder.</strong> Claude Code substitutes <code>${CLAUDE_PLUGIN_ROOT}</code> textually, so on Windows a backslash path lands in the command string. Single quotes stop the shell from eating those backslashes as escapes (<a href="https://github.com/anthropics/claude-code/issues/22449">#22449</a>).</li>
+        <li><strong>Double quotes around the placeholder.</strong> Claude Code 2.1.231 no longer substitutes <code>${CLAUDE_PLUGIN_ROOT}</code> into the command text — it exports it as an environment variable and leaves the expansion to the shell. Single quotes block that expansion, so <code>$s</code> keeps the literal placeholder, the <code>[ -f "$s" ]</code> guard never matches, and the hook exits 0 without doing anything; that is exactly how the logging hooks went silently dead. Double quotes stay safe on Windows because an expanded variable's value is not re-scanned for escapes — under the older textual substitution it was, which is why the pattern used to need single quotes (<a href="https://github.com/anthropics/claude-code/issues/22449">#22449</a>).</li>
         <li><strong>Backslash-to-slash normalisation.</strong> Git Bash resolves <code>C:/Users/…</code> but not <code>C:\Users\…</code>, so the path is rewritten before use.</li>
         <li><strong>Shell form, not exec form.</strong> Exec form would spawn <code>bash</code> through the Windows <code>PATH</code>, where Git for Windows' default install omits <code>Git\bin</code> (<a href="https://github.com/anthropics/claude-code/issues/22700">#22700</a>) and the WSL stub <code>C:\Windows\System32\bash.exe</code> takes priority and hangs the whole TUI (<a href="https://github.com/anthropics/claude-code/issues/37634">#37634</a>). Staying in shell form means <code>bash</code> resolves inside Git Bash's own <code>PATH</code> instead.</li>
       </ul>
-      <p>The <code>[ -f "$s" ]</code> guard is the honest fallback: where the platform mangles the path beyond repair the hook exits 0 silently, so logging is simply unavailable there rather than printing an error banner on every prompt. Note that <code>${CLAUDE_PLUGIN_ROOT}</code> must appear exactly as written — Claude Code matches that literal token, so variations such as <code>$CLAUDE_PLUGIN_ROOT</code> or <code>${CLAUDE_PLUGIN_ROOT:-…}</code> are never substituted.</p>
+      <p>The <code>[ -f "$s" ]</code> guard is the honest fallback: where the platform mangles the path beyond repair the hook exits 0 silently, so logging is simply unavailable there rather than printing an error banner on every prompt. Write the placeholder exactly as <code>${CLAUDE_PLUGIN_ROOT}</code>: that spelling survives both regimes — older Claude Code replaces the literal token before the shell ever sees it, 2.1.231 expands it from the environment — whereas <code>$CLAUDE_PLUGIN_ROOT</code> or <code>${CLAUDE_PLUGIN_ROOT:-…}</code> only work under the newer one.</p>
     </section>
 
     <section data-section="3-invocation">
@@ -59,11 +64,29 @@
       <h3><code>prompt_log_save.sh</code> — Prompt appender</h3>
       <p>Called automatically by the <strong>UserPromptSubmit</strong> hook. Reads a JSON payload from stdin.</p>
       <pre><code>echo '{"session_id":"abc123","prompt":"your prompt text","cwd":"/path/to/project"}' | bash prompt_log_save.sh</code></pre>
-      <p>Appends the prompt text with a <code>HH:MM:SS</code> timestamp heading to the session log file. If no session map exists yet, calls <code>create_session_file</code> internally (graceful late-init).</p>
+      <p>Appends the prompt text with a <code>HH:MM:SS</code> timestamp heading to the session log file. If no session map exists yet, calls <code>create_session_file</code> internally (graceful late-init). It also stamps the request's start time (epoch seconds) into <code>~/.claude/session-maps/&lt;session_id&gt;.pstart</code>, which the Stop hook reads to compute the working time.</p>
+
+      <h3><code>prompt_log_stop.sh</code> — Response and measurement appender</h3>
+      <p>Called automatically by the <strong>Stop</strong> hook when the assistant finishes a response. Reads a JSON payload from stdin.</p>
+      <pre><code>echo '{"session_id":"abc123","transcript_path":"/Users/alice/.claude/projects/Users-alice-projects-my-app/abc123.jsonl","last_assistant_message":"Done.","effort":{"level":"high"}}' | bash prompt_log_stop.sh</code></pre>
+      <p>Appends a <code>### HH:MM:SS response</code> heading with the assistant's final message verbatim, then the <code>working time:</code> and <code>est. used token:</code> lines, plus a <code>switched:</code> line when the model or effort differs from the previous request. No hook payload carries token usage, so the numbers are read from the transcript and deduped by <code>message.id</code> — one API response yields one assistant entry per content block, each repeating the same usage, so a naive sum would overcount several times over.</p>
+      <p>Two behaviours are load-bearing. The script exits without writing when the payload carries an <code>agent_id</code>, because that is a sub-agent's Stop, not the session's — sub-agents are covered by <strong>SubagentStop</strong> instead. And it never writes to stdout and always exits 0: exit code 2 from a Stop hook blocks the session from stopping, so a logging failure must never surface there. An unreadable transcript still logs the response and the working time; only the usage line is skipped.</p>
+
+      <h3><code>prompt_log_subagent.sh</code> — Sub-agent line appender</h3>
+      <p>Called automatically by the <strong>SubagentStop</strong> hook each time a sub-agent finishes. Reads a JSON payload from stdin.</p>
+      <pre><code>echo '{"session_id":"abc123","transcript_path":"/Users/alice/.claude/projects/Users-alice-projects-my-app/abc123.jsonl","agent_id":"9f3c2a1b","agent_type":"general-purpose"}' | bash prompt_log_subagent.sh</code></pre>
+      <p>Appends one line: <code>HH:MM:SS sub-agent finished: &lt;agent_type&gt; (agent-&lt;agent_id&gt;), jsonl: &lt;path&gt;</code>. The payload's <code>transcript_path</code> is the parent session's, so the sub-agent transcript is derived from its directory as <code>&lt;dir&gt;/&lt;session_id&gt;/subagents/agent-&lt;agent_id&gt;.jsonl</code>; when that file is not there the line ends with <code>(not found)</code> rather than pointing at nothing. Like the Stop script it stays silent and always exits 0.</p>
 
       <h3><code>prompt_log_lib.sh</code> — Shared library (internal)</h3>
-      <p>Not invoked directly. Provides the <code>create_session_file(session_id, cwd)</code> function. Sourced at the top of both scripts above.</p>
+      <p>Not invoked directly. Provides the <code>create_session_file(session_id, cwd)</code> function plus the pure helpers <code>fmt_hms</code> (seconds → <code>HH:MM:SS</code>), <code>switch_line</code> (renders the <code>switched:</code> line, or nothing when neither model nor effort changed) and <code>resolve_project_key</code> (working directory → the <code>~/.claude/projects/</code> slug). Sourced at the top of the scripts above.</p>
       <pre><code>source "$(dirname "${BASH_SOURCE[0]}")/prompt_log_lib.sh"</code></pre>
+
+      <h3><code>prompt_log_usage.sh</code> — Session aggregator</h3>
+      <p>The one script you run yourself. Takes a session id, a transcript path, or <code>--latest</code> for the newest transcript of the current project.</p>
+      <pre><code>bash prompt_log_usage.sh --latest
+bash prompt_log_usage.sh a1b2c3d4e5f6 --check</code></pre>
+      <p>Prints one numbered line per request (timestamp, the head of the prompt, and the same <code>est. used token:</code> line the log carries), then one line per sub-agent transcript found under <code>&lt;dir&gt;/&lt;session_id&gt;/subagents/</code> — searched recursively, so agents spawned inside workflows are counted too — and finally <code>TOTAL (N requests, M sub-agents)</code> with the merged figures. Every transcript is counted exactly once regardless of how deeply the sub-agents nest.</p>
+      <p><code>--check</code> is a cross-check, not a price source: when <code>ccusage</code> is on <code>PATH</code> it runs <code>ccusage session -i &lt;session_id&gt; --json</code> and prints that total beside ours, flagging any drift. Drift is the signal that <code>prompt_log_prices.json</code> needs updating; the table stays the single source of truth so a log line and a later total can never disagree. With <code>ccusage</code> absent the flag prints a skip note.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -103,7 +126,34 @@
 Implement the next uncompleted task in plans/FEAT-001.md
 
 ---</code></pre>
-        <p>Each subsequent prompt appends a new <code>## HH:MM:SS</code> section to the same file, building a full chronological record of the session's prompts.</p>
+        <p>Each subsequent prompt appends a new <code>## HH:MM:SS</code> section to the same file, building a full chronological record of the session's prompts. The response and the measurements land in that same section later, when the assistant stops — see Example 3.</p>
+      </div>
+    </section>
+
+    <section data-section="5b-example-3">
+      <h2>Example 3 — A complete request block</h2>
+      <div class="example">
+        <p><strong>Trigger:</strong> one full turn — you submit a prompt, a background sub-agent finishes, the assistant answers, and you had switched model and effort since the previous turn.</p>
+        <p><strong>Result in the session log file:</strong></p>
+        <pre><code>## 14:02:11
+
+&lt;prompt&gt;
+
+---
+
+14:03:05 sub-agent finished: general-purpose (agent-9f3c2a1b), jsonl: /Users/…/&lt;sid&gt;/subagents/agent-9f3c2a1b.jsonl
+
+### 14:05:53 response
+
+&lt;last_assistant_message verbatim&gt;
+
+working time: 00:03:42
+est. used token: input: 2000, output: 1000, cache_create: 150000, cache_read: 0, total_tokens: 153000, price: $2.32, model: claude-fable-5, effort: max
+switched: model claude-sonnet-4-6 → claude-fable-5, effort high → max
+
+---</code></pre>
+        <p>Everything is written to be grep-able: <code>^### .* response$</code>, <code>^est\. used token:</code>, <code>^switched:</code> and <code>sub-agent finished:</code> each pick out exactly one kind of line. <code>total_tokens</code> is input + output + cache_create + cache_read, and <code>cache_create</code> is the 5-minute and 1-hour cache writes added together — priced separately, since a 1-hour write costs 2× the input rate against 1.25× for a 5-minute one.</p>
+        <p>The price is an estimate — hence <code>est.</code> — computed from the checked-in table; a model missing from it contributes $0 and gets a <code>?</code> suffix. The <code>switched:</code> line appears only when the model or the effort actually changed, and it is worth reading: switching models resets the prompt cache, so the request right after a switch pays for a full cache write.</p>
       </div>
     </section>
 

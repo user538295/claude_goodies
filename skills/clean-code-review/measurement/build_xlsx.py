@@ -25,7 +25,8 @@ from openpyxl.styles import Font, PatternFill
 HERE = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(HERE, "results")
 MATCH_TOLERANCE_LINES = 3
-PROJECTS = ["archon-search", "moonset", "financialwell", "dddd", "udemy-top-down-shooter"]
+PROJECTS = ["archon-search", "moonset", "financialwell", "dddd", "udemy-top-down-shooter",
+            "extrafood-cpp"]
 
 
 def read_tsv(name):
@@ -229,10 +230,10 @@ def main():
     ws = wb.create_sheet("Method")
     for row in [
         ["model", "sonnet (adjudication + LLM-only agents)"],
-        ["run date", "2026-08-27 (full fresh rerun #2, live scripts)"],
-        ["execution", "collect.sh sweep upfront (all 46 files); then a workflow spawned one sonnet agent per file for BOTH phases (45 adjudicate + 46 LLM-only), max 5 concurrent, each agent writing its TSV directly -> assemble in files.tsv order -> rebuild xlsx. Run crossed a 9:20pm session-limit reset and resumed from cache; every hit adjudicated exactly once."],
+        ["run date", "2026-08-28 (C++ increment on top of the 08-27 run #2 46-file baseline)"],
+        ["execution", "The 46 non-C++ files reuse run #2's data verbatim (recovered losslessly from 2026-08-27-20-38-report.xlsx). The C++ commit added only cpp-language check rows + the cpp token — no all-row touching the 46 files changed — so those hits are unchanged under the live scripts. Only the 8 new extrafood-cpp files were scored this run: collect.sh sweep upfront (64 hits, 0 cap warnings); then one sonnet agent per file for BOTH phases (8 adjudicate + 8 LLM-only, separate agents so LLM-only never sees the hits), max 5 concurrent, each agent writing its own part TSV -> assembled in files.tsv order -> rebuild xlsx."],
         ["adjudication sample", "all hits, every file (no per-check cap)"],
-        ["LLM-only granularity", "one agent per file (46 agents), hits withheld — not packet-chunked"],
+        ["LLM-only granularity", "one agent per file (54 total: 46 reused from run #2 + 8 new C++), hits withheld"],
         ["aggregates", "Excel formulas over data_hits/data_adj/data_llm; results cached at build time so the file displays without a recalc"],
         ["precision", "TP / adjudicated script hits (formula)"],
         ["script coverage %", "overlap / LLM-only found (recall proxy, formula)"],

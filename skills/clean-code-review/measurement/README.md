@@ -7,7 +7,7 @@ There is no ground truth on real projects, so "true/false positive" verdicts com
 ## Contents
 
 - `report.xlsx` — **the deliverable.** Raw rows live in the `data_hits` / `data_adj` / `data_llm` sheets; every aggregate on the Summary and per-project sheets is an Excel formula (COUNTIFS/SUM/IF) over them, so the workbook is auditable and recomputes if you edit the data sheets.
-- `files.tsv` — the frozen 46-file corpus (5 projects, 4 languages). Selection rule is documented in its header. **Never re-randomize**; results are only comparable on the same file set.
+- `files.tsv` — the frozen corpus: 46 files (5 projects, 4 languages) from 2026-08-24, plus 8 `extrafood-cpp` files (C++) added 2026-08-28 → 54 files, 6 projects, 5 languages. Selection rule is documented in its header. **Never re-randomize**; results are only comparable on the same file set.
 - `PLAN.md` — the measurement design and the execution mode actually used.
 - `build_xlsx.py` — regenerates `report.xlsx` from `results/*.tsv`. Idempotent; run after any data change: `python3 build_xlsx.py`.
 - `ingest_hits.py` — parses one `collect.sh` `hits.txt` into `results/hits.tsv` and prints the adjudication sample.
@@ -41,16 +41,49 @@ Prerequisites: `python3` with `openpyxl`; the five projects checked out at the p
 
 Record the model and any rule changes in the Method sheet (edit the rows in `build_xlsx.py`) — scores across runs are only comparable with the same model, file set, and rules. Do not "fix" anything in the five target projects to improve scores.
 
-## C++ corpus registered (2026-08-28, not yet scored)
+## C++ scored (2026-08-28, sonnet agents)
+
+The 8 `extrafood-cpp` files registered below were scored, adding C++ as the 6th
+project in `report.xlsx`. **Only the new C++ rows were run** — the 46 non-C++ files
+reuse run #2's data verbatim. This is sound: the C++ commit (`32e8452`) added only
+`cpp`-language check rows plus the `cpp` language token; no `all`-row that fires on
+the 46 files changed, so their hits are identical under the live scripts. The run #2
+data was recovered losslessly from `2026-08-27-20-38-report.xlsx` (rebuild reproduces
+its 1,718 / 1,718 / 695 exactly) and the C++ increment appended on top. `extrafood-cpp`
+was added to `PROJECTS` in `build_xlsx.py`; `results/*.tsv` and `report.xlsx` regenerated.
+
+**C++ headline:** 64 hits, all 64 adjudicated, 51 TP / 13 FP → precision **79.7%**.
+49 LLM-only findings; script coverage (recall proxy, ±3 lines) **65%** (32/49);
+quality rate (TP / LLM-only) **1.04**. 17 of 60 scriptable checks fired on the C++
+corpus. Highest-precision (≥3 adjudicated): solid-08 (100%, 11/11), smells-02
+(100%, 9/9), safety-11 (100%, 4/4), clarity-09/smells-06 (100%, 3/3), tests-01
+(88%, 7/8), smells-03 (75%, 3/4), safety-13 (57%, 4/7).
+
+**C++ noise generators (0 TP):** ddd-01 (0/3 — flags C++ *interfaces* `I…Properties`
+as value objects) and solid-10 (0/3 — flags factory methods / Win32 GUI-resource
+construction as injectable-dependency violations). Small samples (n=3 each); treat as
+leads for C++ pattern tuning, not proof.
+
+**Corpus-wide with C++ (54 files):** 1,782 hits, all adjudicated, precision **74.7%**,
+coverage **69%**, quality rate **1.79** — essentially unchanged from run #2's 46-file
+74.6% / 70% / 1.84, since the C++ increment is small and comparably precise.
+
+Method: sonnet, one agent per file for both phases (separate agents so the LLM-only
+pass never sees the hits), max 5 concurrent, ±3-line matching — same as run #2, so
+the C++ numbers are comparable. Model, existing file set, and matching tolerance
+unchanged.
+
+Note (skill-side, out of scope for this run): `smells-01`'s `all`-row extension
+filter still excludes `.cpp/.h`, so file-length never fires on C++ via that row — but
+no C++ file in this corpus exceeds 1,000 lines (largest is 487), so it does not affect
+these numbers.
+
+### C++ corpus registration (2026-08-28)
 
 An `extrafood-cpp` project was appended to `files.tsv` (8 production files from
 `/Users/manczg/Documents/development/extrafood/cpp`, selected by the documented
 top-5 + p25/p50/p75 rule; that project has no unit-test files, so the test stratum
-is empty). These rows are **registered but not yet adjudicated** — no C++ numbers
-appear in `report.xlsx` yet. To score them, run the "How to re-run" steps above over
-the new rows (or the whole corpus) and regenerate the workbook. Until then, C++
-precision/recall is measured only by `../benchmark/` (planted violations) and the
-deterministic `../tests/` suites.
+is empty).
 
 ## Baseline (2026-08-24, sonnet agents)
 

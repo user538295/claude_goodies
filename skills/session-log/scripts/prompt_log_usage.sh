@@ -99,19 +99,15 @@ if [ "${#subagents[@]}" -gt 0 ]; then
   done
 fi
 
-# Internal helper agents (SubagentStop with no transcript) leave no token
-# record client-side; the hook counts their activity in <sid>.helpers. They
-# run in parallel inside the requests' wall time, so nothing here joins TOTAL.
+# Internal helper agents (SubagentStop with no transcript) leave no client-side
+# record: SubagentStop carries no tokens, run time, or tool-call count for them,
+# so the hook can only note that each one finished (one line per helper in
+# <sid>.helpers). Only the count is reportable, and it never joins TOTAL.
 helpers_file="$_CLAUDE_SESSION_MAP_DIR/${session_id}.helpers"
 if [ -s "$helpers_file" ]; then
-  h_n=0; h_ms=0; h_tc=0
-  while read -r ms tc _; do
-    case "$ms" in ''|*[!0-9]*) ms=0 ;; esac
-    case "$tc" in ''|*[!0-9]*) tc=0 ;; esac
-    h_n=$((h_n + 1)); h_ms=$((h_ms + ms)); h_tc=$((h_tc + tc))
-  done < "$helpers_file"
-  printf '\ninternal helpers: %d finished, cumulative run time %s, %d tool calls (not added to TOTAL; token usage not recorded client-side)\n' \
-    "$h_n" "$(fmt_hms $((h_ms / 1000)))" "$h_tc"
+  h_n=$(grep -c . "$helpers_file" || true)
+  printf '\ninternal helpers: %d finished (run time, tool calls, and token usage not recorded client-side; not added to TOTAL)\n' \
+    "$h_n"
 fi
 
 printf '\nTOTAL (%d requests, %d sub-agents)\n' "$requests" "${#subagents[@]}"

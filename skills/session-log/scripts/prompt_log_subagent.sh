@@ -28,14 +28,11 @@ jsonl="$(dirname "$transcript")/${session_id}/subagents/agent-${agent_id}.jsonl"
 
 if [ ! -f "$jsonl" ]; then
   if [ -z "$agent_type" ]; then
-    # No transcript and no type: an internal helper agent. Its tokens are not
-    # recorded client-side, so only its activity is counted — one
-    # "<duration_ms> <tool_calls>" line the aggregator sums. No log line.
-    duration_ms=$(printf '%s' "$input" | jq -r '.duration_ms // empty')
-    tool_calls=$(printf '%s' "$input" | jq -r '.tool_calls_count // empty')
-    case "$duration_ms" in ''|*[!0-9]*) duration_ms=0 ;; esac
-    case "$tool_calls" in ''|*[!0-9]*) tool_calls=0 ;; esac
-    printf '%s %s\n' "$duration_ms" "$tool_calls" >> "${session_map}.helpers"
+    # No transcript and no type: an internal helper agent. SubagentStop delivers
+    # neither tokens, run time, nor tool-call count for it, so only its
+    # occurrence is knowable — append one line per helper for the aggregator to
+    # count. No log line.
+    printf 'helper\n' >> "${session_map}.helpers"
     exit 0
   fi
   # A typed agent without a transcript is a real anomaly: keep the marker.

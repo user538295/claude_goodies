@@ -43,7 +43,7 @@
         <li><code>clarity</code> (17 checks) · <code>smells</code> (25) · <code>solid</code> (15) · <code>arch</code> (15) · <code>tests</code> (13) · <code>safety</code> (32) · <code>ddd</code> (9)</li>
       </ul>
       <p>A token that matches a group name is always treated as a group, never as a file or ref — e.g. <code>/clean-code-review tests</code> selects the <code>tests</code> group, not a directory named <code>tests</code>.</p>
-      <p><strong>Language gate:</strong> if no supported language file is detected in the target, the review aborts before spawning any agent: <em>"No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java. Unanalysed: {contents of unanalysed.txt}."</em></p>
+      <p><strong>Language gate:</strong> if no supported language file is detected in the target, the review aborts before spawning any agent: <em>"No supported language files detected. Supported: TypeScript, JavaScript, C#, Python, Swift, Kotlin, Java, C++. Unanalysed: {contents of unanalysed.txt}."</em></p>
       <p><strong>Severity levels:</strong> Critical (blocks correctness, security, or safety) · Major (significant design flaw, missing requirement, or likely bug) · Moderate (suboptimal but workable) · Minor (style, naming, or nitpick)</p>
     </section>
 

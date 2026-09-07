@@ -275,7 +275,7 @@ grep -Ev "$TEST_FILE_RE" "$OUT/files.txt" > "$OUT/files_prod.txt" || : > "$OUT/f
 # finding per file downstream (see the tests-01 dedup below), and unlike the
 # five checks here it still needs added-line filtering to avoid flagging
 # pre-existing symbols in a touched file that this diff didn't add.
-FILTER_EXEMPT=" clarity-16 clarity-17 smells-01 smells-20 tests-13 "
+FILTER_EXEMPT=" clarity-16 clarity-17 smells-01 smells-20 smells-26 smells-27 tests-13 "
 
 # Checks whose NOTE in groups/*.md instructs the agent to dismiss hits in test
 # files — `var`/public fields are normal in fixtures and `sut` declarations, and

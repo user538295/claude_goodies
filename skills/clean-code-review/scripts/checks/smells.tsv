@@ -74,3 +74,19 @@ smells-23	java	grep -E '\.java$' | mgrep '\.printStackTrace\s*\(\s*\)'
 smells-23	kotlin	grep -E '\.kts?$' | mgrep '\.printStackTrace\s*\(\s*\)'
 smells-23	csharp	grep -E '\.cs$' | mgrep 'Debugger\.Break\s*\(\s*\)|Debugger\.Launch\s*\('
 smells-23	cpp	grep -E '\.(cpp|cc|cxx|c\+\+|hpp|hh|hxx|h|c)$' | mgrep '\b__debugbreak\s*\(\s*\)|\bDebugBreak\s*\(\s*\)|\braise\s*\(\s*SIGTRAP\s*\)'
+smells-26	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mfunc '^\s*(?:export\s+)?(?:default\s+)?(?:declare\s+)?(?:abstract\s+)?class\s+\w+' 200
+smells-26	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mfunc '^\s*(?:export\s+)?(?:default\s+)?class\s+\w+' 200
+smells-26	python	grep -E '\.py$' | mfunc '^\s*class\s+\w+' 200
+smells-26	csharp	grep -E '\.cs$' | mfunc '^\s*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|new)\s+)*class\s+\w+' 200
+smells-26	java	grep -E '\.java$' | mfunc '^\s*(?:(?:public|private|protected|static|final|abstract|sealed)\s+)*class\s+\w+' 200
+smells-26	kotlin	grep -E '\.kts?$' | mfunc '^\s*(?:(?:public|private|protected|internal|open|abstract|final|sealed|data|inner|value|enum)\s+)*class\s+\w+' 200
+smells-26	swift	grep -E '\.swift$' | mfunc '^\s*(?:(?:public|private|internal|fileprivate|open|final)\s+)*(?:class|actor)\s+\w+' 200
+smells-26	cpp	grep -E '\.(cpp|cc|cxx|c\+\+|hpp|hh|hxx|h|c)$' | mfunc '^\s*(?:template\s*<[^>]*>\s*)?(?:class|struct)\s+\w+' 200
+smells-27	typescript	grep -E '\.(ts|tsx|mts|cts)$' | mtopclass '^\s*(?:export\s+)?(?:default\s+)?(?:declare\s+)?(?:abstract\s+)?class\s+\w+' 15
+smells-27	javascript	grep -E '\.(js|jsx|mjs|cjs)$' | mtopclass '^\s*(?:export\s+)?(?:default\s+)?class\s+\w+' 15
+smells-27	python	grep -E '\.py$' | mtopclass '^\s*class\s+\w+' 15
+smells-27	csharp	grep -E '\.cs$' | mtopclass '^\s*(?:(?:public|private|protected|internal|static|sealed|abstract|partial|new)\s+)*class\s+\w+' 15
+smells-27	java	grep -E '\.java$' | mtopclass '^\s*(?:(?:public|private|protected|static|final|abstract|sealed)\s+)*class\s+\w+' 15
+smells-27	kotlin	grep -E '\.kts?$' | mtopclass '^\s*(?:(?:public|private|protected|internal|open|abstract|final|sealed|data|value)\s+)*class\s+\w+' 15
+smells-27	swift	grep -E '\.swift$' | mtopclass '^\s*(?:(?:public|private|internal|fileprivate|open|final)\s+)*(?:class|actor)\s+\w+' 15
+smells-27	cpp	grep -E '\.(cpp|cc|cxx|c\+\+|hpp|hh|hxx|h|c)$' | mtopclass '^\s*(?:template\s*<[^>]*>\s*)?class\s+\w+' 15

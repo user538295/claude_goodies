@@ -1,5 +1,5 @@
 ---
-description: Structured clean code review — 126 checks across 7 groups (clarity, smells, solid, arch, tests, safety, ddd). Flexible targets — local changes (default), staged/unstaged/untracked, a git ref/range, or explicit files (works without git). Runs scripted detections, spawns one agent per group, synthesizes findings.
+description: Structured clean code review — 128 checks across 7 groups (clarity, smells, solid, arch, tests, safety, ddd). Flexible targets — local changes (default), staged/unstaged/untracked, a git ref/range, or explicit files (works without git). Runs scripted detections, spawns one agent per group, synthesizes findings.
 ---
 
 # /clean-code-review
@@ -15,7 +15,7 @@ description: Structured clean code review — 126 checks across 7 groups (clarit
 
 **Groups** (case-insensitive): `clarity` · `smells` · `solid` · `arch` · `tests` · `safety` · `ddd`. Omit to run all 7.
 
-Expected check counts: clarity=17, smells=25, solid=15, arch=15, tests=13, safety=32, ddd=9 (126 total).
+Expected check counts: clarity=17, smells=27, solid=15, arch=15, tests=13, safety=32, ddd=9 (128 total).
 
 ## Severity
 - **Critical**: blocks correctness, security, or safety
@@ -134,4 +134,4 @@ Present the synthesizer output directly, **exactly once** — do not repeat, re-
   - `tests/test_collect.sh` — target resolution, filtering, caps, numbered diff
   - `tests/test_checks.sh` — every detection command executes cleanly
   - `tests/test_corpus.sh` — pattern semantics: per check+language, `tests/corpus.tsv` defines code that MUST match and near-misses that must NOT. When adding or changing a detection pattern, add its MATCH/NOMATCH rows to `corpus.tsv`.
-- **Recall benchmark** (manual eval, not CI): `benchmark/` contains deliberately flawed Python, TypeScript, C#, Swift, and C++ files with 119 catalogued violations (`benchmark/planted.tsv`) plus precision traps. The catalogue exercises 88 of the 126 checks; the C++ fixture added safety-16/17/19, but most of the checks added later (the rest of safety-08 through safety-32, smells-20 through smells-25, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) still have no planted violations, so a benchmark run cannot measure their recall. The eleven judgment checks arch-15, safety-25/26/27/28/29/30/31/32, and smells-24/25 are non-scriptable, so `tests/corpus.tsv` does not cover them either — they ship unmeasured until the fixtures catch up. Run the skill on those files and score against the catalog after changing agent prompts or models — see `benchmark/README.md`. Never "fix" the benchmark files.
+- **Recall benchmark** (manual eval, not CI): `benchmark/` contains deliberately flawed Python, TypeScript, C#, Swift, and C++ files with 119 catalogued violations (`benchmark/planted.tsv`) plus precision traps. The catalogue exercises 88 of the 128 checks; the C++ fixture added safety-16/17/19, but most of the checks added later (the rest of safety-08 through safety-32, smells-20 through smells-27, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) still have no planted violations, so a benchmark run cannot measure their recall. The eleven judgment checks arch-15, safety-25/26/27/28/29/30/31/32, and smells-24/25 are non-scriptable, so `tests/corpus.tsv` does not cover them either — they ship unmeasured until the fixtures catch up. Run the skill on those files and score against the catalog after changing agent prompts or models — see `benchmark/README.md`. Never "fix" the benchmark files.

@@ -191,6 +191,51 @@ gen_fn cpp   'void longOne() {'                    'int f$N() {
 { printf 'def long_one():\n'; for i in $(seq 1 157); do echo "    l$i = 1"; done; } > thr/longfn.py
 for i in $(seq 1 40); do printf 'def f%d():\n    x = 1\n    return x\n\n' "$i"; done > thr/manyfns.py
 
+# smells-26 is per-class (reuses mfunc): one 200+-line class must flag, and a
+# file of 40 one-line classes (none over 200) must not. smells-27 is per-file:
+# two substantial (>15-line) top-level classes must flag, one substantial class
+# beside a tiny helper must not, and nested/namespace-wrapped classes must not.
+{ echo 'export class BigCls {'; for i in $(seq 1 205); do echo "  m$i() { return $i; }"; done; echo '}'; } > thr/longcls.ts
+for i in $(seq 1 40); do echo "export class C$i { x = 1; }"; done > thr/manycls.ts
+{ echo 'export class Alpha {'; for i in $(seq 1 18); do echo "  a$i() { return $i; }"; done; echo '}'
+  echo 'export class Beta {';  for i in $(seq 1 18); do echo "  b$i() { return $i; }"; done; echo '}'; } > thr/twocls.ts
+{ echo 'export class Alpha {'; for i in $(seq 1 18); do echo "  a$i() { return $i; }"; done; echo '}'
+  echo 'export class Tiny { x = 1; }'; } > thr/onecls.ts
+{ echo 'class BigCls:'; for i in $(seq 1 205); do echo "    def m$i(self): return $i"; done; } > thr/longcls.py
+for i in $(seq 1 40); do echo "class C$i: pass"; done > thr/manycls.py
+{ echo 'class Alpha:'; for i in $(seq 1 18); do echo "    def a$i(self): return $i"; done
+  echo 'class Beta:';  for i in $(seq 1 18); do echo "    def b$i(self): return $i"; done; } > thr/twocls.py
+{ echo 'class Alpha:'; for i in $(seq 1 18); do echo "    def a$i(self): return $i"; done
+  echo 'class Tiny: pass'; } > thr/onecls.py
+{ echo 'public class BigCls {'; for i in $(seq 1 205); do echo "  int m$i(){return $i;}"; done; echo '}'; } > thr/LongCls.java
+for i in $(seq 1 40); do echo "class C$i { int x; }"; done > thr/ManyCls.java
+{ echo 'class Alpha {'; for i in $(seq 1 18); do echo "  int a$i(){return $i;}"; done; echo '}'
+  echo 'class Beta {';  for i in $(seq 1 18); do echo "  int b$i(){return $i;}"; done; echo '}'; } > thr/TwoCls.java
+{ echo 'class Alpha {'; for i in $(seq 1 18); do echo "  int a$i(){return $i;}"; done; echo '}'
+  echo 'class Tiny { int x; }'; } > thr/OneCls.java
+{ echo 'class BigCls {'; for i in $(seq 1 205); do echo "  fun m$i() = $i"; done; echo '}'; } > thr/LongCls.kt
+for i in $(seq 1 40); do echo "class C$i { val x = 1 }"; done > thr/ManyCls.kt
+{ echo 'class Alpha {'; for i in $(seq 1 18); do echo "  fun a$i() = $i"; done; echo '}'
+  echo 'class Beta {';  for i in $(seq 1 18); do echo "  fun b$i() = $i"; done; echo '}'; } > thr/TwoCls.kt
+{ echo 'class Alpha {'; for i in $(seq 1 18); do echo "  fun a$i() = $i"; done; echo '}'
+  echo 'class Tiny { val x = 1 }'; } > thr/OneCls.kt
+# C#: namespace brace blocks are seen through, so both a file-scoped namespace
+# and a classic namespace brace block flag their two top-level classes; a single
+# substantial class in a namespace, and a class nested inside another class, must
+# not flag (one top-level class).
+{ echo 'namespace N;'; echo 'public class Alpha {'; for i in $(seq 1 18); do echo "  int a$i(){return $i;}"; done; echo '}'
+  echo 'public class Beta {'; for i in $(seq 1 18); do echo "  int b$i(){return $i;}"; done; echo '}'; } > thr/TwoFs.cs
+{ echo 'namespace N'; echo '{'; echo '  public class Alpha {'; for i in $(seq 1 18); do echo "    int a$i(){return $i;}"; done; echo '  }'
+  echo '  public class Beta {'; for i in $(seq 1 18); do echo "    int b$i(){return $i;}"; done; echo '  }'; echo '}'; } > thr/TwoCs.cs
+{ echo 'namespace N'; echo '{'; echo '  public class Alpha {'; for i in $(seq 1 18); do echo "    int a$i(){return $i;}"; done; echo '  }'
+  echo '  public class Tiny { int x; }'; echo '}'; } > thr/OneCs.cs
+{ echo 'namespace N'; echo '{'; echo '  public class Outer {'; for i in $(seq 1 10); do echo "    int o$i(){return $i;}"; done
+  echo '    class Inner {'; for i in $(seq 1 18); do echo "      int n$i(){return $i;}"; done; echo '    }'; echo '  }'; echo '}'; } > thr/NestCs.cs
+# C++: namespace block seen through -> two classes flag; one class + nested does not.
+{ echo 'namespace foo {'; echo 'class Alpha {'; echo 'public:'; for i in $(seq 1 18); do echo "  int a$i(){return $i;}"; done; echo '};'
+  echo 'class Beta {'; echo 'public:'; for i in $(seq 1 18); do echo "  int b$i(){return $i;}"; done; echo '};'; echo '}'; } > thr/twons.cpp
+{ echo 'namespace foo {'; echo 'class Alpha {'; echo 'public:'; for i in $(seq 1 18); do echo "  int a$i(){return $i;}"; done; echo '};'; echo '}'; } > thr/onens.cpp
+
 find thr -type f | sort > ../thrlist
 
 run_thr clarity-16 typescript "thr/branchy.ts"    "thr/spread.ts"
@@ -213,6 +258,17 @@ run_thr clarity-17 kotlin     "thr/longfn.kt"    "thr/manyfns.kt"
 run_thr clarity-17 java       "thr/longfn.java"  "thr/manyfns.java"
 run_thr clarity-17 cpp        "thr/longfn.cpp"   "thr/manyfns.cpp"
 run_thr smells-01  all        "thr/huge.ts"    "thr/long.ts"
+run_thr smells-26  typescript "thr/longcls.ts"   "thr/manycls.ts"
+run_thr smells-26  python     "thr/longcls.py"   "thr/manycls.py"
+run_thr smells-26  java       "thr/LongCls.java" "thr/ManyCls.java"
+run_thr smells-26  kotlin     "thr/LongCls.kt"   "thr/ManyCls.kt"
+run_thr smells-27  typescript "thr/twocls.ts"    "thr/onecls.ts"
+run_thr smells-27  python     "thr/twocls.py"    "thr/onecls.py"
+run_thr smells-27  java       "thr/TwoCls.java"  "thr/OneCls.java"
+run_thr smells-27  kotlin     "thr/TwoCls.kt"    "thr/OneCls.kt"
+run_thr smells-27  csharp     "thr/TwoFs.cs"     "thr/OneCs.cs"
+run_thr smells-27  csharp     "thr/TwoCs.cs"     "thr/NestCs.cs"
+run_thr smells-27  cpp        "thr/twons.cpp"    "thr/onens.cpp"
 
 echo ""
 echo "corpus assertions passed: $PASS  failed: $FAIL"

@@ -348,6 +348,36 @@ NOTE for agent: distinct from clarity-16, which measures cyclomatic complexity a
 
 ---
 
+### smells-26 · Moderate · Class Length
+**Scriptable**: Yes
+**Rule**: Any changed class exceeding 200 lines — a class that large has accreted more than one responsibility and should be split into cohesive collaborators.
+**Scope**: `files`
+**Finding action template**: Extract a cohesive collaborator `{SuggestedClass}` from `{ClassName}` (currently {N} lines)
+
+**Detection** (per-class span — declaration line through closing line):
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/smells.tsv`.
+
+> Agent note: this is the class-scoped counterpart to smells-01 (whole file >1000 lines) and clarity-17 (single function >150 lines) — each hit is one class body already measured to span more than 200 lines by the same `mfunc` walker (python by indentation, brace languages by brace balance). The matched text is the declaration line; anchor the finding there, not at line 1. Confirm the span before reporting (a brace inside a block comment or a multi-line string can inflate it) and dismiss hits where the "class" is generated code, a data-only DTO/enum whose length is inherent, or a Swift `View`/`ViewController` whose length is already owned by its long `body` (clarity-17). A nested class exceeding 200 lines is reported independently and is a genuine violation. Propose one concrete split boundary — a group of methods/fields that form a distinct responsibility.
+>
+> $PRECOMPUTED shape for smells-26: `{ check_id: "smells-26", file, line, matched_text }` — `line` is the class's declaration line.
+
+---
+
+### smells-27 · Minor · Multiple Classes Per File
+**Scriptable**: Yes
+**Rule**: A source file that declares more than one substantial top-level class buries the second class where no one looks for it — each substantial class deserves its own file named after it. A small helper class (under ~15 lines) that shares the file is exempt.
+**Scope**: `files`
+**Finding action template**: Move `{SecondClassName}` out of `{file}` into its own file named after it
+
+**Detection** (per-file count of top-level classes whose span exceeds 15 lines):
+Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/smells.tsv`. A hit fires only when a file holds **two or more** top-level classes each spanning more than 15 lines; the hit anchors on the **second** such class's declaration line.
+
+> Agent note: this is a style/organisation convention, not a defect — keep it Minor and dismiss freely. The pattern counts only reference/nominal **classes** at top level (`class`, plus Swift `actor`); interfaces, protocols, `enum`s, `type` aliases, structs (Swift/C++ value types that idiomatically colocate), and any class **nested inside another type** are already excluded, and any class under ~15 lines is already exempt. A namespace/module *brace* block is seen through, so classes inside a classic C# `namespace N { class A {} class B {} }`, a namespaced C++ block, or a TS `namespace` still count as the file's top-level classes; a class declared on the *same physical line* as its enclosing `namespace ... {` is the one residual miss (rare formatting). Dismiss when the co-located classes are a deliberate, tightly-coupled cluster the language idiom keeps together (a sealed hierarchy's cases, a small sum type), or when the project's established convention is multiple classes per file.
+>
+> $PRECOMPUTED shape for smells-27: `{ check_id: "smells-27", file, line, matched_text }` — `line` is the second top-level class's declaration line.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -360,4 +390,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=smells findings=N checks=M ok`
-where N is the number of finding lines and M is the total count of `### smells-NN` check headers in this file (25 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=smells failed=<brief reason>`
+where N is the number of finding lines and M is the total count of `### smells-NN` check headers in this file (27 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=smells failed=<brief reason>`

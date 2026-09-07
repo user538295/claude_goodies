@@ -673,3 +673,74 @@ mdropfunc() {  # mdropfunc 'FACTORY_RE' — filter file:line:text hits, dropping
       print $hit unless $drop{$f}{$n};
     }' "$1"
 }
+
+mtopclass() {  # mtopclass 'DECL_RE' MIN -> file:line:text for the 2nd top-level class when a file holds MORE THAN ONE top-level class whose span exceeds MIN lines
+  # Used by smells-27 (one class per file): the rule is per-FILE — a file is a
+  # finding only when it declares two or more substantial top-level classes, so a
+  # line-local regex cannot see it. This counts, per file, the top-level classes
+  # (python: indentation 0; brace languages: brace-depth 0 at the declaration, so
+  # a nested inner class never counts) whose own span exceeds MIN lines (the small
+  # class that legitimately shares a file is exempt), and emits the SECOND such
+  # class's declaration line when the count reaches two. Span is measured exactly
+  # as mfunc does (python by indentation, brace languages by brace balance);
+  # quoted spans and `//` comments are blanked before counting braces.
+  # Top-level means "not nested inside another type", NOT "brace-depth 0": a
+  # namespace/module *brace* block is transparent, so classes inside a classic
+  # C# `namespace N { class A {} class B {} }`, a namespaced C++ block, or a TS
+  # `namespace`/`module` still count as the file's top-level classes. A brace
+  # stack records each opened brace as a namespace brace or a type brace; only
+  # type braces raise the nesting level a declaration is tested against. A file-
+  # scoped C# namespace (`namespace N;`) opens no brace and needs no handling.
+  # ponytail: the namespace/type split is line-anchored — a class declared on the
+  # SAME line as its enclosing `namespace ... {` (rare) is missed because the
+  # decl regex anchors at line start. Switch to a real tokenizer if that shows up.
+  perl -e '
+    my ($decl, $min) = @ARGV;
+    my $decl_re = qr/$decl/;
+    my $ns_re = qr/^\s*(?:(?:export|declare)\s+)*namespace\b/;   # C#, C++, TS namespace/module block
+    while (defined(my $f = <STDIN>)) {
+      chomp $f; next unless -f $f && -r $f;
+      open(my $fh, "<", $f) or next;
+      my @l = <$fh>; close $fh;
+      my $py = $f =~ /\.py$/;
+      my @big;
+      if ($py) {
+        for my $i (0 .. $#l) {
+          next unless $l[$i] =~ $decl_re;
+          my ($ind) = $l[$i] =~ /^(\s*)/;
+          next if length($ind) != 0;                 # top-level only (column 0)
+          my $end = $i;
+          for my $j ($i + 1 .. $#l) {
+            next if $l[$j] =~ /^\s*$/;
+            my ($jind) = $l[$j] =~ /^(\s*)/;
+            last if length($jind) == 0;               # dedent to column 0 ends it
+            $end = $j;
+          }
+          push @big, $i if $end - $i + 1 > $min;
+        }
+      } else {
+        my @code = map { my $t = $_; $t =~ s/(["\x27`])(?:\\.|(?!\1).)*\1/_/g; $t =~ s{//.*$}{}; $t } @l;
+        my (@kind, $pending, $typedepth) = ((), undef, 0);
+        for my $i (0 .. $#l) {
+          $pending = "ns" if $l[$i] =~ $ns_re && $code[$i] !~ /namespace\b[^;{]*;/;   # a block namespace, not file-scoped
+          if ($typedepth == 0 && $l[$i] =~ $decl_re) {
+            my ($d, $opened, $end) = (0, 0, undef);
+            for my $j ($i .. $#l) {
+              for my $c ($code[$j] =~ /([{}])/g) { $c eq "{" ? ($d++, $opened = 1) : $d-- }
+              if ($opened) { if ($d <= 0) { $end = $j; last } }
+              elsif ($code[$j] =~ /;\s*$/) { last }   # forward/one-line declaration with no body
+            }
+            push @big, $i if defined($end) && $end - $i + 1 > $min;
+          }
+          for my $c ($code[$i] =~ /([{}])/g) {
+            if ($c eq "{") { my $k = defined($pending) ? $pending : "type"; push @kind, $k; $pending = undef; $typedepth++ if $k eq "type"; }
+            else { my $k = pop @kind; $typedepth-- if defined($k) && $k eq "type"; $typedepth = 0 if $typedepth < 0; }
+          }
+        }
+      }
+      next unless @big >= 2;
+      my $i = $big[1];                                 # anchor at the 2nd substantial class
+      my $line = $l[$i]; chomp $line;
+      print "$f:", $i + 1, ":", $line, "\n";
+    }' "$1" "$2"
+}

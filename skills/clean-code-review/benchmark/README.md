@@ -19,7 +19,7 @@ The regex layer does NOT need this benchmark — it is fully covered by
 - `cpp/order_processing.cpp` + `cpp/order_processing_test.cpp` — 23 planted violations
 - `planted.tsv` — the catalog: check, file, line, detect (scripted/judgment), description
 
-119 rows across **5 languages**, exercising **88 of the 126 checks** at least once. The C++ fixture (added 2026-08-28) is the first to plant `safety-16`, `safety-17`, and `safety-19`, which previously had no fixture anywhere. The remaining unplanted checks (the rest of safety-08 through safety-32, smells-20 through smells-25, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) are scriptable or judgment-only and covered by `tests/corpus.tsv` where scriptable; they have no planted violation here yet.
+119 rows across **5 languages**, exercising **88 of the 128 checks** at least once. The C++ fixture (added 2026-08-28) is the first to plant `safety-16`, `safety-17`, and `safety-19`, which previously had no fixture anywhere. The remaining unplanted checks (the rest of safety-08 through safety-32, smells-20 through smells-27, arch-11 through arch-15, tests-13, ddd-06 through ddd-09) are scriptable or judgment-only and covered by `tests/corpus.tsv` where scriptable; they have no planted violation here yet.
 
 **Never "fix" these files.** Broken is their job. For a scriptable check,
 `tests/corpus.tsv` (semantic MATCH/NOMATCH, see `tests/test_corpus.sh`) is the

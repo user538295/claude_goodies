@@ -88,13 +88,18 @@ llm-wiki/
   drafts/                ← flat; no subdirectories
 ```
 
-The skill itself lives at one of these paths (resolve at runtime by checking which exists):
+The skill itself lives at one of these paths (resolve at runtime by checking which exists, in this order):
 
-1. `~/.claude/skills/llm-wiki/` — user-level install (most common)
-2. `<repo>/.claude/skills/llm-wiki/` — project-level install
+1. plugin install — `${CLAUDE_PLUGIN_ROOT}/skills/llm-wiki/`, or (if that env var is unset) the path
+   `installed_plugins.json` records for the `claude-goodies` plugin
+2. `~/.claude/skills/llm-wiki/` — user-level install
+3. `<repo>/.claude/skills/llm-wiki/` — project-level install
 
-Use `ls ~/.claude/skills/llm-wiki/SKILL.md` to confirm the user-level path; fall back to the
-project-level path otherwise. Call the resolved root `<SKILL_ROOT>` below.
+Resolve in one shot and capture the printed path as `<SKILL_ROOT>`:
+
+```bash
+p="${CLAUDE_PLUGIN_ROOT:-}"; [ -f "$p/skills/llm-wiki/SKILL.md" ] || p=$(jq -r 'first(.plugins | to_entries[] | select(.key | startswith("claude-goodies@")) | .value[0].installPath) // empty' "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null); [ -f "$p/skills/llm-wiki/SKILL.md" ] || p="$HOME/.claude"; [ -f "$p/skills/llm-wiki/SKILL.md" ] || p="$(pwd)/.claude"; echo "$p/skills/llm-wiki"
+```
 
 Steps:
 
@@ -329,7 +334,7 @@ Operation names defined in `schema.md`:
 
 ### start-watch
 
-`start-watch` checks the skill path via `ls ~/.claude/skills/llm-wiki/watcher.py` first; falls back to `<repo>/.claude/skills/llm-wiki/watcher.py`.
+`start-watch` resolves `<SKILL_ROOT>` per the priority order above (Setup) and uses `<SKILL_ROOT>/watcher.py`.
 
 **Procedure:**
 
@@ -337,7 +342,7 @@ Operation names defined in `schema.md`:
 2. Check for existing watcher: read `llm-wiki/.watcher/watcher.pid`; if the file exists, verify via `ps -p <pid> -o command=` that the command contains `watcher.py`; if running, report status and offer restart (on restart: send SIGTERM, wait 2s, then proceed to start).
 3. Create `llm-wiki/.watcher/` if absent.
 4. Add `llm-wiki/.watcher/` to `.gitignore` at project root if not already present (mandatory — append the line if absent, never duplicate).
-5. Run: `nohup python3 ~/.claude/skills/llm-wiki/watcher.py start <project-root> > /dev/null &` (stderr is NOT redirected so startup errors are visible in the terminal before daemonizing).
+5. Run: `nohup python3 <SKILL_ROOT>/watcher.py start <project-root> > /dev/null &` (stderr is NOT redirected so startup errors are visible in the terminal before daemonizing).
 6. Wait 2 seconds, then read the PID file to confirm the watcher started; report the PID to the user. If the PID file is absent, check the terminal for startup errors.
 7. Log to `llm-wiki/log.md`: `## [YYYY-MM-DD] infra | watcher started | llm-wiki/.watcher/`
 

@@ -33,8 +33,16 @@ Split `$ARGUMENTS` into tokens:
 
 ## Step 2 — Collect (scripted)
 
+First resolve this skill's install directory (works for both a manual `~/.claude/skills/` install and a plugin install) and reuse the result as `$BASE` for every path in this skill:
+
 ```bash
-bash ~/.claude/skills/clean-code-review/scripts/collect.sh <non-group tokens...>
+p="${CLAUDE_PLUGIN_ROOT:-}"; [ -n "$p" ] || p=$(jq -r 'first(.plugins | to_entries[] | select(.key | startswith("claude-goodies@")) | .value[0].installPath) // empty' "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null); [ -f "$p/skills/clean-code-review/scripts/collect.sh" ] || p="$HOME/.claude"; echo "$p/skills/clean-code-review"
+```
+
+Capture the printed path as `$BASE`, then run:
+
+```bash
+bash "$BASE/scripts/collect.sh" <non-group tokens...>
 ```
 
 - **Non-zero exit**: report the script's stderr message to the user verbatim and stop.
@@ -66,13 +74,13 @@ Spawn **one agent per active group in parallel** (Agent tool). Group prompt file
 
 | Group | File | Checks |
 |---|---|---|
-| clarity | `~/.claude/skills/clean-code-review/groups/clarity.md` | 17 |
-| smells | `~/.claude/skills/clean-code-review/groups/smells.md` | 25 |
-| solid | `~/.claude/skills/clean-code-review/groups/solid.md` | 15 |
-| arch | `~/.claude/skills/clean-code-review/groups/arch.md` | 15 |
-| tests | `~/.claude/skills/clean-code-review/groups/tests.md` | 13 |
-| safety | `~/.claude/skills/clean-code-review/groups/safety.md` | 32 |
-| ddd | `~/.claude/skills/clean-code-review/groups/ddd.md` | 9 |
+| clarity | `$BASE/groups/clarity.md` | 17 |
+| smells | `$BASE/groups/smells.md` | 25 |
+| solid | `$BASE/groups/solid.md` | 15 |
+| arch | `$BASE/groups/arch.md` | 15 |
+| tests | `$BASE/groups/tests.md` | 13 |
+| safety | `$BASE/groups/safety.md` | 32 |
+| ddd | `$BASE/groups/ddd.md` | 9 |
 
 Before spawning, get the diff size: `DIFF_LINES=$(wc -l < "$OUTDIR/numbered.patch")`.
 
@@ -106,7 +114,7 @@ A literal ` | ` inside the action field must be escaped as ` \| `. Example:
 
 ## Step 5 — Synthesize
 
-After all group agents complete, spawn a synthesizer agent following `~/.claude/skills/clean-code-review/synthesizer.md`. Pass it:
+After all group agents complete, spawn a synthesizer agent following `$BASE/synthesizer.md`. Pass it:
 - All finding lines and STATUS lines
 - Active groups, `languages.txt`, `skipped.txt`, `unanalysed.txt`, `mode.txt`
 - Expected check counts (table above)

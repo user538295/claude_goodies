@@ -9,13 +9,14 @@ You receive finding lines and STATUS lines from multiple review agents, plus met
 - Detected language tokens list
 - Skipped files list (`$SKIPPED`)
 - Unmapped extensions (`unanalysed.txt`), if any — shown in report header as "Unanalysed: .ext1, .ext2"
-- Expected check counts per group: clarity=17, smells=27, solid=15, arch=15, tests=13, safety=32, ddd=9
+- Effective expected check counts per active group, provided by the orchestrator (each is the number of `### {group}-` headers in that group's MD, already reduced by any project deny list). Use exactly the counts passed. Fully-denied groups are already absent from the active-groups list.
 - The review target (from `mode.txt` — e.g. `staged unstaged untracked`, `ref: main..HEAD`, or `files`)
 - `WARN-CAP:` lines (hit-cap warnings, when findings were truncated after added-line filtering)
 - `WARN-DETECT:` lines (detection-failure warnings, when a detection command errored)
+- `WARN-CONFIG:` lines (deny-list warnings, when a config entry named an unknown check or group)
 - `NOTICE-LARGE-DIFF:` (if the target covers more than 100 files)
 
-`{checks_run}` = sum of the expected check counts for the active groups (clarity=17, smells=27, solid=15, arch=15, tests=13, safety=32, ddd=9). Do not count headers — use the expected-count table.
+`{checks_run}` = sum of the effective expected check counts for the active groups (as provided by the orchestrator). Do not count headers.
 
 ## Agent failure handling
 
@@ -27,7 +28,7 @@ You receive finding lines and STATUS lines from multiple review agents, plus met
 M-mismatch and N-mismatch warnings (described in the next section) are output in the same post-`---` block as agent-failure warnings.
 
 For each group's STATUS line:
-- Compare `checks=M` against its expected count. If M differs, emit: `⚠ {GROUP} reported {M}/{expected} checks — evaluation may have been partial.`
+- Compare `checks=M` against its **effective** expected count (as provided by the orchestrator — already reduced by any denied checks). If M differs, emit: `⚠ {GROUP} reported {M}/{expected} checks — evaluation may have been partial.`
 - Compare declared `findings=N` against the actual count of finding lines received from that group. If they differ, emit: `⚠ {GROUP} declared {N} findings but {actual} lines received — response may have been truncated.`
 
 ## Parsing finding lines
@@ -145,15 +146,18 @@ File sections: order by highest severity finding in the file (Critical-containin
 **Truncated:** {check_id} findings capped at 200/{N} — narrow your diff for complete coverage (renders WARN-CAP: lines)
 **Detection failures:** (one entry per failed check — renders WARN-DETECT: lines)
 - {check_id}/{lang} detection error: {stderr_first_line} — results may be incomplete
+**Config warnings:** (one entry per unknown deny-list entry — renders WARN-CONFIG: lines)
+- {message}
 ```
 
-("`checks declared`" = sum of the expected check counts for the active groups: clarity=17, smells=27, solid=15, arch=15, tests=13, safety=32, ddd=9. Do not count headers — use this expected-count table. Checks for languages absent from the diff may have run no scriptable detection.)
+("`checks declared`" = sum of the **effective** expected check counts for the active groups, as provided by the orchestrator. Do not count headers. Checks for languages absent from the diff may have run no scriptable detection.)
 
 Omit the `**Unanalysed:**` line if no unmapped extensions were passed.
 Omit the `**Skipped files:**` line entirely if `$SKIPPED` is empty.
 Omit the `**Truncated:**` line if no `WARN-CAP:` lines were passed. Emit one line per truncated check.
 Omit the `**Notices:**` block if no `NOTICE-LARGE-DIFF:` was passed.
 Omit the `**Detection failures:**` label if no `WARN-DETECT:` lines were passed. When present, emit one bullet per failed check; do not merge multiple failures onto one line. Extract `{stderr_first_line}` from the message portion of each `WARN-DETECT:` line (format: `WARN-DETECT: {check_id}/{lang} detection error: {message}` — `{stderr_first_line}` is the `{message}` text).
+Omit the `**Config warnings:**` label if no `WARN-CONFIG:` lines were passed. When present, emit one bullet per line — the `{message}` is the text after `WARN-CONFIG: `.
 
 If any findings have `(location unknown)`:
 
@@ -165,7 +169,7 @@ If any findings have `(location unknown)`:
 
 For the `(project-level)` pseudo-path (used by tests-01's no-test-suite baseline finding), group it under a `### (project-level)` section — do NOT backtick-format it. This is the only permitted pseudo-path other than `(location unknown)`.
 
-If zero findings AND all active groups reported STATUS ok AND no `WARN-CAP:` truncation warnings AND no M-mismatch or N-mismatch warnings AND no `WARN-DETECT:` detection-failure warnings AND no `NOTICE-LARGE-DIFF:` notice: output `✓ No findings. Target: {mode}. Groups run: {active_groups} · {checks_run} checks. Languages: {language_tokens}.` Append ` Unanalysed: {ext_list}.` if unmapped extensions exist. If any of those conditions fails, render the full output format with the appropriate slots instead of the ✓ line.
+If zero findings AND all active groups reported STATUS ok AND no `WARN-CAP:` truncation warnings AND no M-mismatch or N-mismatch warnings AND no `WARN-DETECT:` detection-failure warnings AND no `WARN-CONFIG:` config warnings AND no `NOTICE-LARGE-DIFF:` notice: output `✓ No findings. Target: {mode}. Groups run: {active_groups} · {checks_run} checks. Languages: {language_tokens}.` Append ` Unanalysed: {ext_list}.` if unmapped extensions exist. If any of those conditions fails, render the full output format with the appropriate slots instead of the ✓ line.
 
 If zero findings BUT one or more groups failed: do NOT output the ✓ line. Render the **full output format** (the `## Clean Code Review` header, counts as `0 findings · 0 Critical · 0 Major · 0 Moderate · 0 Minor`, Groups run, Languages detected, and any Unanalysed/Skipped lines). Always append `---` followed by failure warnings.
 

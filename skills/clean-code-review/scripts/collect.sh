@@ -11,7 +11,8 @@
 #
 # Stdout: the output directory path (single line). Everything else -> stderr.
 # Output dir contents: mode.txt files.txt files_prod.txt skipped.txt languages.txt
-#   unanalysed.txt addedlines.txt diff.patch hits.txt warnings.txt
+#   unanalysed.txt addedlines.txt diff.patch hits.txt warnings.txt denied.txt
+#   groups/{group}.md (one allow-listed copy per group; verbatim when nothing denied)
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -24,7 +25,7 @@ err() { echo "ERROR: $*" >&2; exit 1; }
 
 command -v perl >/dev/null 2>&1 || err "perl is required for detection patterns (preinstalled on macOS and virtually all Linux distributions)."
 
-EXCLUDE_RE='(^|/)(vendor|node_modules|dist|\.build|build|target|obj|bin|Pods)/|\.(generated\.|pb\.|min\.js$|lock$|snap$)|\.(log|bak)$|_pb2\.py$|package-lock\.json$|pnpm-lock\.yaml$|go\.sum$|\.gradle\.kts$|(^|/)buildSrc/'
+EXCLUDE_RE='(^|/)(vendor|node_modules|dist|\.build|build|target|obj|bin|Pods)/|\.(generated\.|pb\.|min\.js$|lock$|snap$)|\.(log|bak)$|_pb2\.py$|package-lock\.json$|pnpm-lock\.yaml$|go\.sum$|\.gradle\.kts$|(^|/)buildSrc/|(^|/)\.clean-code-review-config\.json$'
 NONCODE_EXT_RE='\.(md|txt|json|yml|yaml|toml|xml|csv|svg|png|jpg|jpeg|gif|ico|lock|gitignore|gitattributes|editorconfig|env|sh|bash|zsh|sql|html|css|scss|less|plist|pdf|zip)$'
 # Test-file naming conventions, per language. This is the union of the file
 # gates the `tests-*` rows in checks/tests.tsv already use, so the two stay
@@ -138,6 +139,82 @@ FILES_RAW="$OUT/.files_raw"; ADDED="$OUT/addedlines.txt"; DIFF_PATCH="$OUT/diff.
 WARN="$OUT/warnings.txt"
 : > "$FILES_RAW"; : > "$ADDED"; : > "$DIFF_PATCH"; : > "$WARN"
 : > "$OUT/hits.txt"; : > "$OUT/languages.txt"; : > "$OUT/unanalysed.txt"; : > "$OUT/skipped.txt"
+: > "$OUT/denied.txt"
+
+# ---------------------------------------------------------------- project config (deny list)
+# An optional `.clean-code-review-config.json` at the repo root (or the current
+# directory outside git) may declare `{ "deny": [...] }` — a list of check ids
+# ("clarity-08") and/or group names ("ddd") to silence. Denied checks are never
+# run, reported, or counted. The canonical universe of ids/groups is parsed from
+# the group MD headers, so a group name expands to exactly the checks it runs and
+# unknown entries are flagged rather than silently accepted. JSON is parsed with
+# perl's core JSON::PP (no jq or other extra dependency), and entries are matched
+# as literal strings — a regex/glob metacharacter in a typo cannot mis-match.
+DENIED=" "   # space-padded set of resolved check ids, for membership tests below
+if [ "$IN_GIT" = 1 ]; then
+  CFG="$(git rev-parse --show-toplevel 2>/dev/null)/.clean-code-review-config.json"
+else
+  CFG="$PWD/.clean-code-review-config.json"
+fi
+if [ -f "$CFG" ]; then
+  # Extract deny entries, one per line. A broken config never aborts the review:
+  # exit 3 = invalid JSON or not a JSON object; exit 4 = `deny` present but not an
+  # array. Either way we warn and continue with no denials — the WARN-CONFIG line
+  # is surfaced in the report, so the misconfig is visible without blocking a run.
+  # This never-abort guarantee relies on `set -e` being OFF (see line 15 — only
+  # `set -u` is active); a non-zero perl exit here is inspected, not fatal.
+  # Entries carrying a newline are dropped: the shell resolution below is
+  # line-based, so a newline would split one entry into several and could
+  # silently deny checks the user never named — the `$e =~ /\n/` guard forbids it.
+  ENTRIES="$(perl -MJSON::PP -0777 -ne '
+    my $j = eval { decode_json($_) };
+    exit 3 if $@ or ref $j ne q{HASH};
+    my $d = $j->{deny};
+    exit 0 unless defined $d;
+    exit 4 if ref $d ne q{ARRAY};
+    for my $e (@$d) { print qq{$e\n} if defined $e and not ref $e and $e !~ /\n/ }
+  ' "$CFG")"
+  case $? in
+    0) ;;
+    3) echo "WARN-CONFIG: $(basename "$CFG") is not valid JSON or not a JSON object — deny list ignored" >> "$WARN" ;;
+    4) echo "WARN-CONFIG: the \"deny\" value in $(basename "$CFG") is not an array — deny list ignored" >> "$WARN" ;;
+    *) echo "WARN-CONFIG: $(basename "$CFG") could not be parsed (unexpected error) — deny list ignored" >> "$WARN" ;;
+  esac
+  ALL_IDS="$(grep -hoE '^### [a-z]+-[0-9]+' "$SCRIPT_DIR/../groups"/*.md | awk '{print $2}')"
+  ALL_GROUPS="$(printf '%s\n' "$ALL_IDS" | awk -F- '{print $1}' | sort -u)"
+  while IFS= read -r e; do
+    [ -n "$e" ] || continue
+    if printf '%s\n' "$ALL_GROUPS" | grep -Fxq "$e"; then
+      printf '%s\n' "$ALL_IDS" | awk -F- -v g="$e" '$1==g' >> "$OUT/denied.txt"
+    elif printf '%s\n' "$ALL_IDS" | grep -Fxq "$e"; then
+      printf '%s\n' "$e" >> "$OUT/denied.txt"
+    else
+      echo "WARN-CONFIG: '$e' in $(basename "$CFG") is not a known check id or group — ignored" >> "$WARN"
+    fi
+  done <<EOF
+$ENTRIES
+EOF
+  if [ -s "$OUT/denied.txt" ]; then
+    sort -u -o "$OUT/denied.txt" "$OUT/denied.txt"
+    DENIED=" $(tr '\n' ' ' < "$OUT/denied.txt")"
+  fi
+fi
+
+# ---------------------------------------------------------------- group MD copies (allow list)
+# Write one allow-listed copy of EVERY group MD to $OUT/groups/{group}.md, so the
+# orchestrator always reads group prompts from a single place regardless of
+# whether a deny list applies. A group with no denied checks is copied verbatim
+# (empty deny set slices nothing — byte-for-byte identical); a partially denied
+# group has its denied `### {group}-NN` blocks removed; a fully denied group
+# yields a headerless copy the orchestrator drops (see SKILL.md Step 4). The
+# copy's `### {group}-NN` header count is always the group's effective check count.
+# denied.txt always exists (empty when no config), so the same loop covers both.
+mkdir -p "$OUT/groups"
+for src in "$SCRIPT_DIR/../groups"/*.md; do
+  [ -f "$src" ] || continue
+  g="$(basename "$src" .md)"
+  slice_group_md "$src" " $(grep "^$g-" "$OUT/denied.txt" | tr '\n' ' ')" > "$OUT/groups/$g.md"
+done
 
 GITD() { git -c core.quotePath=false -c diff.relative=false diff --no-ext-diff --no-color "$@"; }
 
@@ -294,6 +371,7 @@ run_checks() {
     [ -f "$tsv" ] || continue
     while IFS="$TAB" read -r id lang cmd <&3 || [ -n "${id:-}" ]; do
       case "$id" in ''|'#'*) continue ;; esac
+      case "$DENIED" in *" $id "*) continue ;; esac
       if [ "$lang" != "all" ] && ! grep -qx "$lang" "$OUT/languages.txt"; then continue; fi
       : > "$errf"
       if printf '%s' "$SKIP_TESTS" | grep -q " $id "; then

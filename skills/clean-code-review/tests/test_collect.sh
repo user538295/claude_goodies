@@ -4,6 +4,9 @@ set -u
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$SKILL_DIR/scripts/collect.sh"
+# slice_group_md lives in lib.sh so both collect.sh and these tests exercise the
+# exact same slicer — the release guards below call it directly on every catalog.
+. "$SKILL_DIR/scripts/lib.sh"
 # All temp artifacts (fixture repos, collect.sh outdirs) live under one root,
 # removed at the end — no litter in the system temp dir.
 WORKROOT="$(mktemp -d)"
@@ -401,6 +404,364 @@ run() { OUT="$("$SCRIPT" "$@" 2>"$WORKROOT"/collect_stderr)"; RC=$?; ERR="$(cat 
   assert_exit_ok "$RC"
   assert_file_has "$OUT/numbered.patch" "1|+let e = 1;"
   assert_file_has "$OUT/numbered.patch" "2|+let f = 2;"
+)
+
+# ---------------------------------------------------------------- deny-list config
+
+# Fixture: two added lines that trip smells-07 (TODO comment), so a denied check
+# leaves no hit while an undenied run does.
+todo_fixture() {
+  printf '// TODO old debt\n' > f.ts; git add f.ts; git commit -qm init
+  printf '// TODO old debt\n// TODO fresh debt\n' > f.ts
+}
+
+( t "no config -> denied.txt empty, scriptable hit still present"
+  newrepo
+  todo_fixture
+  run
+  assert_exit_ok "$RC"
+  [ -f "$OUT/denied.txt" ] && [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt should exist and be empty"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "deny a check id -> that check silenced, group not expanded"
+  newrepo
+  todo_fixture
+  printf '{"deny":["smells-07"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has  "$OUT/denied.txt" "^smells-07$"
+  assert_file_lacks "$OUT/denied.txt" "smells-01"
+  assert_file_lacks "$OUT/hits.txt" "smells-07${TAB}"
+)
+
+( t "deny a group name -> expands to all its check ids"
+  newrepo
+  todo_fixture
+  printf '{"deny":["smells"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has  "$OUT/denied.txt" "^smells-07$"
+  assert_file_has  "$OUT/denied.txt" "^smells-01$"
+  assert_file_lacks "$OUT/hits.txt" "smells-07${TAB}"
+)
+
+( t "unknown deny entry -> WARN-CONFIG, exit ok, nothing denied"
+  newrepo
+  todo_fixture
+  printf '{"deny":["clarty-08"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has  "$OUT/warnings.txt" "WARN-CONFIG:"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt should be empty for an unknown entry"
+  assert_file_has  "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "malformed config JSON -> warns and continues (no abort)"
+  newrepo
+  todo_fixture
+  printf '{ this is not json' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has "$OUT/warnings.txt" "not valid JSON or not a JSON object"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt should be empty on broken JSON"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "config at repo root applies when invoked from a subdirectory"
+  newrepo
+  mkdir sub
+  printf '// TODO old debt\n' > sub/f.ts; git add sub/f.ts; git commit -qm init
+  printf '// TODO old debt\n// TODO fresh debt\n' > sub/f.ts
+  printf '{"deny":["smells-07"]}' > .clean-code-review-config.json
+  cd sub
+  run
+  assert_exit_ok "$RC"
+  assert_file_has  "$OUT/denied.txt" "^smells-07$"
+  assert_file_lacks "$OUT/hits.txt" "smells-07${TAB}"
+)
+
+( t "deny is scoped: denied check silenced, sibling check still fires"
+  newrepo
+  printf 'x\n' > seed.ts; git add seed.ts; git commit -qm init
+  mkdir -p src
+  printf 'export class Cart {\n  public total = 0; // TODO wire up\n}\n' > src/cart.ts
+  printf '{"deny":["smells-07"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_lacks "$OUT/hits.txt" "smells-07${TAB}"
+  assert_file_has   "$OUT/hits.txt" "solid-06${TAB}src/cart.ts:2:"
+)
+
+( t "regex metacharacter entry is treated literally -> warns, denies nothing"
+  newrepo
+  todo_fixture
+  printf '{"deny":[".*"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has  "$OUT/warnings.txt" "WARN-CONFIG:"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "'.*' must not expand — denied.txt must be empty"
+  assert_file_has  "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "non-array deny value -> warns and continues (no abort)"
+  newrepo
+  todo_fixture
+  printf '{"deny":"smells"}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has "$OUT/warnings.txt" "is not an array"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt should be empty on non-array deny"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "mixed valid + unknown entries -> valid denied, unknown warned"
+  newrepo
+  todo_fixture
+  printf '{"deny":["smells-07","bogus-99"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has   "$OUT/denied.txt" "^smells-07$"
+  assert_file_lacks "$OUT/hits.txt" "smells-07${TAB}"
+  assert_file_has   "$OUT/warnings.txt" "WARN-CONFIG:"
+)
+
+( t "group + overlapping id -> denied.txt deduped"
+  newrepo
+  todo_fixture
+  printf '{"deny":["smells","smells-07"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_eq "$(grep -c "^smells-07$" "$OUT/denied.txt")" "1"
+)
+
+( t "config present but deny empty -> denied.txt empty, hit present"
+  newrepo
+  todo_fixture
+  printf '{"deny":[]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt should be empty"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "config file itself is excluded from the reviewed file set"
+  newrepo
+  todo_fixture
+  printf '{"deny":[]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_lacks "$OUT/files.txt" "clean-code-review-config"
+  assert_file_has   "$OUT/skipped.txt" "clean-code-review-config"
+)
+
+( t "deny one id -> a sibling check in the SAME group still fires"
+  newrepo
+  printf 'x\n' > seed.ts; git add seed.ts; git commit -qm init
+  # Untracked file: every line is an added line. Line 2 trips smells-07 (TODO),
+  # line 3 trips smells-08 (return null) — both in the smells group.
+  printf 'export function f() {\n  // TODO wire up\n  return null;\n}\n' > f.ts
+  printf '{"deny":["smells-07"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_lacks "$OUT/hits.txt" "smells-07${TAB}"
+  assert_file_has   "$OUT/hits.txt" "smells-08${TAB}f.ts:3:"
+)
+
+( t "non-git file mode, no config -> smells-07 fires (deny baseline)"
+  cd "$(mktemp -d)"
+  printf '// TODO old debt\n// TODO fresh debt\n' > f.ts
+  run f.ts
+  assert_exit_ok "$RC"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:"
+)
+
+( t "deny in non-git file mode -> config at \$PWD applies"
+  cd "$(mktemp -d)"
+  printf '// TODO old debt\n// TODO fresh debt\n' > f.ts
+  printf '{"deny":["smells-07"]}' > .clean-code-review-config.json
+  run f.ts
+  assert_exit_ok "$RC"
+  assert_file_has  "$OUT/denied.txt" "^smells-07$"
+  assert_file_lacks "$OUT/hits.txt" "smells-07${TAB}"
+)
+
+( t "top-level-array config -> exit 3 wording, nothing denied"
+  newrepo
+  todo_fixture
+  printf '["smells-07"]' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has "$OUT/warnings.txt" "not valid JSON or not a JSON object"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt should be empty for a top-level array"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "deny entry with embedded newline -> dropped, no group silently denied"
+  newrepo
+  todo_fixture
+  # JSON string "x\nsmells": valid JSON whose decoded value contains a newline.
+  # Line-based resolution would otherwise split it into 'x' + 'smells' and deny
+  # the entire smells group — the perl \n guard must drop it instead.
+  printf '{"deny":["x\\nsmells"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt must be empty — newline entry must not deny smells"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "boolean/null deny entries -> dropped silently, no WARN-CONFIG"
+  newrepo
+  todo_fixture
+  printf '{"deny":[true,null]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt should be empty for boolean/null entries"
+  assert_file_lacks "$OUT/warnings.txt" "WARN-CONFIG:"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+( t "numeric deny entry -> WARN-CONFIG, nothing denied"
+  newrepo
+  todo_fixture
+  printf '{"deny":[5]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_has "$OUT/warnings.txt" "WARN-CONFIG:"
+  [ ! -s "$OUT/denied.txt" ] && ok || bad "denied.txt should be empty for a numeric entry"
+  assert_file_has "$OUT/hits.txt" "smells-07${TAB}f.ts:2:"
+)
+
+# ---------------------------------------------------------------- deny-list MD slicing
+# The deny feature slices denied checks out of the per-group MD copies agents
+# read ($OUT/groups/{group}.md), so a denied check's definition never reaches the
+# model. These assert the copies are written correctly end-to-end, and the
+# release guards below assert every catalog slices cleanly.
+
+hdrcount() { grep -cE "^### ${2}-[0-9]" "$1" 2>/dev/null | tr -d ' '; }
+
+( t "no config -> every group MD copied verbatim to groups/ (single source of truth)"
+  newrepo
+  todo_fixture
+  run
+  assert_exit_ok "$RC"
+  [ -d "$OUT/groups" ] && ok || bad "groups/ dir should always exist"
+  for g in clarity smells solid arch tests safety ddd; do
+    if diff -q "$SKILL_DIR/groups/$g.md" "$OUT/groups/$g.md" >/dev/null; then ok; else bad "$g.md copy should be verbatim when nothing is denied"; fi
+  done
+)
+
+( t "deny one id -> group MD sliced: denied header gone, sibling kept, count base-1, frame intact"
+  newrepo
+  todo_fixture
+  printf '{"deny":["smells-07"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  base="$(hdrcount "$SKILL_DIR/groups/smells.md" smells)"
+  [ -f "$OUT/groups/smells.md" ] && ok || bad "groups/smells.md should be written"
+  assert_file_lacks "$OUT/groups/smells.md" "^### smells-07 "
+  assert_file_has   "$OUT/groups/smells.md" "^### smells-08 "
+  assert_eq "$(hdrcount "$OUT/groups/smells.md" smells)" "$((base - 1))"
+  assert_file_has   "$OUT/groups/smells.md" "^# Group:"
+  assert_file_has   "$OUT/groups/smells.md" "^## Output instruction"
+)
+
+( t "deny whole group -> sliced copy has zero headers (fully denied) but keeps frame"
+  newrepo
+  todo_fixture
+  printf '{"deny":["ddd"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  [ -f "$OUT/groups/ddd.md" ] && ok || bad "groups/ddd.md should be written"
+  assert_eq "$(hdrcount "$OUT/groups/ddd.md" ddd)" "0"
+  assert_file_has "$OUT/groups/ddd.md" "^## Output instruction"
+)
+
+( t "deny one id -> touched group sliced, untouched sibling copied verbatim"
+  newrepo
+  todo_fixture
+  printf '{"deny":["smells-07"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  assert_file_lacks "$OUT/groups/smells.md" "^### smells-07 "
+  if diff -q "$SKILL_DIR/groups/clarity.md" "$OUT/groups/clarity.md" >/dev/null; then ok; else bad "untouched clarity.md should be a verbatim copy"; fi
+)
+
+( t "duplicated deny id -> sliced once, count base-1 (dedup must not double-cut)"
+  newrepo
+  todo_fixture
+  printf '{"deny":["clarity-08","clarity-08"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  base="$(hdrcount "$SKILL_DIR/groups/clarity.md" clarity)"
+  assert_eq "$(hdrcount "$OUT/groups/clarity.md" clarity)" "$((base - 1))"
+  assert_file_lacks "$OUT/groups/clarity.md" "^### clarity-08 "
+)
+
+( t "mixed valid + unknown deny -> valid group sliced, no file for the unknown entry"
+  newrepo
+  todo_fixture
+  printf '{"deny":["smells-07","bogus-99"]}' > .clean-code-review-config.json
+  run
+  assert_exit_ok "$RC"
+  [ -f "$OUT/groups/smells.md" ] && ok || bad "valid group should be sliced"
+  [ ! -f "$OUT/groups/bogus.md" ] && ok || bad "unknown entry must not produce a slice file"
+)
+
+# Release guards: run the real slicer over every shipped catalog so a malformed
+# or restructured group MD is caught before release, not at review time.
+( t "release: empty deny slices every catalog byte-for-byte identical to the original"
+  for g in clarity smells solid arch tests safety ddd; do
+    src="$SKILL_DIR/groups/$g.md"
+    if diff -q "$src" <(slice_group_md "$src" " ") >/dev/null; then ok; else bad "$g.md changes under an empty deny set — not cleanly sliceable"; fi
+  done
+)
+
+( t "release: denying one check removes exactly its block from every catalog"
+  for g in clarity smells solid arch tests safety ddd; do
+    src="$SKILL_DIR/groups/$g.md"
+    base="$(hdrcount "$src" "$g")"
+    first="$(grep -oE "^### ${g}-[0-9]+" "$src" | head -1 | awk '{print $2}')"
+    last="$(grep -oE "^### ${g}-[0-9]+" "$src" | tail -1 | awk '{print $2}')"
+    sliced="$(slice_group_md "$src" " $first ")"
+    got="$(printf '%s\n' "$sliced" | grep -cE "^### ${g}-[0-9]" | tr -d ' ')"
+    assert_eq "$got" "$((base - 1))"
+    printf '%s\n' "$sliced" | grep -qE "^### ${first} " && bad "$g: denied $first still present" || ok
+    printf '%s\n' "$sliced" | grep -qE "^### ${last} "  && ok || bad "$g: sibling $last was dropped"
+    printf '%s\n' "$sliced" | grep -qE "^## " && ok || bad "$g: footer/section frame lost after slicing"
+  done
+)
+
+# Guard against count-table drift: the per-group counts hardcoded in SKILL.md
+# (Step 4 spawn table + the "Expected check counts" line) must equal the real
+# number of `### {group}-NN` headers in each group MD file, and the grand total
+# must stay in sync. synthesizer.md no longer restates base counts — it uses the
+# effective counts the orchestrator passes — so it is not guarded here.
+( t "SKILL.md count tables match groups/*.md header counts"
+  total=0
+  for g in clarity smells solid arch tests safety ddd; do
+    n="$(grep -cE "^### ${g}-[0-9]" "$SKILL_DIR/groups/$g.md")"
+    total=$((total + n))
+    grep -qE "^\| ${g} \|.*\| ${n} \|" "$SKILL_DIR/SKILL.md" && ok || bad "Step4 table: $g should be $n"
+    grep -qE "${g}=${n}[ ,]" "$SKILL_DIR/SKILL.md" && ok || bad "Expected-counts line: $g should be $n"
+  done
+  grep -qF "(${total} total)" "$SKILL_DIR/SKILL.md" && ok || bad "SKILL.md grand total should be ${total}"
+  # The same grand total is restated in the frontmatter description and the
+  # benchmark note; guard both so a group-count change can't leave them stale.
+  grep -qF "${total} checks across" "$SKILL_DIR/SKILL.md" && ok || bad "frontmatter should say ${total} checks across"
+  grep -qF "of the ${total} checks"  "$SKILL_DIR/SKILL.md" && ok || bad "benchmark note should reference ${total} checks"
+)
+
+# Guard the SKIP_TESTS doc: the id list on SKILL.md's files_prod.txt table row
+# must match the SKIP_TESTS variable in collect.sh, or the doc silently drifts.
+( t "SKILL.md SKIP_TESTS doc matches the collect.sh SKIP_TESTS variable"
+  vars="$(grep -E '^SKIP_TESTS=' "$SKILL_DIR/scripts/collect.sh" | grep -oE '[a-z]+-[0-9]+' | sort)"
+  docrow="$(grep -F 'files_prod.txt' "$SKILL_DIR/SKILL.md" | grep -F 'SKIP_TESTS')"
+  for id in $vars; do
+    printf '%s' "$docrow" | grep -qF "$id" && ok || bad "SKILL.md files_prod row should document $id"
+  done
+  assert_eq "$(printf '%s' "$docrow" | grep -oE '[a-z]+-[0-9]+' | sort | wc -l | tr -d ' ')" \
+            "$(printf '%s\n' "$vars" | wc -l | tr -d ' ')"
 )
 
 # ----------------------------------------------------------------

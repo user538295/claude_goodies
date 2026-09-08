@@ -2,6 +2,26 @@
 # Sourced by collect.sh and by tests/test_corpus.sh so tests exercise the exact
 # helpers production uses. Each helper reads a newline-separated file list on stdin.
 
+slice_group_md() {  # slice_group_md <group-md> " id1 id2 " -> allow-listed MD on stdout
+  # Physical allow-list for the deny feature: emit the group MD with every denied
+  # `### {group}-NN` check block removed and the preamble plus the `## ` footer
+  # preserved, so the agent that reads this copy never sees a denied check's
+  # definition — suppression the model cannot ignore, not an instruction it might.
+  # Block model (asserted by tests/test_collect.sh against every groups/*.md):
+  #   - every `^### ` line is a check header; its id is whitespace field 2
+  #   - a check block runs to the next `### ` or any `## ` section; no check body
+  #     contains a `## `/`### ` line, and no `### ` sits inside a code fence
+  # A `## ` line always clears skip (footer/preamble sections are never dropped).
+  # The surviving `### {group}-NN` header count IS the group's effective check
+  # count, so an empty deny set reproduces the file byte-for-byte and a set that
+  # names every check yields a headerless copy (a fully denied group).
+  awk -v deny="$2" '
+    /^### /{ skip = index(deny, " " $2 " ") > 0; if (!skip) print; next }
+    /^## /{ skip = 0; print; next }
+    { if (!skip) print }
+  ' "$1"
+}
+
 mgrep() {  # mgrep 'PCRE' -> file:line:text per match
   perl -e '
     my $pat = eval { qr/$ARGV[0]/ };

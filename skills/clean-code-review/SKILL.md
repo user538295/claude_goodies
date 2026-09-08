@@ -17,6 +17,19 @@ description: Structured clean code review — 128 checks across 7 groups (clarit
 
 Expected check counts: clarity=17, smells=27, solid=15, arch=15, tests=13, safety=32, ddd=9 (128 total).
 
+## Configuration (optional)
+
+A project may silence specific rules with a `.clean-code-review-config.json` file at its repo root (or, outside git, the working directory):
+
+```json
+{ "deny": ["ddd", "clarity-08", "safety-25"] }
+```
+
+- `deny` is the only key. Each entry is a **group name** (`ddd` → all its checks) or a **check id** (`clarity-08`). Only string entries are honored; a non-string entry (number, boolean, `null`) is ignored — a number surfaces as an unknown-entry `WARN-CONFIG:`, while `true`/`null` are dropped silently.
+- Denied checks are never run, reported, or counted — the review proceeds on the remaining rules with no "partial evaluation" warning.
+- `collect.sh` resolves entries (matched literally) against the real check universe, writes the concrete silenced ids to `denied.txt`, and slices those checks out of the per-group MD copies each agent reads (`$OUTDIR/groups/{group}.md`) — so a denied check's definition never reaches the model, not merely an instruction to skip it. A group with every check denied is dropped entirely.
+- A broken config never aborts the run: an unknown entry, invalid JSON, or a `deny` value that isn't an array each produces a `WARN-CONFIG:` line (surfaced in the report) and is otherwise ignored — the review continues on the valid entries (possibly none).
+
 ## Severity
 - **Critical**: blocks correctness, security, or safety
 - **Major**: significant design flaw, missing requirement, or likely bug
@@ -52,7 +65,7 @@ bash "$BASE/scripts/collect.sh" <non-group tokens...>
 |---|---|
 | `mode.txt` | resolved target (`staged`/`unstaged`/`untracked` lines, `ref: X`, or `files`) |
 | `files.txt` | files under review (vendor/generated already excluded) |
-| `files_prod.txt` | `files.txt` minus test files — the `SKIP_TESTS` checks (`ddd-01`, `solid-06`, `solid-08`, `solid-09`) run against this list instead |
+| `files_prod.txt` | `files.txt` minus test files — the `SKIP_TESTS` checks (`ddd-01`, `safety-06`, `solid-06`, `solid-08`, `solid-09`, `arch-14`) run against this list instead |
 | `skipped.txt` | excluded files |
 | `languages.txt` | detected language tokens |
 | `unanalysed.txt` | code extensions with no language mapping |
@@ -60,7 +73,9 @@ bash "$BASE/scripts/collect.sh" <non-group tokens...>
 | `diff.patch` | the raw unified diff (untracked/file targets appear as whole-file additions) |
 | `numbered.patch` | the same diff with each added/context line prefixed `N\|` (its true file line number) — this is what agents receive |
 | `hits.txt` | detection hits, already filtered to added lines and capped |
-| `warnings.txt` | `WARN-CAP:` / `WARN-DETECT:` / `NOTICE-LARGE-DIFF:` lines |
+| `denied.txt` | resolved check ids silenced by project config (one per line; empty when no config) — see Configuration |
+| `groups/{group}.md` | one allow-listed copy per group (always written) — verbatim when the group has no denied checks, otherwise with denied checks sliced out; agents always read these |
+| `warnings.txt` | `WARN-CAP:` / `WARN-DETECT:` / `WARN-CONFIG:` / `NOTICE-LARGE-DIFF:` lines |
 
 The script needs no GNU grep or other extras — detection patterns run via perl (preinstalled on macOS/Linux). Paths with spaces are handled.
 
@@ -74,25 +89,28 @@ Spawn **one agent per active group in parallel** (Agent tool). Group prompt file
 
 | Group | File | Checks |
 |---|---|---|
-| clarity | `$BASE/groups/clarity.md` | 17 |
-| smells | `$BASE/groups/smells.md` | 25 |
-| solid | `$BASE/groups/solid.md` | 15 |
-| arch | `$BASE/groups/arch.md` | 15 |
-| tests | `$BASE/groups/tests.md` | 13 |
-| safety | `$BASE/groups/safety.md` | 32 |
-| ddd | `$BASE/groups/ddd.md` | 9 |
+| clarity | `$OUTDIR/groups/clarity.md` | 17 |
+| smells | `$OUTDIR/groups/smells.md` | 27 |
+| solid | `$OUTDIR/groups/solid.md` | 15 |
+| arch | `$OUTDIR/groups/arch.md` | 15 |
+| tests | `$OUTDIR/groups/tests.md` | 13 |
+| safety | `$OUTDIR/groups/safety.md` | 32 |
+| ddd | `$OUTDIR/groups/ddd.md` | 9 |
+
+The `Checks` column is each group's full catalog size. `collect.sh` writes one copy of every group MD to `$OUTDIR/groups/{group}.md` — always the file to pass an agent — with any denied checks already sliced out, so the actual count may be lower (see below).
 
 Before spawning, get the diff size: `DIFF_LINES=$(wc -l < "$OUTDIR/numbered.patch")`.
 
+**Drop fully-denied groups.** A group's **effective check count** is the number of `### {group}-` headers in its `$OUTDIR/groups/{group}.md`. If that count is 0 (every check in the group denied), **drop the group** — do not spawn its agent, and remove it from the active set (and from Step 5's counts). If every active group is dropped, abort: `All active groups are silenced by .clean-code-review-config.json — nothing to review.`
+
 Pass each agent:
 - The path to `numbered.patch` as `$DIFF` and its exact length: "The diff file is {DIFF_LINES} lines. You MUST read all {DIFF_LINES} lines — keep issuing Read calls with increasing `offset` until you have seen the final line. Reviewing a partially-read diff is a failure." Each added/context line is prefixed `N|` with its true file line number.
-- Its group MD file path (agent reads it)
+- Its group MD file path `$OUTDIR/groups/{group}.md` (agent reads it; it already contains only the checks to evaluate)
 - `$PRECOMPUTED`: its group's lines from `hits.txt` (those starting `{group}-`). Line formats, tab-separated after the check id:
   - `id<TAB>file:line:text` → `{ check_id, file, line, matched_text }` — split on the **first two** colons only (paths and text may contain colons)
   - `tests-13` `<TAB>file:count` → `{ check_id, file, count }`
   - `smells-01` `<TAB>count file` → `{ check_id, file, line_count }`
 - `$LANGUAGES`: contents of `languages.txt`
-- Its expected check count (table above)
 - The `skipped.txt` list with instruction: "Files in this list are excluded — report NO findings for them."
 - This instruction:
 
@@ -116,13 +134,17 @@ A literal ` | ` inside the action field must be escaped as ` \| `. Example:
 
 After all group agents complete, spawn a synthesizer agent following `$BASE/synthesizer.md`. Pass it:
 - All finding lines and STATUS lines
-- Active groups, `languages.txt`, `skipped.txt`, `unanalysed.txt`, `mode.txt`
-- Expected check counts (table above)
-- All lines from `warnings.txt`
+- Active groups (fully-denied groups already dropped), `languages.txt`, `skipped.txt`, `unanalysed.txt`, `mode.txt`
+- The **effective** expected check count per active group = the number of `### {group}-` headers in the MD passed to that group's agent (collect.sh already sliced out denied checks) — this is the count table the synthesizer must use for reconciliation and `{checks_run}`
+- All lines from `warnings.txt` (including any `WARN-CONFIG:` lines)
 
 ## Step 6 — Output
 
-Present the synthesizer output directly, **exactly once** — do not repeat, re-summarize, or echo any section of it, and add no commentary before or after it (no dedup narration, no framing text). Then delete `$OUTDIR` (`rm -rf` of the temp dir is fine — it is a mktemp directory this skill created).
+Present the synthesizer output directly, **exactly once** — do not repeat, re-summarize, or echo any section of it, and add no commentary before or after it (no dedup narration, no framing text). Then delete `$OUTDIR` (a mktemp directory this skill created), falling back to the trash if `rm` fails:
+
+```bash
+rm -rf "$OUTDIR" || trash "$OUTDIR"
+```
 
 ---
 

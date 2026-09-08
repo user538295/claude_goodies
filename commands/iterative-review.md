@@ -25,7 +25,7 @@ find ~/.claude/commands ~/.claude/plugins ~/.claude/skills ./.claude/commands ./
 - **Present and target is code → available.** Tell the user in one line: `✓ /clean-code-review found — running one clean-code catalog pass in cycle 1.`
 - **Otherwise → skip.** Tell the user in one line: `✗ /clean-code-review skipped — <not installed | target is not code>.` Skip step 1b.
 
-**Loop — repeat until no Critical, Major issues remain or you finished the cycle 3:**
+**Loop — repeat until no Critical, Major, Moderate issues remain or you finished the cycle 3:**
 
 1. **Use the Agent tool to spawn multiple `devils-advocate` agents in parallel** (agent type `devils-advocate`, or `claude-goodies:devils-advocate` if that is the name shown in your agent list; minimum 3), **each with `model: "claude-opus-4-8", effort: "medium"`**, each reviewing independently from a different angle: one focuses on correctness and edge cases, one on architecture and design, one on test coverage gaps. **You MUST use the Agent tool — never simulate reviews with Bash commands, heredocs, inline text, or any other method. Only actual Agent tool invocations count.** Pass each agent:
    - The current state of the target (diff / changed files / plan)
@@ -41,11 +41,11 @@ find ~/.claude/commands ~/.claude/plugins ~/.claude/skills ./.claude/commands ./
 
 3. If the consolidated list contains no Critical, Major issues — the review loop is complete. Go to the summary below. (This ends the review loop only — not the calling skill's turn.)
 
-4. **Spawn the most appropriate agent(s) to fix** all issues. Pass the full consolidated findings. Apply fixes to the actual files. Note which issue ID each fix resolves. **Fix agents must NOT create git commits** — all changes stay as uncommitted working tree modifications.
+4. **Spawn the most appropriate agent(s) to fix** all issues (Critical, Major, Moderate, Minor). Pass the full consolidated findings. Apply fixes to the actual files. Note which issue ID each fix resolves. **Fix agents must NOT create git commits** — all changes stay as uncommitted working tree modifications.
 
 5. **Re-run the full automated test suite.** In Claude Code the foreground ceiling is ~120 s — use `run_in_background: true` + `Monitor` for suites that take longer (Monitor streams output and keeps the session alive). All tests must pass before the next cycle. If tests fail, spawn the most appropriate agent to resolve them first. You can skip this if you didn't touch the code.
 
-6. **Convergence check**: if the same Critical/Major issues (same root cause) reappear that were already fixed in a prior cycle, mark them as **unresolvable oscillations**, stop the loop, and report them.
+6. **Convergence check**: if the same issues (same root cause) reappear that were already fixed in a prior cycle, mark them as **unresolvable oscillations**, stop the loop, and report them.
 
 7. Go to step 1 with the updated target state.
 

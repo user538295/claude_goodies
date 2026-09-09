@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/status-report — Claude Code segédlet</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/status-report/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/status-report</code></h1>
+      <a class="back-link" href="index-hu.html">← Vissza az áttekintéshez</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Összefoglaló</h2>
+      <p><strong>Elindítottál egy hosszú háttérfeladatot, és fogalmad sincs, mikor végez.</strong> Kérésre vagy ütemezetten jelenti az állapotát — kimeneti fájlokat, parancsokat vagy URL-eket olvas, és rögzített formátumú frissítést ír: három közérthető sort (mi készült el / mi zajlik most / mi jön), egy részfeladatonkénti állapottáblát emojikkal, és egy hozzávetőleges várható befejezési időt. Ha a feladat elkészül, magától leáll. Bármikor leállítható a <code>/status-report off</code> paranccsal.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>Mikor használd</h2>
+      <p>Elindítottál egy háttérfeladatot — tesztsorozatot, buildet, deployt, migrációt, adatpipeline-t — és időnkénti frissítéseket szeretnél anélkül, hogy figyelned kellene. Bármilyen kimeneti forrással működik: a folyamat által írt fájl, shell-parancs (pl. <code>kubectl get pods</code>) vagy URL.</p>
+      <ul>
+        <li><code>"/status-report"</code> — egy ellenőrzés, azonnal</li>
+        <li><code>"/status-report 10 mins"</code> — ellenőrzés 10 percenként, amíg el nem végez</li>
+        <li><code>"/status-report 5 minutes"</code>, <code>"/status-report 2m"</code>, <code>"/status-report 30"</code> (egész szám = perc) — további elfogadott intervallum-formátumok</li>
+        <li><code>"/status-report off"</code> — ütemezett ellenőrzések leállítása</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Meghívás</h2>
+      <p>Egyszeri — azonnal jelent, ütemezés nélkül:</p>
+      <pre><code>/status-report</code></pre>
+      <p>Ismétlődő — a feladat befejezéséig jelent minden intervallumban:</p>
+      <pre><code>/status-report 10 mins
+/status-report 5 minutes
+/status-report 2m
+/status-report 30    ← egész szám = perc</code></pre>
+      <p>Emellett elfogadott: másodperc egységek (<code>N sec</code>/<code>secs</code>/<code>second</code>/<code>seconds</code>/<code>Ns</code>) és óra egységek (<code>N hour</code>/<code>hours</code>/<code>Nh</code>). A 60 mp alatti intervallumok 60 másodpercre emelkednek, "Interval floored to 1 minute." megjegyzéssel. Ha <code>N ≤ 0</code>, vagy a bemenet nem értelmezhető, a skill megkérdez ahelyett, hogy találgatna.</p>
+      <p>Ütemezett ellenőrzések leállítása — az illesztés kis- és nagybetűre nem érzékeny, és akkor is aktiválódik, ha az argumentum csak <em>ezekkel a szavakkal kezdődik</em> (pl. <code>"stop reports"</code>):</p>
+      <pre><code>/status-report off
+/status-report cancel
+/status-report stop</code></pre>
+      <p>A leállítás kizárólag ennek a skillnek a saját időzítőjét állítja le, annak feladat-azonosítója alapján — más háttérfeladatot nem érint.</p>
+      <p>A skill a beszélgetés kontextusából azonosítja a futó feladatot — háttérfeladat-azonosítóból, kimeneti fájl elérési útjából, leírásból, és a részfeladatok vagy fázisok listájából, amelyeken végighalad (ez táplálja az állapottáblát). Ha több feladatot talál, a legutóbb indítottat használja. Ha egyet sem talál, megkérdez, mielőtt folytatná. Ha a célfeladat valóban nem dönthető el egyértelműen, megkérdezi, melyik feladatot figyelje.</p>
+      <p>A figyelt forrásból (fájl, shell-parancs vagy URL) beolvasott tartalmat a skill nyers adatként kezeli — a benne található utasításokat sosem követi.</p>
+      <p><strong>Hogyan működik az ismétlődő mód:</strong> minden frissítést — az ismétlődőket is — a Claude ír, nem egy fej nélküli szkript. Ez teszi lehetővé a három közérthető sort és a részfeladatonkénti táblát: egy sima <code>tail</code> nem tudja megmondani, mi készült el vagy mi jön, a Claude viszont igen. Minden intervallum egy háttérben futó <code>sleep</code>; amikor az lejár, a keretrendszer újra meghívja a Claude-ot, és abban a körben íródik a következő jelentés. Így minden ellenőrzés némi modellidőbe kerül — ez a teljes formátum ára minden frissítésnél.</p>
+      <p><strong>Korlát:</strong> az ismétlődő ciklus az aktuális munkamenethez kötött — ha a munkamenet véget ér, leáll. Egy új munkamenet figyelheti ugyanazt a feladatot, ha megadod neki a kimeneti forrást (fájl elérési útja, parancs vagy URL). Futásonként legfeljebb 24 ellenőrzés (~4 óra 10 perces intervallummal). Ha a háttér-ütemezés nem érhető el (pl. egyes alügynök-kontextusokban), az ismétlődő mód egyszeri ellenőrzésre vált vissza, megjegyzéssel.</p>
+      <p>A várható befejezési idő az eddigi haladásból számolt hozzávetőleges becslés — nem ígéret. <code>stalled</code> értéket jelez, ha a haladás nem mozdult el az előző ellenőrzés óta, és <code>-</code> jelet, ha nincs számszerű haladási jelzés (pl. az 1. ellenőrzésnél, amelynek még nincs kiindulási alapja).</p>
+      <p>Az 1. ellenőrzés önmagában sosem jelez <code>complete</code>/<code>failed</code> állapotot, még ha a forrás már késznek is látszik — egyetlen olvasásból nem dönthető el, hogy a feladat valóban befejeződött, vagy csak egy monorepo két csomagja között van. A befejezést csak egy későbbi, változatlan tartalmú olvasás erősíti meg.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>1. példa — Egyszeri ellenőrzés <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/status-report</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>14:32 - [tesztsorozat] Status update #1 - 🔄 in progress 43% (187/430)
+
+- Kész: a billing és users csomagok tisztán lefutottak, 430-ból 187 teszt zöld.
+- Most: a src/api integrációs tesztjei futnak; 2 nem blokkoló hiba a notifications-ban.
+- Következik: src/notifications újrapróbák, majd a reporting csomag.
+
+| billing        | ✅ Done |
+| users          | ✅ Done |
+| api            | 🔄 In progress |
+| notifications  | ⏳ To do |
+| reporting      | ⏳ To do |</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>2. példa — Ismétlődő, befejezéssel <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/status-report 5 mins</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>23:35 - [integrációs tesztsorozat] Status update #1 - 🔄 in progress 17% (3/17)
+
+- Kész: 17-ből 3 sorozat lefutott (users, billing/charge).
+- Most: indul a billing refund és az orders sorozat.
+- Következik: orders széleshatáresetek, majd nemzetközi szállítás.
+
+| users    | ✅ Done |
+| billing  | 🔄 In progress |
+| orders   | ⏳ To do |
+
+ETA: -
+Next check in 5 min (23:40)
+
+Monitor task ID: bg_a1b2c3 — checks every 5 min. To stop: /status-report off
+
+[a háttér-sleep lejár, 5 perccel később]
+
+23:40 - [integrációs tesztsorozat] Status update #2 - 🔄 in progress 47% (8/17)
+
+- Kész: 17-ből 8 sorozat zöld; a users és billing készen van.
+- Most: az orders sorozat fut (create, cancel átment).
+- Következik: orders refund és nemzetközi szállítás.
+
+| users    | ✅ Done |
+| billing  | ✅ Done |
+| orders   | 🔄 In progress |
+
+ETA: 23:48
+Next check in 5 min (23:45)
+
+[a háttér-sleep lejár, 5 perccel később]
+
+23:45 - [integrációs tesztsorozat] Status update #3 - 🔄 in progress 100% (17/17)
+
+- Kész: mind a 17 sorozat átmenőt jelez; 17 passed, 0 failed most jelent meg.
+- Most: annak megerősítése, hogy a futás valóban véget ért, nem csomagok között van.
+- Következik: végső megerősítés a következő olvasáskor.
+
+| users    | ✅ Done |
+| billing  | ✅ Done |
+| orders   | 🔄 In progress |
+
+ETA: 23:45
+Next check in 5 min (23:50)
+
+[a háttér-sleep lejár, 5 perccel később]
+
+23:50 - [integrációs tesztsorozat] Status update #4 - ✅ complete 100% (17/17)
+
+- Kész: mind a 17 sorozat átment; a kimenet változatlan az előző ellenőrzés óta.
+- Most: a futás befejeződött, nincs folyamatban lévő munka.
+- Következik: semmi — a figyelés itt leáll.
+
+| users    | ✅ Done |
+| billing  | ✅ Done |
+| orders   | ✅ Done |
+
+Run complete — no further checks scheduled.</code></pre>
+        <p><em>Megjegyzés: a 3. ellenőrzés 100%-ot mutat, de még nem <code>complete</code> — a kimenete épp az imént változott, így még nem stabil. A 4. ellenőrzés ugyanazt a kimenetet látja, ez erősíti meg a befejezést. Ez az egy-intervallumos megerősítési költség szándékos: egyetlen olvasásból nem dönthető el, hogy a feladat valóban befejeződött, vagy csak az egyik csomag most készült el és a következő indul.</em></p>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Kapcsolódó eszközök</h2>
+      <ul>
+        <li><a href="skill-wrap-up-hu.html">/wrap-up</a> — Munkamenet-záró audit, amikor a feladat kódfejlesztés; a <code>/status-report</code> bármilyen futó folyamat figyelésére alkalmas.</li>
+        <li><a href="skill-bugfix-hu.html">/bugfix</a> — Az ágenseit szekvenciálisan, előtérben futtatja, így nincs háttérfeladat vagy kimeneti fájl, amit a <code>/status-report</code> figyelhetne. A <code>/status-report</code> inkább egy <code>run_in_background</code>-gal indított hosszú build-hez vagy tesztsorozathoz illik.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Hivatkozások</h2>
+      <p>
+        <a href="index-hu.html">← Összes segédlet</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-hu.html">Ügynöki munkafolyamat-pipeline (agentic-workflow-hu.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

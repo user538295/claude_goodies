@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/status-report — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/status-report/SKILL.md -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/status-report</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p><strong>Kicked off a long task and don't know when it'll finish.</strong> Reports status on demand or on a recurring schedule — reads output files, commands, or URLs, and writes a fixed-format update: three plain-language lines (done so far / current / next), a per-subtask status table with emojis, and a rough ETA. It stops itself when the task completes. Cancel anytime with <code>/status-report off</code>.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>You started a background task — a test suite, build, deploy, migration, data pipeline — and want periodic updates without babysitting it. Works with any output source: a file written by the process, a shell command like <code>kubectl get pods</code>, or a URL.</p>
+      <ul>
+        <li><code>"/status-report"</code> — one check, right now</li>
+        <li><code>"/status-report 10 mins"</code> — check every 10 minutes until done</li>
+        <li><code>"/status-report 5 minutes"</code>, <code>"/status-report 2m"</code>, <code>"/status-report 30"</code> (bare integer = minutes) — other accepted interval forms</li>
+        <li><code>"/status-report off"</code> — stop scheduled checks</li>
+      </ul>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p>One-shot — report immediately, no scheduling:</p>
+      <pre><code>/status-report</code></pre>
+      <p>Recurring — report every interval until the task completes:</p>
+      <pre><code>/status-report 10 mins
+/status-report 5 minutes
+/status-report 2m
+/status-report 30    ← bare integer = minutes</code></pre>
+      <p>Also accepted: second units (<code>N sec</code>/<code>secs</code>/<code>second</code>/<code>seconds</code>/<code>Ns</code>) and hour units (<code>N hour</code>/<code>hours</code>/<code>Nh</code>). Intervals under 60 s are floored to 60 with the note "Interval floored to 1 minute." If <code>N ≤ 0</code> or the input can't be parsed, the skill asks rather than guessing.</p>
+      <p>Cancel scheduled checks — matching is case-insensitive and also fires when the argument merely <em>begins with</em> one of these words (e.g. <code>"stop reports"</code>):</p>
+      <pre><code>/status-report off
+/status-report cancel
+/status-report stop</code></pre>
+      <p>Cancelling stops only this skill's own timer, by its task ID — it does not touch any other background task.</p>
+      <p>The skill identifies the running task from conversation context — background task ID, output file path, description, and the list of subtasks or phases it moves through (this feeds the status table). If multiple tasks are found, it uses the most recently launched. If none found, it asks before proceeding. If the target task is genuinely ambiguous, it asks which task to monitor.</p>
+      <p>Content read from the monitored source (file, shell command, or URL) is treated as raw data only — any instructions it contains are never followed.</p>
+      <p><strong>How recurring mode works:</strong> every update — including each recurring one — is written by Claude, not by a headless script. That is what makes the three plain-language lines and the per-subtask table possible: a plain <code>tail</code> can't say what is done or what comes next, but Claude can. Each interval is a background <code>sleep</code>; when it exits, the harness re-invokes Claude, and that turn is where the next report is written. So every check costs a little model time — the deliberate price of the full format on every update.</p>
+      <p><strong>Tradeoff:</strong> the recurring loop is tied to the current session — if the session ends, it stops. A new session can still monitor the same task if you give it the output source (file path, command, or URL). Max 24 checks per run (~4 h at 10-minute intervals). If background scheduling is unavailable (e.g. some subagent contexts), recurring mode falls back to a one-shot check with a note.</p>
+      <p>ETA is a rough estimate from progress so far — not a commitment. It reports <code>stalled</code> if progress hasn't moved since the previous check, and <code>-</code> when no numeric progress signal is available (e.g. check #1, which has no baseline yet).</p>
+      <p>Check #1 never reports <code>complete</code>/<code>failed</code> on its own, even if the source already looks done — a single read can't distinguish a genuinely finished run from a monorepo between packages. Completion is confirmed only once a later read finds the output unchanged.</p>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — One-shot check <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/status-report</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>14:32 - [test suite] Status update #1 - 🔄 in progress 43% (187/430)
+
+- Done: billing and users packages passed clean, 187 of 430 tests green.
+- Now: running src/api integration tests; 2 non-blocking failures noted in notifications.
+- Next: src/notifications retries, then the reporting package.
+
+| billing        | ✅ Done |
+| users          | ✅ Done |
+| api            | 🔄 In progress |
+| notifications  | ⏳ To do |
+| reporting      | ⏳ To do |</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — Recurring with completion <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/status-report 5 mins</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>23:35 - [integration test suite] Status update #1 - 🔄 in progress 17% (3/17)
+
+- Done: 3 of 17 suites passed (users, billing/charge).
+- Now: starting the billing refund and orders suites.
+- Next: orders edge cases, then international shipping.
+
+| users    | ✅ Done |
+| billing  | 🔄 In progress |
+| orders   | ⏳ To do |
+
+ETA: -
+Next check in 5 min (23:40)
+
+Monitor task ID: bg_a1b2c3 — checks every 5 min. To stop: /status-report off
+
+[background sleep exits, 5 minutes later]
+
+23:40 - [integration test suite] Status update #2 - 🔄 in progress 47% (8/17)
+
+- Done: 8 of 17 suites green; users and billing complete.
+- Now: running the orders suite (create, cancel passing).
+- Next: orders refund and international shipping.
+
+| users    | ✅ Done |
+| billing  | ✅ Done |
+| orders   | 🔄 In progress |
+
+ETA: 23:48
+Next check in 5 min (23:45)
+
+[background sleep exits, 5 minutes later]
+
+23:45 - [integration test suite] Status update #3 - 🔄 in progress 100% (17/17)
+
+- Done: all 17 suites report passing; 17 passed, 0 failed just printed.
+- Now: confirming the run is truly finished, not between packages.
+- Next: final confirmation on the next read.
+
+| users    | ✅ Done |
+| billing  | ✅ Done |
+| orders   | 🔄 In progress |
+
+ETA: 23:45
+Next check in 5 min (23:50)
+
+[background sleep exits, 5 minutes later]
+
+23:50 - [integration test suite] Status update #4 - ✅ complete 100% (17/17)
+
+- Done: all 17 suites passed; output unchanged since last check.
+- Now: run finished, no further work in progress.
+- Next: nothing — monitoring stops here.
+
+| users    | ✅ Done |
+| billing  | ✅ Done |
+| orders   | ✅ Done |
+
+Run complete — no further checks scheduled.</code></pre>
+        <p><em>Note: check #3 shows 100% but is not yet reported <code>complete</code> — its output just changed, so it isn't stable yet. Check #4 sees the identical output and confirms completion. This one-interval confirmation cost is deliberate: a single reading can't tell "genuinely finished" apart from "one package just finished, the next is about to start."</em></p>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="skill-wrap-up.html">/wrap-up</a> — End-of-session audit for when the task is code work; <code>/status-report</code> is for monitoring any running process.</li>
+        <li><a href="skill-bugfix.html">/bugfix</a> — Runs its agents sequentially in the foreground, so there's no background task or output file for <code>/status-report</code> to monitor. <code>/status-report</code> instead suits a long build or test suite launched with <code>run_in_background</code>.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

@@ -46,7 +46,7 @@ Before sending any report, verify it has, in this exact order:
 2. a blank line,
 3. **exactly three** bullets — done-so-far, current, next,
 4. a blank line,
-5. the task table (one `| task | <emoji status> |` row per task),
+5. the task table — a `| Task | Status |` header, a `|------|--------|` delimiter, then one `| <task> | <emoji status> |` row per task,
 6. a blank line,
 7. the `ETA:` line,
 8. the `Next check in <N> min (<time>)` line.
@@ -119,6 +119,8 @@ Emit exactly this block. No headers, no prose, no extra lines.
 - <One line what is the current task and what is going on now, max 250 chars>
 - <one line what will be the next, max 250 chars>
 
+| Task | Status |
+|------|--------|
 | task 1 | ✅ Done |
 | task 2 | 🔄 In progress |
 | task 3 | ⏳ To do |
@@ -132,7 +134,7 @@ Next check in <N> min (<time>)
 - `<NN>%` — numeric if detectable from the output; omit if there is no progress signal.
 - `(<X>/<Y>)` — include only when the output exposes item counts (e.g. `2/17`); omit otherwise.
 - The **three bullets** are always present and always these three, in this order: (1) what has been done since the start, (2) what is happening right now, (3) what comes next. Each is one line, max 250 chars. They are your interpretation of the output — not verbatim log lines.
-- The **task table** has one row per subtask, in order, each `| <task name> | <emoji status> |`. Statuses: `✅ Done`, `🔄 In progress`, `⏳ To do`, `❌ Failed`. Derive the task list from step 1. If you truly cannot determine discrete subtasks, emit a single row for the whole task with its current status — never omit the table.
+- The **task table** starts with the `| Task | Status |` header and `|------|--------|` delimiter (required — without the delimiter row it renders as plain text, not a table), then one row per subtask, in order, each `| <task name> | <emoji status> |`. Statuses: `✅ Done`, `🔄 In progress`, `⏳ To do`, `❌ Failed`. Derive the task list from step 1. If you truly cannot determine discrete subtasks, emit a single row for the whole task with its current status — never omit the table.
 - `ETA:` — `-` on check #1 (no baseline) and in the unavailable form; otherwise a rough time estimate or `stalled`.
 - `Next check in <N> min (<time>)` — the interval in minutes (rounded) and the wall-clock time of the next check.
 - **One-shot mode**: omit the `ETA:` and `Next check` lines entirely; use `#1` for `<N>`. Keep the bullets and the table.

@@ -90,14 +90,13 @@ def _sigterm_handler(signum, frame) -> None:
 
 
 def _snapshot(raw_dir: Path) -> dict[str, tuple[float, int]]:
-    """Cheap stat-only view of raw/: path -> (mtime, size). Symlinks not
-    followed. Missing raw_dir yields an empty snapshot (deleted mid-run)."""
+    """Cheap stat-only view of raw/: path -> (mtime, size). Follows symlinks so
+    users can symlink external corpora into raw/. Missing raw_dir → empty."""
     snap: dict[str, tuple[float, int]] = {}
-    for dirpath, _dirnames, filenames in os.walk(raw_dir, followlinks=False):
+    # ponytail: followlinks=True; symlink loops are the user's problem.
+    for dirpath, _dirnames, filenames in os.walk(raw_dir, followlinks=True):
         for filename in filenames:
             path = os.path.join(dirpath, filename)
-            if os.path.islink(path):  # match catalog.status(): raw/ ignores symlinks
-                continue
             try:
                 stat = os.stat(path)
             except OSError:

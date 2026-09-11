@@ -19,7 +19,7 @@ llm-wiki/
   schema.md          ← you are here
   index.md           ← catalog of all wiki pages (LLM maintains)
   log.md             ← append-only activity log (LLM maintains)
-  raw/               ← immutable sources (LLM never modifies); flat — drop sources here
+  raw/               ← immutable sources (LLM never modifies); symlinks followed
   wiki/              ← LLM-maintained knowledge (write here)
     overview.md      ← high-level summary of what this wiki covers
     glossary.md      ← shared terminology
@@ -29,9 +29,10 @@ llm-wiki/
   drafts/            ← work in progress (not truth); flat — no subdirectories
 ```
 
-`raw/` is **flat** by design — categorization is the wiki's job, not raw/'s. You may organize
-your own sub-folders inside `raw/` if you find them useful (the skill won't stop you), but the
-skill imposes none.
+`raw/` has no required subdirectories — categorization is the wiki's job, not raw/'s. You may
+organize your own sub-folders inside `raw/` if you find them useful (the skill won't stop you),
+and you may **symlink** external directories or files into `raw/` to include them in the corpus
+without copying. Symlinked files and directories are followed by the catalog and watcher.
 
 Additional `wiki/` subdirectories (e.g. `wiki/methods/`, `wiki/people/`,
 `wiki/timelines/`) may emerge as the wiki grows. **Add them via the Evolve schema operation —
@@ -107,8 +108,9 @@ wiki page — do not silently choose one.
   - For PDFs specifically, the LLM may *read* the PDF directly (multimodal) for extraction,
     even though it cannot *write* one.
 - Filename convention: `YYYY-MM-DD_short-description.<ext>`
-- `raw/` is **flat** — no required subdirectories. If you create sub-folders for your own
-  convenience, the LLM will respect them (citations use the full path).
+- `raw/` has no required subdirectories. Sub-folders and **symlinks** (files or directories)
+  are fully supported — the catalog and watcher follow them. Citations use the full relative
+  path (e.g. `raw/linked-corpus/paper.md`).
 
 ### wiki/ — Compiled knowledge (LLM writes)
 

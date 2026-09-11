@@ -122,6 +122,14 @@ def test_relkey_add_requires_existing_file(tmp_path):
         _relkey(tmp_path, "ghost.md", must_exist=True)
 
 
+def test_relkey_resolves_symlinked_file(tmp_path):
+    raw = _mk_raw(tmp_path)
+    outside = tmp_path / "external.md"
+    outside.write_text("content")
+    (raw / "linked.md").symlink_to(outside)
+    assert _relkey(tmp_path, "linked.md") == "linked.md"
+
+
 # --- add tests ---
 
 def test_add_new_file_records_hash_and_timestamp(tmp_path):
@@ -266,11 +274,29 @@ def test_status_empty_raw(tmp_path):
     assert result == {"new": [], "changed": [], "current": [], "missing": []}
 
 
-def test_status_symlink_not_followed(tmp_path):
+def test_status_follows_symlinked_file(tmp_path):
     raw = _mk_raw(tmp_path)
     outside = tmp_path / "outside.md"
-    outside.write_text("secret")
-    (raw / "link").symlink_to(outside)
+    outside.write_text("content")
+    (raw / "link.md").symlink_to(outside)
+    result = status(tmp_path)
+    assert result["new"] == ["link.md"]
+
+
+def test_status_follows_symlinked_directory(tmp_path):
+    raw = _mk_raw(tmp_path)
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "a.md").write_text("a")
+    (corpus / "b.md").write_text("b")
+    (raw / "linked-corpus").symlink_to(corpus)
+    result = status(tmp_path)
+    assert sorted(result["new"]) == ["linked-corpus/a.md", "linked-corpus/b.md"]
+
+
+def test_status_skips_broken_symlink(tmp_path):
+    raw = _mk_raw(tmp_path)
+    (raw / "broken.md").symlink_to(tmp_path / "nonexistent.md")
     result = status(tmp_path)
     assert result["new"] == []
 

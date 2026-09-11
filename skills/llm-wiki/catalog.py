@@ -9,6 +9,7 @@ Script-owned so the LLM never hand-edits the ledger.
 import argparse
 import hashlib
 import json
+import os
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -77,12 +78,13 @@ def _relkey(project_root: Path, raw_path: str, must_exist: bool = True) -> str:
     `raw/<file>` form (schema.md) as well as a bare `<file>`."""
     raw_dir = _raw_dir(project_root)
     p = Path(raw_path)
-    # ponytail: raw/ is documented flat, so a leading `raw/` is the doc prefix,
-    # not a real subdir named raw. Strip it; revisit if nested raw/ is allowed.
+    # A leading `raw/` is the documented CLI form (schema.md); strip it.
     if not p.is_absolute() and len(p.parts) > 1 and p.parts[0] == "raw":
         p = Path(*p.parts[1:])
     p = p if p.is_absolute() else (raw_dir / p)
-    p = p.resolve()
+    # ponytail: normpath collapses .. without following symlinks, so
+    # symlinked files/dirs in raw/ resolve to their link path, not target.
+    p = Path(os.path.normpath(p))
     try:
         rel = p.relative_to(raw_dir)
     except ValueError:
@@ -136,18 +138,22 @@ def status(project_root: Path) -> dict[str, list[str]]:
     new, changed, current = [], [], []
     seen: set[str] = set()
     if raw_dir.exists():
-        for path in raw_dir.rglob("*"):
-            if path.is_symlink() or not path.is_file():
-                continue
-            key = path.relative_to(raw_dir).as_posix()
-            seen.add(key)
-            entry = entries.get(key)
-            if entry is None:
-                new.append(key)
-            elif entry.sha256 == _hash_file(path):
-                current.append(key)
-            else:
-                changed.append(key)
+        # ponytail: followlinks=True lets users symlink external corpora into raw/;
+        # symlink loops are the user's problem — upgrade to cycle detection if needed.
+        for dirpath, _dirnames, filenames in os.walk(raw_dir, followlinks=True):
+            for filename in filenames:
+                full = Path(dirpath) / filename
+                if not full.is_file():
+                    continue
+                key = full.relative_to(raw_dir).as_posix()
+                seen.add(key)
+                entry = entries.get(key)
+                if entry is None:
+                    new.append(key)
+                elif entry.sha256 == _hash_file(full):
+                    current.append(key)
+                else:
+                    changed.append(key)
 
     missing = [k for k in entries if k not in seen]
     return {

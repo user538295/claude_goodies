@@ -22,15 +22,32 @@ def test_snapshot_lists_files_with_mtime_size(tmp_path):
     assert snap == {str(f): (stat.st_mtime, stat.st_size)}
 
 
-def test_snapshot_symlink_not_followed(tmp_path):
+def test_snapshot_follows_symlinked_file(tmp_path):
     raw = tmp_path / "raw"
     raw.mkdir()
     outside = tmp_path / "outside.txt"
     outside.write_text("outside")
-    (raw / "link").symlink_to(outside)
+    (raw / "link.txt").symlink_to(outside)
     snap = _snapshot(raw)
-    # The symlink itself must be skipped, matching catalog.status()'s raw/ view.
-    assert str(raw / "link") not in snap
+    assert str(raw / "link.txt") in snap
+
+
+def test_snapshot_follows_symlinked_directory(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "a.md").write_text("a")
+    (raw / "linked").symlink_to(corpus)
+    snap = _snapshot(raw)
+    assert str(raw / "linked" / "a.md") in snap
+
+
+def test_snapshot_skips_broken_symlink(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    (raw / "broken.md").symlink_to(tmp_path / "nonexistent.md")
+    snap = _snapshot(raw)
     assert snap == {}
 
 

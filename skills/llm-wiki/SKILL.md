@@ -79,7 +79,7 @@ llm-wiki/
   schema.md              ← from templates/schema.md, adapted to project
   index.md               ← from templates/index.md
   log.md                 ← from templates/log.md  (bookkeeping; part of the Karpathy pattern)
-  raw/                   ← flat; no required subdirectories
+  raw/                   ← sources; symlinks followed (files and directories)
   wiki/
     overview.md          ← from templates/overview.md
     glossary.md          ← from templates/glossary.md
@@ -416,8 +416,8 @@ This makes the desired state stick across restarts. Before any operation:
   *new* source (article, paper, transcript, website export, screenshots, PDFs, notes, etc.),
   write the raw file under `llm-wiki/raw/` — never into `docs/`, `notes/`, or any sibling
   directory you invent. The "Existing project documentation" section in `schema.md` only
-  governs *pre-existing* external docs; net-new material always goes into `raw/`. `raw/` is
-  flat — no required subdirectories.
+  governs *pre-existing* external docs; net-new material always goes into `raw/`. `raw/` has
+  no required subdirectories; symlinked files and directories are followed.
   Synthesised analyses (comparisons, gap analyses, summaries) are wiki output, not raw — write
   them under `llm-wiki/wiki/`, not `raw/`.
 - **Save format for ingested material.** Every raw file must (a) preserve all substantive

@@ -143,7 +143,46 @@ Run complete — no further checks scheduled.</code></pre>
       </div>
     </section>
 
-    <section data-section="6-related-tools">
+    <section data-section="6-example-3">
+      <h2>Example 3 — Recurring sweep with a bordered task table <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/status-report 20 mins</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Batch 2 is 4/5 done (S533, S487, S445, S448 committed) — only S449 remains.
+
+09:37 - [/update-scenarios sweep] Status update #3 - 🔄 in progress 22% (9/40)
+
+- Batch 1 fully done (5/5 committed). Batch 2 is 4/5 done (S533, S487, S445, S448 committed); only S449 left.
+- Currently finishing S449 (spaCy→gliner precondition rename) in batch 2.
+- Once batch 2 wraps, batch 3 starts (S606, S583, S319, S318, S320).
+
+┌────────────────────────────────────────────────┬──────────────────────┐
+│                      Task                      │        Status        │
+├────────────────────────────────────────────────┼──────────────────────┤
+│ Batch 1: ready/status doc sync (5)             │ ✅ Done              │
+├────────────────────────────────────────────────┼──────────────────────┤
+│ Batch 2: spaCy→gliner rename (5)               │ 🔄 In progress (4/5) │
+├────────────────────────────────────────────────┼──────────────────────┤
+│ Batch 3: more graph doc updates (5)            │ ⏳ To do             │
+├────────────────────────────────────────────────┼──────────────────────┤
+│ Batch 4: eager-load/embedder cache (5)         │ ⏳ To do             │
+├────────────────────────────────────────────────┼──────────────────────┤
+│ Batch 5: docker citation + 4 new scenarios (5) │ ⏳ To do             │
+├────────────────────────────────────────────────┼──────────────────────┤
+│ Batch 6: new scenarios (5)                     │ ⏳ To do             │
+├────────────────────────────────────────────────┼──────────────────────┤
+│ Batch 7: new scenarios (5)                     │ ⏳ To do             │
+├────────────────────────────────────────────────┼──────────────────────┤
+│ Batch 8: new scenarios (5)                     │ ⏳ To do             │
+└────────────────────────────────────────────────┴──────────────────────┘
+
+ETA: ~2.5-3.5h remaining (roughly 21 min/scenario so far, 31 scenarios left)
+Next check in 20 min (09:57)</code></pre>
+      </div>
+    </section>
+
+    <section data-section="7-related-tools">
       <h2>Related tools</h2>
       <ul>
         <li><a href="skill-wrap-up.html">/wrap-up</a> — End-of-session audit for when the task is code work; <code>/status-report</code> is for monitoring any running process.</li>
@@ -151,7 +190,7 @@ Run complete — no further checks scheduled.</code></pre>
       </ul>
     </section>
 
-    <footer data-section="7-footer">
+    <footer data-section="8-footer">
       <h2>Links</h2>
       <p>
         <a href="index.html">← All handouts</a>

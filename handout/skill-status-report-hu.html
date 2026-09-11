@@ -143,7 +143,46 @@ Run complete — no further checks scheduled.</code></pre>
       </div>
     </section>
 
-    <section data-section="6-related-tools">
+    <section data-section="6-example-3">
+      <h2>3. példa — Ismétlődő végigfutás keretezett feladattáblával <em>(szemléltető példa)</em></h2>
+      <div class="example">
+        <p><strong>Bemenet:</strong></p>
+        <pre><code>/status-report 20 mins</code></pre>
+        <p><strong>Kimenet / Eredmény:</strong></p>
+        <pre><code>A 2. csomag 4/5 kész (S533, S487, S445, S448 commitolva) — már csak az S449 van hátra.
+
+09:37 - [/update-scenarios sweep] Állapotfrissítés #3 - 🔄 folyamatban 22% (9/40)
+
+- Az 1. csomag teljesen kész (5/5 commitolva). A 2. csomag 4/5 kész (S533, S487, S445, S448 commitolva); már csak az S449 van hátra.
+- Épp az S449-et fejezem be (spaCy→gliner előfeltétel-átnevezés) a 2. csomagben.
+- Amint a 2. csomag végez, indul a 3. csomag (S606, S583, S319, S318, S320).
+
+┌───────────────────────────────────────────────────┬─────────────────────┐
+│                      Feladat                      │       Állapot       │
+├───────────────────────────────────────────────────┼─────────────────────┤
+│ 1. csomag: ready/status doc szinkron (5)          │ ✅ Kész              │
+├───────────────────────────────────────────────────┼─────────────────────┤
+│ 2. csomag: spaCy→gliner átnevezés (5)             │ 🔄 Folyamatban (4/5) │
+├───────────────────────────────────────────────────┼─────────────────────┤
+│ 3. csomag: további graph doc frissítések (5)      │ ⏳ Hátravan          │
+├───────────────────────────────────────────────────┼─────────────────────┤
+│ 4. csomag: eager-load/embedder cache (5)          │ ⏳ Hátravan          │
+├───────────────────────────────────────────────────┼─────────────────────┤
+│ 5. csomag: docker hivatkozás + 4 új szcenárió (5) │ ⏳ Hátravan          │
+├───────────────────────────────────────────────────┼─────────────────────┤
+│ 6. csomag: új szcenáriók (5)                      │ ⏳ Hátravan          │
+├───────────────────────────────────────────────────┼─────────────────────┤
+│ 7. csomag: új szcenáriók (5)                      │ ⏳ Hátravan          │
+├───────────────────────────────────────────────────┼─────────────────────┤
+│ 8. csomag: új szcenáriók (5)                      │ ⏳ Hátravan          │
+└───────────────────────────────────────────────────┴─────────────────────┘
+
+ETA: ~2,5–3,5 óra van hátra (eddig kb. 21 perc/szcenárió, 31 szcenárió maradt)
+Következő ellenőrzés 20 perc múlva (09:57)</code></pre>
+      </div>
+    </section>
+
+    <section data-section="7-related-tools">
       <h2>Kapcsolódó eszközök</h2>
       <ul>
         <li><a href="skill-wrap-up-hu.html">/wrap-up</a> — Munkamenet-záró audit, amikor a feladat kódfejlesztés; a <code>/status-report</code> bármilyen futó folyamat figyelésére alkalmas.</li>
@@ -151,7 +190,7 @@ Run complete — no further checks scheduled.</code></pre>
       </ul>
     </section>
 
-    <footer data-section="7-footer">
+    <footer data-section="8-footer">
       <h2>Hivatkozások</h2>
       <p>
         <a href="index-hu.html">← Összes segédlet</a>

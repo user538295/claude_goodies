@@ -157,59 +157,44 @@ chapter 3 given two conflicting interpretations."
 
 ## Pre-flight check
 
-**Run this check before every operation.** It handles crash recovery and surfaces pending
-raw-file ingests from the watcher queue.
+**Run this check before every operation.** It reconciles the watcher and surfaces raw files
+that need ingesting. Crash safety is automatic: a file is recorded in the catalog
+(`catalog.py add`) only *after* its wiki pages are written, so an interrupted batch simply
+leaves the remaining files showing as `new`/`changed` next time — there is no separate
+processing-queue to recover.
 
-**Skip check**: If `llm-wiki/.watcher/` does not exist, skip the entire pre-flight check and proceed directly to the requested operation.
+`catalog.py` and its resolved path are defined in `SKILL.md` (Step 2). It is the single
+authority for ingest state; the watcher holds none.
 
-### Step PF-1 — Check for crashed ingest (`pending.processing.tmp`)
+### Step PF-1 — Watcher reconciliation
 
-If `llm-wiki/.watcher/pending.processing.tmp` exists:
-- A crash occurred during the atomic rename. Delete `pending.processing.tmp`.
-- Proceed with `pending.processing` as-is (the `#done:` marker for the last file was not
-  written; it will be re-ingested on resume). Continue to Step PF-2.
+If `llm-wiki/.watcher/` does not exist, skip this step. Otherwise run the **Watcher
+reconciliation** procedure from `SKILL.md`: if the watcher is enabled (`desired` = `on`) but
+not running, restart it and tell the user; if it is running but turned off, ask whether to
+stop it (never auto-stop).
 
-### Step PF-2 — Check for interrupted ingest (`pending.processing`)
+### Step PF-2 — Surface files needing ingest
 
-If `llm-wiki/.watcher/pending.processing` exists, a prior ingest was interrupted.
+Run `catalog.py status <project-root>`.
 
-1. Read the file. Identify remaining lines — those **without** a `#done:` prefix.
-2. Skip any remaining line that does not resolve to an existing path under `llm-wiki/raw/`
-   (corrupt partial write from a mid-rewrite crash).
-3. If no valid remaining lines exist after filtering, silently delete `pending.processing` and proceed to Step PF-3 (no user prompt needed).
-4. Say: *"A previous ingest was interrupted with N file(s) remaining. Resume or discard?"*
-   - **Resume**: treat the valid remaining lines as the ingest set; proceed to ingest
-     (no rename needed — `pending.processing` already exists).
-   - **Discard**: delete `pending.processing`; continue to Step PF-3.
-
-### Step PF-3 — Check pending queue
-
-Read `llm-wiki/.watcher/pending`. If the file is absent or empty, no action needed.
-
-If non-empty:
-1. Filter `pending` to only paths that exist under `llm-wiki/raw/` — silently skip non-existent paths. Show the user only the count of existing files.
-2. Cross-reference against `llm-wiki/.watcher/pending.snoozed`: any path present in both
-   files means the file changed after snooze — remove it from `pending.snoozed` before
-   presenting to the user. Write the filtered content to `pending.snoozed.tmp`, then
-   atomically rename to `pending.snoozed` (`mv pending.snoozed.tmp pending.snoozed`).
-3. Say: *"N new file(s) detected in raw/ — ingest them first?"*
-   - **Yes**: rename `pending` → `pending.processing`; ingest files one at a time using
-     the Ingest operation (each file gets its own Ingest call and its own `log.md` entry).
-     After each successful ingest, write the modified content with `#done:` prepended to
-     that line to a sibling temp file `pending.processing.tmp`, then rename it over
-     `pending.processing` (atomic crash-safety). After ALL files are processed, delete
-     `pending.processing`. Append to `log.md`:
-     `## [YYYY-MM-DD] ingest | <file1>, <file2> (from watcher queue) | <pages touched>`
-   - **No**: for each path, run `python3 -c "import os,sys; s=os.stat(sys.argv[1]); print(f'{s.st_mtime}\t{s.st_size}', end='')" "$path"` (the path must be shell-quoted to handle filenames with spaces) to get the current float mtime and integer size. Read existing `pending.snoozed` content (if any) to preserve prior snoozed entries. Write the combined content (existing entries + new declined paths as `<path>\t<mtime>\t<size>` lines) to `pending.snoozed.tmp` first, then atomically rename to `pending.snoozed` (`mv pending.snoozed.tmp pending.snoozed`). If a file no longer exists, skip it (do not snooze). After successfully writing to `pending.snoozed` (rename complete), delete `pending` (the snoozed paths are now tracked in `pending.snoozed`; the watcher will create a fresh `pending` on its next poll cycle if new files are detected). Snoozed files will not be re-prompted. User can run `check-pending` to review snoozed files.
+- If `new` and `changed` are both empty, no action needed — proceed to the requested operation.
+- Otherwise say: *"N file(s) in raw/ need ingesting (X new, Y changed) — ingest them first?"*
+  - **Yes**: ingest each via the Ingest operation — one Ingest call per file, its own
+    `log.md` entry, and its own `catalog.py add` on success. `changed` files follow
+    **Re-ingest** (a tracked source whose content changed).
+  - **No**: proceed with the requested operation. The files stay `new`/`changed` and will
+    surface again next time — accurate content-hash detection means declining is safe (no
+    snooze needed).
+- If `missing` is non-empty (catalogued files no longer in `raw/`), mention it once as
+  informational — usually a superseded source; no action required.
 
 ### Watcher health warning (non-blocking)
 
-After processing Step PF-3, read `llm-wiki/.watcher/watcher.pid` (if it exists) and check
-the heartbeat timestamp (line 2):
+During Step PF-1's liveness check, if the watcher directory exists:
 - Heartbeat age **90s–300s**: warn "watcher heartbeat is stale — it may be hung" but do
   not block the operation.
-- Heartbeat age **> 300s** or PID file absent: warn "watcher is not running — run
-  start-watch to resume monitoring" but do not block the operation.
+- Heartbeat age **> 300s** or PID file absent while `desired` = `on`: warn "watcher is not
+  running — run `watcher on` to resume monitoring" but do not block the operation.
 
 ### Log line format
 
@@ -268,6 +253,10 @@ text if needed.
    inline as `(source: raw/<file>)`.
 5. LLM updates `index.md`.
 6. LLM appends to `log.md`: `## [YYYY-MM-DD] ingest | <filename> | <pages touched>`
+7. LLM records the ingest in the catalog — **only after steps 4–6 succeed**:
+   `catalog.py add <project-root> raw/<filename>` (see `SKILL.md` Step 2 for the resolved
+   path). This stamps the file's sha256 so it reads as `current`; if the source later changes,
+   `catalog.py status` will flag it as `changed`.
 
 **Re-ingest (source updated).** When a tracked source changes — a paper has a revised
 preprint, a website page is rewritten, a chapter is re-released — create a *new* raw file with
@@ -279,6 +268,15 @@ page that was never updated during an earlier re-ingest may still cite the origi
 files stay untouched as the audit trail; the Supersedes field makes the chain
 forward-discoverable without modifying them. Log:
 `## [YYYY-MM-DD] re-ingest | <new-filename> supersedes <old-filename> | <pages touched>`
+
+Then record the new raw file in the catalog: `catalog.py add <project-root> raw/<new-filename>`.
+The superseded file keeps its own catalog entry (its content is unchanged, so it stays
+`current`) — leave it; the append-only audit trail is intact.
+
+**In-place change (same filename).** If a source file in `raw/` is edited in place rather than
+superseded by a new dated file, `catalog.py status` reports it as `changed`. Re-run the Ingest
+save-format and page updates against the new content, then `catalog.py add` the same path to
+re-stamp its hash back to `current`.
 
 **Sync trigger.** Beyond explicit user-initiated ingests, the LLM should proactively refresh
 the wiki in the same session after adding, changing, or removing any significant concept,

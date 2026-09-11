@@ -60,8 +60,8 @@
         <li><code>draft a document</code> — write a <code>drafts/&lt;name&gt;.md</code></li>
         <li><code>query</code> — read <code>index.md</code>, find pages, synthesize answer with citations</li>
         <li><code>lint</code> — health-check the wiki (orphans, missing citations, contradictions)</li>
-        <li><code>start-watch</code> / <code>stop-watch</code> / <code>watch-status</code> — filesystem watcher for <code>raw/</code></li>
-        <li><code>check-pending</code> — review the pending ingest queue</li>
+        <li><code>watcher on</code> / <code>watcher off</code> — enable/disable and start/stop the filesystem watcher for <code>raw/</code> (desired state persists across restarts)</li>
+        <li><code>watcher</code> — report watcher liveness plus the files that need ingesting, and offer to ingest them. Ingest state is owned by a script ledger (<code>catalog.py</code>) that diffs <code>raw/</code> into <code>new</code> / <code>changed</code> / <code>current</code> / <code>missing</code>; the watcher is opt-in observability only.</li>
       </ul>
     </section>
 

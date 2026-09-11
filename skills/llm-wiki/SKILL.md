@@ -307,9 +307,26 @@ operation, then re-inject (which will write `v2`).
 ## Step 2 — Operations
 
 **Content operation procedures live in `llm-wiki/schema.md`. Infrastructure and watcher
-operations (`start-watch`, `stop-watch`, `watch-status`, `check-pending`) are defined in this
-file below.**
+operations (`watcher`, `watcher on`, `watcher off`) are defined in this file below.**
 Before running any content operation, re-read `llm-wiki/schema.md` — it evolves per project.
+
+**Ingest state is owned by `catalog.py`, not the watcher.** `catalog.py` (resolved at
+`<SKILL_ROOT>/catalog.py`) is a script-owned ledger of which `raw/` files have been ingested
+and their sha256 at ingest time. It is the single authority for what needs ingesting: `status`
+diffs `raw/` against the ledger into `new` / `changed` / `current` / `missing`. The watcher is
+opt-in observability only — it journals filesystem activity and heartbeats; it holds no ingest
+state and never decides ingest.
+
+`catalog.py` commands (always pass the repo root as `<project-root>`):
+
+- `python3 <SKILL_ROOT>/catalog.py status <project-root>` — print `{new, changed, current, missing}` as JSON (raw-relative POSIX paths). `new` = never ingested; `changed` = ingested but content differs now (needs re-ingest); `missing` = catalogued file no longer in `raw/`.
+- `python3 <SKILL_ROOT>/catalog.py add <project-root> <path>...` — record an ingest (upsert: hashes the file now, stamps `ingested_at`). Call once per file **after** its wiki pages and `index.md`/`log.md` are updated.
+- `python3 <SKILL_ROOT>/catalog.py get <project-root> <path>` — print one entry (or `null`).
+- `python3 <SKILL_ROOT>/catalog.py remove <project-root> <path>...` — drop entries (idempotent; works even if the raw file is gone).
+
+Paths are resolved and re-verified under `raw/` — a path outside `raw/` exits non-zero. `add`
+requires the file to exist. The ledger lives at `llm-wiki/catalog.json` (committed, so a fresh
+clone keeps ingest history); if absent, `status` reports every raw file as `new`.
 
 This file (`SKILL.md`) only routes you to schema.md and enforces the hard rules below. If you
 detect a conflict between this file and `schema.md`, `schema.md` wins (it was project-adapted)
@@ -327,62 +344,61 @@ Operation names defined in `schema.md`:
   superseded-by note (see schema.md for details).
 - **Evolve schema** — when a new page category emerges (e.g. `wiki/methods/`,
   `wiki/people/`), update `schema.md` first, then create the directory.
-- **start-watch** — start the filesystem watcher that auto-detects files dropped into `raw/`.
-- **stop-watch** — stop the running filesystem watcher.
-- **watch-status** — report the current status of the filesystem watcher.
-- **check-pending** — review pending and snoozed ingest queue entries.
+- **watcher** — reconcile desired-vs-running (below), then report watcher liveness and the `catalog.py status` buckets (new/changed to ingest); offer to ingest them.
+- **watcher on** — enable the watcher (persist desired state) and start it.
+- **watcher off** — disable the watcher (persist desired state) and stop it.
 
-### start-watch
+All three resolve `<SKILL_ROOT>` per the priority order above (Setup) and use
+`<SKILL_ROOT>/watcher.py`. The **desired state** is a one-line file `llm-wiki/.watcher/desired`
+containing `on` or `off`; **absent means off** (never configured). It records what the user
+wants, independent of whether the process is currently alive.
 
-`start-watch` resolves `<SKILL_ROOT>` per the priority order above (Setup) and uses `<SKILL_ROOT>/watcher.py`.
+**Liveness check** (used throughout, referred to below as "running?"):
 
-**Procedure:**
+1. Read `llm-wiki/.watcher/watcher.pid` — absent → not running.
+2. Parse `<pid>:<nonce>` (line 1) and the heartbeat timestamp (line 2).
+3. Verify via `ps -p <pid> -o command=` that the output contains `watcher.py` — if not, the PID is stale → not running (delete the stale PID file).
+4. Compute heartbeat age = `now - heartbeat`. Age < 90s → running. 90s–300s → hung (treat as running but warn "heartbeat is stale — it may be hung"). > 300s → not running.
+
+### Watcher reconciliation (run at the START of every `/llm-wiki` invocation)
+
+This makes the desired state stick across restarts. Before any operation:
+
+1. **Skip** if `llm-wiki/.watcher/` does not exist (watcher was never set up).
+2. Read `desired` (default `off`). Run the liveness check.
+3. **desired `on` but not running** → run the **start procedure** below, then tell the user: *"The watcher was enabled earlier but wasn't running — I restarted it (PID X)."*
+4. **desired `off` (or absent) but running** → tell the user: *"The watcher is running but it's turned off. Want me to stop it?"* Do **not** auto-stop — wait for the user. (Only `watcher off` stops it.)
+5. Otherwise (on+running, or off+not-running) → say nothing; proceed.
+
+### watcher on
 
 1. Check `llm-wiki/` exists — if not, fail: "No llm-wiki/ directory found. Run setup first."
-2. Check for existing watcher: read `llm-wiki/.watcher/watcher.pid`; if the file exists, verify via `ps -p <pid> -o command=` that the command contains `watcher.py`; if running, report status and offer restart (on restart: send SIGTERM, wait 2s, then proceed to start).
-3. Create `llm-wiki/.watcher/` if absent.
+2. Create `llm-wiki/.watcher/` if absent.
+3. Write `on` to `llm-wiki/.watcher/desired`.
 4. Add `llm-wiki/.watcher/` to `.gitignore` at project root if not already present (mandatory — append the line if absent, never duplicate).
-5. Run: `nohup python3 <SKILL_ROOT>/watcher.py start <project-root> > /dev/null &` (stderr is NOT redirected so startup errors are visible in the terminal before daemonizing).
-6. Wait 2 seconds, then read the PID file to confirm the watcher started; report the PID to the user. If the PID file is absent, check the terminal for startup errors.
-7. Log to `llm-wiki/log.md`: `## [YYYY-MM-DD] infra | watcher started | llm-wiki/.watcher/`
+5. Run the **start procedure** below.
 
-### stop-watch
+**Start procedure:**
 
-**Procedure:**
+- If already running (liveness check), report status and stop — do not spawn a second process.
+- Run: `nohup python3 <SKILL_ROOT>/watcher.py start <project-root> > /dev/null &` (stderr is NOT redirected so startup errors are visible in the terminal before daemonizing).
+- Wait 2 seconds, then read the PID file to confirm; report the PID. If the PID file is absent, check the terminal for startup errors.
+- Log to `llm-wiki/log.md`: `## [YYYY-MM-DD] infra | watcher started | llm-wiki/.watcher/`
 
-1. Read `llm-wiki/.watcher/watcher.pid` — if absent: report "watcher is not running (no PID file)"
-2. Parse `<pid>:<nonce>` from line 1
-3. Verify via `ps -p <pid> -o command=` that the output contains `watcher.py` — if not: report "stale PID file, watcher not running"; delete the stale PID file
-4. Send SIGTERM: `kill -TERM <pid>`
-5. Wait up to 5s for process to exit (poll `ps -p <pid>` every 1s)
-6. Report success or timeout
-7. Log to `llm-wiki/log.md`: `## [YYYY-MM-DD] infra | watcher stopped | llm-wiki/.watcher/`
+### watcher off
 
-### watch-status
+1. Write `off` to `llm-wiki/.watcher/desired` (create `.watcher/` first if absent).
+2. Run the liveness check. If not running, report "watcher is not running" and stop (desired is now `off`).
+3. Send SIGTERM: `kill -TERM <pid>`.
+4. Wait up to 5s for the process to exit (poll `ps -p <pid>` every 1s). Report success or timeout.
+5. Log to `llm-wiki/log.md`: `## [YYYY-MM-DD] infra | watcher stopped | llm-wiki/.watcher/`
 
-**Procedure:**
+### watcher (status)
 
-1. Read `watcher.pid` — if absent: report "not running (no PID file)"
-2. Parse `<pid>:<nonce>` and heartbeat timestamp (line 2)
-3. Verify PID via `ps -p <pid> -o command=` (contains `watcher.py`)
-4. Compute heartbeat age = `now - heartbeat_dt`
-5. Report based on age:
-   - Age < 90s → "running (last heartbeat: Xs ago)"
-   - Age 90s–300s → "stale/hung — heartbeat Xs ago; watcher may be hung. Consider stop-watch + start-watch."
-   - Age > 300s or PID not found → "not running — run start-watch to resume monitoring"
-6. Also report: pending queue size (line count of `pending` if file exists)
-
-### check-pending
-
-**Procedure:**
-
-1. Read `llm-wiki/.watcher/pending` — list all pending paths (missing file = empty)
-2. Read `llm-wiki/.watcher/pending.snoozed` — list all snoozed paths (tab-delimited: `<path>\t<mtime>\t<size>`)
-3. Cross-reference: if any path appears in both pending and snoozed, remove it from snoozed (snooze is stale). Write modifications to `pending.snoozed.tmp` first, then atomically rename to `pending.snoozed`.
-4. Present two lists to user:
-   - **Pending** (N files): list of paths — offer standard ingest prompt (proceeds to ingest flow)
-   - **Snoozed** (N files): list of paths — for each, offer: (a) un-snooze (move back to pending), (b) dismiss permanently (delete from snoozed), (c) keep snoozed
-5. User can act on pending, snoozed, or both in one operation
+1. Run the reconciliation above (it may restart or prompt).
+2. Report desired state (`on`/`off`) and liveness (running + heartbeat age, or not running).
+3. Run `python3 <SKILL_ROOT>/catalog.py status <project-root>`. Report the counts of `new` and `changed` (the files that need ingesting) and `missing` if any.
+4. If `new` or `changed` is non-empty, ask: *"N file(s) need ingesting (X new, Y changed) — ingest them now?"* On yes, run the Ingest operation for each.
 
 ---
 

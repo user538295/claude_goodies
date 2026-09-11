@@ -60,8 +60,8 @@
         <li><code>draft a document</code> — megír egy <code>drafts/&lt;name&gt;.md</code> dokumentumot</li>
         <li><code>query</code> — beolvassa az <code>index.md</code>-t, megkeresi az oldalakat, hivatkozásokkal együtt szintetizál választ</li>
         <li><code>lint</code> — egészségellenőrzést végez a wikin (árva oldalak, hiányzó hivatkozások, ellentmondások)</li>
-        <li><code>start-watch</code> / <code>stop-watch</code> / <code>watch-status</code> — fájlrendszer-figyelő a <code>raw/</code>-hoz</li>
-        <li><code>check-pending</code> — átnézi a függőben lévő ingest sort</li>
+        <li><code>watcher on</code> / <code>watcher off</code> — a <code>raw/</code> fájlrendszer-figyelő be-/kikapcsolása és indítása/leállítása (a kívánt állapot újraindításokon át megmarad)</li>
+        <li><code>watcher</code> — jelenti a figyelő élő állapotát és az ingestre váró fájlokat, majd felajánlja azok ingestjét. Az ingest-állapotot egy script-vezérelt nyilvántartás (<code>catalog.py</code>) birtokolja, amely a <code>raw/</code>-ot <code>new</code> / <code>changed</code> / <code>current</code> / <code>missing</code> kategóriákra bontja; a figyelő csak opcionális megfigyelés.</li>
       </ul>
     </section>
 

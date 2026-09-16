@@ -78,11 +78,11 @@ NOTE for agent: Anchored to declaration sites (class/interface/etc.) — import 
 
 ---
 
-### clarity-07 · Minor · Comments Explaining WHAT
+### clarity-07 · Minor · Redundant Comment (Explains WHAT / Adds Nothing)
 **Scriptable**: No
-**Rule**: A comment that describes what the code does (not why) is a naming failure — the code should be renamed until the comment is redundant.
-**How to check**: In the diff, find new inline comments (lines starting with `//`, `#`, `/*`). For each, decide: does it say WHY (business constraint, workaround, non-obvious invariant) or WHAT (restates what the immediately following code already expresses)? Flag WHAT-comments only.
-**Finding action template**: Remove comment and rename `{symbol}` to make the name self-explanatory
+**Rule**: A comment that adds nothing beyond the code it sits on must be removed — in clean code the code explains itself. This covers two shapes: (a) the comment describes WHAT the code does, which is a naming failure the code should be renamed to make redundant; (b) the comment merely restates already-self-explanatory code, so it is pure noise and is simply deleted.
+**How to check**: In the diff, find new inline comments (lines starting with `//`, `#`, `/*`). For each, decide: does it say WHY (business constraint, workaround, non-obvious invariant) or does it only echo WHAT the immediately following code already expresses? Flag only comments that add no information a reader wouldn't get from the code itself. A comment that carries genuine WHY is NOT a clarity-07 finding — if that WHY is unclear or vague, it belongs to clarity-18 (rewrite), not here.
+**Finding action template**: *(naming failure — WHAT)* Remove comment and rename `{symbol}` to make the name self-explanatory · *(pure noise — code already self-explanatory)* Remove redundant comment at `{file}:{line}`
 
 ---
 
@@ -216,6 +216,14 @@ Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/chec
 
 ---
 
+### clarity-18 · Minor · Vague or Cryptic Comment
+**Scriptable**: No
+**Rule**: A comment that survives clarity-07 (it carries genuine WHY) must be understandable on its own by a junior developer. A comment that is vague, cryptic, or leans on unstated context — so a junior cannot tell what it means or why it is there without asking the author — must be rewritten to say it plainly. This is the counterpart to clarity-07: clarity-07 removes comments that shouldn't exist; clarity-18 refines comments that should exist but are unclear.
+**How to check**: In the diff, find new comments that are NOT clarity-07 findings — they explain WHY, not WHAT. For each, ask: could a junior developer unfamiliar with this code understand what it means and why it is there, from the comment alone? Flag ones that are ambiguous (`// handle the edge case`, `// do the magic`, `// fix`), point at unexplained context (`// because of the thing above`, `// see below`), use undefined jargon or bare ticket ids with no summary, or are too terse to convey their intent. Do NOT flag a comment merely for being short when it is already clear, and do NOT flag here anything you already reported under clarity-07 (that comment is being removed, not rewritten).
+**Finding action template**: Rewrite comment at `{file}:{line}` to state plainly what it means and why it exists — keep the comment, do not remove it
+
+---
+
 ## Output format
 
 One line per confirmed finding:
@@ -228,4 +236,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit a STATUS line:
 `STATUS: GROUP=clarity findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### clarity-NN` check headers in this file (17 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. If an error prevented evaluation: `STATUS: GROUP=clarity failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### clarity-NN` check headers in this file (18 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. If an error prevented evaluation: `STATUS: GROUP=clarity failed=<brief reason>`

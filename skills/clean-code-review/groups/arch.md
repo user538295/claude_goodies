@@ -19,6 +19,19 @@ You receive:
 
 ---
 
+## Layer classifier (shared — used by arch-16, arch-17, arch-18)
+
+Several checks below need to know which architectural layer a file belongs to. Classify a file by its **content**, never by its folder name, into exactly one role:
+
+- **domain** — entities, value objects, domain services. Pure business rules and invariants; no framework imports; no I/O.
+- **application** — use cases / interactors. Orchestrates domain objects through ports (interfaces); names like `*UseCase`, `*Interactor`, `*Service`, `*Handler`; depends on abstractions, not framework types.
+- **presentation** — controllers, views, view models, resolvers, routes. Names like `*Controller`, `*View`, `*ViewModel`, `*Resolver`; handles HTTP request/response types; maps results to responses.
+- **infrastructure** — repository implementations, ORM models, HTTP/email/file/queue adapters, DB drivers. Concrete I/O; ORM annotations; third-party client imports.
+
+**Abstain on ambiguity — this is mandatory.** If a file's content does not clearly resolve to one role, emit **no finding** for the checks that depend on this classification. A wrong layer guess is worse than a missed one. Files that are genuinely cross-cutting (`utils/`, `shared/`, `common/`, `lib/`, DTO/mapper-only files) have no single layer role — do not classify or flag them.
+
+---
+
 ## Checks
 
 ### arch-01 · Major · Controller Containing Business Logic
@@ -38,7 +51,7 @@ You receive:
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
-NOTE for agent: only flag if the importing class is a use case — not a controller, presenter, or infrastructure adapter. Use-case classes importing types named *Request/*Response from local ./dto or ./models paths are NOT violations. Flag only imports from framework packages (express, fastify, nestjs, koa, etc.). Include sqlalchemy, rest_framework, starlette, and the ORM query builders (drizzle-orm, typeorm, @prisma/client, mongoose, sequelize, knex, @mikro-orm) — these are framework imports commonly found in use cases.
+NOTE for agent: only flag if the importing file classifies as **application** (a use case) per the Layer classifier above — not a controller, presenter, or infrastructure adapter. Classify by content, not by the folder name: the scripted pattern's path exclusions are a coarse pre-filter, but a use case that lives under a mis-named folder still counts, and a controller that happens to sit outside the excluded paths still does not. Use-case classes importing types named *Request/*Response from local ./dto or ./models paths are NOT violations. Flag only imports from framework packages (express, fastify, nestjs, koa, etc.). Include sqlalchemy, rest_framework, starlette, and the ORM query builders (drizzle-orm, typeorm, @prisma/client, mongoose, sequelize, knex, @mikro-orm) — these are framework imports commonly found in use cases.
 
 The patterns now skip files that structurally cannot host a use case, so you should no longer receive `import UIKit` / `import SwiftUI` hits from Views and ViewControllers, or framework imports from HTTP adapters. Skipped: any path segment naming a presentation, adapter, persistence or test layer (`Presentation/`, `Views/`, `Screens/`, `Pages/`, `Components/`, `Routes/`, `server/`, `api/`, `Controllers/`, `Adapters/`, `Infrastructure/`, `Repositories/`, `Models/`, `ViewModels/`, `tests/`, `__tests__/`, `ui/`, `db/`, `migrations/`), any filename ending `View`/`ViewController`/`ViewModel`/`Controller`/`Presenter`/`Screen`/`Page`/`Component`/`Widget`/`Activity`/`Fragment`/`Modifiers`/`Router`/`Middleware`, and test files. **This is a heuristic keyed on naming convention, not real layer analysis** — a project that puts use cases inside one of those directories will get no arch-02 hits from the script, so apply the rule by hand to any use case in the diff that lives there.
 
@@ -60,7 +73,7 @@ NOTE for agent: only flag if the annotated class is in a domain package, not in 
 ### arch-04 · Major · Missing Port Interface
 **Scriptable**: No
 **Rule**: A use case that directly instantiates or type-references a concrete infrastructure class (repository impl, HTTP client, email sender, file writer) without an interface.
-**How to check**: For each use case in the diff, check its constructor or field types. If any dependency is a concrete infrastructure class (not an interface/protocol), flag it.
+**How to check**: For each file in the diff that classifies as **application** (a use case) per the Layer classifier above, check its constructor or field types. If any dependency is a concrete infrastructure class (not an interface/protocol), flag it.
 **Finding action template**: Introduce an interface for `{ConcreteType}` used in `{UseCaseName}` — depend on the abstraction, inject the implementation
 
 ---
@@ -122,7 +135,7 @@ NOTE for agent: dismiss service-locator calls inside DI configuration / module s
 **Detection**:
 Scripted (hits arrive in `$PRECOMPUTED`): 8 language(s). Patterns: `scripts/checks/arch.tsv`.
 
-NOTE for agent: only flag if found inside domain, use-case, or application-service classes. Dismiss in infrastructure adapters, config classes, or entry points.
+NOTE for agent: only flag if the enclosing file classifies as **domain** or **application** per the Layer classifier above (a domain entity, use case, or application service). Dismiss in infrastructure adapters, config classes, or entry points.
 
 **Python**: the pattern now requires the environment read to be a *branch* — inside `if`/`elif`/`while`/`assert`, or compared with `==`/`!=`/`in`. A plain configuration read such as `timeout = os.getenv("REQUEST_TIMEOUT", "30")` or `api_key = os.environ["API_KEY"]` is no longer matched and is not a violation of this rule. Adapter and entry-point files are skipped by path (`server/`, `api/`, `Controllers/`, `Adapters/`, `Infrastructure/`, `config/`, `settings/`, `cli/`, `scripts/`, `tools/`, `db/`, `migrations/`, `tests/`, and `main.py`/`app.py`/`settings.py`/`config.py`/`__main__.py`/`setup.py`/`conftest.py`). Other languages still match every environment read, so apply the branch and layer test yourself there.
 
@@ -204,6 +217,36 @@ NOTE for agent: this is the consistency-boundary counterpart to the durability c
 
 ---
 
+### arch-16 · Major · Misplaced Layer Artifact
+**Scriptable**: No
+**Rule**: A new file whose content classifies as one layer must not live under a folder whose name denotes a different layer — the folder promises one responsibility and the file delivers another, defeating layer navigation and inviting the wrong dependencies.
+**How to check**: For each file added whole in the diff (no counterpart in HEAD), first check whether its path contains a layer-denoting segment — the folder vocabulary used by arch-02 (`Presentation`, `Views`, `Screens`, `Pages`, `Components`, `Routes`, `server`, `api`, `Controllers`, `Adapters`, `Infrastructure`, `Repositories`, `db`, `migrations`) plus `application`/`use_cases`/`usecases`/`domain`/`entities`. If it does, classify the file's content with the layer classifier above. Flag only when the content layer is unambiguous AND differs from the layer its folder denotes.
+**Finding action template**: Relocate `{file}` — a `{contentLayer}` artifact does not belong under `{folderLayer}/`; move it to the `{contentLayer}` layer
+
+NOTE for agent: abstain per the classifier's mandatory rule — no finding when the content layer is ambiguous, when the folder segment is not clearly layer-denoting, or for cross-cutting files (`utils/`, `shared/`, `common/`, `lib/`, DTO/mapper-only). Both signals must be unambiguous before flagging. This fires only on new files; a pre-existing misplaced file is out of scope unless the diff moved or created it here.
+
+---
+
+### arch-17 · Minor · Flat Layered Sprawl
+**Scriptable**: No
+**Rule**: A directory that accumulates many source files spanning two or more architectural layers with no layer subfolders has outgrown a flat layout — the structure no longer signals where responsibilities live.
+**How to check**: Trigger only when the diff **adds** a file to a directory `D`. Then read `D` in the repository and apply all of these guards — flag only if every one holds: (1) `D` directly contains at least `FLAT_FILE_FLOOR` (**8**) classifiable source files, not counting nested subfolders; (2) those files classify into **two or more distinct** layer roles; (3) `D` has no layer-named subdirectories. Emit **one** finding per run, anchored at the newly added file's line 1.
+**Finding action template**: Structure `{dir}` into layer folders — it holds `{n}` files spanning `{layers}` with no separation
+
+NOTE for agent: this is a structural suggestion, not a defect — keep it Minor. **Scope the "already organized" abstain locally, not project-wide**: abstain only when `D`'s own parent directory or its sibling directories already use layer folders (`D` is then a deliberately flat corner of an otherwise organized module). Do **not** abstain merely because some unrelated part of the repository uses layer folders — a genuinely messy flat directory is still a finding even in a partly-organized repo. Also abstain when `D` is a utility/script/config directory, or when fewer than two layers are actually present (many files of one role is not sprawl). `FLAT_FILE_FLOOR` is the named threshold — do not flag directories below it.
+
+---
+
+### arch-18 · Major · Wrong-Direction Dependency
+**Scriptable**: No
+**Rule**: Dependencies must point inward. A domain or application file that imports a concrete infrastructure or presentation module inverts the dependency and drags outer-layer concerns into the core.
+**How to check**: For each new import line in the diff, classify the importing file with the layer classifier. If it is **domain** or **application**, classify the imported module (by its path or symbol name — e.g. a `*RepositoryImpl`, an ORM model, an HTTP client, a `*Controller`). Flag when the importer is domain/application and the imported module is infrastructure or presentation.
+**Finding action template**: Invert the dependency — `{importerLayer}` file `{file}` must not import `{importedModule}`; depend on an interface and inject the implementation
+
+NOTE for agent: allowed inward imports are never flagged — domain→domain, application→domain, application→ports/interfaces. **Dedup vs arch-02**: arch-02 owns imports of framework *packages* (express, sqlalchemy, @nestjs, …); arch-18 owns imports of the project's *own* modules that sit in an outer layer. If the import is a framework package, it is arch-02 only; if it is a project module in the wrong layer, it is arch-18 only — they do not both fire on one line. Abstain when the importer's layer is ambiguous.
+
+---
+
 ## Output instruction
 
 Output one finding line per violation, exactly in this format:
@@ -216,4 +259,4 @@ If the action field contains a literal ` | ` (e.g. a TypeScript union type like 
 
 On the **final line** of your output, always emit:
 `STATUS: GROUP=arch findings=N checks=M ok`
-where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (15 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`
+where N is the number of finding lines you emitted, M is the total count of `### arch-NN` check headers in this file (18 for a full run — include all checks regardless of language coverage or non-scriptable cells). Copy severity verbatim from each check heading — do not change it. On error: `STATUS: GROUP=arch failed=<brief reason>`

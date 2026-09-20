@@ -13,13 +13,14 @@ The regex layer does NOT need this benchmark — it is fully covered by
 ## Contents
 
 - `python/order_service.py` + `python/test_order_service.py` — 34 planted violations
-- `typescript/orderService.ts` + `typescript/inventory.test.ts` — 29 planted violations
+- `python/legacy/` (8 flat files spanning domain/application/infrastructure) — 1 planted violation (arch-17 flat layered sprawl)
+- `typescript/orderService.ts` + `typescript/inventory.test.ts` + `typescript/presentation/RefundUseCase.ts` — 31 planted violations
 - `csharp/OrderProcessing.cs` + `csharp/OrderProcessingTests.cs` — 20 planted violations
 - `swift/Checkout.swift` + `swift/CheckoutTests.swift` — 13 planted violations
 - `cpp/order_processing.cpp` + `cpp/order_processing_test.cpp` — 23 planted violations
 - `planted.tsv` — the catalog: check, file, line, detect (scripted/judgment), description
 
-119 rows across **5 languages**, exercising **88 of the 129 checks** at least once. The C++ fixture (added 2026-08-28) is the first to plant `safety-16`, `safety-17`, and `safety-19`, which previously had no fixture anywhere. The remaining unplanted checks (the rest of safety-08 through safety-32, smells-20 through smells-27, arch-11 through arch-15, tests-13, ddd-06 through ddd-09, clarity-18) are scriptable or judgment-only and covered by `tests/corpus.tsv` where scriptable; they have no planted violation here yet.
+122 rows across **5 languages**, exercising **91 of the 132 checks** at least once. The C++ fixture (added 2026-08-28) is the first to plant `safety-16`, `safety-17`, and `safety-19`, which previously had no fixture anywhere; `typescript/presentation/RefundUseCase.ts` is the first to plant the judgment-only `arch-16` and `arch-18`, and `python/legacy/` the judgment-only `arch-17`. The remaining unplanted checks (the rest of safety-08 through safety-32, smells-20 through smells-27, arch-11 through arch-15, tests-13, ddd-06 through ddd-09, clarity-18) are scriptable or judgment-only and covered by `tests/corpus.tsv` where scriptable; they have no planted violation here yet.
 
 **Never "fix" these files.** Broken is their job. For a scriptable check,
 `tests/corpus.tsv` (semantic MATCH/NOMATCH, see `tests/test_corpus.sh`) is the
@@ -34,7 +35,7 @@ measure them — do it when you can.
 From this directory, invoke the skill in file mode:
 
 ```
-/clean-code-review python/order_service.py python/test_order_service.py typescript/orderService.ts typescript/inventory.test.ts csharp/OrderProcessing.cs csharp/OrderProcessingTests.cs swift/Checkout.swift swift/CheckoutTests.swift cpp/order_processing.cpp cpp/order_processing_test.cpp
+/clean-code-review python/order_service.py python/test_order_service.py python/legacy/checkout_service.py typescript/orderService.ts typescript/inventory.test.ts typescript/presentation/RefundUseCase.ts csharp/OrderProcessing.cs csharp/OrderProcessingTests.cs swift/Checkout.swift swift/CheckoutTests.swift cpp/order_processing.cpp cpp/order_processing_test.cpp
 ```
 
 ## How to score

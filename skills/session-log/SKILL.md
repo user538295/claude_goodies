@@ -4,17 +4,14 @@ description: Manage session prompt logging and usage totals (on / off / status /
 ---
 <!-- universal-session-log: managed -->
 
-Run the shared session-log CLI through Claude Code's native skill entrypoint. Do not infer a harness from files, directories, or environment variables.
+Resolve this skill's own package directory (`$BASE`) across every supported harness — without Claude-Code-only artifacts — then hand off to its `install.sh` for the fixed `claude` harness.
 
 ```bash
-session_log_root="$HOME/.claude/skills/session-log"
-if [[ -n "${CLAUDE_PLUGIN_ROOT:-}" && -f "$CLAUDE_PLUGIN_ROOT/skills/session-log/install.sh" ]]; then
-  session_log_root="$CLAUDE_PLUGIN_ROOT/skills/session-log"
+BASE=""; for d in "${SESSION_LOG_HOME:-}" .agents/skills/session-log .claude/skills/session-log .cursor/skills/session-log .opencode/skills/session-log .codex/skills/session-log ~/.agents/skills/session-log ~/.claude/skills/session-log ~/.cursor/skills/session-log ~/.config/opencode/skills/session-log ~/.omp/agent/skills/session-log ~/.codex/skills/session-log "$(ls -d ~/.claude/plugins/cache/*/claude-goodies/*/skills/session-log 2>/dev/null | sort -V | tail -1)"; do [ -n "$d" ] && [ -f "$d/install.sh" ] && { BASE="$d"; break; }; done
+if [ -n "$BASE" ]; then
+  exec bash "$BASE/install.sh" --harness claude --arguments "${ARGUMENTS:-status}"
 fi
-if [[ -f "$session_log_root/install.sh" ]]; then
-  exec bash "$session_log_root/install.sh" --harness claude --arguments "${ARGUMENTS:-status}"
-fi
-printf 'session-log: complete package is missing at %s\n' "$session_log_root" >&2
+printf 'session-log: complete package not found in any known skills root — set SESSION_LOG_HOME=<skill dir>\n' >&2
 exit 1
 ```
 

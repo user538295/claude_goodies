@@ -13,8 +13,8 @@ Severity rubric — use this consistently across all agents:
 **Extra reviewers — detect both once, before the loop, with a single Bash call:**
 
 ```bash
-find ~/.claude/commands ~/.claude/plugins ~/.claude/skills ./.claude/commands ./.claude/skills ./.agents/commands ./.agents/skills -iname 'brooks-review*' -print -quit 2>/dev/null | sed 's|^|BROOKS |'
-find ~/.claude/commands ~/.claude/plugins ~/.claude/skills ./.claude/commands ./.claude/skills ./.agents/commands ./.agents/skills -iname 'clean-code-review*' -print -quit 2>/dev/null | sed 's|^|CCR |'
+find ./.claude/commands ./.claude/skills ./.cursor/commands ./.cursor/skills ./.codex/commands ./.codex/skills ./.opencode/command ./.opencode/skills ./.agents/commands ./.agents/skills ~/.claude/commands ~/.claude/skills ~/.claude/plugins ~/.cursor/commands ~/.cursor/skills ~/.codex/commands ~/.codex/skills ~/.config/opencode/command ~/.config/opencode/skills ~/.omp/agent/skills ~/.agents/commands ~/.agents/skills -iname 'brooks-review*' -print -quit 2>/dev/null | sed 's|^|BROOKS |'
+find ./.claude/commands ./.claude/skills ./.cursor/commands ./.cursor/skills ./.codex/commands ./.codex/skills ./.opencode/command ./.opencode/skills ./.agents/commands ./.agents/skills ~/.claude/commands ~/.claude/skills ~/.claude/plugins ~/.cursor/commands ~/.cursor/skills ~/.codex/commands ~/.codex/skills ~/.config/opencode/command ~/.config/opencode/skills ~/.omp/agent/skills ~/.agents/commands ~/.agents/skills -iname 'clean-code-review*' -print -quit 2>/dev/null | sed 's|^|CCR |'
 ```
 
 **Brooks-Lint (`/brooks-review`)** — a `BROOKS ` line printed:
@@ -39,7 +39,7 @@ find ~/.claude/commands ~/.claude/plugins ~/.claude/skills ./.claude/commands ./
 
 2. **Consolidate** findings across all DA agents, the Brooks-Lint reviewer (if it ran), and the clean code catalog (cycle 1), deduplicating by root cause. Every findings must be in this format: [short ID] - [filename:line_number] - [one-line short description which must be under 250 chars]
 
-3. If the consolidated list contains no Critical, Major issues — the review loop is complete. Go to the summary below. (This ends the review loop only — not the calling skill's turn.)
+3. If the consolidated list contains no Critical, Major, Moderate issues — the review loop is complete. Go to the summary below. (This ends the review loop only — not the calling skill's turn.)
 
 4. **Spawn the most appropriate agent(s) to fix** all issues (Critical, Major, Moderate, Minor). Pass the full consolidated findings. Apply fixes to the actual files. Note which issue ID each fix resolves. **Fix agents must NOT create git commits** — all changes stay as uncommitted working tree modifications.
 
@@ -64,4 +64,4 @@ All fixes applied across all cycles: issue ID → severity → what changed. Mus
 "No critical, major or moderate issues remain" OR "The following issues could not be resolved: [list]"
 
 ---
-**⚠️ CALLER:** This Review Summary is the output of the `/iterative-review` sub-skill. It is NOT a task completion signal. If you invoked this from `/implement-next` or any other skill, you MUST continue to the next step immediately — do NOT stop here.
+**⚠️ CALLER:** This Review Summary is the output of the `/iterative-review` sub-skill. It is NOT a task completion signal. If you invoked this from `/implement` or any other skill, you MUST continue to the next step immediately — do NOT stop here.

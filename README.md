@@ -67,13 +67,48 @@ Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/h
 ### Monitor background tasks
 
 - [**`/status-report`**](https://user538295.github.io/claude_goodies/handout/skill-status-report.html) — Kicked off a long task and don't know when it'll finish. Reports status on demand or on a recurring schedule — cancel anytime with `off`.
-- [**`/session-log`**](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) — No idea what a session actually did, or what it cost. Archives every prompt with the assistant's response, working time, and an `est. used token:` line (tokens, price, model, effort) — plus model/effort switch lines and sub-agent finish lines carrying each sub-agent's own working time and token/price. `/session-log usage` (running `skills/session-log/scripts/prompt_log_usage.sh --latest`) totals the whole session — working time included, sub-agent transcripts merged in; `--check` cross-checks that total against `ccusage`.
+- [**`/session-log`**](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) — One package for Claude Code, OpenCode, and OMP. It installs one explicit native entrypoint per harness, enables native lifecycle logging lazily, and preserves each harness's native usage report.
 
-One script bundle handles the plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement` reads it once in NEXT mode, and on every iteration in ALL mode. The [`session-log`](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) skill archives every prompt and response as per-project Markdown so you never lose a conversation. Run `/session-log on` to activate logging — it only creates the flag file `~/.claude/prompt-logs/.enabled`; the hooks ship with the plugin and stay registered either way, so nothing is written to `~/.claude/settings.json`. See the [session-log handout](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) for details.
+Install the universal package once, then restart the selected harness after `/session-log on` reports `on — restart required`.
+
+One script bundle handles the progress plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement` reads it once in NEXT mode, and on every iteration in ALL mode. The [`session-log`](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) skill archives every prompt and response as per-project Markdown so you never lose a conversation; the universal session-log package now owns activation and migration for all three harnesses. See the [session-log handout](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) for details.
 
 ---
 
 ## Install · Update
+
+### Universal session-log package
+
+From a checkout of this repository:
+
+```bash
+bash install-universal-session-log.sh
+```
+
+The checkout wrapper copies the complete package into Claude Code, OpenCode, and OMP without enabling logging. Each harness receives its own entrypoint and native adapter assets; the package-local `/session-log on` command installs only the selected harness adapter.
+
+For a standalone installation, copy the complete `skills/session-log/` directory and replace `SKILL.md` with the harness-specific entrypoint:
+
+```bash
+# Claude Code
+mkdir -p ~/.claude/skills
+cp -R skills/session-log ~/.claude/skills/session-log
+
+# OpenCode
+mkdir -p ~/.config/opencode/skills ~/.config/opencode/commands
+cp -R skills/session-log ~/.config/opencode/skills/session-log
+cp skills/session-log/templates/opencode/SKILL.md ~/.config/opencode/skills/session-log/SKILL.md
+cp skills/session-log/templates/opencode/command.md ~/.config/opencode/commands/session-log.md
+
+# OMP
+mkdir -p ~/.omp/agent/skills
+cp -R skills/session-log ~/.omp/agent/skills/session-log
+cp skills/session-log/templates/omp/SKILL.md ~/.omp/agent/skills/session-log/SKILL.md
+```
+
+Standalone installs support only the harness default roots under `$HOME` (`~/.claude`, `~/.config/opencode` and `~/.local/share/opencode`, and `~/.omp/agent`). Relocated or custom config/data roots are unsupported; use the defaults before running `/session-log`.
+
+The complete package includes the local installer, CLI, adapters, templates, and version file. `/session-log on` installs only the current harness adapter; logging stays off until then.
 
 ### Claude Code plugin marketplace
 
@@ -82,13 +117,13 @@ claude plugin marketplace add user538295/claude_goodies
 claude plugin install claude-goodies
 ```
 
-Restart Claude Code (or start a new session) for changes to load. To update later:
+The marketplace plugin bundles the Claude skill, runtime, and native hooks. Restart Claude Code (or start a new session) for plugin changes to load. To update later:
 
 ```bash
 claude plugin update claude-goodies@user538295
 ```
 
-Works in Claude Code.
+Each entrypoint passes its native harness identity explicitly; it never infers a harness from directories or environment variables. `off` never installs an absent adapter.
 
 ---
 
@@ -112,16 +147,15 @@ By default, the installer 3-way merges your local `~/.claude/CLAUDE.md` changes 
 
 If that's not your speed, this repo isn't for you. If it is — install in 30 seconds.
 
----
-
 ## Requirements
 
-- [Claude Code](https://claude.ai/code) (CLI, desktop app, or IDE extension).
-- macOS or Linux — or Windows via WSL. (Shell scripts use bash and awk.)
-- bash, git, curl (for the installer).
-- jq (for prompt logging hooks).
+- Claude Code, OpenCode, or OMP.
+- macOS or Linux — or Windows via WSL.
+- bash, Python 3, jq, and standard POSIX utilities.
+- sqlite3 for OpenCode native usage reports.
+- Bun for OMP native usage reports.
 
-No MCP servers required.
+No MCP servers are required.
 
 ---
 

@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>/session-log — Claude Code Handout</title>
+  <title>/session-log — Universal Session Log Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: skills/session-log/scripts/prompt_log_lib.sh prompt_log_new_session.sh prompt_log_save.sh prompt_log_stop.sh prompt_log_subagent.sh prompt_log_usage.sh prompt_log_usage.jq prompt_log_prices.json -->
+  <!-- Source: skills/session-log/ complete package; install-universal-session-log.sh checkout wrapper -->
 </head>
 <body>
   <div class="card-page">
@@ -18,12 +18,27 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p>Six shell scripts (<code>prompt_log_lib.sh</code>, <code>prompt_log_new_session.sh</code>, <code>prompt_log_save.sh</code>, <code>prompt_log_stop.sh</code>, <code>prompt_log_subagent.sh</code>, <code>prompt_log_usage.sh</code>), a shared jq engine (<code>prompt_log_usage.jq</code>) and a static price table (<code>prompt_log_prices.json</code>) that automatically capture every prompt submitted to Claude Code — together with the assistant's response, the working time, an estimated token/price line, model and effort switches, and one line per finished sub-agent — into per-project Markdown log files, organized by session. The aggregator totals a whole session on demand, sub-agent transcripts included.</p>
+      <p>One complete package contains the canonical <code>/session-log</code> entrypoints, shared CLI, native adapters, usage parsers, installer, and version file. It supports Claude Code, OpenCode, and OMP while each harness keeps its native lifecycle, storage, token, timing, model, cost, and sub-agent semantics.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>When to use</h2>
-      <p>Use <code>/session-log on</code> to enable logging. That only creates the sentinel file <code>~/.claude/prompt-logs/.enabled</code> — the hooks themselves ship with the plugin (see <em>Hook wiring</em> below), so nothing is written to <code>~/.claude/settings.json</code>.</p>
+      <p>Use <code>bash install-universal-session-log.sh</code> from a repository checkout, or copy the complete <code>skills/session-log/</code> directory into the native skill location. For a standalone copy, use the harness-specific entrypoint and OpenCode command below. Then run <code>/session-log on</code>; the package-local entrypoint installs only the current harness adapter. Restart the harness when it reports <code>on — restart required</code>.</p>
+      <pre><code># Claude Code
+mkdir -p ~/.claude/skills
+cp -R skills/session-log ~/.claude/skills/session-log
+
+# OpenCode
+mkdir -p ~/.config/opencode/skills ~/.config/opencode/commands
+cp -R skills/session-log ~/.config/opencode/skills/session-log
+cp skills/session-log/templates/opencode/SKILL.md ~/.config/opencode/skills/session-log/SKILL.md
+cp skills/session-log/templates/opencode/command.md ~/.config/opencode/commands/session-log.md
+
+# OMP
+mkdir -p ~/.omp/agent/skills
+cp -R skills/session-log ~/.omp/agent/skills/session-log
+cp skills/session-log/templates/omp/SKILL.md ~/.omp/agent/skills/session-log/SKILL.md</code></pre>
+      <p>Standalone installs support only the harness default roots under <code>$HOME</code>: <code>~/.claude</code>, <code>~/.config/opencode</code> and <code>~/.local/share/opencode</code>, and <code>~/.omp/agent</code>. Relocated or custom config/data roots are unsupported; use the defaults before running <code>/session-log</code>.</p>
       <ul>
         <li><code>prompt_log_new_session.sh</code> — called by the <strong>SessionStart</strong> hook on cold startup (not on resume, /clear, or /compact)</li>
         <li><code>prompt_log_save.sh</code> — called by the <strong>UserPromptSubmit</strong> hook each time you submit a prompt</li>
@@ -35,27 +50,21 @@
         <li><code>prompt_log_prices.json</code> — the static per-MTok price table the engine reads; a checked-in file, so pricing is deterministic and works offline</li>
       </ul>
       <p>Invoke the hook scripts manually only when debugging the logging setup or when writing a script that needs to create or append to a session log file programmatically.</p>
-      <p><strong>Dependency:</strong> <code>jq</code> must be installed and on <code>PATH</code>. If <code>jq</code> is absent, the logging scripts exit silently without error.</p>
+      <p><strong>Dependencies:</strong> <code>bash</code>, Python 3, and <code>jq</code> are required by the package. OpenCode usage also requires <code>sqlite3</code>; OMP usage requires Bun. Missing dependencies produce direct errors.</p>
     </section>
 
     <section data-section="2b-configuration">
       <h2>Configuration</h2>
       <h3>Enabling and disabling logging</h3>
-      <p>Logging is gated on a sentinel file, <code>~/.claude/prompt-logs/.enabled</code>. Run <code>/session-log on</code> to create it and <code>/session-log off</code> to remove it; <code>/session-log status</code> reports the current state; <code>/session-log usage</code> prints the aggregator's totals for the current session. Every hook exits silently when the sentinel is absent, so the hooks stay registered either way and the setting survives plugin updates.</p>
-      <h3>Hook wiring</h3>
-      <p>The hooks are registered automatically from the plugin's <code>hooks/hooks.json</code> — no <code>settings.json</code> edit is needed, and the plugin manifest must not declare a <code>hooks</code> key of its own: on Claude Code 2.1.231 that hard-errors as a duplicate registration and unregisters every hook the plugin provides. All four entries (<strong>SessionStart</strong>, <strong>UserPromptSubmit</strong>, <strong>Stop</strong>, <strong>SubagentStop</strong>) resolve their script defensively:</p>
-      <pre><code>s="${CLAUDE_PLUGIN_ROOT}/skills/session-log/scripts/prompt_log_new_session.sh"; s="${s//\\//}"; [ -f "$s" ] &amp;&amp; exec bash "$s"; exit 0</code></pre>
-      <p>That one-liner is shaped by how Claude Code hands the plugin root to a hook, plus two Windows bugs closed upstream as <em>not planned</em> or <em>duplicate</em>:</p>
-      <ul>
-        <li><strong>Double quotes around the placeholder.</strong> Claude Code 2.1.231 no longer substitutes <code>${CLAUDE_PLUGIN_ROOT}</code> into the command text — it exports it as an environment variable and leaves the expansion to the shell. Single quotes block that expansion, so <code>$s</code> keeps the literal placeholder, the <code>[ -f "$s" ]</code> guard never matches, and the hook exits 0 without doing anything; that is exactly how the logging hooks went silently dead. Double quotes stay safe on Windows because an expanded variable's value is not re-scanned for escapes — under the older textual substitution it was, which is why the pattern used to need single quotes (<a href="https://github.com/anthropics/claude-code/issues/22449">#22449</a>).</li>
-        <li><strong>Backslash-to-slash normalisation.</strong> Git Bash resolves <code>C:/Users/…</code> but not <code>C:\Users\…</code>, so the path is rewritten before use.</li>
-        <li><strong>Shell form, not exec form.</strong> Exec form would spawn <code>bash</code> through the Windows <code>PATH</code>, where Git for Windows' default install omits <code>Git\bin</code> (<a href="https://github.com/anthropics/claude-code/issues/22700">#22700</a>) and the WSL stub <code>C:\Windows\System32\bash.exe</code> takes priority and hangs the whole TUI (<a href="https://github.com/anthropics/claude-code/issues/37634">#37634</a>). Staying in shell form means <code>bash</code> resolves inside Git Bash's own <code>PATH</code> instead.</li>
-      </ul>
-      <p>The <code>[ -f "$s" ]</code> guard is the honest fallback: where the platform mangles the path beyond repair the hook exits 0 silently, so logging is simply unavailable there rather than printing an error banner on every prompt. Write the placeholder exactly as <code>${CLAUDE_PLUGIN_ROOT}</code>: that spelling survives both regimes — older Claude Code replaces the literal token before the shell ever sees it, 2.1.231 expands it from the environment — whereas <code>$CLAUDE_PLUGIN_ROOT</code> or <code>${CLAUDE_PLUGIN_ROOT:-…}</code> only work under the newer one.</p>
+      <p>Logging has one private enable flag per harness: <code>~/.claude/prompt-logs/.enabled</code>, <code>~/.config/opencode/prompt-logs/.enabled</code>, or <code>~/.omp/agent/prompt-logs/.enabled</code>. <code>on</code> installs only the current harness adapter and creates its flag; <code>off</code> removes only that flag; <code>status</code> never installs an adapter.</p>
+      <h3>Native lifecycle wiring</h3>
+      <p>The complete package contains the installer and adapter assets. Its first <code>on</code> materializes only the selected native adapter: Claude Code uses plugin hooks or settings hooks, OpenCode receives a plugin and parser, and OMP receives an extension and parser. The adapter reports its loaded version after the harness starts.</p>
+      <p>Harness identity is explicit in every entrypoint. The CLI never guesses from <code>~/.claude</code>, <code>~/.config/opencode</code>, <code>~/.omp</code>, enable flags, or environment variables. Relocated roots and custom profiles fail explicitly because they are outside this package's supported scope.</p>
     </section>
 
     <section data-section="3-invocation">
       <h2>Invocation</h2>
+      <p>The invocation examples below document Claude Code's native transcript scripts. OpenCode and OMP keep their own native storage and usage parsers; <code>/session-log usage</code> passes those reports through unchanged after the harness label.</p>
       <h3><code>prompt_log_new_session.sh</code> — Session initialiser</h3>
       <p>Called automatically by the <strong>SessionStart</strong> hook. Reads a JSON payload from stdin.</p>
       <pre><code>echo '{"session_id":"abc123","cwd":"/path/to/project"}' | bash prompt_log_new_session.sh</code></pre>

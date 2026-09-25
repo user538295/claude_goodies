@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Golden test for the shared usage/price engine (skills/session-log/scripts/prompt_log_usage.jq)
-# and the aggregator CLI (skills/session-log/scripts/prompt_log_usage.sh), over a synthetic
+# Golden test for the shared usage/price engine (skills/session-log/adapters/claude/scripts/prompt_log_usage.jq)
+# and the aggregator CLI (skills/session-log/adapters/claude/scripts/prompt_log_usage.sh), over a synthetic
 # session tree: one main transcript + four sub-agent transcripts (cascaded
 # spawnDepth 0/1/2 plus one under workflows/**).
 #
 # Every expected number below is hand-computed from the price table in
-# skills/session-log/scripts/prompt_log_prices.json using
+# skills/session-log/adapters/claude/scripts/prompt_log_prices.json using
 #   cents = (in*r_in + out*r_out + cache_read*r_in/10
 #            + cache_5m*r_in*1.25 + cache_1h*r_in*2) / 10000
 # (r_* are $/MTok, so tokens*rate = dollars*1e6 = cents*1e4).
@@ -13,7 +13,8 @@
 # Run: bash skills/session-log/tests/test_prompt_log_usage.sh
 set -u
 
-SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+SCRIPTS="$REPO/skills/session-log/adapters/claude/scripts"
 ENGINE="$SCRIPTS/prompt_log_usage.jq"
 PRICES="$SCRIPTS/prompt_log_prices.json"
 AGG="$SCRIPTS/prompt_log_usage.sh"
@@ -204,6 +205,15 @@ assert_eq "engine mode=merge over main + 4 sub-agents" "$TOTAL_LINE" \
 cp "$MAIN" "$WORKROOT/corrupt.jsonl"
 printf 'this is not json\n' >> "$WORKROOT/corrupt.jsonl"
 assert_eq "corrupt line is skipped" "$MAIN_TOTAL" "$(engine total "$WORKROOT/corrupt.jsonl")"
+# A truncated JSONL line at a file boundary is skipped without swallowing the
+# following complete record; this mirrors a process interrupted mid-write.
+BOUNDARY="$WORKROOT/truncated-boundary.jsonl"
+printf '{"type":"assistant","timestamp":"2026-08-28T10:09:00.000Z","message":\n' > "$BOUNDARY"
+asst '2026-08-28T10:09:01.000Z' boundary-msg claude-haiku-4-5 high 10000 2000 0 0 0 standard >> "$BOUNDARY"
+assert_eq "truncated JSONL boundary does not drop the next record" \
+  'est. used token: input: 10000, output: 2000, cache_create: 0, cache_read: 0, total_tokens: 12000, price: $0.02, model: claude-haiku-4-5, effort: high' \
+  "$(engine total "$BOUNDARY")"
+
 
 # Streamed copies: sub-agent transcripts write one line per content block with
 # GROWING output_tokens snapshots (input/cache constant); the final copy holds
@@ -323,10 +333,9 @@ if grep -q '^internal helpers:' "$WORKROOT/no_helpers.txt"; then
   fail "aggregator prints a helpers line without a .helpers file"
 fi
 
-# Two finished internal helpers: the hook records one "helper" line per finish,
-# with no run time, tool-call count, or tokens (SubagentStop carries none).
+# Two finished internal helpers: 125000+61000 ms = 186 s = 00:03:06, 3+1 calls.
 mkdir -p "$WORKROOT/.claude/session-maps"
-printf 'helper\nhelper\n' > "$WORKROOT/.claude/session-maps/$SID.helpers"
+printf '125000 3\n61000 1\n' > "$WORKROOT/.claude/session-maps/$SID.helpers"
 
 cat > "$WORKROOT/expected.txt" <<'EOF'
 session: <sid>.jsonl
@@ -353,7 +362,7 @@ est. used token: input: 20000, output: 4000, cache_create: 10000, cache_read: 20
 sub-agent: workflow-step (agent-w1), working time: 00:00:00, jsonl: <sid>/subagents/workflows/wf_x/agent-w1.jsonl
 est. used token: input: 30000, output: 6000, cache_create: 0, cache_read: 0, total_tokens: 36000, price: $0.18, model: claude-sonnet-5, effort: high
 
-internal helpers: 2 finished (run time, tool calls, and token usage not recorded client-side; not added to TOTAL)
+internal helpers: 2 finished, cumulative run time 00:03:06, 4 tool calls (not added to TOTAL; token usage not recorded client-side)
 
 TOTAL (6 requests, 4 sub-agents)
 working time: 00:02:02

@@ -106,17 +106,19 @@ def head_text:
   | gsub("<[^>]*>"; " ") | gsub("[\r\n\t]"; " ") | gsub(" +"; " ")
   | sub("^ +"; "") | .[0:60] | sub(" +$"; "");
 
-# cache_creation splits the write into 5m/1h buckets; older entries only carry
-# the flat cache_creation_input_tokens, which was always a 5m write.
+# Numeric fields are supplied by multiple Claude versions and can be absent,
+# empty strings, or malformed strings. Coerce all of them before arithmetic.
+def number_or_zero:
+  (tonumber? // 0) | if . < 0 then 0 else floor end;
 def usage_of:
   .message.usage as $u
   | ($u.cache_creation // null) as $cc
-  | { in:  ($u.input_tokens // 0),
-      out: ($u.output_tokens // 0),
-      cr:  ($u.cache_read_input_tokens // 0),
-      c5m: (if $cc then ($cc.ephemeral_5m_input_tokens // 0)
-            else ($u.cache_creation_input_tokens // 0) end),
-      c1h: (if $cc then ($cc.ephemeral_1h_input_tokens // 0) else 0 end) };
+  | { in:  ($u.input_tokens | number_or_zero),
+      out: ($u.output_tokens | number_or_zero),
+      cr:  ($u.cache_read_input_tokens | number_or_zero),
+      c5m: (if $cc then ($cc.ephemeral_5m_input_tokens | number_or_zero)
+            else ($u.cache_creation_input_tokens | number_or_zero) end),
+      c1h: (if $cc then ($cc.ephemeral_1h_input_tokens | number_or_zero) else 0 end) };
 
 def render:
   (.buckets | to_entries | sort_by(.key) | map(.value)) as $bs

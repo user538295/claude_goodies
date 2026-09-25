@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "s=\"${CLAUDE_PLUGIN_ROOT}/skills/session-log/scripts/prompt_log_new_session.sh\"; s=\"${s//\\\\//}\"; [ -f \"$s\" ] && exec bash \"$s\"; exit 0"
+            "command": "exec bash \"${CLAUDE_PLUGIN_ROOT}/skills/session-log/adapters/claude/claude_hook.sh\" session-start"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "s=\"${CLAUDE_PLUGIN_ROOT}/skills/session-log/scripts/prompt_log_save.sh\"; s=\"${s//\\\\//}\"; [ -f \"$s\" ] && exec bash \"$s\"; exit 0"
+            "command": "exec bash \"${CLAUDE_PLUGIN_ROOT}/skills/session-log/adapters/claude/claude_hook.sh\" user-prompt"
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "s=\"${CLAUDE_PLUGIN_ROOT}/skills/session-log/scripts/prompt_log_stop.sh\"; s=\"${s//\\\\//}\"; [ -f \"$s\" ] && exec bash \"$s\"; exit 0",
+            "command": "exec bash \"${CLAUDE_PLUGIN_ROOT}/skills/session-log/adapters/claude/claude_hook.sh\" stop",
             "timeout": 30
           }
         ]
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "s=\"${CLAUDE_PLUGIN_ROOT}/skills/session-log/scripts/prompt_log_subagent.sh\"; s=\"${s//\\\\//}\"; [ -f \"$s\" ] && exec bash \"$s\"; exit 0",
+            "command": "exec bash \"${CLAUDE_PLUGIN_ROOT}/skills/session-log/adapters/claude/claude_hook.sh\" subagent-stop",
             "timeout": 15
           }
         ]

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Golden test for the shared usage/price engine (skills/session-log/scripts/prompt_log_usage.jq)
-# and the aggregator CLI (skills/session-log/scripts/prompt_log_usage.sh), over a synthetic
+# Golden test for the shared usage/price engine (skills/session-log/adapters/claude/scripts/prompt_log_usage.jq)
+# and the aggregator CLI (skills/session-log/adapters/claude/scripts/prompt_log_usage.sh), over a synthetic
 # session tree: one main transcript + four sub-agent transcripts (cascaded
 # spawnDepth 0/1/2 plus one under workflows/**).
 #
 # Every expected number below is hand-computed from the price table in
-# skills/session-log/scripts/prompt_log_prices.json using
+# skills/session-log/adapters/claude/scripts/prompt_log_prices.json using
 #   cents = (in*r_in + out*r_out + cache_read*r_in/10
 #            + cache_5m*r_in*1.25 + cache_1h*r_in*2) / 10000
 # (r_* are $/MTok, so tokens*rate = dollars*1e6 = cents*1e4).
@@ -14,7 +14,7 @@
 set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SCRIPTS="$REPO/skills/session-log/scripts"
+SCRIPTS="$REPO/skills/session-log/adapters/claude/scripts"
 ENGINE="$SCRIPTS/prompt_log_usage.jq"
 PRICES="$SCRIPTS/prompt_log_prices.json"
 AGG="$SCRIPTS/prompt_log_usage.sh"
@@ -205,6 +205,15 @@ assert_eq "engine mode=merge over main + 4 sub-agents" "$TOTAL_LINE" \
 cp "$MAIN" "$WORKROOT/corrupt.jsonl"
 printf 'this is not json\n' >> "$WORKROOT/corrupt.jsonl"
 assert_eq "corrupt line is skipped" "$MAIN_TOTAL" "$(engine total "$WORKROOT/corrupt.jsonl")"
+# A truncated JSONL line at a file boundary is skipped without swallowing the
+# following complete record; this mirrors a process interrupted mid-write.
+BOUNDARY="$WORKROOT/truncated-boundary.jsonl"
+printf '{"type":"assistant","timestamp":"2026-08-28T10:09:00.000Z","message":\n' > "$BOUNDARY"
+asst '2026-08-28T10:09:01.000Z' boundary-msg claude-haiku-4-5 high 10000 2000 0 0 0 standard >> "$BOUNDARY"
+assert_eq "truncated JSONL boundary does not drop the next record" \
+  'est. used token: input: 10000, output: 2000, cache_create: 0, cache_read: 0, total_tokens: 12000, price: $0.02, model: claude-haiku-4-5, effort: high' \
+  "$(engine total "$BOUNDARY")"
+
 
 # Streamed copies: sub-agent transcripts write one line per content block with
 # GROWING output_tokens snapshots (input/cache constant); the final copy holds

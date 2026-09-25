@@ -1,0 +1,1569 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly SUPPORTED_HARNESSES="claude, opencode, omp"
+readonly OWNER_MARKER_VALUE="universal-session-log"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+readonly PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
+readonly VERSION="$(tr -d '[:space:]' < "$PACKAGE_ROOT/VERSION")"
+readonly HOME_ROOT="$(cd "${HOME:?HOME is required}" && pwd -P)"
+readonly STORE="$HOME_ROOT/.local/share/universal-session-log"
+HARNESS=""
+ENTRYPOINT=""
+COMMAND="status"
+declare -a COMMAND_ARGS=()
+RAW_ARGUMENTS=""
+RAW_ARGUMENTS_SET=0
+DIRECT_COMMAND_SET=0
+HARNESS_LABEL=""
+HARNESS_ROOT=""
+STATE_DIR=""
+FLAG_FILE=""
+ENABLE_LOCK=""
+INSTALL_LOCK=""
+INSTALL_LOCK_OWNER_START=""
+
+fail() {
+  printf 'session-log: %s\n' "$1" >&2
+  exit 1
+}
+canonical_path() {
+  local path="$1" resolved
+  if [[ -d "$path" ]]; then
+    resolved="$(cd "$path" 2>/dev/null && pwd -P)" || return 1
+    printf '%s\n' "$resolved"
+  else
+    printf '%s\n' "$path"
+  fi
+}
+
+paths_equivalent() {
+  local left right
+  left="$(canonical_path "$1")" || return 1
+  right="$(canonical_path "$2")" || return 1
+  [[ "$left" == "$right" ]]
+}
+
+
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || fail "missing dependency: $1"
+}
+
+split_command_string() {
+  local input="$1" char state="plain" token="" token_started=0 escaped=0 i
+  local -a tokens=()
+  for ((i = 0; i < ${#input}; i++)); do
+    char="${input:i:1}"
+    case "$state" in
+      plain)
+        if ((escaped)); then
+          token+="$char"
+          escaped=0
+          token_started=1
+        elif [[ "$char" == "\\" ]]; then
+          escaped=1
+          token_started=1
+        elif [[ "$char" == "'" ]]; then
+          state="single"
+          token_started=1
+        elif [[ "$char" == '"' ]]; then
+          state="double"
+          token_started=1
+        elif [[ "$char" == " " || "$char" == $'\t' || "$char" == $'\n' ]]; then
+          if ((token_started)); then
+            tokens+=("$token")
+            token=""
+            token_started=0
+          fi
+        else
+          token+="$char"
+          token_started=1
+        fi
+        ;;
+      single)
+        if [[ "$char" == "'" ]]; then
+          state="plain"
+        else
+          token+="$char"
+        fi
+        ;;
+      double)
+        if ((escaped)); then
+          token+="$char"
+          escaped=0
+        elif [[ "$char" == "\\" ]]; then
+          escaped=1
+        elif [[ "$char" == '"' ]]; then
+          state="plain"
+        else
+          token+="$char"
+        fi
+        ;;
+    esac
+  done
+  ((escaped == 0)) || fail "unterminated escape in command arguments"
+  [[ "$state" == plain ]] || fail "unterminated quote in command arguments"
+  if ((token_started)); then tokens+=("$token"); fi
+  ((${#tokens[@]} > 0)) || fail "session-log command is required"
+  case "${tokens[0]}" in
+    on|off|status|usage) ;;
+    *) fail "unknown command: ${tokens[0]}" ;;
+  esac
+  COMMAND="${tokens[0]}"
+  COMMAND_ARGS=("${tokens[@]:1}")
+}
+
+validate_command_args() {
+  case "$COMMAND" in
+    on|off|status)
+      ((${#COMMAND_ARGS[@]} == 0)) ||
+        fail "trailing arguments are not valid for $COMMAND"
+      ;;
+  esac
+}
+
+parse_args() {
+  local arg
+  while (($#)); do
+    arg="$1"
+    case "$arg" in
+      --entrypoint)
+        [[ -z "$ENTRYPOINT" ]] || fail "conflicting native entrypoint claims"
+        (($# >= 2)) || fail "--entrypoint requires a value"
+        ENTRYPOINT="$2"
+        shift 2
+        ;;
+      --entrypoint=*)
+        [[ -z "$ENTRYPOINT" ]] || fail "conflicting native entrypoint claims"
+        ENTRYPOINT="${arg#*=}"
+        [[ -n "$ENTRYPOINT" ]] || fail "--entrypoint requires a value"
+        shift
+        ;;
+      --harness)
+        [[ -z "$HARNESS" ]] || fail "conflicting harness identity claims"
+        (($# >= 2)) || fail "--harness requires a value"
+        HARNESS="$2"
+        shift 2
+        ;;
+      --harness=*)
+        [[ -z "$HARNESS" ]] || fail "conflicting harness identity claims"
+        HARNESS="${arg#*=}"
+        [[ -n "$HARNESS" ]] || fail "--harness requires a value"
+        shift
+        ;;
+      --arguments)
+        [[ "$RAW_ARGUMENTS_SET" == 0 ]] || fail "only one command argument string is allowed"
+        (($# >= 2)) || fail "--arguments requires a value"
+        RAW_ARGUMENTS="$2"
+        RAW_ARGUMENTS_SET=1
+        shift 2
+        ;;
+      --arguments=*)
+        [[ "$RAW_ARGUMENTS_SET" == 0 ]] || fail "only one command argument string is allowed"
+        RAW_ARGUMENTS="${arg#*=}"
+        RAW_ARGUMENTS_SET=1
+        shift
+        ;;
+      on|off|status|usage)
+        [[ "$DIRECT_COMMAND_SET" == 0 ]] || fail "only one session-log command is allowed"
+        [[ "$RAW_ARGUMENTS_SET" == 0 ]] || fail "cannot combine a command with --arguments"
+        DIRECT_COMMAND_SET=1
+        COMMAND="$1"
+        shift
+        while (($#)); do
+          COMMAND_ARGS+=("$1")
+          shift
+        done
+        ;;
+      --help|-h)
+        printf 'Usage: session-log --entrypoint <claude|opencode|omp> --harness <same> [on|off|status|usage] [native args...]\n'
+        printf '       session-log --entrypoint <claude|opencode|omp> --harness <same> --arguments "<command and native args>"\n'
+        exit 0
+        ;;
+      --)
+        shift
+        (($#)) && fail "unexpected argument: $1"
+        ;;
+      *)
+        fail "unknown argument: $arg"
+        ;;
+    esac
+  done
+
+  if ((RAW_ARGUMENTS_SET)); then
+    ((DIRECT_COMMAND_SET == 0)) || fail "cannot combine a command with --arguments"
+    split_command_string "$RAW_ARGUMENTS"
+  fi
+  validate_command_args
+  [[ -n "$ENTRYPOINT" ]] || fail "active harness identity is required from a native entrypoint"
+  [[ -n "$HARNESS" ]] || fail "active harness identity is required from a native entrypoint"
+  [[ "$ENTRYPOINT" == "$HARNESS" ]] || fail "conflicting native entrypoint and harness identities"
+  case "$HARNESS" in
+    claude|opencode|omp) ;;
+    *) fail "unsupported harness '$HARNESS'; supported harnesses: $SUPPORTED_HARNESSES" ;;
+  esac
+}
+
+resolve_roots() {
+  case "$HARNESS" in
+    claude)
+      if [[ -n "${CLAUDE_CONFIG_DIR:-}" ]] &&
+        ! paths_equivalent "$CLAUDE_CONFIG_DIR" "$HOME_ROOT/.claude"; then
+        fail "Claude Code root is relocated; install this package explicitly for that location"
+      fi
+      HARNESS_LABEL="Claude Code"
+      HARNESS_ROOT="$HOME_ROOT/.claude"
+      STATE_DIR="$HARNESS_ROOT/session-log"
+      FLAG_FILE="$HARNESS_ROOT/prompt-logs/.enabled"
+      RUNTIME_FILE="$STATE_DIR/runtime.json"
+      ;;
+    opencode)
+      if [[ -n "${OPENCODE_CONFIG_DIR:-}" ]] &&
+        ! paths_equivalent "$OPENCODE_CONFIG_DIR" "$HOME_ROOT/.config/opencode"; then
+        fail "OpenCode root is relocated; install this package explicitly for that location"
+      fi
+      if [[ -n "${XDG_CONFIG_HOME:-}" ]] &&
+        ! paths_equivalent "$XDG_CONFIG_HOME" "$HOME_ROOT/.config"; then
+        fail "OpenCode root is relocated; install this package explicitly for that location"
+      fi
+      if [[ -n "${XDG_DATA_HOME:-}" ]] &&
+        ! paths_equivalent "$XDG_DATA_HOME" "$HOME_ROOT/.local/share"; then
+        fail "OpenCode data root is relocated; install this package explicitly for that location"
+      fi
+      HARNESS_LABEL="OpenCode"
+      HARNESS_ROOT="$HOME_ROOT/.config/opencode"
+      STATE_DIR="$HARNESS_ROOT/session-log"
+      FLAG_FILE="$HARNESS_ROOT/prompt-logs/.enabled"
+      RUNTIME_FILE="$STATE_DIR/runtime.json"
+      ;;
+    omp)
+      if [[ -n "${PI_CODING_AGENT_DIR:-}" ]] &&
+        ! paths_equivalent "$PI_CODING_AGENT_DIR" "$HOME_ROOT/.omp/agent"; then
+        fail "OMP root is relocated; install this package explicitly for that location"
+      fi
+      if [[ -n "${OMP_PROMPT_LOG_DIR:-}" ]] &&
+        ! paths_equivalent "$OMP_PROMPT_LOG_DIR" "$HOME_ROOT/.omp/agent/prompt-logs"; then
+        fail "OMP prompt-log root is relocated; install this package explicitly for that location"
+      fi
+      HARNESS_LABEL="OMP"
+      HARNESS_ROOT="$HOME_ROOT/.omp/agent"
+      STATE_DIR="$HARNESS_ROOT/session-log"
+      FLAG_FILE="$HARNESS_ROOT/prompt-logs/.enabled"
+      RUNTIME_FILE="$STATE_DIR/runtime.json"
+      ;;
+  esac
+  ENABLE_LOCK="$FLAG_FILE.lock"
+  INSTALL_LOCK="$STATE_DIR/.install.lock"
+}
+
+source_for() {
+  case "$HARNESS:$1" in
+    opencode:plugin) printf '%s\n' "$PACKAGE_ROOT/adapters/opencode/session-log.js" ;;
+    opencode:usage) printf '%s\n' "$PACKAGE_ROOT/adapters/opencode/session_log_usage.sh" ;;
+    omp:extension) printf '%s\n' "$PACKAGE_ROOT/adapters/omp/session-log.js" ;;
+    omp:usage) printf '%s\n' "$PACKAGE_ROOT/adapters/omp/session_log_usage.ts" ;;
+    claude:hook) printf '%s\n' "$PACKAGE_ROOT/adapters/claude/claude_hook.sh" ;;
+    *) fail "no adapter asset for $HARNESS/$1" ;;
+  esac
+}
+
+target_for() {
+  case "$HARNESS:$1" in
+    opencode:plugin) printf '%s\n' "$HARNESS_ROOT/plugins/session-log.js" ;;
+    opencode:usage) printf '%s\n' "$HARNESS_ROOT/scripts/session_log_usage.sh" ;;
+    omp:extension) printf '%s\n' "$HARNESS_ROOT/extensions/session-log.js" ;;
+    omp:usage) printf '%s\n' "$HARNESS_ROOT/skills/session-log/scripts/session_log_usage.ts" ;;
+    *) fail "no adapter target for $HARNESS/$1" ;;
+  esac
+}
+
+adapter_asset_current() {
+  local kind source target
+  kind="$1"
+  source="$(source_for "$kind")"
+  target="$(target_for "$kind")"
+  [[ -L "$target" ]] || return 1
+  [[ "$(readlink "$target")" == "$source" ]]
+}
+
+claude_plugin_mode() {
+  local plugin_root
+  [[ "$HARNESS" == claude && -n "${CLAUDE_PLUGIN_ROOT:-}" ]] || return 1
+  plugin_root="$(cd "$CLAUDE_PLUGIN_ROOT" 2>/dev/null && pwd -P)" || return 1
+  [[ "$PACKAGE_ROOT" == "$plugin_root/skills/session-log" ]]
+}
+
+claude_plugin_hooks_current() {
+  local hooks_path="$CLAUDE_PLUGIN_ROOT/hooks/hooks.json"
+  [[ -f "$hooks_path" && ! -L "$hooks_path" ]] || return 1
+  ensure_safe_parent "$hooks_path"
+  HOOKS_PATH="$hooks_path" CLAUDE_PLUGIN_ROOT_PATH="$CLAUDE_PLUGIN_ROOT" \
+    python3 - <<'PY'
+import json
+import os
+
+hooks_path = os.environ["HOOKS_PATH"]
+plugin_root = os.environ["CLAUDE_PLUGIN_ROOT_PATH"]
+try:
+    with open(hooks_path, encoding="utf-8") as handle:
+        document = json.load(handle)
+except (OSError, json.JSONDecodeError):
+    raise SystemExit(1)
+hooks = document.get("hooks")
+if not isinstance(hooks, dict):
+    raise SystemExit(1)
+events = {
+    "SessionStart": ("startup", "session-start"),
+    "UserPromptSubmit": (None, "user-prompt"),
+    "Stop": (None, "stop"),
+    "SubagentStop": (None, "subagent-stop"),
+}
+hook_path = os.path.join(
+    plugin_root, "skills", "session-log", "adapters", "claude", "claude_hook.sh"
+)
+for event, (matcher, name) in events.items():
+    entries = hooks.get(event)
+    if not isinstance(entries, list):
+        raise SystemExit(1)
+    expected = f'exec bash "${{CLAUDE_PLUGIN_ROOT}}/skills/session-log/adapters/claude/claude_hook.sh" {name}'
+    if not any(
+        isinstance(entry, dict)
+        and (
+            (matcher is None and "matcher" not in entry)
+            or entry.get("matcher") == matcher
+        )
+        and isinstance(entry.get("hooks"), list)
+        and any(
+            isinstance(item, dict)
+            and item.get("type") == "command"
+            and item.get("command") == expected
+            for item in entry["hooks"]
+        )
+        for entry in entries
+    ):
+        raise SystemExit(1)
+if not os.path.isfile(hook_path) or os.path.islink(hook_path):
+    raise SystemExit(1)
+PY
+}
+
+claude_settings_has_adapter() {
+  if claude_plugin_mode; then
+    [[ -f "$PACKAGE_ROOT/adapters/claude/claude_hook.sh" &&
+       ! -L "$PACKAGE_ROOT/adapters/claude/claude_hook.sh" ]] || return 1
+    claude_plugin_hooks_current
+    return
+  fi
+  [[ -f "$HARNESS_ROOT/settings.json" ]] || return 1
+  [[ ! -L "$HARNESS_ROOT/settings.json" ]] ||
+    fail "refusing to follow symlinked Claude settings: $HARNESS_ROOT/settings.json"
+  SETTINGS_PATH="$HARNESS_ROOT/settings.json" \
+  HOOK_PATH="$(source_for hook)" \
+  SESSION_LOG_OWNER_MARKER="$OWNER_MARKER_VALUE" \
+    python3 - <<'PY'
+import json
+import os
+import shlex
+
+try:
+    with open(os.environ["SETTINGS_PATH"], encoding="utf-8") as handle:
+        document = json.load(handle)
+except (OSError, json.JSONDecodeError):
+    raise SystemExit(1)
+hooks = document.get("hooks")
+if not isinstance(hooks, dict):
+    raise SystemExit(1)
+owner = os.environ["SESSION_LOG_OWNER_MARKER"]
+hook_path = os.environ["HOOK_PATH"]
+events = {
+    "SessionStart": ("startup|resume", "session-start"),
+    "UserPromptSubmit": (None, "user-prompt"),
+    "Stop": (None, "stop"),
+    "SubagentStop": (None, "subagent-stop"),
+}
+for event, (matcher, name) in events.items():
+    expected = (
+        f"SESSION_LOG_OWNER={shlex.quote(owner)} "
+        f"bash {shlex.quote(hook_path)} {name}"
+    )
+    entries = hooks.get(event)
+    if not isinstance(entries, list):
+        raise SystemExit(1)
+    if not any(
+        isinstance(entry, dict)
+        and (
+            (matcher is None and "matcher" not in entry)
+            or entry.get("matcher") == matcher
+        )
+        and isinstance(entry.get("hooks"), list)
+        and any(
+            isinstance(item, dict)
+            and item.get("type") == "command"
+            and item.get("command") == expected
+            for item in entry["hooks"]
+        )
+        for entry in entries
+    ):
+        raise SystemExit(1)
+PY
+}
+
+manifest_asset_hash() {
+  local asset="$1"
+  awk -v wanted="asset=$asset" '$0 == wanted { if (getline && $0 ~ /^sha256=/) { sub(/^sha256=/, ""); print; exit } }' "$STATE_DIR/adapter.manifest" 2>/dev/null
+}
+
+manifest_current() {
+  local kind source expected
+  [[ -f "$STATE_DIR/adapter.manifest" && ! -L "$STATE_DIR/adapter.manifest" ]] || return 1
+  [[ "$(awk -F= '$1 == "version" { value=$2; count++ } END { if (count != 1) exit 1; print value }' "$STATE_DIR/adapter.manifest")" == "$VERSION" ]] || return 1
+  case "$HARNESS" in
+    claude)
+      source="$(source_for hook)"
+      expected="$(sha256_file "$source")"
+      [[ "$(manifest_asset_hash hook)" == "$expected" ]]
+      ;;
+    opencode)
+      for kind in plugin usage; do
+        source="$(source_for "$kind")"
+        expected="$(sha256_file "$source")"
+        [[ "$(manifest_asset_hash "$kind")" == "$expected" ]] || return 1
+      done
+      ;;
+    omp)
+      for kind in extension usage; do
+        source="$(source_for "$kind")"
+        expected="$(sha256_file "$source")"
+        [[ "$(manifest_asset_hash "$kind")" == "$expected" ]] || return 1
+      done
+      ;;
+  esac
+}
+
+adapter_current() {
+  validate_state_dir
+  [[ -f "$STATE_DIR/desired.version" && ! -L "$STATE_DIR/desired.version" ]] || return 1
+  [[ "$(cat "$STATE_DIR/desired.version")" == "$VERSION" ]] || return 1
+  [[ -f "$STATE_DIR/adapter.version" && ! -L "$STATE_DIR/adapter.version" ]] || return 1
+  [[ "$(cat "$STATE_DIR/adapter.version")" == "$VERSION" ]] || return 1
+  manifest_current || return 1
+  case "$HARNESS" in
+    claude) claude_settings_has_adapter ;;
+    opencode) adapter_asset_current plugin && adapter_asset_current usage ;;
+    omp) adapter_asset_current extension && adapter_asset_current usage ;;
+  esac
+}
+
+runtime_current() {
+  validate_state_dir
+  require_command jq
+  local candidate loaded_at now pid expected_start actual_start
+  local -a candidates=("$RUNTIME_FILE" "$STATE_DIR"/runtime.*.json)
+  for candidate in "${candidates[@]}"; do
+    [[ -f "$candidate" && ! -L "$candidate" ]] || continue
+    [[ "$(jq -r '.harness // empty' "$candidate" 2>/dev/null)" == "$HARNESS" ]] || continue
+    [[ "$(jq -r '.version // empty' "$candidate" 2>/dev/null)" == "$VERSION" ]] || continue
+    if [[ "$HARNESS" == claude ]]; then
+      [[ -n "$(jq -r '.session_id // empty' "$candidate" 2>/dev/null)" ]] || continue
+      [[ "$(jq -r '.loaded_at // empty' "$candidate" 2>/dev/null)" =~ ^[0-9]+$ ]] || continue
+      loaded_at="$(jq -r '.loaded_at' "$candidate" 2>/dev/null)"
+      now="$(date +%s)"
+      ((loaded_at <= now)) || continue
+    fi
+    pid="$(jq -r '.pid // empty' "$candidate" 2>/dev/null)"
+    expected_start="$(jq -r '.process_start // empty' "$candidate" 2>/dev/null)"
+    [[ "$pid" =~ ^[1-9][0-9]*$ && -n "$expected_start" ]] || continue
+    kill -0 "$pid" 2>/dev/null || continue
+    actual_start="$(ps -p "$pid" -o lstart= 2>/dev/null | sed 's/^ *//')"
+    [[ -n "$actual_start" && "$actual_start" == "$expected_start" ]] || continue
+    [[ -n "$(jq -r '.nonce // empty' "$candidate" 2>/dev/null)" ]] || continue
+    return 0
+  done
+  return 1
+}
+
+ensure_safe_parent() {
+  local path="$1" current component
+  local -a components=()
+  IFS='/' read -r -a components <<< "$(dirname "$path")"
+  current=""
+  for component in "${components[@]}"; do
+    [[ -n "$component" ]] || continue
+    current="$current/$component"
+    [[ -L "$current" ]] && fail "refusing to follow symlinked parent: $current"
+    [[ -e "$current" && ! -d "$current" ]] &&
+      fail "refusing non-directory parent: $current"
+  done
+  return 0
+}
+set_enable_state_locked() {
+  local action="$1"
+  SESSION_LOG_ENABLE_LOCK="$ENABLE_LOCK" \
+    SESSION_LOG_ENABLE_FLAG="$FLAG_FILE" \
+    SESSION_LOG_ENABLE_ACTION="$action" \
+    python3 - <<'PY'
+import fcntl
+import os
+import stat
+import secrets
+
+lock_path = os.environ["SESSION_LOG_ENABLE_LOCK"]
+flag_path = os.environ["SESSION_LOG_ENABLE_FLAG"]
+action = os.environ["SESSION_LOG_ENABLE_ACTION"]
+lock_flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+parent, name = os.path.split(flag_path)
+lock_parent, lock_name = os.path.split(lock_path)
+if lock_parent != parent:
+    raise RuntimeError("session-log enable lock is outside the flag directory")
+directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+def open_directory(path):
+    fd = os.open(os.sep, directory_flags)
+    try:
+        for component in path.split(os.sep)[1:]:
+            if not component or component == ".":
+                continue
+            if component == "..":
+                raise RuntimeError("parent traversal")
+            next_fd = os.open(component, directory_flags, dir_fd=fd)
+            os.close(fd)
+            fd = next_fd
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+parent_fd = open_directory(parent)
+lock_fd = os.open(lock_name, lock_flags, 0o600, dir_fd=parent_fd)
+try:
+    lock_stat = os.fstat(lock_fd)
+    if (
+        not stat.S_ISREG(lock_stat.st_mode)
+        or lock_stat.st_nlink != 1
+        or lock_stat.st_uid != os.getuid()
+    ):
+        raise RuntimeError("unsafe session-log enable lock")
+    os.fchmod(lock_fd, 0o600)
+    fcntl.flock(lock_fd, fcntl.LOCK_EX)
+    try:
+        try:
+            current = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            current = None
+        if current is not None and (
+            stat.S_ISLNK(current.st_mode)
+            or not stat.S_ISREG(current.st_mode)
+            or current.st_nlink != 1
+            or current.st_uid != os.getuid()
+        ):
+            raise RuntimeError("unsafe session-log enable flag")
+        if action == "on":
+            if current is None:
+                descriptor = os.open(
+                    name,
+                    os.O_WRONLY
+                    | os.O_CREAT
+                    | os.O_TRUNC
+                    | getattr(os, "O_NOFOLLOW", 0),
+                    0o600,
+                    dir_fd=parent_fd,
+                )
+                try:
+                    os.fchmod(descriptor, 0o600)
+                    os.write(descriptor, f"enabled:{secrets.token_hex(16)}\n".encode())
+                    os.fsync(descriptor)
+                finally:
+                    os.close(descriptor)
+            else:
+                descriptor = os.open(
+                    name,
+                    os.O_RDWR | getattr(os, "O_NOFOLLOW", 0),
+                    dir_fd=parent_fd,
+                )
+                try:
+                    actual = os.fstat(descriptor)
+                    if actual.st_dev != current.st_dev or actual.st_ino != current.st_ino:
+                        raise RuntimeError("session-log enable flag changed during update")
+                    os.fchmod(descriptor, 0o600)
+                finally:
+                    os.close(descriptor)
+        elif action == "off" and current is not None:
+            os.unlink(name, dir_fd=parent_fd)
+        else:
+            raise RuntimeError(f"unknown enable action: {action}")
+    finally:
+        os.close(parent_fd)
+finally:
+    fcntl.flock(lock_fd, fcntl.LOCK_UN)
+    os.close(lock_fd)
+PY
+}
+
+
+validate_state_dir() {
+  ensure_safe_parent "$STATE_DIR/adapter.version"
+  [[ ! -L "$STATE_DIR" ]] ||
+    fail "refusing to follow symlinked state directory: $STATE_DIR"
+  [[ ! -e "$STATE_DIR" || -d "$STATE_DIR" ]] ||
+    fail "refusing non-directory state path: $STATE_DIR"
+}
+preflight_enable_flag() {
+  ensure_safe_parent "$FLAG_FILE"
+  [[ ! -L "$FLAG_FILE" ]] ||
+    fail "refusing to overwrite symlinked enable flag: $FLAG_FILE"
+  [[ ! -d "$FLAG_FILE" ]] ||
+    fail "refusing to overwrite directory enable flag: $FLAG_FILE"
+}
+
+preflight_state_file() {
+  local file="$1"
+  ensure_safe_parent "$file"
+  [[ ! -L "$file" ]] ||
+    fail "refusing to overwrite symlinked state file: $file"
+  [[ ! -d "$file" ]] ||
+    fail "refusing to overwrite state directory: $file"
+}
+
+preflight_install_lock() {
+  local owner_pid owner_start actual_start child
+  ensure_safe_parent "$INSTALL_LOCK/pid"
+  [[ ! -L "$INSTALL_LOCK" ]] ||
+    fail "refusing symlinked install lock: $INSTALL_LOCK"
+  [[ ! -e "$INSTALL_LOCK" ]] && return
+  [[ -d "$INSTALL_LOCK" ]] ||
+    fail "refusing non-directory install lock: $INSTALL_LOCK"
+  for child in "$INSTALL_LOCK"/* "$INSTALL_LOCK"/.[!.]* "$INSTALL_LOCK"/..?*; do
+    [[ -e "$child" || -L "$child" ]] || continue
+    [[ "$child" == "$INSTALL_LOCK/pid" || "$child" == "$INSTALL_LOCK"/.session-log.* ]] ||
+      fail "refusing install lock containing unexpected file: $child"
+  done
+  [[ -e "$INSTALL_LOCK/pid" ]] || return
+  [[ -f "$INSTALL_LOCK/pid" && ! -L "$INSTALL_LOCK/pid" ]] ||
+    fail "refusing invalid install lock owner: $INSTALL_LOCK/pid"
+  owner_pid="$(sed -n '1p' "$INSTALL_LOCK/pid")"
+  owner_start="$(sed -n '2p' "$INSTALL_LOCK/pid" | sed 's/^ *//; s/[[:space:]]*$//')"
+  [[ "$owner_pid" =~ ^[1-9][0-9]*$ && -n "$owner_start" ]] ||
+    fail "refusing invalid install lock owner: $INSTALL_LOCK/pid"
+  if kill -0 "$owner_pid" 2>/dev/null; then
+    actual_start="$(ps -p "$owner_pid" -o lstart= 2>/dev/null | sed 's/^ *//; s/[[:space:]]*$//')"
+    if [[ -n "$actual_start" && "$actual_start" == "$owner_start" ]]; then
+      fail "adapter installation is already in progress for $HARNESS"
+    fi
+  fi
+  return 0
+}
+
+preflight_adapter_target() {
+  local kind="$1" source target existing
+  source="$(source_for "$kind")"
+  target="$(target_for "$kind")"
+  [[ -f "$source" && ! -L "$source" ]] ||
+    fail "adapter asset is missing: $source"
+  ensure_safe_parent "$target"
+  if [[ -L "$target" ]]; then
+    existing="$(readlink "$target")"
+    case "$HARNESS:$kind:$existing" in
+      "opencode:plugin:$source"|\
+      opencode:plugin:"$STORE/releases/"*/adapters/opencode/session-log.js|\
+      "opencode:usage:$source"|\
+      opencode:usage:"$STORE/releases/"*/adapters/opencode/session_log_usage.sh|\
+      "omp:extension:$source"|\
+      omp:extension:"$STORE/releases/"*/adapters/omp/session-log.js|\
+      "omp:usage:$source"|\
+      omp:usage:"$STORE/releases/"*/adapters/omp/session_log_usage.ts) ;;
+      *) fail "refusing to overwrite unowned adapter link: $target" ;;
+    esac
+  elif [[ -e "$target" ]]; then
+    [[ -f "$target" && ! -L "$target" ]] ||
+      fail "refusing to overwrite non-file adapter target: $target"
+    cmp -s "$source" "$target" ||
+      fail "refusing to overwrite unowned adapter file: $target"
+  fi
+}
+
+preflight_adapter_targets() {
+  case "$HARNESS" in
+    opencode)
+      preflight_adapter_target plugin
+      preflight_adapter_target usage
+      ;;
+    omp)
+      preflight_adapter_target extension
+      preflight_adapter_target usage
+      ;;
+  esac
+}
+
+preflight_claude_settings() {
+  if claude_plugin_mode; then
+    return 0
+  fi
+  local settings="$HARNESS_ROOT/settings.json"
+  ensure_safe_parent "$settings"
+  [[ ! -L "$settings" ]] ||
+    fail "refusing to update symlinked Claude settings: $settings"
+  [[ ! -d "$settings" ]] ||
+    fail "refusing to update directory as Claude settings: $settings"
+  [[ ! -e "$settings" ]] && return
+  [[ -f "$settings" ]] ||
+    fail "refusing to update non-file Claude settings: $settings"
+  SETTINGS_PATH="$settings" python3 - <<'PY'
+import json
+import os
+
+with open(os.environ["SETTINGS_PATH"], encoding="utf-8") as handle:
+    document = json.load(handle)
+if not isinstance(document, dict):
+    raise SystemExit("Claude settings root must be an object")
+hooks = document.get("hooks")
+if hooks is not None and not isinstance(hooks, dict):
+    raise SystemExit("Claude settings hooks must be an object")
+if isinstance(hooks, dict):
+    for event in ("SessionStart", "UserPromptSubmit", "Stop", "SubagentStop"):
+        entries = hooks.get(event)
+        if entries is not None and not isinstance(entries, list):
+            raise SystemExit(f"Claude settings hooks.{event} must be an array")
+PY
+}
+
+preflight_state_files() {
+  validate_state_dir
+  preflight_state_file "$STATE_DIR/desired.version"
+  preflight_state_file "$STATE_DIR/adapter.version"
+  preflight_state_file "$STATE_DIR/adapter.manifest"
+  preflight_state_file "$RUNTIME_FILE"
+  preflight_install_lock
+}
+
+preflight_on() {
+  preflight_enable_flag
+  preflight_state_files
+  case "$HARNESS" in
+    claude) preflight_claude_settings ;;
+    opencode|omp) preflight_adapter_targets ;;
+  esac
+}
+
+preflight_off() {
+  preflight_enable_flag
+  validate_state_dir
+  preflight_install_lock
+}
+
+
+ensure_private_directory() {
+  local directory="$1"
+  if ! SESSION_LOG_DIRECTORY="$directory" python3 - <<'PY'
+import os
+import stat
+
+directory = os.environ["SESSION_LOG_DIRECTORY"]
+flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+fd = os.open(os.sep, flags)
+try:
+    for part in directory.split(os.sep)[1:]:
+        if not part or part == ".":
+            continue
+        if part == "..":
+            raise SystemExit(f"refusing parent traversal: {directory}")
+        try:
+            next_fd = os.open(part, flags, dir_fd=fd)
+        except FileNotFoundError:
+            os.mkdir(part, 0o700, dir_fd=fd)
+            next_fd = os.open(part, flags, dir_fd=fd)
+        os.close(fd)
+        fd = next_fd
+    current = os.fstat(fd)
+    if not stat.S_ISDIR(current.st_mode) or current.st_uid != os.getuid():
+        raise SystemExit(f"refusing unsafe private directory: {directory}")
+    os.fchmod(fd, 0o700)
+finally:
+    os.close(fd)
+PY
+  then
+    fail "cannot safely prepare private directory: $directory"
+  fi
+}
+write_private_file() {
+  local file="$1"
+  local content="$2"
+  if ! SESSION_LOG_FILE="$file" SESSION_LOG_CONTENT="$content" python3 - <<'PY'
+import os
+import random
+import stat
+
+file = os.environ["SESSION_LOG_FILE"]
+content = (os.environ["SESSION_LOG_CONTENT"] + "\n").encode()
+directory, name = os.path.split(file)
+flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+parent_fd = os.open(os.sep, flags)
+temporary_name = None
+try:
+    for part in directory.split(os.sep)[1:]:
+        if not part or part == ".":
+            continue
+        if part == "..":
+            raise SystemExit(f"refusing parent traversal: {directory}")
+        try:
+            next_fd = os.open(part, flags, dir_fd=parent_fd)
+        except FileNotFoundError:
+            os.mkdir(part, 0o700, dir_fd=parent_fd)
+            next_fd = os.open(part, flags, dir_fd=parent_fd)
+        os.close(parent_fd)
+        parent_fd = next_fd
+    os.fchmod(parent_fd, 0o700)
+    try:
+        existing = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        existing = None
+    if existing is not None and (stat.S_ISLNK(existing.st_mode) or not stat.S_ISREG(existing.st_mode)):
+        raise SystemExit(f"refusing to overwrite unsafe private file: {file}")
+    for _ in range(20):
+        candidate = f".session-log.{os.getpid()}.{random.randrange(1 << 30):08x}"
+        try:
+            descriptor = os.open(
+                candidate,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+                dir_fd=parent_fd,
+            )
+            temporary_name = candidate
+            break
+        except FileExistsError:
+            continue
+    else:
+        raise SystemExit(f"cannot create temporary file in: {directory}")
+    try:
+        offset = 0
+        while offset < len(content):
+            offset += os.write(descriptor, content[offset:])
+        os.fchmod(descriptor, 0o600)
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    os.replace(temporary_name, name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+    temporary_name = None
+    os.fsync(parent_fd)
+finally:
+    if temporary_name is not None:
+        try:
+            os.unlink(temporary_name, dir_fd=parent_fd)
+        except OSError:
+            pass
+    os.close(parent_fd)
+PY
+  then
+    fail "cannot safely write private file: $file"
+  fi
+}
+sha256_file() {
+  local file="$1"
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$file" | awk '{print $1}'
+  elif command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$file" | awk '{print $1}'
+  else
+    fail "missing dependency: shasum or sha256sum"
+  fi
+}
+
+write_manifest() {
+  local content kind source target
+  ensure_safe_parent "$STATE_DIR/adapter.manifest"
+  [[ ! -L "$STATE_DIR/adapter.manifest" ]] ||
+    fail "refusing to overwrite symlink: $STATE_DIR/adapter.manifest"
+  [[ ! -d "$STATE_DIR/adapter.manifest" ]] ||
+    fail "refusing to overwrite directory: $STATE_DIR/adapter.manifest"
+  content="$(
+    printf 'version=%s\n' "$VERSION"
+    case "$HARNESS" in
+      claude)
+        printf 'asset=hook\n'
+        printf 'sha256=%s\n' "$(sha256_file "$(source_for hook)")"
+        ;;
+      opencode)
+        for kind in plugin usage; do
+          source="$(source_for "$kind")"
+          target="$(target_for "$kind")"
+          printf 'asset=%s\n' "$kind"
+          printf 'sha256=%s\n' "$(sha256_file "$source")"
+          printf 'target=%s\n' "$target"
+        done
+        ;;
+      omp)
+        for kind in extension usage; do
+          source="$(source_for "$kind")"
+          target="$(target_for "$kind")"
+          printf 'asset=%s\n' "$kind"
+          printf 'sha256=%s\n' "$(sha256_file "$source")"
+          printf 'target=%s\n' "$target"
+        done
+        ;;
+    esac
+  )"
+  write_private_file "$STATE_DIR/adapter.manifest" "$content"
+}
+lock_owner_current() {
+  local owner_file="$INSTALL_LOCK/pid" owner_pid="" owner_start="" actual_start=""
+  [[ -f "$owner_file" && ! -L "$owner_file" ]] || return 1
+  owner_pid="$(sed -n '1p' "$owner_file")"
+  owner_start="$(sed -n '2p' "$owner_file" | sed 's/^ *//; s/[[:space:]]*$//')"
+  [[ "$owner_pid" =~ ^[1-9][0-9]*$ && -n "$owner_start" ]] || return 1
+  kill -0 "$owner_pid" 2>/dev/null || return 1
+  actual_start="$(ps -p "$owner_pid" -o lstart= 2>/dev/null | sed 's/^ *//; s/[[:space:]]*$//')"
+  [[ -n "$actual_start" && "$actual_start" == "$owner_start" ]]
+}
+
+lock_owner_stale() {
+  local owner_file="$INSTALL_LOCK/pid" owner_pid="" owner_start="" actual_start=""
+  local now lock_mtime
+  [[ -d "$INSTALL_LOCK" && ! -L "$INSTALL_LOCK" ]] || return 1
+  if [[ ! -e "$owner_file" ]]; then
+    now="$(date +%s)" || return 1
+    lock_mtime="$(stat -f %m "$INSTALL_LOCK" 2>/dev/null || stat -c %Y "$INSTALL_LOCK" 2>/dev/null)" || return 1
+    [[ "$now" =~ ^[0-9]+$ && "$lock_mtime" =~ ^[0-9]+$ ]] || return 1
+    ((now - lock_mtime >= 5))
+    return
+  fi
+  [[ -f "$owner_file" && ! -L "$owner_file" ]] || return 1
+  owner_pid="$(sed -n '1p' "$owner_file")"
+  owner_start="$(sed -n '2p' "$owner_file" | sed 's/^ *//; s/[[:space:]]*$//')"
+  [[ "$owner_pid" =~ ^[1-9][0-9]*$ && -n "$owner_start" ]] || return 1
+  if ! kill -0 "$owner_pid" 2>/dev/null; then
+    return 0
+  fi
+  actual_start="$(ps -p "$owner_pid" -o lstart= 2>/dev/null | sed 's/^ *//; s/[[:space:]]*$//')"
+  [[ -n "$actual_start" && "$actual_start" != "$owner_start" ]]
+}
+
+acquire_install_lock() {
+  validate_state_dir
+  ensure_safe_parent "$INSTALL_LOCK/pid"
+  [[ ! -L "$INSTALL_LOCK" ]] ||
+    fail "refusing symlinked install lock: $INSTALL_LOCK"
+  [[ ! -e "$INSTALL_LOCK" || -d "$INSTALL_LOCK" ]] ||
+    fail "refusing non-directory install lock: $INSTALL_LOCK"
+  ensure_private_directory "$STATE_DIR"
+  if ! mkdir "$INSTALL_LOCK" 2>/dev/null; then
+    if lock_owner_current; then
+      fail "adapter installation is already in progress for $HARNESS"
+    fi
+    if lock_owner_stale; then
+      if [[ -e "$INSTALL_LOCK/pid" || -L "$INSTALL_LOCK/pid" ]]; then
+        [[ ! -L "$INSTALL_LOCK/pid" ]] ||
+          fail "refusing symlinked install lock: $INSTALL_LOCK/pid"
+        unlink "$INSTALL_LOCK/pid" || fail "cannot remove stale install lock owner: $INSTALL_LOCK/pid"
+      fi
+      for child in "$INSTALL_LOCK"/.session-log.*; do
+        [[ -e "$child" || -L "$child" ]] || continue
+        [[ ! -L "$child" ]] || fail "refusing symlinked install lock temporary: $child"
+        unlink "$child" || fail "cannot remove stale install lock temporary: $child"
+      done
+      rmdir "$INSTALL_LOCK" || fail "cannot remove stale install lock: $INSTALL_LOCK"
+      mkdir "$INSTALL_LOCK" 2>/dev/null ||
+        fail "adapter installation is already in progress for $HARNESS"
+    else
+      fail "adapter installation is already in progress for $HARNESS"
+    fi
+  fi
+  INSTALL_LOCK_OWNER_START="$(ps -p "$$" -o lstart= 2>/dev/null | sed 's/^ *//; s/[[:space:]]*$//')"
+  [[ -n "$INSTALL_LOCK_OWNER_START" ]] ||
+    fail "cannot determine install lock owner"
+  write_private_file "$INSTALL_LOCK/pid" "$$"$'\n'"$INSTALL_LOCK_OWNER_START"
+}
+
+release_install_lock() {
+  [[ -e "$INSTALL_LOCK/pid" || -L "$INSTALL_LOCK/pid" ]] || return 0
+  [[ -f "$INSTALL_LOCK/pid" && ! -L "$INSTALL_LOCK/pid" ]] ||
+    fail "refusing to release unsafe install lock owner: $INSTALL_LOCK/pid"
+  [[ "$(sed -n '1p' "$INSTALL_LOCK/pid")" == "$$" &&
+     "$(sed -n '2p' "$INSTALL_LOCK/pid")" == "$INSTALL_LOCK_OWNER_START" ]] ||
+    return 0
+  unlink "$INSTALL_LOCK/pid" || fail "cannot release install lock owner: $INSTALL_LOCK/pid"
+  [[ ! -L "$INSTALL_LOCK" ]] ||
+    fail "refusing to release symlinked install lock: $INSTALL_LOCK"
+  rmdir "$INSTALL_LOCK" || fail "cannot release install lock: $INSTALL_LOCK"
+}
+
+atomic_link() {
+  local source="$1" target="$2"
+  [[ -f "$source" && ! -L "$source" ]] || fail "adapter asset is missing: $source"
+  ensure_safe_parent "$target"
+  if ! SESSION_LOG_SOURCE="$source" SESSION_LOG_TARGET="$target" SESSION_LOG_STORE="$STORE" python3 - <<'PY'
+import os
+import random
+import stat
+
+source = os.environ["SESSION_LOG_SOURCE"]
+target = os.environ["SESSION_LOG_TARGET"]
+store = os.environ["SESSION_LOG_STORE"]
+directory, name = os.path.split(target)
+source_directory, source_name = os.path.split(source)
+directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+file_flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+
+def open_directory(path):
+    if not os.path.isabs(path):
+        fd = os.open(".", directory_flags)
+        parts = path.split(os.sep)
+    else:
+        fd = os.open(os.sep, directory_flags)
+        parts = path.split(os.sep)[1:]
+    try:
+        for part in parts:
+            if not part or part == ".":
+                continue
+            if part == "..":
+                raise SystemExit(f"refusing parent traversal: {path}")
+            try:
+                next_fd = os.open(part, directory_flags, dir_fd=fd)
+            except FileNotFoundError:
+                os.mkdir(part, 0o700, dir_fd=fd)
+                next_fd = os.open(part, directory_flags, dir_fd=fd)
+            os.close(fd)
+            fd = next_fd
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+def read_all(fd):
+    chunks = []
+    while True:
+        chunk = os.read(fd, 1024 * 1024)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+
+def classify(fd, name):
+    try:
+        item = os.stat(name, dir_fd=fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return None
+    if stat.S_ISLNK(item.st_mode):
+        return ("link", os.readlink(name, dir_fd=fd))
+    if not stat.S_ISREG(item.st_mode):
+        raise SystemExit(f"refusing to overwrite non-file adapter target: {target}")
+    descriptor = os.open(name, file_flags, dir_fd=fd)
+    try:
+        return ("file", read_all(descriptor))
+    finally:
+        os.close(descriptor)
+
+source_dir_fd = open_directory(source_directory)
+target_dir_fd = open_directory(directory)
+source_fd = None
+temporary_name = None
+backup_name = None
+backup_active = False
+try:
+    source_fd = os.open(source_name, file_flags, dir_fd=source_dir_fd)
+    source_stat = os.fstat(source_fd)
+    if not stat.S_ISREG(source_stat.st_mode) or source_stat.st_nlink != 1:
+        raise SystemExit(f"adapter asset is not a safe regular file: {source}")
+    source_data = read_all(source_fd)
+    initial = classify(target_dir_fd, name)
+    if initial is not None and initial[0] == "link":
+        existing = initial[1]
+        if existing == source:
+            raise SystemExit(0)
+        if not existing.startswith(f"{store}/releases/"):
+            raise SystemExit(f"refusing to overwrite unowned adapter link: {target}")
+    elif initial is not None:
+        if initial[1] != source_data:
+            raise SystemExit(f"refusing to overwrite unowned adapter file: {target}")
+    for _ in range(20):
+        candidate = f".session-log.{os.getpid()}.{random.randrange(1 << 30):08x}"
+        try:
+            os.symlink(source, candidate, dir_fd=target_dir_fd)
+            temporary_name = candidate
+            break
+        except FileExistsError:
+            continue
+    else:
+        raise SystemExit(f"cannot create temporary link in: {directory}")
+    current = classify(target_dir_fd, name)
+    if current != initial:
+        raise SystemExit(f"adapter target changed during update: {target}")
+    if initial is None:
+        os.unlink(temporary_name, dir_fd=target_dir_fd)
+        temporary_name = None
+        try:
+            os.symlink(source, name, dir_fd=target_dir_fd)
+        except FileExistsError:
+            raise SystemExit(f"adapter target changed during update: {target}")
+    else:
+        for attempt in range(20):
+            candidate = f".session-log-backup.{os.getpid()}.{random.randrange(1 << 30):08x}.{attempt}"
+            try:
+                os.rename(name, candidate, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
+                backup_name = candidate
+                backup_active = True
+                break
+            except FileExistsError:
+                continue
+        if not backup_active:
+            raise SystemExit(f"cannot stage adapter target: {target}")
+        if classify(target_dir_fd, backup_name) != initial:
+            os.rename(backup_name, name, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
+            backup_active = False
+            raise SystemExit(f"adapter target changed during update: {target}")
+        os.unlink(temporary_name, dir_fd=target_dir_fd)
+        temporary_name = None
+        try:
+            os.symlink(source, name, dir_fd=target_dir_fd)
+        except FileExistsError:
+            conflict = f"{backup_name}.conflict"
+            os.rename(name, conflict, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
+            os.rename(backup_name, name, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
+            backup_active = False
+            raise SystemExit(f"adapter target changed during update: {target}")
+        os.unlink(backup_name, dir_fd=target_dir_fd)
+        backup_active = False
+    os.fsync(target_dir_fd)
+finally:
+    if source_fd is not None:
+        os.close(source_fd)
+    if temporary_name is not None:
+        try:
+            os.unlink(temporary_name, dir_fd=target_dir_fd)
+        except OSError:
+            pass
+    if backup_active:
+        try:
+            os.stat(name, dir_fd=target_dir_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            try:
+                os.rename(backup_name, name, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
+            except OSError:
+                pass
+    os.close(source_dir_fd)
+    os.close(target_dir_fd)
+PY
+  then
+    fail "cannot safely install adapter link: $target"
+  fi
+}
+install_claude_settings() {
+  require_command python3
+  local settings="$HARNESS_ROOT/settings.json"
+  local hook
+  hook="$(source_for hook)"
+  ensure_safe_parent "$settings"
+  [[ ! -L "$settings" ]] || fail "refusing to update symlinked Claude settings: $settings"
+  [[ ! -d "$settings" ]] || fail "refusing to update directory as Claude settings: $settings"
+  SETTINGS_PATH="$settings" HOOK_PATH="$hook" SESSION_LOG_OWNER_MARKER="$OWNER_MARKER_VALUE" python3 - <<'PY'
+import fcntl
+import json
+import os
+import random
+import shlex
+import stat
+
+settings_path = os.environ["SETTINGS_PATH"]
+hook_path = os.environ["HOOK_PATH"]
+owner = os.environ["SESSION_LOG_OWNER_MARKER"]
+directory, settings_name = os.path.split(settings_path)
+directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+file_flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+
+def open_directory(path):
+    fd = os.open(os.sep, directory_flags)
+    try:
+        for part in path.split(os.sep)[1:]:
+            if not part or part == ".":
+                continue
+            if part == "..":
+                raise SystemExit(f"refusing parent traversal: {path}")
+            try:
+                next_fd = os.open(part, directory_flags, dir_fd=fd)
+            except FileNotFoundError:
+                os.mkdir(part, 0o700, dir_fd=fd)
+                next_fd = os.open(part, directory_flags, dir_fd=fd)
+            os.close(fd)
+            fd = next_fd
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+def read_all(fd):
+    chunks = []
+    while True:
+        chunk = os.read(fd, 1024 * 1024)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+parent_fd = open_directory(directory)
+lock_fd = os.open(settings_name + ".session-log.lock", os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600, dir_fd=parent_fd)
+os.fchmod(lock_fd, 0o600)
+fcntl.flock(lock_fd, fcntl.LOCK_EX)
+original_stat = None
+original_settings = None
+try:
+    descriptor = os.open(settings_name, file_flags, dir_fd=parent_fd)
+    try:
+        original_stat = os.fstat(descriptor)
+        original_settings = read_all(descriptor)
+    finally:
+        os.close(descriptor)
+    document = json.loads(original_settings.decode("utf-8"))
+except FileNotFoundError:
+    document = {}
+except (json.JSONDecodeError, OSError) as error:
+    os.close(parent_fd)
+    raise SystemExit(f"cannot update Claude settings: {error}")
+if not isinstance(document, dict):
+    raise SystemExit("cannot update Claude settings: root must be an object")
+
+hooks = document.get("hooks")
+if hooks is None:
+    hooks = {}
+elif not isinstance(hooks, dict):
+    raise SystemExit("cannot update Claude settings: hooks must be an object")
+document["hooks"] = hooks
+events = {
+    "SessionStart": ("startup|resume", "session-start"),
+    "UserPromptSubmit": (None, "user-prompt"),
+    "Stop": (None, "stop"),
+    "SubagentStop": (None, "subagent-stop"),
+}
+for event, (matcher, name) in events.items():
+    entries = hooks.setdefault(event, [])
+    if not isinstance(entries, list):
+        raise SystemExit(f"cannot update Claude settings: hooks.{event} must be an array")
+    filtered = []
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("hooks"), list):
+            filtered.append(entry)
+            continue
+        kept_hooks = []
+        removed_owned = False
+        expected_command = (
+            f"SESSION_LOG_OWNER={shlex.quote(owner)} "
+            f"bash {shlex.quote(hook_path)} {name}"
+        )
+        for item in entry["hooks"]:
+            command = item.get("command", "") if isinstance(item, dict) else ""
+            if (
+                isinstance(item, dict)
+                and item.get("type") == "command"
+                and command == expected_command
+            ):
+                removed_owned = True
+            else:
+                kept_hooks.append(item)
+        if removed_owned and kept_hooks:
+            replacement = dict(entry)
+            replacement["hooks"] = kept_hooks
+            filtered.append(replacement)
+        elif not removed_owned:
+            filtered.append(entry)
+    command = f"SESSION_LOG_OWNER={shlex.quote(owner)} bash {shlex.quote(hook_path)} {name}"
+    hook = {"type": "command", "command": command}
+    entry = {"hooks": [hook]}
+    if matcher is not None:
+        entry["matcher"] = matcher
+    filtered.append(entry)
+    hooks[event] = filtered
+
+mode = stat.S_IMODE(original_stat.st_mode) if original_stat is not None else 0o600
+def signature(value):
+    return (
+        value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns,
+        value.st_mode, value.st_nlink, value.st_uid, value.st_gid,
+    )
+def identity_after_rename(value):
+    return (
+        value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns,
+        value.st_mode, value.st_nlink, value.st_uid, value.st_gid,
+    )
+def assert_settings_unchanged():
+    try:
+        descriptor = os.open(settings_name, file_flags, dir_fd=parent_fd)
+    except FileNotFoundError:
+        if original_stat is None:
+            return
+        raise SystemExit("Claude settings changed during update; retry installation")
+    try:
+        current_stat = os.fstat(descriptor)
+        current_settings = read_all(descriptor)
+    finally:
+        os.close(descriptor)
+    if original_stat is None or signature(current_stat) != signature(original_stat) or current_settings != original_settings:
+        raise SystemExit("Claude settings changed during update; retry installation")
+assert_settings_unchanged()
+temporary_name = None
+backup_name = None
+backup_active = False
+for _ in range(20):
+    candidate = f".session-log.{os.getpid()}.{random.randrange(1 << 30):08x}"
+    try:
+        temporary_fd = os.open(
+            candidate,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+            0o600,
+            dir_fd=parent_fd,
+        )
+        temporary_name = candidate
+        break
+    except FileExistsError:
+        continue
+if temporary_name is None:
+    os.close(parent_fd)
+    raise SystemExit("cannot create temporary Claude settings file")
+os.fchmod(temporary_fd, mode & 0o777)
+try:
+    with os.fdopen(temporary_fd, "w", encoding="utf-8") as handle:
+        json.dump(document, handle, indent=2)
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    assert_settings_unchanged()
+    if original_stat is None:
+        try:
+            os.link(
+                temporary_name,
+                settings_name,
+                src_dir_fd=parent_fd,
+                dst_dir_fd=parent_fd,
+                follow_symlinks=False,
+            )
+        except FileExistsError:
+            raise SystemExit("Claude settings changed during update; retry installation")
+        os.unlink(temporary_name, dir_fd=parent_fd)
+        temporary_name = None
+    else:
+        for attempt in range(20):
+            candidate = f".session-log-backup.{os.getpid()}.{random.randrange(1 << 30):08x}.{attempt}"
+            try:
+                os.rename(settings_name, candidate, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+                backup_name = candidate
+                backup_active = True
+                break
+            except FileExistsError:
+                continue
+        if not backup_active:
+            raise SystemExit("cannot stage Claude settings update")
+        backup_fd = os.open(backup_name, file_flags, dir_fd=parent_fd)
+        try:
+            backup_stat = os.fstat(backup_fd)
+            os.lseek(backup_fd, 0, os.SEEK_SET)
+            backup_settings = read_all(backup_fd)
+        finally:
+            os.close(backup_fd)
+        if identity_after_rename(backup_stat) != identity_after_rename(original_stat) or backup_settings != original_settings:
+            os.rename(backup_name, settings_name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+            backup_active = False
+            raise SystemExit("Claude settings changed during update; retry installation")
+        try:
+            os.link(
+                temporary_name,
+                settings_name,
+                src_dir_fd=parent_fd,
+                dst_dir_fd=parent_fd,
+                follow_symlinks=False,
+            )
+        except FileExistsError:
+            for conflict_attempt in range(20):
+                conflict = f"{backup_name}.conflict.{conflict_attempt}"
+                try:
+                    os.rename(settings_name, conflict, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+                    break
+                except FileExistsError:
+                    continue
+            else:
+                raise SystemExit("Claude settings changed during update; retry installation")
+            os.rename(backup_name, settings_name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+            backup_active = False
+            raise SystemExit("Claude settings changed during update; retry installation")
+        os.unlink(temporary_name, dir_fd=parent_fd)
+        temporary_name = None
+        os.unlink(backup_name, dir_fd=parent_fd)
+        backup_active = False
+    os.fsync(parent_fd)
+finally:
+    if temporary_name is not None:
+        try:
+            os.unlink(temporary_name, dir_fd=parent_fd)
+        except OSError:
+            pass
+    if backup_active:
+        try:
+            os.stat(settings_name, dir_fd=parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            try:
+                os.rename(backup_name, settings_name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+            except OSError:
+                pass
+    os.close(lock_fd)
+    os.close(parent_fd)
+PY
+}
+
+clear_runtime_markers() {
+  local candidate
+  ensure_safe_parent "$RUNTIME_FILE"
+  for candidate in "$RUNTIME_FILE" "$STATE_DIR"/runtime.*.json; do
+    [[ -e "$candidate" || -L "$candidate" ]] || continue
+    [[ ! -L "$candidate" ]] || fail "refusing to remove symlinked runtime state: $candidate"
+    [[ ! -d "$candidate" ]] || fail "refusing to remove runtime directory: $candidate"
+    unlink "$candidate"
+  done
+}
+
+install_adapter() {
+  case "$HARNESS" in
+    claude)
+      if ! claude_plugin_mode; then
+        install_claude_settings
+      fi
+      ;;
+    opencode)
+      atomic_link "$(source_for plugin)" "$(target_for plugin)"
+      atomic_link "$(source_for usage)" "$(target_for usage)"
+      ;;
+    omp)
+      atomic_link "$(source_for extension)" "$(target_for extension)"
+      atomic_link "$(source_for usage)" "$(target_for usage)"
+      ;;
+  esac
+  write_private_file "$STATE_DIR/desired.version" "$VERSION"
+  write_private_file "$STATE_DIR/adapter.version" "$VERSION"
+  write_manifest
+  clear_runtime_markers
+}
+
+set_enabled() {
+  ensure_safe_parent "$FLAG_FILE"
+  [[ ! -L "$FLAG_FILE" ]] && [[ ! -d "$FLAG_FILE" ]] ||
+    fail "refusing to overwrite symlinked or directory enable flag: $FLAG_FILE"
+  ensure_private_directory "$(dirname "$FLAG_FILE")"
+  set_enable_state_locked on
+}
+
+set_disabled() {
+  ensure_safe_parent "$FLAG_FILE"
+  [[ ! -L "$FLAG_FILE" ]] || fail "refusing to remove symlinked enable flag: $FLAG_FILE"
+  if [[ -e "$FLAG_FILE" ]]; then
+    ensure_private_directory "$(dirname "$FLAG_FILE")"
+    set_enable_state_locked off
+  fi
+  if [[ "$HARNESS" == claude ]]; then
+    clear_runtime_markers
+  fi
+}
+
+print_status() {
+  ensure_safe_parent "$FLAG_FILE"
+  [[ ! -L "$FLAG_FILE" ]] || fail "refusing to follow symlinked enable flag: $FLAG_FILE"
+  [[ ! -d "$FLAG_FILE" ]] || fail "refusing to read enable directory: $FLAG_FILE"
+  if [[ ! -e "$FLAG_FILE" ]]; then
+    printf '%s: off\n' "$HARNESS_LABEL"
+    return
+  fi
+  if ! adapter_current; then
+    printf '%s: on — adapter missing\n' "$HARNESS_LABEL"
+    return
+  fi
+  if ! runtime_current; then
+    printf '%s: on — restart required\n' "$HARNESS_LABEL"
+    return
+  fi
+  printf '%s: on\n' "$HARNESS_LABEL"
+}
+validate_usage_args() {
+  local arg target_count=0
+  for arg in "${COMMAND_ARGS[@]}"; do
+    case "$arg" in
+      --latest)
+        target_count=$((target_count + 1))
+        ;;
+      --check) ;;
+      --no-session)
+        [[ "$HARNESS" == omp ]] || fail "--no-session is only valid for OMP"
+        fail "OMP started with --no-session; native session data is unavailable, so usage cannot be reconstructed"
+        ;;
+      /*|*/*)
+        [[ "$HARNESS" != opencode ]] ||
+          fail "OpenCode usage accepts only a session ID or --latest"
+        [[ -f "$arg" ]] || fail "session transcript does not exist: $arg"
+        target_count=$((target_count + 1))
+        ;;
+      [A-Za-z0-9._]*)
+        target_count=$((target_count + 1))
+        ;;
+      *) fail "invalid native usage target: $arg" ;;
+    esac
+  done
+  ((target_count <= 1)) ||
+    fail "usage accepts at most one session transcript target"
+}
+run_usage() {
+  validate_usage_args
+  local parser runner output_file error_file
+  parser=""
+  runner=""
+  case "$HARNESS" in
+    claude) parser="$PACKAGE_ROOT/adapters/claude/scripts/prompt_log_usage.sh"; runner=bash; require_command jq ;;
+    opencode) parser="$(source_for usage)"; runner=bash; require_command jq; require_command sqlite3 ;;
+    omp) parser="$(source_for usage)"; runner=bun; require_command bun ;;
+  esac
+  [[ -f "$parser" ]] || fail "native usage parser is missing for $HARNESS"
+  if ((${#COMMAND_ARGS[@]} == 0)); then COMMAND_ARGS=(--latest); fi
+  output_file="$(mktemp "${TMPDIR:-/tmp}/session-log-usage.XXXXXX")"
+  error_file="$(mktemp "${TMPDIR:-/tmp}/session-log-usage-error.XXXXXX")"
+  printf '%s: usage\n' "$HARNESS_LABEL"
+  set +e
+  "$runner" "$parser" "${COMMAND_ARGS[@]}" >"$output_file" 2>"$error_file"
+  local status=$?
+  set -e
+  if ((status != 0)); then
+    local detail
+    detail="$(cat "$error_file")"
+    unlink "$output_file"
+    unlink "$error_file"
+    fail "native $HARNESS_LABEL usage failed${detail:+: $detail}"
+  fi
+  cat "$output_file"
+  [[ -s "$output_file" ]] && printf '\n'
+  unlink "$output_file"
+  unlink "$error_file"
+}
+
+main() {
+  parse_args "$@"
+  resolve_roots
+  case "$COMMAND" in
+    on)
+      preflight_on
+      acquire_install_lock
+      trap release_install_lock EXIT
+      if ! adapter_current; then install_adapter; fi
+      set_enabled
+      if runtime_current; then
+        printf '%s: on\n' "$HARNESS_LABEL"
+      else
+        printf '%s: on — restart required\n' "$HARNESS_LABEL"
+      fi
+      release_install_lock
+      trap - EXIT
+      ;;
+    off)
+      preflight_off
+      acquire_install_lock
+      trap release_install_lock EXIT
+      set_disabled
+      printf '%s: off\n' "$HARNESS_LABEL"
+      release_install_lock
+      trap - EXIT
+      ;;
+    status)
+      print_status
+      ;;
+    usage)
+      run_usage
+      ;;
+  esac
+}
+
+main "$@"

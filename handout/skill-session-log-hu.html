@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>/session-log — Claude Code segédlet</title>
+  <title>/session-log — Univerzális session-napló segédlet</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: skills/session-log/scripts/prompt_log_lib.sh prompt_log_new_session.sh prompt_log_save.sh prompt_log_stop.sh prompt_log_subagent.sh prompt_log_usage.sh prompt_log_usage.jq prompt_log_prices.json -->
+  <!-- Forrás: skills/session-log/ teljes csomag; install-universal-session-log.sh checkout-wrapper -->
 </head>
 <body>
   <div class="card-page">
@@ -18,12 +18,27 @@
 
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
-      <p>Hat shell szkript (<code>prompt_log_lib.sh</code>, <code>prompt_log_new_session.sh</code>, <code>prompt_log_save.sh</code>, <code>prompt_log_stop.sh</code>, <code>prompt_log_subagent.sh</code>, <code>prompt_log_usage.sh</code>), egy közös jq motor (<code>prompt_log_usage.jq</code>) és egy statikus ártáblázat (<code>prompt_log_prices.json</code>), amelyek automatikusan rögzítenek minden, a Claude Code-nak elküldött promptot — az asszisztens válaszával, a kérésre fordított idővel, a becsült token/ár sorral, a modell- és effort-váltásokkal, valamint minden befejeződött alügynökről egy sorral együtt — projektenkénti Markdown naplófájlokba, sessionönként rendezve. Az aggregátor kérésre összesíti a teljes sessiont, az alügynökök transcriptjeivel együtt.</p>
+      <p>Egy teljes csomag tartalmazza a kanonikus <code>/session-log</code> belépési pontokat, a közös CLI-t, a natív adaptereket, a usage-parseröket, a telepítőt és a verziófájlt. Claude Code, OpenCode és OMP alatt működik, miközben minden harness megtartja a saját natív életciklus-, tárolási-, token-, idő-, modell-, költség- és alügynök-szemantikáját.</p>
     </section>
 
     <section data-section="2-when-to-use">
       <h2>Mikor használd</h2>
-      <p>A naplózás engedélyezéséhez futtasd a <code>/session-log on</code> parancsot. Ez csak létrehozza a <code>~/.claude/prompt-logs/.enabled</code> sentinel fájlt — magukat a hookokat a plugin szállítja (lásd lentebb a <em>Hook bekötés</em> részt), így a <code>~/.claude/settings.json</code> fájlba semmi nem íródik.</p>
+      <p>Futtasd a <code>bash install-universal-session-log.sh</code> parancsot repository checkoutból, vagy másold a teljes <code>skills/session-log/</code> könyvtárat a natív skill-helyre. Önálló másolásnál használd az alábbi harness-specifikus belépési pontot és OpenCode parancsot. Ezután futtasd a <code>/session-log on</code> parancsot; a csomag helyi belépési pontja csak az aktuális harness adapterét telepíti. Indítsd újra a harness-t, ha az <code>on — restart required</code> üzenetet ad.</p>
+      <pre><code># Claude Code
+mkdir -p ~/.claude/skills
+cp -R skills/session-log ~/.claude/skills/session-log
+
+# OpenCode
+mkdir -p ~/.config/opencode/skills ~/.config/opencode/commands
+cp -R skills/session-log ~/.config/opencode/skills/session-log
+cp skills/session-log/templates/opencode/SKILL.md ~/.config/opencode/skills/session-log/SKILL.md
+cp skills/session-log/templates/opencode/command.md ~/.config/opencode/commands/session-log.md
+
+# OMP
+mkdir -p ~/.omp/agent/skills
+cp -R skills/session-log ~/.omp/agent/skills/session-log
+cp skills/session-log/templates/omp/SKILL.md ~/.omp/agent/skills/session-log/SKILL.md</code></pre>
+      <p>Az önálló telepítés csak a harness-ek <code>$HOME</code> alatti alapértelmezett gyökereit támogatja: <code>~/.claude</code>, az OpenCode <code>~/.config/opencode</code> és <code>~/.local/share/opencode</code> könyvtárait, valamint a <code>~/.omp/agent</code> könyvtárat. Az átirányított vagy egyéni konfigurációs/adatgyökerek nem támogatottak; a <code>/session-log</code> futtatása előtt használd az alapértelmezett gyökereket.</p>
       <ul>
         <li><code>prompt_log_new_session.sh</code> — a <strong>SessionStart</strong> hook hívja hideg indításkor (nem érvényes resume, /clear, vagy /compact esetén)</li>
         <li><code>prompt_log_save.sh</code> — a <strong>UserPromptSubmit</strong> hook hívja minden alkalommal, amikor promptot küldesz</li>
@@ -35,23 +50,16 @@
         <li><code>prompt_log_prices.json</code> — a statikus, MTok-onkénti ártáblázat, amelyet a motor olvas; verziókövetett fájl, így az árazás determinisztikus és offline is működik</li>
       </ul>
       <p>A hook szkripteket kézzel csak akkor indítsd, ha a logging beállítást debugolod, vagy ha olyan szkriptet írsz, amelynek programozottan kell létrehoznia vagy bővítenie egy session naplófájlt.</p>
-      <p><strong>Függőség:</strong> A <code>jq</code>-nak telepítve kell lennie és elérhetőnek kell lennie a <code>PATH</code>-ban. Ha a <code>jq</code> hiányzik, a logging szkriptek csendesen kilépnek, hiba nélkül.</p>
+      <p><strong>Függőségek:</strong> a csomaghoz <code>bash</code>, Python 3 és <code>jq</code> kell. OpenCode usage-hoz <code>sqlite3</code>, OMP usage-hoz Bun is szükséges. Hiányzó függőségnél a hiba közvetlenül jelenik meg.</p>
     </section>
 
     <section data-section="2b-configuration">
       <h2>Konfiguráció</h2>
       <h3>Naplózás be- és kikapcsolása</h3>
-      <p>A naplózást egy sentinel fájl vezérli: <code>~/.claude/prompt-logs/.enabled</code>. A <code>/session-log on</code> létrehozza, a <code>/session-log off</code> eltávolítja, a <code>/session-log status</code> pedig kiírja az aktuális állapotot; az aggregátor összesítését az aktuális sessionre a <code>/session-log usage</code> adja. Ha a sentinel nincs meg, minden hook csendben kilép, így a hookok bekötve maradhatnak, és a beállítás túléli a plugin-frissítéseket.</p>
-      <h3>Hook bekötés</h3>
-      <p>A hookok automatikusan bekötődnek a plugin <code>hooks/hooks.json</code> fájljából — nem kell <code>settings.json</code>-t szerkeszteni, és a plugin manifest sem deklarálhat saját <code>hooks</code> kulcsot: a Claude Code 2.1.231-en ez duplikált bekötésként hibára fut, és a plugin összes hookját kiregisztrálja. Mind a négy bejegyzés (<strong>SessionStart</strong>, <strong>UserPromptSubmit</strong>, <strong>Stop</strong>, <strong>SubagentStop</strong>) védelmezően oldja fel a szkript útvonalát:</p>
-      <pre><code>s="${CLAUDE_PLUGIN_ROOT}/skills/session-log/scripts/prompt_log_new_session.sh"; s="${s//\\//}"; [ -f "$s" ] &amp;&amp; exec bash "$s"; exit 0</code></pre>
-      <p>Az egysorost az alakítja, ahogyan a Claude Code átadja a plugin gyökerét a hooknak, plusz két windowsos hiba, amelyeket <em>not planned</em> vagy <em>duplicate</em> címkével zártak upstream:</p>
-      <ul>
-        <li><strong>Idézőjelek a placeholder körül.</strong> A Claude Code 2.1.231 már nem helyettesíti be textuálisan a <code>${CLAUDE_PLUGIN_ROOT}</code> értéket a command szövegébe — környezeti változóként exportálja, a behelyettesítést a shellre bízza. Az aposztrófok blokkolnák ezt a behelyettesítést, így az <code>$s</code> a nyers placeholder maradna, a <code>[ -f "$s" ]</code> ellenőrzés soha nem találna semmit, és a hook 0-val kilépne anélkül, hogy bármit csinálna; pontosan így haltak el csendben a logging hookok. Az idézőjelek Windowson is biztonságosak, mert a behelyettesített változó értékét a shell már nem vizsgálja újra escape-ekre — a régi, textuális behelyettesítésnél viszont igen, ezért volt korábban szükség aposztrófokra (<a href="https://github.com/anthropics/claude-code/issues/22449">#22449</a>).</li>
-        <li><strong>Visszaperjel–perjel normalizálás.</strong> A Git Bash a <code>C:/Users/…</code> formát feloldja, a <code>C:\Users\…</code>-t nem, ezért az útvonalat átírjuk használat előtt.</li>
-        <li><strong>Shell forma, nem exec forma.</strong> Az exec forma a <code>bash</code>-t a windowsos <code>PATH</code>-ról indítaná, ahol a Git for Windows alapértelmezett telepítése kihagyja a <code>Git\bin</code>-t (<a href="https://github.com/anthropics/claude-code/issues/22700">#22700</a>), a <code>C:\Windows\System32\bash.exe</code> WSL-stub pedig elsőbbséget kap és az egész TUI-t megfagyasztja (<a href="https://github.com/anthropics/claude-code/issues/37634">#37634</a>). Shell formában maradva a <code>bash</code> a Git Bash saját <code>PATH</code>-ján oldódik fel.</li>
-      </ul>
-      <p>A <code>[ -f "$s" ]</code> ellenőrzés a becsületes tartalék: ahol a platform javíthatatlanul elrontja az útvonalat, a hook csendben 0-val kilép, így a naplózás ott egyszerűen nem elérhető, nem pedig minden promptnál hibasávot ír ki. A placeholdert pontosan <code>${CLAUDE_PLUGIN_ROOT}</code> alakban írd: ez mindkét működésmódot túléli — a régebbi Claude Code ezt a konkrét tokent cseréli le, mielőtt a shell egyáltalán látná, a 2.1.231 pedig a környezetből oldja fel —, míg a <code>$CLAUDE_PLUGIN_ROOT</code> vagy a <code>${CLAUDE_PLUGIN_ROOT:-…}</code> változat csak az újabbal működik.</p>
+      <p>Minden harness saját privát engedélyezési flaget használ: <code>~/.claude/prompt-logs/.enabled</code>, <code>~/.config/opencode/prompt-logs/.enabled</code> vagy <code>~/.omp/agent/prompt-logs/.enabled</code>. Az <code>on</code> csak az aktuális harness adapterét telepíti és létrehozza a flaget; az <code>off</code> csak ezt távolítja el; a <code>status</code> soha nem telepít adaptert.</p>
+      <h3>Natív életciklus-bekötés</h3>
+      <p>A teljes csomag tartalmazza a telepítőt és az adaptereket. Az első <code>on</code> csak a kiválasztott natív adaptert hozza létre: Claude Code plugin hookokat vagy settings hookokat használ, OpenCode plugint és parsert kap, OMP pedig extensiont és parsert. Az adapter az újraindítás után rögzíti a betöltött verzióját.</p>
+      <p>A harness-identitás minden belépési pontban explicit. A CLI nem következtet a <code>~/.claude</code>, <code>~/.config/opencode</code>, <code>~/.omp</code> könyvtárakból, flag-ekből vagy környezeti változókból. Áthelyezett root és egyedi profil nem támogatott, ezért egyértelmű hibát ad.</p>
     </section>
 
     <section data-section="3-invocation">

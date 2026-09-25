@@ -7,6 +7,8 @@ umask 077
 [ -f "$HOME/.claude/prompt-logs/.enabled" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 source "$(dirname "${BASH_SOURCE[0]}")/prompt_log_lib.sh"
+_claude_default_root_selected || exit 0
+
 
 input=$(cat)
 session_id=$(echo "$input" | jq -r '.session_id // ""')
@@ -22,19 +24,17 @@ cwd=$(echo "$input" | jq -r '.cwd // ""')
 # full opening tag: real prompts do sometimes start with "<".
 case "$prompt" in '<task-notification>'*) exit 0 ;; esac
 
-session_map="$_CLAUDE_SESSION_MAP_DIR/${session_id}"
-[ ! -f "$session_map" ] && create_session_file "$session_id" "$cwd"
+session_map=$(_claude_session_map_path "$session_id") || exit 0
+[ -f "$session_map" ] || create_session_file "$session_id" "$cwd"
+session_file=$(_claude_read_session_file "$session_id") || { echo "ERROR: invalid session map for ${session_id}" >&2; exit 1; }
+[ -n "$session_file" ] || { echo "ERROR: session map is empty for ${session_id}" >&2; exit 1; }
+start_file=$(_claude_state_file_path "$session_id" ".pstart") || exit 0
 
-session_file=$(cat "$session_map") || { echo "ERROR: failed to read session map for ${session_id}" >&2; exit 1; }
-[ -z "$session_file" ] && { echo "ERROR: session map is empty for ${session_id}" >&2; exit 1; }
 
 timestamp=$(date '+%H:%M:%S')
+record=$(printf '## %s\n\n%s\n\n---\n' "$timestamp" "$prompt")
+# Start the working-time clock before the append so a concurrent Stop hook
+# never observes a completed prompt without its start time.
+_claude_atomic_state_write "$start_file" "$(date +%s)"
+_claude_append_record "$session_file" "$record"
 
-{
-  printf '## %s\n\n' "$timestamp"
-  printf '%s\n' "$prompt"
-  printf '\n%s\n\n' '---'
-} >> "$session_file"
-
-# Start of the working time the Stop hook reports; it consumes this file.
-date +%s > "${session_map}.pstart"

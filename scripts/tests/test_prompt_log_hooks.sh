@@ -7,14 +7,14 @@
 set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SCRIPTS="$REPO/skills/session-log/scripts"
+SCRIPTS="$REPO/skills/session-log/adapters/claude/scripts"
 FAIL=0
 
 export TZ=UTC
 WORKROOT="$(mktemp -d)"
 trap 'cd /; rm -rf "$WORKROOT"' EXIT
 export HOME="$WORKROOT"
-mkdir -p "$HOME/.claude/prompt-logs" "$HOME/.claude/session-maps" "$WORKROOT/logs"
+mkdir -p "$HOME/.claude/prompt-logs" "$HOME/.claude/session-maps"
 touch "$HOME/.claude/prompt-logs/.enabled"
 
 fail() { echo "FAIL: $1"; FAIL=1; }
@@ -37,7 +37,7 @@ refute_grep() { # label regex file
 
 mk_log() { # sid -> creates the session map + an empty log, echoes the log path
   local sid="$1"
-  local log="$WORKROOT/logs/session_$sid.md"
+  local log="$HOME/.claude/prompt-logs/session_$sid.md"
   : > "$log"
   printf '%s\n' "$log" > "$HOME/.claude/session-maps/$sid"
   printf '%s' "$log"
@@ -48,11 +48,15 @@ mk_log() { # sid -> creates the session map + an empty log, echoes the log path
 #   = 20000 + 50000 + 1250000 + 1000000 = 2320000 -> 232 cents = $2.32
 #   tokens 2000+1000+150000+0 = 153000
 EST='est\. used token: input: 2000, output: 1000, cache_create: 150000, cache_read: 0, total_tokens: 153000, price: \$2\.32, model: claude-fable-5, effort: max'
-TRANSCRIPT="$WORKROOT/transcript.jsonl"
+PROJECT_KEY="$(printf '%s' "$WORKROOT/proj" | sed 's|[/._]|-|g')"
+PROJECT_DIR="$HOME/.claude/projects/$PROJECT_KEY"
+mkdir -p "$PROJECT_DIR"
+TRANSCRIPT="$PROJECT_DIR/transcript.jsonl"
 {
   printf '{"type":"user","timestamp":"2026-08-28T10:00:00.000Z","promptSource":"typed","isMeta":false,"message":{"role":"user","content":"do the thing"}}\n'
   printf '{"type":"assistant","timestamp":"2026-08-28T10:00:20.000Z","effort":"max","requestId":"req_1","message":{"id":"msg_1","model":"claude-fable-5","role":"assistant","stop_reason":"end_turn","content":[{"type":"text","text":"done"}],"usage":{"input_tokens":2000,"output_tokens":1000,"cache_read_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":100000,"ephemeral_1h_input_tokens":50000},"speed":"standard"}}}\n'
 } > "$TRANSCRIPT"
+
 
 stop_payload() { # sid transcript_path [agent_id]
   printf '{"session_id":"%s","transcript_path":"%s","last_assistant_message":"Done: **all good**\\nsecond line","effort":{"level":"max"}%s}\n' \
@@ -106,6 +110,43 @@ printf '{"session_id":"%s","prompt":"<Role>reviewer</Role> please check this","c
   "$sid_angle" "$WORKROOT/proj" | bash "$SCRIPTS/prompt_log_save.sh" >/dev/null 2>&1
 assert_grep "save.sh still logs a real prompt that starts with '<'" \
   '^<Role>reviewer</Role> please check this$' "$log_angle"
+
+# Hooks fail closed when Claude is configured to use a relocated root, matching
+# the CLI contract instead of writing to the default HOME root.
+sid_relocated="aaaaaaaa-0000-0000-0000-000000000010"
+log_relocated="$(mk_log "$sid_relocated")"
+mkdir -p "$WORKROOT/relocated-claude/.claude/prompt-logs"
+touch "$WORKROOT/relocated-claude/.claude/prompt-logs/.enabled"
+printf '{"session_id":"%s","prompt":"relocated prompt","cwd":"%s"}\n' \
+  "$sid_relocated" "$WORKROOT/proj" |
+  CLAUDE_CONFIG_DIR="$WORKROOT/relocated-claude/.claude" \
+  bash "$SCRIPTS/prompt_log_save.sh" >/dev/null 2>&1
+assert_eq "save.sh rejects relocated Claude roots" "0" "$(wc -c < "$log_relocated" | tr -d ' ')"
+assert_eq "relocated Claude root is not written" "0" \
+  "$(find "$WORKROOT/relocated-claude" -type f -not -name .enabled -print | wc -l | tr -d ' ')"
+
+# Concurrent UserPromptSubmit and Stop hooks must append complete records:
+# each append is serialized by the shared lock, so no heading/body/footer can
+# interleave with another hook's record.
+sid_serial="aaaaaaaa-0000-0000-0000-000000000009"
+log_serial="$(mk_log "$sid_serial")"
+printf '%s\n' "$(( $(date +%s) - 10 ))" > "$HOME/.claude/session-maps/$sid_serial.pstart"
+serial_pids=()
+for n in 1 2 3 4 5 6 7 8; do
+  printf '{"session_id":"%s","prompt":"parallel prompt %s","cwd":"%s"}\n' \
+    "$sid_serial" "$n" "$WORKROOT/proj" |
+    bash "$SCRIPTS/prompt_log_save.sh" >/dev/null 2>&1 &
+  serial_pids+=("$!")
+  stop_payload "$sid_serial" "$TRANSCRIPT" |
+    bash "$SCRIPTS/prompt_log_stop.sh" >/dev/null 2>&1 &
+  serial_pids+=("$!")
+done
+for serial_pid in "${serial_pids[@]}"; do wait "$serial_pid"; done
+assert_eq "save/stop hooks serialize every complete record" "16" \
+  "$(grep -c '^---$' "$log_serial")"
+for n in 1 2 3 4 5 6 7 8; do
+  assert_grep "serialized prompt $n is present" "^parallel prompt $n$" "$log_serial"
+done
 
 # ------------------------------------------------- prompt_log_stop.sh --------
 # Normal turn: response block, working time from .pstart, est-line, switch line.
@@ -179,10 +220,21 @@ rc=$?
 assert_eq "stop.sh exits 0 without a session map" "0" "$rc"
 assert_eq "stop.sh stays silent without a session map" "" "$(cat "$WORKROOT/nomap.out")"
 
+# A session map pointing outside the prompt-log root is rejected without a write.
+sid_outside="bbbbbbbb-0000-0000-0000-000000000008"
+outside_log="$WORKROOT/outside.md"
+printf '%s\n' "sentinel" > "$outside_log"
+printf '%s\n' "$outside_log" > "$HOME/.claude/session-maps/$sid_outside"
+stop_payload "$sid_outside" "$TRANSCRIPT" | bash "$SCRIPTS/prompt_log_stop.sh" > "$WORKROOT/outside.out" 2>&1
+rc=$?
+assert_eq "stop.sh exits 0 for an outside-root session map" "0" "$rc"
+assert_eq "stop.sh stays silent for an outside-root session map" "" "$(cat "$WORKROOT/outside.out")"
+assert_eq "stop.sh does not write outside the prompt-log root" "sentinel" "$(cat "$outside_log")"
+
 # Unreadable transcript -> response and working time still logged, usage skipped.
 sid7="bbbbbbbb-0000-0000-0000-000000000007"
 log7="$(mk_log "$sid7")"
-stop_payload "$sid7" "$WORKROOT/does-not-exist.jsonl" | bash "$SCRIPTS/prompt_log_stop.sh" >/dev/null 2>&1
+stop_payload "$sid7" "$PROJECT_DIR/does-not-exist.jsonl" | bash "$SCRIPTS/prompt_log_stop.sh" >/dev/null 2>&1
 rc=$?
 assert_eq "stop.sh exits 0 with an unreadable transcript" "0" "$rc"
 assert_grep "response is logged without a transcript" '^Done: \*\*all good\*\*$' "$log7"
@@ -199,14 +251,29 @@ assert_eq "stop.sh stays silent on garbage input" "" "$(cat "$WORKROOT/garbage.o
 # A real sub-agent transcript (the canonical fixture: 10:00:00 -> 10:00:20)
 # yields an enriched line: working time + est inline, jsonl path at the end.
 sid8="cccccccc-0000-0000-0000-000000000001"
+
 log8="$(mk_log "$sid8")"
-parent_dir="$WORKROOT/projects/-proj"
+parent_dir="$PROJECT_DIR"
 mkdir -p "$parent_dir/$sid8/subagents"
 cp "$TRANSCRIPT" "$parent_dir/$sid8/subagents/agent-9f3c2a1b.jsonl"
 sub_payload() { # sid agent_id agent_type
   printf '{"session_id":"%s","transcript_path":"%s","agent_id":"%s","agent_type":"%s"}\n' \
     "$1" "$parent_dir/$1.jsonl" "$2" "$3"
 }
+# Crafted agent IDs and transcript paths cannot escape the Claude project root.
+sid_traversal="cccccccc-0000-0000-0000-000000000006"
+log_traversal="$(mk_log "$sid_traversal")"
+outside_transcript="$WORKROOT/outside-subagent.jsonl"
+printf 'outside sentinel\n' > "$outside_transcript"
+printf '{"session_id":"%s","transcript_path":"%s","agent_id":"../escape","agent_type":"Explore"}\n' \
+  "$sid_traversal" "$parent_dir/$sid_traversal.jsonl" |
+  bash "$SCRIPTS/prompt_log_subagent.sh" >/dev/null 2>&1
+assert_eq "subagent.sh rejects traversal agent IDs" "0" "$(wc -c < "$log_traversal" | tr -d ' ')"
+printf '{"session_id":"%s","transcript_path":"%s","agent_id":"feedface","agent_type":"Explore"}\n' \
+  "$sid_traversal" "$outside_transcript" |
+  bash "$SCRIPTS/prompt_log_subagent.sh" >/dev/null 2>&1
+assert_eq "subagent.sh rejects transcripts outside the project root" "0" "$(wc -c < "$log_traversal" | tr -d ' ')"
+assert_eq "subagent.sh leaves an outside transcript unchanged" "outside sentinel" "$(cat "$outside_transcript")"
 sub_payload "$sid8" "9f3c2a1b" "general-purpose" | bash "$SCRIPTS/prompt_log_subagent.sh" > "$WORKROOT/sa.out" 2>/dev/null
 rc=$?
 assert_eq "subagent.sh exits 0" "0" "$rc"

@@ -3,11 +3,11 @@
 # The scripts only ever touch "$HOME/.claude/...", so overriding HOME gives a
 # complete sandbox — nothing here reads or writes the real prompt logs.
 #
-# Run: bash scripts/tests/test_prompt_log_hooks.sh
+# Run: bash skills/session-log/tests/test_prompt_log_hooks.sh
 set -u
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SCRIPTS="$REPO/skills/session-log/scripts"
+SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)"
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 FAIL=0
 
 export TZ=UTC
@@ -245,9 +245,10 @@ if [ -e "$HOME/.claude/session-maps/$sid9.helpers" ]; then
 fi
 
 # Internal helper agents (empty agent_type, no transcript anywhere) fire
-# SubagentStop too — dozens per long turn. They must not be logged, but their
-# activity is counted: one "<duration_ms> <tool_calls>" line per finish in
-# <sid>.helpers, defensively zeroed when the payload lacks the fields.
+# SubagentStop too — dozens per long turn. They must not be logged, and
+# SubagentStop carries no run time, tool-call count, or tokens for them, so only
+# their occurrence is knowable: one literal "helper" line per finish in
+# <sid>.helpers, which the aggregator counts.
 sid10="cccccccc-0000-0000-0000-000000000004"
 log10="$(mk_log "$sid10")"
 printf '{"session_id":"%s","transcript_path":"%s","agent_id":"a7df9489b","agent_type":"","duration_ms":125000,"tool_calls_count":3}\n' \
@@ -258,12 +259,12 @@ assert_eq "subagent.sh exits 0 for a phantom helper agent" "0" "$rc"
 assert_eq "subagent.sh stays silent for a phantom helper agent" "" "$(cat "$WORKROOT/sa_phantom.out")"
 assert_eq "subagent.sh skips a phantom helper (no type, no jsonl)" "0" \
   "$(wc -c < "$log10" | tr -d ' ')"
-assert_eq "subagent.sh records the helper's duration and tool calls" "125000 3" \
+assert_eq "subagent.sh records one helper line per finish" "helper" \
   "$(cat "$HOME/.claude/session-maps/$sid10.helpers")"
-# Same helper shape without the optional payload fields -> zeros, appended.
+# Same helper shape without the optional payload fields -> another "helper" line.
 sub_payload "$sid10" "a7df9489c" "" | bash "$SCRIPTS/prompt_log_subagent.sh" >/dev/null 2>&1
-assert_eq "subagent.sh zero-fills a helper payload without the fields" "125000 3
-0 0" "$(cat "$HOME/.claude/session-maps/$sid10.helpers")"
+assert_eq "subagent.sh appends a helper line per finish" "helper
+helper" "$(cat "$HOME/.claude/session-maps/$sid10.helpers")"
 assert_eq "subagent.sh still writes nothing to the log for helpers" "0" \
   "$(wc -c < "$log10" | tr -d ' ')"
 

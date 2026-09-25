@@ -39,10 +39,16 @@ Ask the user (wait for answers before proceeding):
 
 ### Step 1.2: Create Workspace
 
+**Locate this skill (`$BASE`):** Bundled scripts must run as `"$BASE/scripts/..."`, never bare — no harness sets the shell cwd to the skill directory. For `$BASE`, use the path the harness reported when this skill loaded (`Base directory for this skill: <path>` in Claude Code/OpenCode; `[Skill directory: <path>]` in omp; the SKILL.md's own directory in Cursor) verbatim. Only if none was reported, run this one-liner and capture the printed path as `$BASE`:
+
+```bash
+BASE=""; for d in "${MD_REVIEWER_HOME:-}" .agents/skills/md-reviewer .claude/skills/md-reviewer .cursor/skills/md-reviewer .opencode/skills/md-reviewer .codex/skills/md-reviewer ~/.agents/skills/md-reviewer ~/.claude/skills/md-reviewer ~/.cursor/skills/md-reviewer ~/.config/opencode/skills/md-reviewer ~/.omp/agent/skills/md-reviewer ~/.codex/skills/md-reviewer "$(ls -d ~/.claude/plugins/cache/*/claude-goodies/*/skills/md-reviewer 2>/dev/null | sort -V | tail -1)"; do [ -n "$d" ] && [ -f "$d/scripts/init_review.py" ] && { BASE="$d"; break; }; done; [ -n "$BASE" ] && echo "$BASE" || { echo "ERROR: md-reviewer not found in any known skills root — set MD_REVIEWER_HOME=<skill dir>" >&2; false; }
+```
+
 **⛔ MANDATORY: Run this command BEFORE reading any documents:**
 
 ```bash
-python3 scripts/init_review.py \
+python3 "$BASE/scripts/init_review.py" \
     --workspace <path> \
     --masters <file1,file2,...> \
     --output <format> \

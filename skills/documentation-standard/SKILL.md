@@ -181,6 +181,26 @@ Run these checks periodically:
 - [ ] Review dates are current
 - [ ] Index document is up-to-date
 
+### Automated Validation
+
+The bundled `validate_docs.py` checks a documentation tree against these conventions: required directory structure (Architecture, ADRs, Backlog, Completed, UserManual), the required metadata headers per doc (Purpose/Audience/Status/Last reviewed/Next review), file-naming, and stale review dates. Run it in addition to the manual checks above — it does not replace `markdownlint`.
+
+First locate the skill directory (`$BASE`). Use the path the harness reported when this skill loaded — `Base directory for this skill: <path>` (Claude Code/OpenCode), `[Skill directory: <path>]` (omp), or, in Cursor, the directory of this SKILL.md — verbatim. Only if none was reported, run this one-liner and capture the printed path as `$BASE`:
+
+```bash
+BASE=""; for d in "${DOCUMENTATION_STANDARD_HOME:-}" .agents/skills/documentation-standard .claude/skills/documentation-standard .cursor/skills/documentation-standard .opencode/skills/documentation-standard .codex/skills/documentation-standard ~/.agents/skills/documentation-standard ~/.claude/skills/documentation-standard ~/.cursor/skills/documentation-standard ~/.config/opencode/skills/documentation-standard ~/.omp/agent/skills/documentation-standard ~/.codex/skills/documentation-standard "$(ls -d ~/.claude/plugins/cache/*/claude-goodies/*/skills/documentation-standard 2>/dev/null | sort -V | tail -1)"; do [ -n "$d" ] && [ -f "$d/scripts/validate_docs.py" ] && { BASE="$d"; break; }; done; [ -n "$BASE" ] && echo "$BASE" || { echo "ERROR: documentation-standard not found in any known skills root — set DOCUMENTATION_STANDARD_HOME=<skill dir>" >&2; false; }
+```
+
+Then run the validator against the project's documentation directory:
+
+```bash
+python3 "$BASE/scripts/validate_docs.py" --path <docs dir> [--strict]
+```
+
+- `--path` — the documentation directory to validate.
+- `--strict` — treat warnings as errors.
+- Exit code `0` = pass, `1` = failure (with `--strict`, any warning also fails).
+
 ## Architecture Decision Records (ADRs)
 
 ADRs document significant architectural decisions. Structure:

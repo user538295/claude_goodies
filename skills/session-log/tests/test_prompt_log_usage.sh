@@ -10,11 +10,10 @@
 #            + cache_5m*r_in*1.25 + cache_1h*r_in*2) / 10000
 # (r_* are $/MTok, so tokens*rate = dollars*1e6 = cents*1e4).
 #
-# Run: bash scripts/tests/test_prompt_log_usage.sh
+# Run: bash skills/session-log/tests/test_prompt_log_usage.sh
 set -u
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SCRIPTS="$REPO/skills/session-log/scripts"
+SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)"
 ENGINE="$SCRIPTS/prompt_log_usage.jq"
 PRICES="$SCRIPTS/prompt_log_prices.json"
 AGG="$SCRIPTS/prompt_log_usage.sh"
@@ -324,9 +323,10 @@ if grep -q '^internal helpers:' "$WORKROOT/no_helpers.txt"; then
   fail "aggregator prints a helpers line without a .helpers file"
 fi
 
-# Two finished internal helpers: 125000+61000 ms = 186 s = 00:03:06, 3+1 calls.
+# Two finished internal helpers: the hook records one "helper" line per finish,
+# with no run time, tool-call count, or tokens (SubagentStop carries none).
 mkdir -p "$WORKROOT/.claude/session-maps"
-printf '125000 3\n61000 1\n' > "$WORKROOT/.claude/session-maps/$SID.helpers"
+printf 'helper\nhelper\n' > "$WORKROOT/.claude/session-maps/$SID.helpers"
 
 cat > "$WORKROOT/expected.txt" <<'EOF'
 session: <sid>.jsonl
@@ -353,7 +353,7 @@ est. used token: input: 20000, output: 4000, cache_create: 10000, cache_read: 20
 sub-agent: workflow-step (agent-w1), working time: 00:00:00, jsonl: <sid>/subagents/workflows/wf_x/agent-w1.jsonl
 est. used token: input: 30000, output: 6000, cache_create: 0, cache_read: 0, total_tokens: 36000, price: $0.18, model: claude-sonnet-5, effort: high
 
-internal helpers: 2 finished, cumulative run time 00:03:06, 4 tool calls (not added to TOTAL; token usage not recorded client-side)
+internal helpers: 2 finished (run time, tool calls, and token usage not recorded client-side; not added to TOTAL)
 
 TOTAL (6 requests, 4 sub-agents)
 working time: 00:02:02

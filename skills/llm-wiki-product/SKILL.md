@@ -81,15 +81,15 @@ llm-wiki/
 
 The skill itself lives at one of these paths (resolve at runtime by checking which exists, in this order):
 
-1. plugin install — `${CLAUDE_PLUGIN_ROOT}/skills/llm-wiki-product/`, or (if that env var is unset) the path
-   `installed_plugins.json` records for the `claude-goodies` plugin
-2. `~/.claude/skills/llm-wiki-product/` — user-level install
-3. `<repo>/.claude/skills/llm-wiki-product/` — project-level install
+1. an explicit `LLM_WIKI_PRODUCT_HOME` override
+2. project-level skills roots
+3. user-level skills roots of Claude Code, Cursor, OpenCode, omp and Codex
+4. the newest Claude Code plugin cache
 
 Resolve in one shot and capture the printed path as `<SKILL_ROOT>`:
 
 ```bash
-p="${CLAUDE_PLUGIN_ROOT:-}"; [ -f "$p/skills/llm-wiki-product/SKILL.md" ] || p=$(jq -r 'first(.plugins | to_entries[] | select(.key | startswith("claude-goodies@")) | .value[0].installPath) // empty' "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null); [ -f "$p/skills/llm-wiki-product/SKILL.md" ] || p="$HOME/.claude"; [ -f "$p/skills/llm-wiki-product/SKILL.md" ] || p="$(pwd)/.claude"; echo "$p/skills/llm-wiki-product"
+BASE=""; for d in "${LLM_WIKI_PRODUCT_HOME:-}" .agents/skills/llm-wiki-product .claude/skills/llm-wiki-product .cursor/skills/llm-wiki-product .opencode/skills/llm-wiki-product .codex/skills/llm-wiki-product ~/.agents/skills/llm-wiki-product ~/.claude/skills/llm-wiki-product ~/.cursor/skills/llm-wiki-product ~/.config/opencode/skills/llm-wiki-product ~/.omp/agent/skills/llm-wiki-product ~/.codex/skills/llm-wiki-product "$(ls -d ~/.claude/plugins/cache/*/claude-goodies/*/skills/llm-wiki-product 2>/dev/null | sort -V | tail -1)"; do [ -n "$d" ] && [ -f "$d/SKILL.md" ] && { BASE="$d"; break; }; done; [ -n "$BASE" ] && echo "$BASE" || { echo "ERROR: llm-wiki-product not found in any known skills root — set LLM_WIKI_PRODUCT_HOME=<skill dir>" >&2; false; }
 ```
 
 Steps:

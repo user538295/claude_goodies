@@ -6,7 +6,7 @@ Skills, commands, and one adversarial review agent. Every piece explained with a
 
 ![Claude Goodies demo](assets/demo.gif)
 
-> `/feature-refinement` → `/plan-maker` → `/implement-next` — idea to commit in one session. [`/implement-all`](https://user538295.github.io/claude_goodies/handout/cmd-implement-all.html) runs the full plan unattended.
+> `/feature-refinement` → `/plan-maker` → `/implement` — idea to commit in one session. `/implement all <file>` runs the full plan unattended.
 
 ---
 
@@ -30,15 +30,12 @@ Each entry links to its handout page with a worked example.
 
 - [**`/feature-refinement`**](https://user538295.github.io/claude_goodies/handout/skill-feature-refinement.html) — Turn a rough idea into a brief you can hand off. A senior product thinker walks you through the questions you'd otherwise skip.
 - [**`/plan-maker`**](https://user538295.github.io/claude_goodies/handout/skill-plan-maker.html) — Stop staring at a ticket wondering where to start. Breaks the brief into the smallest tasks with tests and dependencies.
-- [**`/implement-all`**](https://user538295.github.io/claude_goodies/handout/cmd-implement-all.html) — Have a finished plan? Walk away and let it ship. Runs `/implement-next` in a loop — one task, one commit at a time.
-- [**`/implement-next`**](https://user538295.github.io/claude_goodies/handout/cmd-implement-next.html) — Or just do the next task and stop. Builds test-first, reviews itself, commits.
+- [**`/implement`**](https://user538295.github.io/claude_goodies/handout/cmd-implement.html) — One command for the whole plan, four ways to call it. `/implement next <file>` builds just the next task test-first, reviews itself, and commits — one task, one commit — then stops. `/implement all <file>` loops through every remaining task: it spawns a subagent per task when the `Agent` tool is available, and otherwise runs the loop inline automatically — same outcome, no subagents — so it works in Cursor, `claude -p`, and older Claude Code. `/implement all inline <file>` forces that inline loop. Bare `/implement <file>` does the task if only one remains, otherwise asks next-or-all (headless defaults to next).
 - [**`/quick-plan`**](https://user538295.github.io/claude_goodies/handout/skill-quick-plan.html) — No plan yet and too busy for `/plan-maker`. Defines the goal, success criteria, and 4–12 steps inline — one pass, no file written.
 - [**`/commit`**](https://user538295.github.io/claude_goodies/handout/skill-commit.html) — Commit time. Reads the staged diff, writes a Conventional Commits message with a why-first body, and commits. Use `/commit message` to draft the text without touching the repo.
 - [**`/wrap-up`**](https://user538295.github.io/claude_goodies/handout/skill-wrap-up.html) — Done for the day, not sure anything slipped. Audits commit hygiene, runs tests and devil's advocate, surfaces what's open — mutates nothing until you say yes.
 
-**`/implement-all` auto-detects the right mode — just call it.** On Claude Code 2.1.172+ it spawns subagents via the `Agent` tool; on older versions, in Cursor, or in any headless harness without the `Agent` tool, it automatically falls back to inline mode — same outcome, no subagents. That inline loop also ships as its own standalone command, [`/implement-all-safe`](https://user538295.github.io/claude_goodies/handout/cmd-implement-all-safe.html), if you want to invoke it directly instead of relying on the auto-fallback.
-
-See `commands/implement-next.md` § "Step 6: Commit" for the one-task-one-commit rule.
+See `skills/implement/SKILL.md` § NEXT mode, "Step 6: Commit" for the one-task-one-commit rule.
 
 ### Fix a bug
 
@@ -49,10 +46,10 @@ See `commands/implement-next.md` § "Step 6: Commit" for the one-task-one-commit
 - [**`/da-review`**](https://user538295.github.io/claude_goodies/handout/cmd-da-review.html) — A second opinion that actually pushes back. One-pass devil's-advocate review, no auto-fixes.
 - [**`/iterative-review`**](https://user538295.github.io/claude_goodies/handout/cmd-iterative-review.html) — A review that doesn't stop at finding problems. Reviewers and fix agents loop until clean.
 - [**`/aaa`**](https://user538295.github.io/claude_goodies/handout/skill-aaa.html) — When "looks good to me" isn't enough. Benchmarks an idea against world-class and hands you 3–4 concrete upgrade paths.
-- [**`/clean-code-review`**](https://user538295.github.io/claude_goodies/handout/skill-clean-code-review.html) — Code done, want the deep read. Runs 129 checks across 7 groups (clarity, smells, SOLID, architecture, tests, safety, DDD) — on local changes, a git range, specific files, or staged-only.
+- [**`/clean-code-review`**](https://user538295.github.io/claude_goodies/handout/skill-clean-code-review.html) — Code done, want the deep read. Runs 132 checks across 7 groups (clarity, smells, SOLID, architecture, tests, safety, DDD) — on local changes, staged/unstaged/untracked, a git range, a pull/merge-request link, or specific files.
 - [**`/options`**](https://user538295.github.io/claude_goodies/handout/skill-options.html) — Stuck between approaches. Produces 2–4 genuinely different paths with honest pros/cons, grounded in your actual project files, and a firm recommendation.
 
-Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/handout/agentic-workflow-en.html#da) agent — the thing actually doing the attacking. Auto-invoked by both review commands and inside `/implement-next`.
+Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/handout/agentic-workflow-en.html#da) agent — the thing actually doing the attacking. Auto-invoked by both review commands and inside `/implement`.
 
 ### Make Claude remember
 
@@ -72,7 +69,7 @@ Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/h
 - [**`/status-report`**](https://user538295.github.io/claude_goodies/handout/skill-status-report.html) — Kicked off a long task and don't know when it'll finish. Reports status on demand or on a recurring schedule — cancel anytime with `off`.
 - [**`/session-log`**](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) — No idea what a session actually did, or what it cost. Archives every prompt with the assistant's response, working time, and an `est. used token:` line (tokens, price, model, effort) — plus model/effort switch lines and sub-agent finish lines carrying each sub-agent's own working time and token/price. `/session-log usage` (running `skills/session-log/scripts/prompt_log_usage.sh --latest`) totals the whole session — working time included, sub-agent transcripts merged in; `--check` cross-checks that total against `ccusage`.
 
-One script bundle handles the plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement-next` reads it once in its Step 1, `/implement-all` on every iteration. The [`session-log`](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) skill archives every prompt and response as per-project Markdown so you never lose a conversation. Run `/session-log on` to activate logging — it only creates the flag file `~/.claude/prompt-logs/.enabled`; the hooks ship with the plugin and stay registered either way, so nothing is written to `~/.claude/settings.json`. See the [session-log handout](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) for details.
+One script bundle handles the plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement` reads it once in NEXT mode, and on every iteration in ALL mode. The [`session-log`](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) skill archives every prompt and response as per-project Markdown so you never lose a conversation. Run `/session-log on` to activate logging — it only creates the flag file `~/.claude/prompt-logs/.enabled`; the hooks ship with the plugin and stay registered either way, so nothing is written to `~/.claude/settings.json`. See the [session-log handout](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) for details.
 
 ---
 
@@ -109,7 +106,7 @@ Everything ships with a `CLAUDE.md` that Claude Code loads at the start of every
 
 Four of these five principles are adapted from [Andrej Karpathy's guidelines](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/skills/karpathy-guidelines/SKILL.md); "Documentation must stay current" is an original addition.
 
-And enforces: tests before code (85%+ coverage), warning-free codebase at all times. `commands/implement-next.md` adds the execution-level rule: one commit per plan task, no batching multiple tasks into a single commit.
+And enforces: tests before code (85%+ coverage), warning-free codebase at all times. `skills/implement/SKILL.md` adds the execution-level rule: one commit per plan task, no batching multiple tasks into a single commit.
 
 By default, the installer 3-way merges your local `~/.claude/CLAUDE.md` changes with the shipped version (when a merge base from a prior run exists) and writes the merged result automatically; on a conflict it writes conflict markers into the file and opens your editor to resolve them. It leaves the file untouched when your copy already matches the shipped one, or when no merge base exists yet. Pass `--overwrite` to replace it outright instead (diff + confirmation in a terminal, silent in non-interactive contexts), or `--keep-claude-md` to leave an existing `CLAUDE.md` alone — a fresh install still installs it either way.
 

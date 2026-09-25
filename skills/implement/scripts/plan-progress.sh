@@ -9,7 +9,8 @@
 # Exit 0  — header printed, NEXT_TASK_* lines follow
 # Exit 1  — all tasks complete ("All tasks complete." printed)
 # Exit 2  — usage error or file not found
-# Exit 3  — no recognized task section heading (WARNING printed to stderr)
+# Exit 3  — no recognized task section heading, OR a task section with no tasks
+#           (a clear message is printed to stderr)
 
 set -uo pipefail
 
@@ -82,7 +83,8 @@ END {
     if (found_next && has_phases && next_phase=="") next_phase=0
     if (!has_section) { print "NO_SECTION=1"; exit }
     total=completed+remaining
-    if (total==0 || remaining==0) { print "ALL_DONE=1"; exit }
+    if (total==0) { print "EMPTY_SECTION=1"; exit }
+    if (remaining==0) { print "ALL_DONE=1"; exit }
 
     fill=int(completed/total*12)
     bar=""
@@ -122,6 +124,10 @@ function flush(    total_ph, ph_num) {
 # Check sentinel values before eval (task names may contain shell-special chars)
 if echo "$parsed" | grep -q "^NO_SECTION=1"; then
     echo "WARNING: no recognized task section heading found." >&2
+    exit 3
+fi
+if echo "$parsed" | grep -q "^EMPTY_SECTION=1"; then
+    echo "No tasks found in the plan file (task section is empty)." >&2
     exit 3
 fi
 if echo "$parsed" | grep -q "^ALL_DONE=1"; then

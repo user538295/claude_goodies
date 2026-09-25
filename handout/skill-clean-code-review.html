@@ -18,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p><strong>Code done — get the deep read before it ships.</strong> Runs 132 checks across 7 groups (clarity, smells, SOLID, arch, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, or explicit paths — no git required for file-path mode.</p>
+      <p><strong>Code done — get the deep read before it ships.</strong> Runs 132 checks across 7 groups (clarity, smells, SOLID, arch, tests, safety, DDD), spawns one agent per group in parallel, and synthesizes findings by severity. Works on local changes, staged files, git ranges, a pull/merge-request link, or explicit paths — no git required for file-path mode.</p>
       <p>Scripted detections run first via <code>collect.sh</code> and are handed to the group agents as precomputed hits — agents confirm or dismiss each one rather than re-running detection. Vendor and generated files are excluded upfront. Per-check findings can be capped on very large diffs; the report notes it when that happens.</p>
     </section>
 
@@ -36,6 +36,7 @@
         <li><em>none</em> or <code>local</code> — staged + unstaged + untracked changes</li>
         <li><code>staged</code> / <code>unstaged</code> / <code>untracked</code> — only those areas; combinable</li>
         <li>A git ref or range — <code>main..HEAD</code>, <code>HEAD~3</code>, <code>abc123..def456</code>. A single ref diffs against the worktree. Not combinable with the keywords above.</li>
+        <li>A pull/merge-request link — GitHub, GitLab, or Bitbucket. Resolved to a <code>base...head</code> range in an isolated worktree, then reviewed as a ref target; your own branch and working tree stay untouched. Not combinable with any other target.</li>
         <li>One or more file paths — reviews the whole files; the only mode that works outside a git repo</li>
       </ul>
       <p><strong>Groups</strong> (case-insensitive, omit to run all 7):</p>

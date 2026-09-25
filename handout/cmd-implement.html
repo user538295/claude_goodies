@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>/implement — Claude Code Handout</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="card.css">
+  <!-- Source: skills/implement/SKILL.md (last synced: 2026-09-25) -->
+</head>
+<body>
+  <div class="card-page">
+
+    <div class="page-header">
+      <h1><code>/implement</code></h1>
+      <a class="back-link" href="index.html">← Back to index</a>
+    </div>
+
+    <section data-section="1-summary">
+      <h2>Summary</h2>
+      <p>Portable runtime-agnostic skill that executes an existing plan or task-breakdown file. A leading mode keyword selects the behaviour: implement only the next uncompleted task, or loop through every remaining task — each task built test-first (TDD), self-reviewed via <code>/iterative-review</code>, tested blocking, checked off, and committed as its own commit. One task, one commit. Works in any harness (Claude Code, Cursor, <code>claude -p</code>) without hook dependencies.</p>
+      <p><strong>Unifies three former commands.</strong> <code>/implement</code> replaces the separate <code>/implement-next</code>, <code>/implement-all</code>, and <code>/implement-all-safe</code> commands — the mode is now a keyword you pass, not a different command. In ALL mode it spawns one subagent per task when the Agent tool is available and <strong>automatically falls back to an inline loop</strong> (no subagents) when it is not.</p>
+    </section>
+
+    <section data-section="2-when-to-use">
+      <h2>When to use</h2>
+      <p>Use <code>/implement</code> when you have a plan file (or task-breakdown file) with one or more <code>- [ ]</code> tasks and want them implemented with full quality gates: TDD cycle, <code>/iterative-review</code> loop, a blocking test pass, a checked-off box, and a clean per-task commit.</p>
+      <ul>
+        <li>You want to implement exactly one task and inspect the result — use NEXT mode.</li>
+        <li>You have a finished plan and want it built hands-off, task by task — use ALL mode.</li>
+        <li>You are in a harness without a subagent primitive (Cursor, <code>claude -p</code>, older Claude Code) and want the loop to run inline — use forced INLINE, or let ALL mode fall back to it automatically.</li>
+        <li>You are resuming a partially-completed run and want to continue from the next uncompleted task.</li>
+      </ul>
+      <p><strong>Companion plans.</strong> The resolved file may be self-contained, or a task-breakdown file whose <code>S#</code>/<code>C#</code> scenario/contract definitions, architecture, and acceptance criteria live in a separate <strong>companion plan</strong>. It is resolved from a <code>## References</code> <strong>Plan:</strong> link first (canonical, correct even if the plan was moved), falling back to the frontmatter <code>plan:</code> key for a sibling. A companion plan named by either mechanism but missing on disk stops the run rather than proceeding without context. The companion plan is read-only context — never checked off, staged, or committed.</p>
+      <p><strong>Not for:</strong> creating or updating plans (that is <code>/plan-maker</code>) or ad-hoc code edits not driven by a plan file.</p>
+    </section>
+
+    <section data-section="3-invocation">
+      <h2>Invocation</h2>
+      <p><code>$ARGUMENTS</code> holds an optional leading mode keyword plus the plan-file path. The <strong>first whitespace-separated token</strong> is a mode keyword only if it is exactly <code>next</code>, <code>all</code>, or <code>inline</code> (case-insensitive); anything else is part of the path. Everything after the recognized keyword(s) is the path — a path containing spaces is taken verbatim.</p>
+      <pre><code>/implement next &lt;plan-file-path&gt;
+/implement all &lt;plan-file-path&gt;
+/implement all inline &lt;plan-file-path&gt;
+/implement &lt;plan-file-path&gt;</code></pre>
+      <p><strong>The four invocation shapes:</strong></p>
+      <ul>
+        <li><code>/implement next &lt;file&gt;</code> → <strong>NEXT mode</strong>: implement only the next uncompleted task (NEXT-mode Steps 1–7 below).</li>
+        <li><code>/implement all &lt;file&gt;</code> → <strong>ALL mode</strong>: loop over every remaining task. Spawns ONE subagent per task via the Agent tool when available; <strong>automatically falls back to the inline loop</strong> (no subagents) when the Agent tool is unavailable (Cursor, <code>claude -p</code>, Claude Code &lt; 2.1.172).</li>
+        <li><code>/implement all inline &lt;file&gt;</code> (also <code>inline all &lt;file&gt;</code> or <code>inline &lt;file&gt;</code>) → <strong>ALL mode forced INLINE</strong>: never spawn subagents, every step runs in the current context.</li>
+        <li><code>/implement &lt;file&gt;</code> (no keyword) → counts remaining tasks: 0 → report already complete and stop; exactly 1 → proceed in NEXT mode; more than 1 → <strong>ask</strong> whether to do just the next task or all of them. In a non-interactive / headless run (e.g. <code>claude -p</code>) it does NOT hang — it defaults to NEXT mode and prints a one-line note (add <code>all</code> to run the whole plan).</li>
+      </ul>
+      <p>With no argument at all, it stops and asks for a plan file path.</p>
+
+      <p><strong>NEXT mode — 7 steps per task:</strong></p>
+      <ol>
+        <li><strong>Step 1 — Show progress:</strong> Resolves <code>$BASE</code> (the skill directory) and the plan + companion plan, then runs <code>bash "$BASE/scripts/plan-progress.sh" &lt;plan-path&gt;</code>. Exit 0 → print the block and read <code>NEXT_TASK_NAME</code>; exit 1 → all tasks complete, stop; any other exit / script not found → fall back to the bundled <code>progress-header-*.template</code> files, compute placeholders from the plan, and continue.</li>
+        <li><strong>Step 2 — Implement (TDD):</strong> Spawns the most appropriate agent type for the task. If a companion plan was detected, the agent reads it FIRST to resolve the <code>S#</code>/<code>C#</code> the task <code>completes</code>. SCOPE: exactly one task, touch only what it requires. FORBIDDEN: modify the task-breakdown file or companion plan, or create commits. For code: failing tests first (red) → implement (green) → full pass. For docs/config: implement directly.</li>
+        <li><strong>Step 3 — Critical review:</strong> Runs <code>/iterative-review</code> on the diff plus the task spec (passing the companion plan path when present). After it returns — whatever its verdict — Step 4 follows immediately; the Review Summary is not a completion signal.</li>
+        <li><strong>Step 4 — Run tests:</strong> Runs the full suite. Because the Claude Code <code>Bash</code> foreground ceiling is ~120 s, a longer suite is launched with <code>run_in_background</code> and kept alive with the <code>Monitor</code> tool; harnesses without <code>Monitor</code> fall back to the task-relevant subset and report the partial scope in Step 7. Before every run it verifies no earlier run is still alive (no stacked pytest workers). Fix agents retry up to 3 times.</li>
+        <li><strong>Step 5 — Check off:</strong> Marks the implemented task and every completed sub-item <code>[x]</code> in the task-breakdown file — only what was actually implemented and verified.</li>
+        <li><strong>Step 6 — Commit:</strong> One task = one commit. Stages the implementation files AND the updated task-breakdown file; commits with a message derived from the task content. The companion plan is never committed. <code>--no-verify</code> / <code>--amend</code> / bundling are forbidden.</li>
+        <li><strong>Step 7 — Report:</strong> Emits a fixed-form report: implemented, tests, feature loss or deviation, unresolvable oscillations, and the task's checked line + full commit hash.</li>
+      </ol>
+
+      <p><strong>ALL mode — the loop:</strong></p>
+      <ol>
+        <li><strong>Step -1 — Version check (subagent path only):</strong> Reads the Claude Code version from <code>CLAUDE_CODE_EXECPATH</code>. Unset (Cursor, <code>claude -p</code>, other harnesses) or below <code>2.1.172</code> → switch to the inline loop. Otherwise use subagents. It tells the user which mode was selected and why. Forced INLINE skips this and goes straight inline.</li>
+        <li><strong>Step 0 — Resolve the plan file</strong> (and companion plan) via the shared resolution rules.</li>
+        <li><strong>Loop body</strong> (repeats until <code>plan-progress.sh</code> exit 1 = all complete): (1) run <code>plan-progress.sh</code> and show the first two lines verbatim, unreformatted — exit 2/3 or any unexpected code halts; (2) print <code>Launching task &lt;NAME&gt; at [HH:MM:SS]</code> (inline prints <code>Starting task …</code>) then run the task — via the Agent tool subagent (<code>general-purpose</code>, background) or inline NEXT mode — under a strict scoped prompt (exactly one task; Acceptance Criteria A–F; forbid <code>--no-verify</code>/<code>--amend</code>, bundling, nested ALL loops, editing anything but this task's checkbox); (3) recovery check — verify the task is checked off and its files committed. Not checked → respawn/redo (up to 3 attempts, then stop for manual intervention); checked but uncommitted → commit only that task's files by explicit path (never <code>git add -A</code>) and report the violation.</li>
+      </ol>
+    </section>
+
+    <section data-section="4-example-1">
+      <h2>Example 1 — Implement the next task only <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/implement next plans/FEAT-001-skill-command-script-handouts.md</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Progress   : [████████░░░░] 68%  (13/19 tasks, 2/6 phases)
+Next task  : 3.4  **File**: `handout/cmd-implement.html`
+
+NEXT_TASK_NAME=**File**: `handout/cmd-implement.html`
+NEXT_TASK_PHASE=3
+NEXT_TASK_NUMBER=4
+
+[Step 2] Spawning implementation agent for Task 3.4…
+  → Reads skills/implement/SKILL.md
+  → Writes handout/cmd-implement.html with 7 sections and 2 examples
+
+[Step 3] /iterative-review: no critical/major/moderate issues found (PASS)
+
+[Step 4] Full test suite: 14 structural checks pass (CLEAN)
+
+[Step 5] Plan updated: Task 3.4 marked [x]
+
+[Step 6] Commit: feat(handout): Task 3.4 — cmd-implement.html
+  → handout/cmd-implement.html (new) + plan file (task checked off)
+
+[Step 7] Report: Task 3.4 complete. 7 sections, 2 examples.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="5-example-2">
+      <h2>Example 2 — No keyword, then ALL falls back to inline <em>(illustrative example)</em></h2>
+      <div class="example">
+        <p><strong>Input:</strong></p>
+        <pre><code>/implement all plans/FEAT-004-legacy-refactor.md
+(run on a Claude Code build older than 2.1.172)</code></pre>
+        <p><strong>Output / Result:</strong></p>
+        <pre><code>Version 2.0.40 detected — below 2.1.172, Agent tool unavailable.
+Switching to inline mode (no subagents).
+
+Progress   : [░░░░░░░░░░░░] 0%  (0/5 tasks, 0/2 phases)
+Next task  : 1.1  **File**: `README.md`
+
+Starting task 1.1 at [11:02:47]
+(runs NEXT mode inline: TDD cycle, /iterative-review, tests, check-off, commit)
+
+Task 1.1 ✅ — checked (line 18) and committed (d4e5f60). Checkpoint verified (checkbox + commit).
+
+… (4 more iterations) …
+
+Progress   : all tasks complete (exit 1)
+All tasks complete.</code></pre>
+      </div>
+    </section>
+
+    <section data-section="6-related-tools">
+      <h2>Related tools</h2>
+      <ul>
+        <li><a href="cmd-iterative-review.html">/iterative-review</a> — The critical-review loop invoked in NEXT-mode Step 3; spawns parallel devil's-advocate agents and fix agents until no critical/major/moderate issues remain.</li>
+        <li><a href="scripts-plan.html">scripts-plan</a> — The <code>plan-progress.sh</code> script <code>/implement</code> runs in NEXT-mode Step 1 and at the start of every ALL-mode iteration; its bundle now lives at <code>skills/implement/scripts/</code>.</li>
+        <li><a href="skill-plan-maker.html">/plan-maker</a> — Produces the plan and task-breakdown files that <code>/implement</code> executes.</li>
+      </ul>
+    </section>
+
+    <footer data-section="7-footer">
+      <h2>Links</h2>
+      <p>
+        <a href="index.html">← All handouts</a>
+        &ensp;|&ensp;
+        <a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a>
+      </p>
+    </footer>
+
+  </div><!-- /.card-page -->
+
+</body>
+</html>

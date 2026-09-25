@@ -121,7 +121,7 @@ If the diff straddles two types, pick the one that describes the **user-visible 
 - Lowercase first word after the colon.
 - No trailing period.
 - Aim for ≤ 72 chars. Hard ceiling at 80.
-- One semicolon-joined subject is allowed when the commit genuinely has **two parallel concerns** that can't be summarised under one verb. Example: `feat: add CC orchestrator variant with hook gate; harden behavioral rules`. Three or more concerns → still one subject line (pick the dominant one), but use multiple `## H2` sections in the body to separate them.
+- One semicolon-joined subject is allowed when the commit genuinely has **two parallel concerns** that can't be summarised under one verb. Example: `feat: unify implement commands into one skill; resolve paths via $BASE`. Three or more concerns → still one subject line (pick the dominant one), but use multiple `## H2` sections in the body to separate them.
 
 ---
 
@@ -137,55 +137,56 @@ If the commit really only touches one area, write **one** section. That section 
 
 **Ordering of sections**: primary change first, supporting changes next, `## Other` (housekeeping, README, `.gitignore`, lockfiles) last. Use `## Other` only when there is real housekeeping; do not invent an `## Other` section for visual symmetry.
 
-The canonical example, from this repo's commit `5ae668d`:
+A canonical example (illustrative):
 
 ```
-feat: add CC orchestrator variant with hook gate; harden behavioral rules
+feat: unify implement commands into one skill; resolve paths via $BASE
 
-## CC orchestrator variant (/implement-all-cc family)
+## Unified /implement skill
 
-The portable /implement-all variant relies on prompt-only enforcement
-to make subagents commit. Some subagents skip the commit step under
-OOM, transport, or quota pressure. The CC variant adds deterministic
-runtime enforcement on top of the same flow.
+Three separate commands — `implement-next`, `implement-all`, and
+`implement-all-safe` — duplicated the same TDD-per-task loop, so a
+fix to one drifted from the others. They collapse into a single
+`skills/implement/SKILL.md` selected by a leading mode keyword.
 
-- New commands: `commands/implement-all-cc.md`,
-  `commands/implement-next-cc.md`,
-  `commands/implement-next-cc-resume.md` (rescue-only, not called
-  directly)
-- New hook scripts:
-  - `implement-next-stop-gate.sh` — SubagentStop hook; refuses to let
-    the spawned /implement-next-cc subagent end its turn until a new
-    commit lands. Filters on agentId so devil's-advocate and fix
-    sub-sub-agents pass through.
-  - `implement-next-state-write.sh` / `implement-next-state-clear.sh`
-    — write and clean up the sentinel at
-    `<cwd>/.claude/implement-next-state.json`.
+- One skill, one flow: parse a mode keyword, then run the shared
+  resolve-plan / TDD / review / commit steps once
+- Modes replace the three old commands:
+  - `next` — implement only the next uncompleted task, then stop
+  - `all` — loop every task, one subagent per task, auto-falling
+    back to inline when the Agent tool is unavailable
+  - `inline` — the old `all-safe` behaviour; loop in-context, never
+    spawn a subagent (Cursor, `claude -p`, older Claude Code)
 
-## Behavioral rules (CLAUDE.md)
+## Harness-agnostic bundled paths
 
-Three top-level rules placed in the section that owns each concept,
-no soft restatements left elsewhere:
+Each command hard-coded a Claude-Code-only locator to find its own
+scripts, which broke under Cursor, OpenCode, and omp. The skill now
+derives its own directory as `$BASE` and reads every bundled file
+relative to it.
 
-- Section 1 "Think Before Coding" header:
-  "Don't assume" → "You mustn't make assumptions"
-- Communication: new "Never soften findings" with a concrete test
-  (no "probably," "might be worth," "it could be argued" unless real
-  uncertainty exists) so it's enforceable, not a slogan
+- `skills/implement/scripts/plan-progress.sh` is invoked as
+  `"$BASE/scripts/plan-progress.sh"`, never bare and never after a
+  `cd` into the skill root
+- Fallback locator probes project- and user-level roots of every
+  supported harness with `[ -f ]`, so symlinks resolve and stale
+  ones are skipped
 
 ## Other
 
-- README.md: two-variants block under the orchestration commands.
-- `.gitignore` added with the claude-sync sentinel block.
+- README.md: replace the three-command orchestration block with the
+  single `/implement` entry and its mode table.
+- handout: add `cmd-implement.html`; retire the superseded
+  `cmd-implement-{next,all,all-safe}{,-hu}.html` set.
 ```
 
 Things to notice in the example:
 
-- **Subject uses a semicolon** because there are two genuinely parallel concerns: adding a new variant AND hardening rules.
+- **Subject uses a semicolon** because there are two genuinely parallel concerns: unifying the commands into one skill AND making bundled paths harness-agnostic.
 - **Each `## Section` opens with a context paragraph** explaining the *problem* that section addresses, then bullets for the concrete changes.
-- **Sub-bullets** appear under "New hook scripts" because each script needs its own one-line explanation — that's the trigger for nesting, not stylistic preference.
-- **`## Other` section last** absorbs the housekeeping (README, `.gitignore`) that doesn't deserve its own top-level section but shouldn't be omitted.
-- **Glob shorthand**: `cmd-implement-all{,-hu}.html` style for paired files (saves a line, signals "the same change in both").
+- **Sub-bullets** appear under "Modes replace the three old commands" because each mode needs its own one-line explanation — that's the trigger for nesting, not stylistic preference.
+- **`## Other` section last** absorbs the housekeeping (README, handouts) that doesn't deserve its own top-level section but shouldn't be omitted.
+- **Glob shorthand**: `cmd-implement-{next,all,all-safe}{,-hu}.html` style for paired files (saves lines, signals "the same change in each").
 
 ---
 
@@ -199,19 +200,19 @@ Every body line — paragraph or bullet — wraps at column 72. Continuation lin
 
 ### 2. Lead with WHY before WHAT
 
-Context paragraphs name the *problem*, then introduce the *solution*. Example: *"The portable /implement-all variant relies on prompt-only enforcement to make subagents commit. Some subagents skip the commit step under OOM, transport, or quota pressure. The CC variant adds deterministic runtime enforcement on top of the same flow."* Even a small section gets a context paragraph — never skip it.
+Context paragraphs name the *problem*, then introduce the *solution*. Example: *"Each command hard-coded a Claude-Code-only locator to find its own scripts, which broke under Cursor, OpenCode, and omp. The skill now derives its own directory as `$BASE` and reads every bundled file relative to it."* Even a small section gets a context paragraph — never skip it.
 
 ### 3. Backticks for code, paths, commands, config keys
 
-Anything a reader could grep for goes in backticks: `commands/implement-all-cc.md`, `SubagentStop`, `git commit -F-`, `settings.json`. Plain English words do not.
+Anything a reader could grep for goes in backticks: `skills/implement/SKILL.md`, `$BASE`, `git commit -F-`, `settings.json`. Plain English words do not.
 
 ### 4. Em-dashes for inline explanations
 
-Use `—` (real em-dash, not `--`) for the beat where a comma is too quiet and a period is too loud. *"`implement-next-stop-gate.sh` — SubagentStop hook; refuses to let..."* Spaces around the em-dash are fine — match the surrounding prose.
+Use `—` (real em-dash, not `--`) for the beat where a comma is too quiet and a period is too loud. *"`inline` — the old `all-safe` behaviour; loop in-context, never spawn a subagent..."* Spaces around the em-dash are fine — match the surrounding prose.
 
 ### 5. Glob shorthand for paired files
 
-When the same change applies to a `.html` and its `-hu.html` sibling (or `.ts` / `.test.ts`), use brace expansion: `cmd-implement-all{,-hu}.html`, `handout/agentic-workflow-{en,hu}.html`. Saves a line, signals "the same change in both."
+When the same change applies to a `.html` and its `-hu.html` sibling (or `.ts` / `.test.ts`), use brace expansion: `cmd-implement{,-hu}.html`, `handout/agentic-workflow-{en,hu}.html`. Saves a line, signals "the same change in both."
 
 ### 6. Concrete language only
 

@@ -23,7 +23,7 @@
 
     <section data-section="2-when-to-use">
       <h2>Mikor használd</h2>
-      <p>Akkor érdemes a <code>/quick-plan</code>-t használni, ha egy feladat elég összetett ahhoz, hogy hasznos legyen az előzetes struktúra, de nem szükséges a teljes <code>/plan-maker</code>-kezelés (egy perzisztens tervfájl, amelyet az <code>/implement-next</code> feldolgoz). Jól jön: egyetlen jól lehatárolt változtatáshoz, refaktoráláshoz, migrációhoz vagy több mozgó részből álló dokumentum-frissítéshez.</p>
+      <p>Akkor érdemes a <code>/quick-plan</code>-t használni, ha egy feladat elég összetett ahhoz, hogy hasznos legyen az előzetes struktúra, de nem szükséges a teljes <code>/plan-maker</code>-kezelés (egy perzisztens tervfájl, amelyet az <code>/implement</code> feldolgoz). Jól jön: egyetlen jól lehatárolt változtatáshoz, refaktoráláshoz, migrációhoz vagy több mozgó részből álló dokumentum-frissítéshez.</p>
       <p>Triggerkifejezések (a SKILL.md-ből):</p>
       <ul>
         <li><code>"plan this"</code></li>
@@ -39,7 +39,7 @@
       <h2>Meghívás</h2>
       <p>Hívd meg a feladat leírásával:</p>
       <pre><code>/quick-plan [feladat leírása]</code></pre>
-      <p>A kimenet a beszélgetésben marad. Ha utólag teljes tervfájlt szeretnél az <code>/implement-next</code> számára, inkább a <code>/plan-maker</code>-t használd.</p>
+      <p>A kimenet a beszélgetésben marad. Ha utólag teljes tervfájlt szeretnél az <code>/implement</code> számára, inkább a <code>/plan-maker</code>-t használd.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -104,8 +104,8 @@ Lépések
     <section data-section="6-related-tools">
       <h2>Kapcsolódó eszközök</h2>
       <ul>
-        <li><a href="skill-plan-maker-hu.html">/plan-maker</a> — Alaposabb tervezés, amely egy perzisztens tervfájlt ír, amelyet az <code>/implement-next</code> taskról taskra végrehajthat. Akkor használd, ha automatizált végrehajtást szeretnél, nem csak struktúrát.</li>
-        <li><a href="cmd-implement-next-hu.html">/implement-next</a> — Egy <code>/plan-maker</code>-tervfájlból hajt végre egy taskot; az <code>/implement-all</code>-lal párosítva felügyelet nélkül futtatja az egész tervet.</li>
+        <li><a href="skill-plan-maker-hu.html">/plan-maker</a> — Alaposabb tervezés, amely egy perzisztens tervfájlt ír, amelyet az <code>/implement</code> taskról taskra végrehajthat. Akkor használd, ha automatizált végrehajtást szeretnél, nem csak struktúrát.</li>
+        <li><a href="cmd-implement-hu.html">/implement</a> — Egy <code>/plan-maker</code>-tervfájlból hajt végre egy taskot NEXT módban; ALL módban felügyelet nélkül futtatja az egész tervet.</li>
         <li><a href="skill-feature-refinement-hu.html">/feature-refinement</a> — Egy nyers ötletet Feature Brief-fé alakít a tervezés előtt. Futtasd először, ha még nem egyértelmű, mi is pontosan a feladat.</li>
       </ul>
     </section>

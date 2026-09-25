@@ -6,7 +6,7 @@
   <title>scripts-plan — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: scripts/plan-progress.sh (last synced: 2026-06-15) -->
+  <!-- Source: skills/implement/scripts/plan-progress.sh (last synced: 2026-09-25) -->
 </head>
 <body>
   <div class="card-page">
@@ -18,7 +18,7 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p>Shell scripts that track plan progress for Markdown plan files with <code>- [ ]</code> / <code>- [x]</code> task checkboxes — used directly by developers and automatically by <code>/implement-next</code> and <code>/implement-all</code>.</p>
+      <p>Shell scripts that track plan progress for Markdown plan files with <code>- [ ]</code> / <code>- [x]</code> task checkboxes — used directly by developers and automatically by <code>/implement</code> — in NEXT mode and on every ALL-mode iteration.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -34,7 +34,8 @@
 
       <h4><code>plan-progress.sh</code></h4>
       <p>Prints a formatted progress header for the next uncompleted task. Uses <code>progress-header-phased.template</code> (phased plans) or <code>progress-header-flat.template</code> (flat plans).</p>
-      <pre><code>bash ~/.claude/scripts/plan-progress.sh &lt;plan_file&gt;</code></pre>
+      <p>Bundled inside the <code>/implement</code> skill at <code>skills/implement/scripts/plan-progress.sh</code>; normally invoked by <code>/implement</code>, not run by hand.</p>
+      <pre><code>bash skills/implement/scripts/plan-progress.sh &lt;plan_file&gt;</code></pre>
       <p><strong>Exit codes:</strong> 0 = header printed + <code>NEXT_TASK_*</code> machine-readable lines; 1 = all tasks complete; 2 = usage error or file not found; 3 = no recognized task section heading.</p>
 
       <h3>Internal dependencies (called by <code>plan-progress.sh</code> — not invoked directly)</h3>
@@ -63,9 +64,9 @@
         <tbody>
           <tr>
             <td><code>plan-progress.sh</code></td>
-            <td><span class="badge must">user</span></td>
+            <td><span class="badge suggested">internal</span></td>
             <td><code>task_section.awk</code>, templates</td>
-            <td><code>/implement-next</code> Step 1, <code>/implement-all</code> each iteration</td>
+            <td><code>/implement</code> NEXT-mode Step 1, ALL-mode each iteration</td>
           </tr>
           <tr>
             <td><code>task_section.awk</code></td>
@@ -93,7 +94,7 @@
       <h2>Example 1 — Check plan progress with <code>plan-progress.sh</code></h2>
       <div class="example">
         <p><strong>Input:</strong></p>
-        <pre><code>bash ~/.claude/scripts/plan-progress.sh plans/FEAT-001-skill-command-script-handouts.md</code></pre>
+        <pre><code>bash skills/implement/scripts/plan-progress.sh plans/FEAT-001-skill-command-script-handouts.md</code></pre>
         <p><strong>Output / Result:</strong></p>
         <pre><code>Progress   : [█████████░░░] 79%  (15/19 tasks, 3/6 phases)
 Next task  : 4.1  **File**: `handout/scripts-plan.html`
@@ -101,15 +102,14 @@ Next task  : 4.1  **File**: `handout/scripts-plan.html`
 NEXT_TASK_NAME=**File**: `handout/scripts-plan.html`
 NEXT_TASK_PHASE=4
 NEXT_TASK_NUMBER=1</code></pre>
-        <p>Exit code 0. The <code>NEXT_TASK_*</code> lines are machine-readable and parsed by <code>/implement-next</code> in Step 1 to identify the task to implement.</p>
+        <p>Exit code 0. The <code>NEXT_TASK_*</code> lines are machine-readable and parsed by <code>/implement</code> in NEXT-mode Step 1 to identify the task to implement.</p>
       </div>
     </section>
 
     <section data-section="6-related-tools">
       <h2>Related tools</h2>
       <ul>
-        <li><a href="cmd-implement-next.html">/implement-next</a> — Calls <code>plan-progress.sh</code> in Step 1.</li>
-        <li><a href="cmd-implement-all.html">/implement-all</a> — Calls <code>plan-progress.sh</code> at the start of each iteration.</li>
+        <li><a href="cmd-implement.html">/implement</a> — Calls <code>plan-progress.sh</code> in NEXT-mode Step 1 and at the start of every ALL-mode iteration.</li>
       </ul>
     </section>
 

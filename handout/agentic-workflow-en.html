@@ -669,7 +669,7 @@
         <span class="brand">Claude Code · in Practice</span>
       </div>
       <h1>Agentic development <span class="accent">workflow</span><br>in 9 steps.</h1>
-      <p class="sub">How to chain the <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/feature-refinement</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/iterative-review</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/plan-maker</span> and <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/implement-next</span> commands — and where to keep human review gates.</p>
+      <p class="sub">How to chain the <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/feature-refinement</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/iterative-review</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/plan-maker</span> and <span style="font-family:'JetBrains Mono',monospace;font-size:0.9em">/implement</span> commands — and where to keep human review gates.</p>
     </div>
     <nav class="lang" aria-label="Language">
       <a href="agentic-workflow-hu.html">HU</a>
@@ -747,11 +747,11 @@
         <div class="cmd-desc">Architecture, tests, acceptance criteria, detailed tasks. Often 1000+ lines.</div>
       </div>
       <div class="cmd-row">
-        <div class="cmd-name">/implement-next &lt;plan&gt;</div>
+        <div class="cmd-name">/implement next &lt;plan&gt;</div>
         <div class="cmd-desc">Implements only the next single task. Internal <span style="font-family:monospace;font-size:0.92em">/iterative-review</span> loop fixes issues. Works in any harness (Claude Code, Cursor, <span style="font-family:monospace;font-size:0.92em">claude -p</span>).</div>
       </div>
       <div class="cmd-row">
-        <div class="cmd-name">/implement-all &lt;plan&gt;</div>
+        <div class="cmd-name">/implement all &lt;plan&gt;</div>
         <div class="cmd-desc">Walks through every uncompleted task — one at a time, one commit each. Use only with a well-structured plan and lower-control tolerance.</div>
       </div>
     </div>
@@ -896,7 +896,7 @@ const STEPS = [
     tipKind: 'human'
   },
   {
-    n: 8, kind: 'ai', cmd: '/implement-next',
+    n: 8, kind: 'ai', cmd: '/implement next',
     type: 'AI command',
     title: 'Implement next task',
     short: 'One task from backlog',
@@ -905,7 +905,7 @@ const STEPS = [
     desc: 'The heart of the pipeline. Only the next single task — nothing else. Internal iterative-review fixes issues. Ends with a commit. Works in any harness (Claude Code, Cursor, claude -p).',
     inputs: ['plan.md', 'current codebase'],
     outputs: ['Implementation + tests', 'Internal review summary', 'Git commit'],
-    tips: ['/implement-all also exists — walks the whole backlog. Only if you trust the plan and accept less control.'],
+    tips: ['/implement all also exists — walks the whole backlog. Only if you trust the plan and accept less control.'],
     tipKind: 'ai'
   },
   {

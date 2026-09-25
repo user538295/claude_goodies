@@ -23,7 +23,7 @@
 
     <section data-section="2-when-to-use">
       <h2>When to use</h2>
-      <p>Use <code>/quick-plan</code> when a task is complex enough to benefit from upfront structure but you don't need the full <code>/plan-maker</code> treatment (a persisted plan file for <code>/implement-next</code> to consume). Good for: a single well-scoped change, a refactor, a migration, a doc update with several moving parts.</p>
+      <p>Use <code>/quick-plan</code> when a task is complex enough to benefit from upfront structure but you don't need the full <code>/plan-maker</code> treatment (a persisted plan file for <code>/implement</code> to consume). Good for: a single well-scoped change, a refactor, a migration, a doc update with several moving parts.</p>
       <p>Trigger phrases (from SKILL.md):</p>
       <ul>
         <li><code>"plan this"</code></li>
@@ -39,7 +39,7 @@
       <h2>Invocation</h2>
       <p>Invoke with a task description:</p>
       <pre><code>/quick-plan [task description]</code></pre>
-      <p>The output stays in the conversation. If you later decide you want a full plan file for <code>/implement-next</code>, use <code>/plan-maker</code> instead.</p>
+      <p>The output stays in the conversation. If you later decide you want a full plan file for <code>/implement</code>, use <code>/plan-maker</code> instead.</p>
     </section>
 
     <section data-section="4-example-1">
@@ -103,8 +103,8 @@ Steps
     <section data-section="6-related-tools">
       <h2>Related tools</h2>
       <ul>
-        <li><a href="skill-plan-maker.html">/plan-maker</a> — Heavier planning that writes a persisted plan file <code>/implement-next</code> can execute task by task. Use when you want automated execution, not just structure.</li>
-        <li><a href="cmd-implement-next.html">/implement-next</a> — Executes one task from a <code>/plan-maker</code> plan file; pairs with <code>/implement-all</code> to run the whole plan unattended.</li>
+        <li><a href="skill-plan-maker.html">/plan-maker</a> — Heavier planning that writes a persisted plan file <code>/implement</code> can execute task by task. Use when you want automated execution, not just structure.</li>
+        <li><a href="cmd-implement.html">/implement</a> — Executes a <code>/plan-maker</code> plan file: <code>next</code> does one task, <code>all</code> runs the whole plan unattended.</li>
         <li><a href="skill-feature-refinement.html">/feature-refinement</a> — Scopes a rough idea into a Feature Brief before planning. Run it first if you're not sure what the task is.</li>
       </ul>
     </section>

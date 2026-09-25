@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Claude Code segédlettár</title>
 <link rel="stylesheet" href="styles.css">
-<!-- Source: directory — links to all 25 handout pages (last synced: 2026-08-14) -->
+<!-- Source: directory — links to all 23 handout pages (last synced: 2026-09-25) -->
 <style>
   body {
     padding: 2rem 1.5rem 4rem;
@@ -255,7 +255,7 @@
         <span class="fp-arrow">→</span>
         <a class="fp-node human" href="agentic-workflow-hu.html"><span class="fp-num">07</span><span class="fp-type">Emberi review</span><span class="fp-cmd">👁 Review</span><span class="fp-title">Végső terv review</span></a>
         <span class="fp-arrow">→</span>
-        <a class="fp-node ai" href="agentic-workflow-hu.html"><span class="fp-num">08</span><span class="fp-type">AI parancs</span><span class="fp-cmd">/implement-next</span><span class="fp-title">Következő task megvalósítása</span></a>
+        <a class="fp-node ai" href="agentic-workflow-hu.html"><span class="fp-num">08</span><span class="fp-type">AI parancs</span><span class="fp-cmd">/implement next</span><span class="fp-title">Következő task megvalósítása</span></a>
         <span class="fp-arrow">→</span>
         <a class="fp-node human" href="agentic-workflow-hu.html"><span class="fp-num">09</span><span class="fp-type">Emberi review</span><span class="fp-cmd">👁 Review</span><span class="fp-title">Megvalósítás review</span></a>
       </div>
@@ -287,7 +287,7 @@
         </a>
         <a class="tool-item" href="skill-plan-maker-hu.html">
           <span class="tool-name">/plan-maker</span>
-          <span class="tool-desc">Ne ülj egy ticket előtt, azon töprengve, hol kezdd. Egy feature-t a legapróbb taskokra bont tesztekkel és függőségekkel — készen áll, hogy az /implement-next végigrágja.</span>
+          <span class="tool-desc">Ne ülj egy ticket előtt, azon töprengve, hol kezdd. Egy feature-t a legapróbb taskokra bont tesztekkel és függőségekkel — készen áll, hogy az /implement végigrágja.</span>
         </a>
         <a class="tool-item" href="skill-skill-packager-hu.html">
           <span class="tool-name">/skill-packager</span>
@@ -299,7 +299,7 @@
         </a>
         <a class="tool-item" href="skill-clean-code-review-hu.html">
           <span class="tool-name">/clean-code-review</span>
-          <span class="tool-desc">Kész a kód, és szeretnéd az igazi átvizsgálást. 129 ellenőrzést futtat 7 csoportban — clarity, smells, SOLID, architektúra, tesztek, biztonság, DDD — helyi változásokon, git-tartományon vagy megadott fájlokon.</span>
+          <span class="tool-desc">Kész a kód, és szeretnéd az igazi átvizsgálást. 132 ellenőrzést futtat 7 csoportban — clarity, smells, SOLID, architektúra, tesztek, biztonság, DDD — helyi változásokon, git-tartományon, pull/merge-request linken vagy megadott fájlokon.</span>
         </a>
         <a class="tool-item" href="skill-commit-hu.html">
           <span class="tool-name">/commit</span>
@@ -348,17 +348,9 @@
           <span class="tool-name">/da-review</span>
           <span class="tool-desc">Egy második vélemény, ami tényleg visszanyom. Egymenetes devil's-advocate review-t futtat a kódodon, terveden vagy designodon, és listázza az összes hibát, amit talál — auto-fix nélkül, csak őszinte verdiktek.</span>
         </a>
-        <a class="tool-item" href="cmd-implement-all-hu.html">
-          <span class="tool-name">/implement-all</span>
-          <span class="tool-desc">Kész tervvel a kezedben? Hagyd ott a gépet, és hagyd, hogy szállítson. Az /implement-next-et futtatja loop-ban — egy task, egy commit — amíg a tervben minden elem megépül, átfut review-n, és kipipálódik. Bármilyen harness-ben.</span>
-        </a>
-        <a class="tool-item" href="cmd-implement-all-safe-hu.html">
-          <span class="tool-name">/implement-all-safe</span>
-          <span class="tool-desc">Az /implement-all inline változata — minden lépés az aktuális kontextusban fut, alügynökök indítása nélkül. Az /implement-all automatikusan erre esik vissza Claude Code &lt; 2.1.172 alatt, Cursorban, vagy bármilyen harness-ben, ahol nincs Agent tool; közvetlenül is hívhatod, ha nem az automatikus felismerésre akarsz hagyatkozni.</span>
-        </a>
-        <a class="tool-item" href="cmd-implement-next-hu.html">
-          <span class="tool-name">/implement-next</span>
-          <span class="tool-desc">Ne kelljen az egész tervet a fejedben tartani. Kiveszi a következő kipipálatlan taskot egy plan fájlból, test-first felépíti, párhuzamos review-kat futtat, javítja, amit jeleznek, majd commitol — egy task, kész. Bármilyen harness-ben.</span>
+        <a class="tool-item" href="cmd-implement-hu.html">
+          <span class="tool-name">/implement</span>
+          <span class="tool-desc">Egy terv végrehajtása, egy taskkal vagy az egésszel. A <code>next</code> a következő kipipálatlan taskot test-first felépíti, review-zza és commitolja — egy task, kész; az <code>all</code> felügyelet nélkül végigmegy minden hátralévő taskon, feladatonként egy subagenttel és automatikus inline fallbackkel (Cursor, <code>claude -p</code>, régebbi Claude Code); az <code>all inline</code> kényszerített inline. Bármilyen harness-ben.</span>
         </a>
         <a class="tool-item" href="cmd-iterative-review-hu.html">
           <span class="tool-name">/iterative-review</span>
@@ -384,7 +376,7 @@
       <div class="tool-list">
         <a class="tool-item" href="scripts-plan-hu.html">
           <span class="tool-name">scripts-plan</span>
-          <span class="tool-desc">Lásd, mi a következő lépés anélkül, hogy újraolvasnád az egész tervet. Progress headert ír a következő kipipálatlan taskhoz — az /implement-next egyszer olvassa be az 1. lépésében, az /implement-all minden iterációban.</span>
+          <span class="tool-desc">Lásd, mi a következő lépés anélkül, hogy újraolvasnád az egész tervet. Progress headert ír a következő kipipálatlan taskhoz — az /implement NEXT módban egyszer olvassa be az 1. lépésében, ALL módban minden iterációban.</span>
         </a>
       </div>
     </div>

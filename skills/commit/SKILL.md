@@ -121,7 +121,7 @@ If the diff straddles two types, pick the one that describes the **user-visible 
 - Lowercase first word after the colon.
 - No trailing period.
 - Aim for ≤ 72 chars. Hard ceiling at 80.
-- One semicolon-joined subject is allowed when the commit genuinely has **two parallel concerns** that can't be summarised under one verb. Example: `feat: unify implement commands into one skill; resolve paths via $BASE`. Three or more concerns → still one subject line (pick the dominant one), but use multiple `## H2` sections in the body to separate them.
+- One semicolon-joined subject is allowed when the commit genuinely has **two parallel concerns** that can't be summarised under one verb. Example: `feat(session-log): split scripts into adapters; add universal installer`. Three or more concerns → still one subject line (pick the dominant one), but use multiple `## H2` sections in the body to separate them.
 
 ---
 
@@ -140,53 +140,54 @@ If the commit really only touches one area, write **one** section. That section 
 A canonical example (illustrative):
 
 ```
-feat: unify implement commands into one skill; resolve paths via $BASE
+feat(session-log): split scripts into adapters; add universal installer
 
-## Unified /implement skill
+## Per-harness adapters
 
-Three separate commands — `implement-next`, `implement-all`, and
-`implement-all-safe` — duplicated the same TDD-per-task loop, so a
-fix to one drifted from the others. They collapse into a single
-`skills/implement/SKILL.md` selected by a leading mode keyword.
+The skill shipped as six Claude-Code-only scripts under `scripts/`,
+so it could not serve OpenCode or OMP. Each harness now gets its own
+adapter under `adapters/`, and the original Claude scripts move
+verbatim into `adapters/claude/`.
 
-- One skill, one flow: parse a mode keyword, then run the shared
-  resolve-plan / TDD / review / commit steps once
-- Modes replace the three old commands:
-  - `next` — implement only the next uncompleted task, then stop
-  - `all` — loop every task, one subagent per task, auto-falling
-    back to inline when the Agent tool is unavailable
-  - `inline` — the old `all-safe` behaviour; loop in-context, never
-    spawn a subagent (Cursor, `claude -p`, older Claude Code)
+- Adapters land under `adapters/{claude,opencode,omp}/`, one native
+  usage parser each:
+  - `claude` — a single `claude_hook.sh` dispatching every lifecycle
+    event (session-start, user-prompt, stop, subagent-stop)
+  - `opencode` — a `sqlite3` parser reading OpenCode's session store
+  - `omp` — a Bun/TypeScript parser for OMP's transcript format
+- `hooks/hooks.json` now execs `adapters/claude/claude_hook.sh <event>`
+  instead of four existence-guarded per-script snippets
 
-## Harness-agnostic bundled paths
+## Universal installer
 
-Each command hard-coded a Claude-Code-only locator to find its own
-scripts, which broke under Cursor, OpenCode, and omp. The skill now
-derives its own directory as `$BASE` and reads every bundled file
-relative to it.
+Installation was manual and Claude-only. A single installer now
+detects the harness, copies the whole package, and enables logging
+lazily on first use.
 
-- `skills/implement/scripts/plan-progress.sh` is invoked as
-  `"$BASE/scripts/plan-progress.sh"`, never bare and never after a
-  `cd` into the skill root
-- Fallback locator probes project- and user-level roots of every
-  supported harness with `[ -f ]`, so symlinks resolve and stale
-  ones are skipped
+- `install.sh` — copies the package per harness, owns activation and
+  migration, and guards writes with an ownership marker and lock
+- `bin/session-log` — the shared CLI, harness-agnostic
+- `SKILL.md` rewritten to a thin entrypoint that execs
+  `install.sh --harness claude`; the harness is never inferred from
+  the environment
 
 ## Other
 
-- README.md: replace the three-command orchestration block with the
-  single `/implement` entry and its mode table.
-- handout: add `cmd-implement.html`; retire the superseded
-  `cmd-implement-{next,all,all-safe}{,-hu}.html` set.
+- README.md: universal install steps and revised requirements
+  (Python 3, `sqlite3`, Bun).
+- handout: retitle `handout/skill-session-log{,-hu}.html` to Universal
+  Session Log; repoint source and summary at the package.
+- tests: add `scripts/tests/test_universal_session_log.sh`; point
+  `test_prompt_log_{hooks,usage}.sh` at the relocated adapter paths.
 ```
 
 Things to notice in the example:
 
-- **Subject uses a semicolon** because there are two genuinely parallel concerns: unifying the commands into one skill AND making bundled paths harness-agnostic.
+- **Subject uses a semicolon** because there are two genuinely parallel concerns: splitting the logging into per-harness adapters AND adding a universal installer.
 - **Each `## Section` opens with a context paragraph** explaining the *problem* that section addresses, then bullets for the concrete changes.
-- **Sub-bullets** appear under "Modes replace the three old commands" because each mode needs its own one-line explanation — that's the trigger for nesting, not stylistic preference.
-- **`## Other` section last** absorbs the housekeeping (README, handouts) that doesn't deserve its own top-level section but shouldn't be omitted.
-- **Glob shorthand**: `cmd-implement-{next,all,all-safe}{,-hu}.html` style for paired files (saves lines, signals "the same change in each").
+- **Sub-bullets** appear under the "Adapters land under …" bullet because each harness adapter needs its own one-line explanation — that's the trigger for nesting, not stylistic preference.
+- **`## Other` section last** absorbs the housekeeping (README, handouts, tests) that doesn't deserve its own top-level section but shouldn't be omitted.
+- **Glob shorthand**: `adapters/{claude,opencode,omp}/` and `handout/skill-session-log{,-hu}.html` style for paired paths (saves lines, signals "the same change in each").
 
 ---
 
@@ -200,7 +201,7 @@ Every body line — paragraph or bullet — wraps at column 72. Continuation lin
 
 ### 2. Lead with WHY before WHAT
 
-Context paragraphs name the *problem*, then introduce the *solution*. Example: *"Each command hard-coded a Claude-Code-only locator to find its own scripts, which broke under Cursor, OpenCode, and omp. The skill now derives its own directory as `$BASE` and reads every bundled file relative to it."* Even a small section gets a context paragraph — never skip it.
+Context paragraphs name the *problem*, then introduce the *solution*. Example: *"Installation was manual and Claude-only. A single installer now detects the harness, copies the whole package, and enables logging lazily on first use."* Even a small section gets a context paragraph — never skip it.
 
 ### 3. Backticks for code, paths, commands, config keys
 
@@ -208,11 +209,11 @@ Anything a reader could grep for goes in backticks: `skills/implement/SKILL.md`,
 
 ### 4. Em-dashes for inline explanations
 
-Use `—` (real em-dash, not `--`) for the beat where a comma is too quiet and a period is too loud. *"`inline` — the old `all-safe` behaviour; loop in-context, never spawn a subagent..."* Spaces around the em-dash are fine — match the surrounding prose.
+Use `—` (real em-dash, not `--`) for the beat where a comma is too quiet and a period is too loud. *"`bin/session-log` — the shared CLI, harness-agnostic..."* Spaces around the em-dash are fine — match the surrounding prose.
 
 ### 5. Glob shorthand for paired files
 
-When the same change applies to a `.html` and its `-hu.html` sibling (or `.ts` / `.test.ts`), use brace expansion: `cmd-implement{,-hu}.html`, `handout/agentic-workflow-{en,hu}.html`. Saves a line, signals "the same change in both."
+When the same change applies to a `.html` and its `-hu.html` sibling (or `.ts` / `.test.ts`), use brace expansion: `handout/skill-session-log{,-hu}.html`, `test_prompt_log_{hooks,usage}.sh`. Saves a line, signals "the same change in both."
 
 ### 6. Concrete language only
 

@@ -6,7 +6,7 @@
   <title>/session-log — Universal Session Log Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: skills/session-log/ complete package; install-universal-session-log.sh checkout wrapper -->
+  <!-- Source: skills/session-log/ complete package (SKILL.md, bin/session-log, adapters, VERSION) -->
 </head>
 <body>
   <div class="card-page">
@@ -17,136 +17,76 @@
     </div>
 
     <section data-section="1-summary">
-      <h2>Summary</h2>
-      <p>One complete package contains the canonical <code>/session-log</code> entrypoints, shared CLI, native adapters, usage parsers, installer, and version file. It supports Claude Code, OpenCode, and OMP while each harness keeps its native lifecycle, storage, token, timing, model, cost, and sub-agent semantics.</p>
+      <h2>What it is</h2>
+      <p><code>/session-log</code> keeps a running record of your coding sessions. While it is on, every prompt you send and every reply you get is written to a plain-Markdown file, timestamped, with the working time, token counts and an estimated dollar cost stitched onto each turn. Later you read that file — or ask for a one-line-per-turn total — to see what you did in a session and what it cost.</p>
+      <p>It works the same way across <strong>Claude Code</strong>, <strong>OpenCode</strong> and <strong>OMP</strong>. One command, <code>/session-log</code>, drives it everywhere; each tool keeps its own native storage and cost figures underneath.</p>
     </section>
 
-    <section data-section="2-when-to-use">
-      <h2>When to use</h2>
-      <p>Use <code>bash install-universal-session-log.sh</code> from a repository checkout, or copy the complete <code>skills/session-log/</code> directory into the native skill location. For a standalone copy, use the harness-specific entrypoint and OpenCode command below. Then run <code>/session-log on</code>; the package-local entrypoint installs only the current harness adapter. Restart the harness when it reports <code>on — restart required</code>.</p>
-      <pre><code># Claude Code
-mkdir -p ~/.claude/skills
-cp -R skills/session-log ~/.claude/skills/session-log
-
-# OpenCode
-mkdir -p ~/.config/opencode/skills ~/.config/opencode/commands
-cp -R skills/session-log ~/.config/opencode/skills/session-log
-cp skills/session-log/templates/opencode/SKILL.md ~/.config/opencode/skills/session-log/SKILL.md
-cp skills/session-log/templates/opencode/command.md ~/.config/opencode/commands/session-log.md
-
-# OMP
-mkdir -p ~/.omp/agent/skills
-cp -R skills/session-log ~/.omp/agent/skills/session-log
-cp skills/session-log/templates/omp/SKILL.md ~/.omp/agent/skills/session-log/SKILL.md</code></pre>
-      <p>Standalone installs support only the harness default roots under <code>$HOME</code>: <code>~/.claude</code>, <code>~/.config/opencode</code> and <code>~/.local/share/opencode</code>, and <code>~/.omp/agent</code>. Relocated or custom config/data roots are unsupported; use the defaults before running <code>/session-log</code>.</p>
+    <section data-section="2-features">
+      <h2>What you get</h2>
       <ul>
-        <li><code>prompt_log_new_session.sh</code> — called by the <strong>SessionStart</strong> hook on cold startup (not on resume, /clear, or /compact)</li>
-        <li><code>prompt_log_save.sh</code> — called by the <strong>UserPromptSubmit</strong> hook each time you submit a prompt</li>
-        <li><code>prompt_log_stop.sh</code> — called by the <strong>Stop</strong> hook when the assistant finishes a response; appends the response, the working time and the estimated token/price line</li>
-        <li><code>prompt_log_subagent.sh</code> — called by the <strong>SubagentStop</strong> hook each time a sub-agent finishes; appends one line naming the sub-agent and its transcript</li>
-        <li><code>prompt_log_lib.sh</code> — an internal shared library; sourced by the scripts above, never invoked directly</li>
-        <li><code>prompt_log_usage.sh</code> — the standalone aggregator; no hook calls it, you run it yourself to total a session</li>
-        <li><code>prompt_log_usage.jq</code> — the shared token/price engine, used by both <code>prompt_log_stop.sh</code> and the aggregator so the per-request lines and the totals can never disagree</li>
-        <li><code>prompt_log_prices.json</code> — the static per-MTok price table the engine reads; a checked-in file, so pricing is deterministic and works offline</li>
+        <li><strong>A readable session transcript.</strong> Your prompts and the assistant's final replies, in order, each under an <code>HH:MM:SS</code> heading — a chronological diary of the session you can reread or grep.</li>
+        <li><strong>Per-turn cost &amp; timing.</strong> Every reply is followed by <code>working time</code> and an <code>est. used token</code> line: input, output, cache-write, cache-read, a total, and an estimated <code>price</code>.</li>
+        <li><strong>Model / effort switch tracking.</strong> When you change model or reasoning effort between turns, a <code>switched:</code> line records it — worth noticing, because switching models resets the prompt cache and the next turn pays for a fresh cache write.</li>
+        <li><strong>Sub-agent tracking.</strong> Each sub-agent that finishes adds a line naming it and pointing at its own transcript, so background work is visible and counted — even agents nested inside workflows.</li>
+        <li><strong>Whole-session totals on demand.</strong> <code>/session-log usage</code> adds every turn and every sub-agent into one <code>TOTAL</code> — each transcript counted exactly once, however deeply nested.</li>
+        <li><strong>Local and private.</strong> Logs are written under your home config directory with <code>600</code> permissions. Nothing is uploaded; pricing is computed offline from a checked-in table.</li>
       </ul>
-      <p>Invoke the hook scripts manually only when debugging the logging setup or when writing a script that needs to create or append to a session log file programmatically.</p>
-      <p><strong>Dependencies:</strong> <code>bash</code>, Python 3, and <code>jq</code> are required by the package. OpenCode usage also requires <code>sqlite3</code>; OMP usage requires Bun. Missing dependencies produce direct errors.</p>
     </section>
 
-    <section data-section="2b-configuration">
-      <h2>Configuration</h2>
-      <h3>Enabling and disabling logging</h3>
-      <p>Logging has one private enable flag per harness: <code>~/.claude/prompt-logs/.enabled</code>, <code>~/.config/opencode/prompt-logs/.enabled</code>, or <code>~/.omp/agent/prompt-logs/.enabled</code>. <code>on</code> installs only the current harness adapter and creates its flag; <code>off</code> removes only that flag; <code>status</code> never installs an adapter.</p>
-      <h3>Native lifecycle wiring</h3>
-      <p>The complete package contains the installer and adapter assets. Its first <code>on</code> materializes only the selected native adapter: Claude Code uses plugin hooks or settings hooks, OpenCode receives a plugin and parser, and OMP receives an extension and parser. The adapter reports its loaded version after the harness starts.</p>
-      <p>Harness identity is explicit in every entrypoint. The CLI never guesses from <code>~/.claude</code>, <code>~/.config/opencode</code>, <code>~/.omp</code>, enable flags, or environment variables. Relocated roots and custom profiles fail explicitly because they are outside this package's supported scope.</p>
+    <section data-section="3-commands">
+      <h2>The four commands</h2>
+      <p>Run <code>/session-log</code> with one of these. With no argument it defaults to <code>status</code>.</p>
+      <table class="dep-table">
+        <thead>
+          <tr><th class="col-type">Command</th><th>What it does</th><th>Typical output</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>on</code></td>
+            <td>Turns logging on for the current tool and wires it in.</td>
+            <td><code>Claude Code: on</code> — or <code>on — restart required</code></td>
+          </tr>
+          <tr>
+            <td><code>off</code></td>
+            <td>Turns logging off for the current tool.</td>
+            <td><code>Claude Code: off</code></td>
+          </tr>
+          <tr>
+            <td><code>status</code> <span class="badge optional">default</span></td>
+            <td>Reports whether logging is active right now.</td>
+            <td><code>on</code> / <code>off</code> / <code>on — restart required</code> / <code>on — adapter missing</code></td>
+          </tr>
+          <tr>
+            <td><code>usage</code></td>
+            <td>Prints a per-turn breakdown plus the session total.</td>
+            <td><code>Claude Code: usage</code> then the report</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>The label at the front of every line (<code>Claude Code</code>, <code>OpenCode</code> or <code>OMP</code>) tells you which tool answered. <code>usage</code> targets the newest session of the current project by default; pass a session id or a transcript path to total a specific one. On Claude Code, add <code>--check</code> to cross-check the total against <code>ccusage</code> when it is installed.</p>
     </section>
 
-    <section data-section="3-invocation">
-      <h2>Invocation</h2>
-      <p>The invocation examples below document Claude Code's native transcript scripts. OpenCode and OMP keep their own native storage and usage parsers; <code>/session-log usage</code> passes those reports through unchanged after the harness label.</p>
-      <h3><code>prompt_log_new_session.sh</code> — Session initialiser</h3>
-      <p>Called automatically by the <strong>SessionStart</strong> hook. Reads a JSON payload from stdin.</p>
-      <pre><code>echo '{"session_id":"abc123","cwd":"/path/to/project"}' | bash prompt_log_new_session.sh</code></pre>
-      <p>Creates a new timestamped session log file under <code>~/.claude/prompt-logs/&lt;project-slug&gt;/session_YYYY-MM-DD_HH-MM-SS.md</code> and writes a session map entry to <code>~/.claude/session-maps/&lt;session_id&gt;</code>.</p>
-
-      <h3><code>prompt_log_save.sh</code> — Prompt appender</h3>
-      <p>Called automatically by the <strong>UserPromptSubmit</strong> hook. Reads a JSON payload from stdin.</p>
-      <pre><code>echo '{"session_id":"abc123","prompt":"your prompt text","cwd":"/path/to/project"}' | bash prompt_log_save.sh</code></pre>
-      <p>Appends the prompt text with a <code>HH:MM:SS</code> timestamp heading to the session log file. If no session map exists yet, calls <code>create_session_file</code> internally (graceful late-init). It also stamps the request's start time (epoch seconds) into <code>~/.claude/session-maps/&lt;session_id&gt;.pstart</code>, which the Stop hook reads to compute the working time.</p>
-
-      <h3><code>prompt_log_stop.sh</code> — Response and measurement appender</h3>
-      <p>Called automatically by the <strong>Stop</strong> hook when the assistant finishes a response. Reads a JSON payload from stdin.</p>
-      <pre><code>echo '{"session_id":"abc123","transcript_path":"/Users/alice/.claude/projects/Users-alice-projects-my-app/abc123.jsonl","last_assistant_message":"Done.","effort":{"level":"high"}}' | bash prompt_log_stop.sh</code></pre>
-      <p>Appends a <code>### HH:MM:SS response</code> heading with the assistant's final message verbatim, then the <code>working time:</code> and <code>est. used token:</code> lines, plus a <code>switched:</code> line when the model or effort differs from the previous request. No hook payload carries token usage, so the numbers are read from the transcript and deduped by <code>message.id</code> — one API response yields one assistant entry per content block, each repeating the same usage, so a naive sum would overcount several times over.</p>
-      <p>Two behaviours are load-bearing. The script exits without writing when the payload carries an <code>agent_id</code>, because that is a sub-agent's Stop, not the session's — sub-agents are covered by <strong>SubagentStop</strong> instead. And it never writes to stdout and always exits 0: exit code 2 from a Stop hook blocks the session from stopping, so a logging failure must never surface there. An unreadable transcript still logs the response and the working time; only the usage line is skipped.</p>
-
-      <h3><code>prompt_log_subagent.sh</code> — Sub-agent line appender</h3>
-      <p>Called automatically by the <strong>SubagentStop</strong> hook each time a sub-agent finishes. Reads a JSON payload from stdin.</p>
-      <pre><code>echo '{"session_id":"abc123","transcript_path":"/Users/alice/.claude/projects/Users-alice-projects-my-app/abc123.jsonl","agent_id":"9f3c2a1b","agent_type":"general-purpose"}' | bash prompt_log_subagent.sh</code></pre>
-      <p>Appends one line: <code>HH:MM:SS sub-agent finished: &lt;agent_type&gt; (agent-&lt;agent_id&gt;), jsonl: &lt;path&gt;</code>. The payload's <code>transcript_path</code> is the parent session's, so the sub-agent transcript is derived from its directory as <code>&lt;dir&gt;/&lt;session_id&gt;/subagents/agent-&lt;agent_id&gt;.jsonl</code>; when that file is not there the line ends with <code>(not found)</code> rather than pointing at nothing. Like the Stop script it stays silent and always exits 0.</p>
-
-      <h3><code>prompt_log_lib.sh</code> — Shared library (internal)</h3>
-      <p>Not invoked directly. Provides the <code>create_session_file(session_id, cwd)</code> function plus the pure helpers <code>fmt_hms</code> (seconds → <code>HH:MM:SS</code>), <code>switch_line</code> (renders the <code>switched:</code> line, or nothing when neither model nor effort changed) and <code>resolve_project_key</code> (working directory → the <code>~/.claude/projects/</code> slug). Sourced at the top of the scripts above.</p>
-      <pre><code>source "$(dirname "${BASH_SOURCE[0]}")/prompt_log_lib.sh"</code></pre>
-
-      <h3><code>prompt_log_usage.sh</code> — Session aggregator</h3>
-      <p>The one script you run yourself. Takes a session id, a transcript path, or <code>--latest</code> for the newest transcript of the current project.</p>
-      <pre><code>bash prompt_log_usage.sh --latest
-bash prompt_log_usage.sh a1b2c3d4e5f6 --check</code></pre>
-      <p>Prints one numbered line per request (timestamp, the head of the prompt, and the same <code>est. used token:</code> line the log carries), then one line per sub-agent transcript found under <code>&lt;dir&gt;/&lt;session_id&gt;/subagents/</code> — searched recursively, so agents spawned inside workflows are counted too — and finally <code>TOTAL (N requests, M sub-agents)</code> with the merged figures. Every transcript is counted exactly once regardless of how deeply the sub-agents nest.</p>
-      <p><code>--check</code> is a cross-check, not a price source: when <code>ccusage</code> is on <code>PATH</code> it runs <code>ccusage session -i &lt;session_id&gt; --json</code> and prints that total beside ours, flagging any drift. Drift is the signal that <code>prompt_log_prices.json</code> needs updating; the table stays the single source of truth so a log line and a later total can never disagree. With <code>ccusage</code> absent the flag prints a skip note.</p>
+    <section data-section="4-good-to-know">
+      <h2>Good to know</h2>
+      <ul>
+        <li><strong>Turn it on once, then restart.</strong> The first <code>on</code> installs the tool's logging hook. If <code>status</code> says <code>on — restart required</code>, restart the tool before relying on the log — the hook only takes effect in a fresh session.</li>
+        <li><strong>On/off is per tool.</strong> Enabling it in Claude Code does not enable it in OpenCode or OMP; each keeps its own switch. <code>status</code> and <code>off</code> only ever touch the tool you are in.</li>
+        <li><strong>Cost is an estimate.</strong> Hence <code>est.</code> — the price comes from a checked-in table, so it is deterministic and works offline, but it is not a bill. A model missing from the table contributes <code>$0</code> and gets a <code>?</code> so you can spot the gap.</li>
+        <li><strong>The cache line is the interesting one.</strong> <code>cache_create</code> combines 5-minute and 1-hour cache writes (priced differently); a <code>switched:</code> line right above a large cache-write cost usually explains a spike.</li>
+        <li><strong>The format is grep-friendly.</strong> <code>^### .* response$</code>, <code>^est\. used token:</code>, <code>^switched:</code> and <code>sub-agent finished:</code> each match exactly one kind of line, so you can pull costs or responses out of a log with one command.</li>
+        <li><strong>Dependencies.</strong> Needs <code>bash</code>, Python 3 and <code>jq</code>. <code>usage</code> additionally needs <code>sqlite3</code> on OpenCode and Bun on OMP. A missing one gives a direct error.</li>
+        <li><strong>Default locations only.</strong> Logs live under the standard home roots (e.g. <code>~/.claude/prompt-logs/</code>). Relocated or custom config roots are unsupported and fail loudly rather than logging to the wrong place.</li>
+      </ul>
     </section>
 
-    <section data-section="4-example-1">
-      <h2>Example 1 — New session initialization</h2>
+    <section data-section="5-example">
+      <h2>What a logged turn looks like</h2>
       <div class="example">
-        <p><strong>Trigger:</strong> A new Claude Code session starts in a project directory (automatic via <code>SessionStart</code> hook).</p>
-        <p><strong>Effective input (JSON payload sent to stdin by the hook):</strong></p>
-        <pre><code>{
-  "session_id": "a1b2c3d4e5f6",
-  "cwd": "/Users/alice/projects/my-app"
-}</code></pre>
-        <p><strong>Result:</strong></p>
-        <pre><code># Prompts — 2026-06-05 09:14:32
-
-**Session ID:** a1b2c3d4e5f6
-**Resume:** `claude --resume a1b2c3d4e5f6`
-**Session file:** `~/.claude/projects/Users-alice-projects-my-app/a1b2c3d4e5f6.jsonl`
-
----</code></pre>
-        <p>The file is written to <code>~/.claude/prompt-logs/projects-my-app/session_2026-06-05_09-14-32.md</code> (slug = last two path segments joined by <code>-</code>). The session map entry at <code>~/.claude/session-maps/a1b2c3d4e5f6</code> records the path to this file with permissions <code>600</code>.</p>
-      </div>
-    </section>
-
-    <section data-section="5-example-2">
-      <h2>Example 2 — Prompt save</h2>
-      <div class="example">
-        <p><strong>Trigger:</strong> You submit a prompt in an active Claude Code session (automatic via <code>UserPromptSubmit</code> hook).</p>
-        <p><strong>Effective input (JSON payload sent to stdin by the hook):</strong></p>
-        <pre><code>{
-  "session_id": "a1b2c3d4e5f6",
-  "prompt": "Implement the next uncompleted task in plans/FEAT-001.md",
-  "cwd": "/Users/alice/projects/my-app"
-}</code></pre>
-        <p><strong>Result appended to the session log file:</strong></p>
-        <pre><code>## 09:15:44
-
-Implement the next uncompleted task in plans/FEAT-001.md
-
----</code></pre>
-        <p>Each subsequent prompt appends a new <code>## HH:MM:SS</code> section to the same file, building a full chronological record of the session's prompts. The response and the measurements land in that same section later, when the assistant stops — see Example 3.</p>
-      </div>
-    </section>
-
-    <section data-section="5b-example-3">
-      <h2>Example 3 — A complete request block</h2>
-      <div class="example">
-        <p><strong>Trigger:</strong> one full turn — you submit a prompt, a background sub-agent finishes, the assistant answers, and you had switched model and effort since the previous turn.</p>
-        <p><strong>Result in the session log file:</strong></p>
+        <p><strong>Scenario:</strong> one full turn — you submit a prompt, a background sub-agent finishes, the assistant answers, and you had switched model and effort since the previous turn. This is what lands in the session file (Claude Code, <code>~/.claude/prompt-logs/&lt;project&gt;/session_….md</code>):</p>
         <pre><code>## 14:02:11
 
-&lt;prompt&gt;
+Implement the next uncompleted task in plans/FEAT-001.md
 
 ---
 
@@ -154,26 +94,40 @@ Implement the next uncompleted task in plans/FEAT-001.md
 
 ### 14:05:53 response
 
-&lt;last_assistant_message verbatim&gt;
+&lt;the assistant's final message, verbatim&gt;
 
 working time: 00:03:42
-est. used token: input: 2000, output: 1000, cache_create: 150000, cache_read: 0, total_tokens: 153000, price: $2.32, model: claude-fable-5, effort: max
-switched: model claude-sonnet-4-6 → claude-fable-5, effort high → max
+est. used token: input: 2000, output: 1000, cache_create: 150000, cache_read: 0, total_tokens: 153000, price: $2.32, model: claude-opus-5, effort: max
+switched: model claude-sonnet-5 → claude-opus-5, effort high → max
 
 ---</code></pre>
-        <p>Everything is written to be grep-able: <code>^### .* response$</code>, <code>^est\. used token:</code>, <code>^switched:</code> and <code>sub-agent finished:</code> each pick out exactly one kind of line. <code>total_tokens</code> is input + output + cache_create + cache_read, and <code>cache_create</code> is the 5-minute and 1-hour cache writes added together — priced separately, since a 1-hour write costs 2× the input rate against 1.25× for a 5-minute one.</p>
-        <p>The price is an estimate — hence <code>est.</code> — computed from the checked-in table; a model missing from it contributes $0 and gets a <code>?</code> suffix. The <code>switched:</code> line appears only when the model or the effort actually changed, and it is worth reading: switching models resets the prompt cache, so the request right after a switch pays for a full cache write.</p>
+        <p>Reading top to bottom: the prompt, then the sub-agent that ran, then the reply, then the measurements. <code>total_tokens</code> is input + output + cache-write + cache-read. The <code>switched:</code> line here explains the large <code>cache_create</code>: changing models forced a full cache write on this turn.</p>
       </div>
     </section>
 
-    <section data-section="6-related-tools">
+    <section data-section="6-usage-report">
+      <h2>What a <code>usage</code> report looks like</h2>
+      <div class="example">
+        <p><strong>Command:</strong> <code>/session-log usage</code> (totals the newest session of the current project).</p>
+        <pre><code>Claude Code: usage
+
+1. 14:02:11  Implement the next uncompleted task…   est. used token: … price: $2.32
+2. 14:12:40  Fix the failing test in auth_test…      est. used token: … price: $0.41
+   sub-agent general-purpose (agent-9f3c2a1b)         est. used token: … price: $0.77
+
+TOTAL (2 requests, 1 sub-agent)  input: … output: … total_tokens: …  price: $3.50</code></pre>
+        <p>One numbered line per turn, one line per sub-agent transcript found under the session, then a merged <code>TOTAL</code>. Every transcript is counted once, no matter how deeply sub-agents nest.</p>
+      </div>
+    </section>
+
+    <section data-section="7-related-tools">
       <h2>Related tools</h2>
       <ul>
-        <li><a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a> — The logging hooks support the overall agentic workflow; <code>agentic-workflow-en.html</code> documents the full 9-step pipeline in which these hooks operate.</li>
+        <li><a href="agentic-workflow-en.html">Agentic workflow pipeline (agentic-workflow-en.html)</a> — the logging hooks run inside the wider agentic workflow; that handout documents the full pipeline they sit in.</li>
       </ul>
     </section>
 
-    <footer data-section="7-footer">
+    <footer data-section="8-footer">
       <h2>Links</h2>
       <p>
         <a href="index.html">← All handouts</a>

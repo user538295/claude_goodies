@@ -19,7 +19,7 @@
     <section data-section="1-summary">
       <h2>Összefoglaló</h2>
       <p>Portable, runtime-független skill, amely egy meglévő tervfájlt vagy feladatbontó fájlt hajt végre. Egy bevezető módkulcsszó választja ki a viselkedést: vagy csak a következő el nem végzett feladatot valósítja meg, vagy végigmegy minden hátralévő feladaton — minden feladat teszt-elsőként (TDD) épül, önmagát <code>/iterative-review</code>-vel ellenőrzi, blokkoló teszteket futtat, kipipálja magát, és saját commitba kerül. Egy feladat, egy commit. Bármilyen harness-ben működik (Claude Code, Cursor, <code>claude -p</code>), hook-függőség nélkül.</p>
-      <p><strong>Három korábbi parancsot egyesít.</strong> Az <code>/implement</code> leváltja a külön <code>/implement-next</code>, <code>/implement-all</code> és <code>/implement-all-safe</code> parancsokat — a mód mostantól egy átadott kulcsszó, nem külön parancs. ALL módban feladatonként egy subagentet indít, ha az Agent tool elérhető, és <strong>automatikusan visszaesik inline ciklusra</strong> (subagentek nélkül), ha nem.</p>
+      <p><strong>Három korábbi parancsot egyesít.</strong> Az <code>/implement</code> leváltja a külön <code>/implement-next</code>, <code>/implement-all</code> és <code>/implement-all-safe</code> parancsokat — a mód mostantól egy átadott kulcsszó, nem külön parancs. ALL módban feladatonként egy subagentet indít, <strong>valahányszor a harness kínál subagent-indító toolt</strong> — a Claude Code <code>Agent</code> toolja (a headless <code>claude -p</code>-t is beleértve), az OpenCode <code>Task</code>-ja, az omp <code>task</code>-ja, a Cursor 2.4+ <code>Task</code>-ja —, és csak akkor esik vissza inline ciklusra (subagentek nélkül), ha a harness egyáltalán nem kínál subagent toolt.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -28,7 +28,7 @@
       <ul>
         <li>Pontosan egy feladatot akarsz megvalósítani és megnézni az eredményt — használd a NEXT módot.</li>
         <li>Van egy kész terved, és feladatonként, kézi beavatkozás nélkül akarod felépíteni — használd az ALL módot.</li>
-        <li>Olyan harness-ben vagy, ahol nincs subagent-primitív (Cursor, <code>claude -p</code>, régebbi Claude Code), és inline akarod futtatni a ciklust — használd a kényszerített INLINE-t, vagy hagyd, hogy az ALL mód automatikusan visszaessen rá.</li>
+        <li>Olyan harness-ben vagy, amely egyáltalán nem kínál subagent toolt, és inline akarod futtatni a ciklust — használd a kényszerített INLINE-t, vagy hagyd, hogy az ALL mód automatikusan visszaessen rá.</li>
         <li>Egy részben befejezett futást folytatsz, és a következő el nem végzett feladatnál akarsz továbblépni.</li>
       </ul>
       <p><strong>Kísérő tervek.</strong> A feloldott fájl lehet önálló, vagy olyan feladatbontó fájl, amelynek <code>S#</code>/<code>C#</code> szcenárió/szerződés definíciói, architektúrája és elfogadási kritériumai külön <strong>kísérő tervben</strong> vannak. Ezt előbb a <code>## References</code> szakasz <strong>Plan:</strong> linkjéből oldja fel (ez a kanonikus, akkor is helyes, ha a tervet áthelyezték), és csak ennek hiányában esik vissza a frontmatter <code>plan:</code> kulcsára (testvérfájlként). Ha bármelyik mechanizmus által megnevezett kísérő terv hiányzik a lemezről, a futás megáll, nem folytatódik kontextus nélkül. A kísérő terv csak olvasható kontextus — soha nem pipálja ki, nem stage-eli és nem commitolja.</p>
@@ -45,7 +45,7 @@
       <p><strong>A négy hívási forma:</strong></p>
       <ul>
         <li><code>/implement next &lt;file&gt;</code> → <strong>NEXT mód</strong>: csak a következő el nem végzett feladatot valósítja meg (lásd a lenti NEXT-mód 1–7. lépéseit).</li>
-        <li><code>/implement all &lt;file&gt;</code> → <strong>ALL mód</strong>: végigmegy minden hátralévő feladaton. Feladatonként EGY subagentet indít az Agent toollal, ha az elérhető; <strong>automatikusan visszaesik az inline ciklusra</strong> (subagentek nélkül), ha az Agent tool nem elérhető (Cursor, <code>claude -p</code>, Claude Code &lt; 2.1.172).</li>
+        <li><code>/implement all &lt;file&gt;</code> → <strong>ALL mód</strong>: végigmegy minden hátralévő feladaton. Feladatonként EGY subagentet indít, valahányszor a harness kínál subagent-indító toolt (a Claude Code <code>Agent</code> toolja — a headless <code>claude -p</code>-t is beleértve —, az OpenCode <code>Task</code>-ja, az omp <code>task</code>-ja, a Cursor 2.4+ <code>Task</code>-ja); <strong>csak akkor esik vissza az inline ciklusra</strong> (subagentek nélkül), ha a harness egyáltalán nem kínál subagent toolt.</li>
         <li><code>/implement all inline &lt;file&gt;</code> (illetve <code>inline all &lt;file&gt;</code> vagy <code>inline &lt;file&gt;</code>) → <strong>ALL mód kényszerített INLINE</strong>: soha nem indít subagentet, minden lépés az aktuális kontextusban fut.</li>
         <li><code>/implement &lt;file&gt;</code> (kulcsszó nélkül) → megszámolja a hátralévő feladatokat: 0 → jelenti, hogy már kész, és megáll; pontosan 1 → NEXT módban folytatja; több mint 1 → <strong>rákérdez</strong>, hogy csak a következő feladatot vagy mindet végezze el. Nem interaktív / headless futásban (pl. <code>claude -p</code>) NEM akad el — NEXT módra vált alapértelmezetten, és kiír egy egysoros megjegyzést (add hozzá az <code>all</code>-t a teljes terv futtatásához).</li>
       </ul>
@@ -64,7 +64,7 @@
 
       <p><strong>ALL mód — a ciklus:</strong></p>
       <ol>
-        <li><strong>-1. lépés — Verzióellenőrzés (csak a subagent útvonalon):</strong> Beolvassa a Claude Code verziót a <code>CLAUDE_CODE_EXECPATH</code>-ból. Beállítatlan (Cursor, <code>claude -p</code>, más harness) vagy <code>2.1.172</code> alatti → átvált az inline ciklusra. Egyébként subagenteket használ. Jelzi a felhasználónak, melyik módot választotta és miért. A kényszerített INLINE ezt kihagyja, és egyből inline megy.</li>
+        <li><strong>-1. lépés — Végrehajtási mód kiválasztása (subagentek vagy inline):</strong> <strong>Képesség, nem harness-márka vagy -verzió</strong> alapján dönt: subagenteket használ, valahányszor a harness kínál subagent-indító toolt (a Claude Code <code>Agent</code> toolja, a headless <code>claude -p</code>-t is beleértve; az OpenCode <code>Task</code>-ja; az omp <code>task</code>-ja; a Cursor 2.4+ <code>Task</code>-ja), és csak akkor vált az inline ciklusra, ha a harness egyáltalán nem kínál subagent toolt. Jelzi a felhasználónak, melyik módot választotta és miért. A kényszerített INLINE ezt kihagyja, és egyből inline megy.</li>
         <li><strong>0. lépés — Tervfájl feloldása</strong> (és a kísérő terv) a közös feloldási szabályok szerint.</li>
         <li><strong>Ciklustörzs</strong> (addig ismétlődik, amíg a <code>plan-progress.sh</code> exit 1 = minden kész): (1) lefuttatja a <code>plan-progress.sh</code>-t, és szó szerint, átformázás nélkül mutatja az első két sort — exit 2/3 vagy bármely váratlan kód megállítja; (2) kiírja a <code>Launching task &lt;NAME&gt; at [HH:MM:SS]</code>-t (inline-nál <code>Starting task …</code>), majd futtatja a feladatot — Agent tool subagenttel (<code>general-purpose</code>, háttérben) vagy inline NEXT módban — szigorúan szkópolt prompttal (pontosan egy feladat; A–F elfogadási kritériumok; tiltja a <code>--no-verify</code>/<code>--amend</code>-et, a bundle-ölést, a beágyazott ALL ciklusokat, és bármi más módosítását a feladat checkboxán kívül); (3) recovery check — ellenőrzi, hogy a feladat ki van-e pipálva és a fájljai commitolva vannak-e. Nincs kipipálva → újraindítás/újracsinálás (max 3 próba, aztán megáll kézi beavatkozásra); kipipálva de commitolatlan → csak az adott feladat fájljait commitolja explicit útvonal alapján (soha nem <code>git add -A</code>), és jelenti a szabálysértést.</li>
       </ol>
@@ -101,14 +101,14 @@ NEXT_TASK_NUMBER=4
     </section>
 
     <section data-section="5-example-2">
-      <h2>2. példa — Kulcsszó nélkül, majd az ALL inline-ra esik vissza <em>(szemléltető példa)</em></h2>
+      <h2>2. példa — ALL mód subagent tool nélküli harness-ben <em>(szemléltető példa)</em></h2>
       <div class="example">
         <p><strong>Bemenet:</strong></p>
         <pre><code>/implement all plans/FEAT-004-legacy-refactor.md
-(2.1.172-nél régebbi Claude Code build-en futtatva)</code></pre>
+(subagent-indító toolt nem kínáló harness-ben futtatva)</code></pre>
         <p><strong>Kimenet / Eredmény:</strong></p>
-        <pre><code>Version 2.0.40 detected — below 2.1.172, Agent tool unavailable.
-Switching to inline mode (no subagents).
+        <pre><code>No subagent-spawning tool available in this harness.
+Running the ALL loop inline (no subagents).
 
 Progress   : [░░░░░░░░░░░░] 0%  (0/5 tasks, 0/2 phases)
 Next task  : 1.1  **File**: `README.md`

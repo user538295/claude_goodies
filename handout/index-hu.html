@@ -350,7 +350,7 @@
         </a>
         <a class="tool-item" href="cmd-implement-hu.html">
           <span class="tool-name">/implement</span>
-          <span class="tool-desc">Egy terv végrehajtása, egy taskkal vagy az egésszel. A <code>next</code> a következő kipipálatlan taskot test-first felépíti, review-zza és commitolja — egy task, kész; az <code>all</code> felügyelet nélkül végigmegy minden hátralévő taskon, feladatonként egy subagenttel és automatikus inline fallbackkel (Cursor, <code>claude -p</code>, régebbi Claude Code); az <code>all inline</code> kényszerített inline. Bármilyen harness-ben.</span>
+          <span class="tool-desc">Egy terv végrehajtása, egy taskkal vagy az egésszel. A <code>next</code> a következő kipipálatlan taskot test-first felépíti, review-zza és commitolja — egy task, kész; az <code>all</code> felügyelet nélkül végigmegy minden hátralévő taskon, feladatonként egy subagenttel, ha a harness kínál subagent eszközt (Claude Code a <code>claude -p</code>-vel együtt, OpenCode, omp, Cursor), és csak ott vált inline-ra, ahol nincs ilyen; az <code>all inline</code> kényszerített inline. Bármilyen harness-ben.</span>
         </a>
         <a class="tool-item" href="cmd-iterative-review-hu.html">
           <span class="tool-name">/iterative-review</span>

@@ -34,7 +34,7 @@ Capture the printed path as `$BASE`. On the error, stop and show it to the user.
 Parse `$ARGUMENTS` deterministically. The **first whitespace-separated token** is a mode keyword **only if it is exactly** `next`, `all`, or `inline` (case-insensitive); anything else is part of the path. When the first token is `all`, the **second** token is consumed as the `inline` keyword **only if it is exactly** `inline` (case-insensitive); otherwise the second token and everything after it is the path (so a file literally named `inline …` is treated as a path, not a keyword). Symmetrically, when the first token is `inline`, the **second** token is consumed as the `all` keyword **only if it is exactly** `all` (case-insensitive); otherwise the second token and everything after it is the path. The two-token prefixes `all inline` and `inline all` both mean **forced-inline ALL**; there is **no `next inline` form** (`next` never takes a second keyword — anything after `next` is the path). Everything after the recognized keyword(s) is the plan-file path — **handle a path that contains spaces** (take the entire remainder verbatim, do not split it).
 
 - **`next <file>`** → **NEXT mode**: implement only the next uncompleted task (the full NEXT-mode Steps 1–7 below).
-- **`all <file>`** → **ALL mode**: loop over every remaining task. Spawn ONE subagent per task via the Agent tool when it is available; **AUTOMATICALLY fall back to the INLINE loop** (no subagents) when the Agent tool is unavailable (Cursor, `claude -p`, Claude Code < 2.1.172). See "ALL mode (subagents)" — it performs the version check and switch.
+- **`all <file>`** → **ALL mode**: loop over every remaining task. Spawn ONE subagent per task via your harness's subagent tool when one exists (Claude Code's `Agent`, OpenCode's / omp's / Cursor's equivalent); **AUTOMATICALLY fall back to the INLINE loop** (no subagents) only when your harness exposes no subagent tool at all. See "ALL mode (subagents)" — it performs the capability check and switch.
 - **`all inline <file>` / `inline all <file>` / `inline <file>`** → **ALL mode forced INLINE** (never spawn subagents). Go straight to "ALL mode (inline)".
 - **`<file>` only (no keyword)** → **FIRST resolve the plan path** via the shared "Resolve the plan file & companion plan" section below (`test -f`, else fuzzy search / ask the user). Only once the path resolves to a real file, run `"$BASE/scripts/plan-progress.sh"` on it to count remaining tasks:
   - **Exit 0** (header printed, tasks remain) → compute the remaining count from the header's `(COMPLETED/TOTAL tasks)` figure as **TOTAL − COMPLETED** (the flat header also prints a `Remaining` line, but the phased header does not — so derive it from `COMPLETED/TOTAL`, which both templates print): exactly 1 remaining → proceed in NEXT mode; more than 1 remaining → **ASK** the user whether to do just the next task or all of them. In a **NON-INTERACTIVE / headless run** (e.g. `claude -p`, no user to answer) do NOT hang: default to NEXT mode and print a one-line note that it defaulted (mention "add 'all' to run the whole plan"). (Exit 0 never means zero remaining — the script emits exit 1 for that; see below.)
@@ -167,20 +167,9 @@ Output a concise report for this task in the following exact form. Do NOT prose,
 
 Loop over every remaining task, spawning ONE subagent per task. **You MUST follow the instructions step-by-step, precisely. You MUST NOT make shortcuts, or override the instructions!**
 
-### Step -1: Version check — pick the right execution mode
+### Step -1: Pick the execution mode — subagents vs inline
 
-Run this command and capture stdout:
-```
-bash -c 'ver=$(echo "$CLAUDE_CODE_EXECPATH" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1); echo "${ver:-unknown}"'
-```
-
-- If the output is `unknown` (env var not set — you are in Cursor, `claude -p`, or another non-CC harness): **switch to ALL mode (inline)** (below).
-- Otherwise parse the version and compare it to `2.1.172`:
-  ```
-  bash -c 'ver=$(echo "$CLAUDE_CODE_EXECPATH" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1); printf "2.1.172\n%s\n" "$ver" | sort -V -C && echo ok || echo old'
-  ```
-  - Output `ok` → version is sufficient; proceed with subagent mode (Loop body below).
-  - Output `old` → version is too old for the `Agent` tool; **switch to ALL mode (inline)**.
+Decide by **capability, not harness brand**: proceed in **subagent mode** (Loop body below) whenever your harness exposes a subagent-spawning tool (Claude Code's `Agent` — including headless `claude -p` — and OpenCode's / omp's / Cursor's equivalent subagent/`Task` tool). Switch to **ALL mode (inline)** only when your harness genuinely exposes no subagent tool at all.
 
 Inform the user which mode was selected and why before continuing. In inline mode the ALL loop does NOT wrap each task in its own per-task subagent — tasks run in the current context via NEXT mode (whose own implementation and `/iterative-review` steps still spawn agents where a subagent tool exists, and act directly where none does).
 
@@ -213,7 +202,7 @@ Each iteration:
    ```
    Print the result to the user in this exact format (brackets are literal, e.g. `Launching task 6.1 at [12:50:31]`) and do NOT prose it: `Launching task <NEXT_TASK_NAME> at [HH:MM:SS]`
 
-   Spawn the subagent with the `Agent` tool (`subagent_type: general-purpose`, `run_in_background: true`) — Step -1 has already routed every non-Claude-Code harness to ALL mode (inline), so this loop only ever runs under Claude Code.
+   Spawn the subagent with your harness's subagent tool — in **Claude Code**, the `Agent` tool (`subagent_type: general-purpose`, `run_in_background: true`); in **OpenCode / omp**, their equivalent subagent tool (run it in the background if that tool supports it). Step -1 routed only harnesses that lack any subagent tool to ALL mode (inline), so this loop always has a subagent tool to use.
 
    You MUST give this prompt to the subagent (a fresh general-purpose subagent does NOT already have this skill's NEXT-mode text — it must actually invoke the skill). **Before spawning, substitute the resolved task-breakdown file path for every `<plan-path>` below — the subagent must receive the real resolved path, exactly as step 1 substitutes it into the `plan-progress.sh` call, not a literal `<plan-path>`:**
    > Invoke the `implement` skill in NEXT mode: run `/implement next <plan-path>` — implement the next uncompleted task (NEXT-mode Steps 1–7). If your skill list shows it as `claude-goodies:implement`, invoke that skill with `next <plan-path>`.
@@ -270,7 +259,7 @@ Each iteration:
 
 ## ALL mode (inline)
 
-> **Inline execution mode.** The ALL loop does not wrap each task in its own per-task subagent — each task runs in the current context via NEXT mode, whose own implementation (Step 2) and `/iterative-review` (Step 3) steps still apply and still spawn agents where a subagent tool exists (degrading to acting directly in harnesses without one). Also used automatically by ALL mode (subagents) when per-task subagents are unavailable (Cursor, `claude -p`, CC < 2.1.172).
+> **Inline execution mode.** The ALL loop does not wrap each task in its own per-task subagent — each task runs in the current context via NEXT mode, whose own implementation (Step 2) and `/iterative-review` (Step 3) steps still apply and still spawn agents where a subagent tool exists (degrading to acting directly in harnesses without one). Also used automatically by ALL mode (subagents) when the harness exposes no subagent tool at all.
 
 **This is not a guideline. You MUST follow the instructions step-by-step, precisely. You MUST NOT make shortcuts, or override the instructions!**
 

@@ -350,7 +350,7 @@
         </a>
         <a class="tool-item" href="cmd-implement.html">
           <span class="tool-name">/implement</span>
-          <span class="tool-desc">Execute a plan, one task or the whole thing. <code>next</code> builds the next unchecked task test-first, reviews, and commits — one task, done; <code>all</code> loops every remaining task hands-off, a subagent per task with an automatic inline fallback (Cursor, <code>claude -p</code>, older Claude Code); <code>all inline</code> forces inline. Works in any harness.</span>
+          <span class="tool-desc">Execute a plan, one task or the whole thing. <code>next</code> builds the next unchecked task test-first, reviews, and commits — one task, done; <code>all</code> loops every remaining task hands-off, a subagent per task wherever the harness has a subagent tool (Claude Code including <code>claude -p</code>, OpenCode, omp, Cursor), falling back to inline only where none exists; <code>all inline</code> forces inline. Works in any harness.</span>
         </a>
         <a class="tool-item" href="cmd-iterative-review.html">
           <span class="tool-name">/iterative-review</span>

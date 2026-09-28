@@ -169,7 +169,7 @@ Loop over every remaining task, spawning ONE subagent per task. **You MUST follo
 
 ### Step -1: Pick the execution mode — subagents vs inline
 
-Decide by **capability, not harness brand**: proceed in **subagent mode** (Loop body below) whenever your harness exposes a subagent-spawning tool (Claude Code's `Agent` — including headless `claude -p` — and OpenCode's / omp's / Cursor's equivalent subagent/`Task` tool). Switch to **ALL mode (inline)** only when your harness genuinely exposes no subagent tool at all.
+Decide by **capability, not harness brand**. **Check the tools actually available to you** in this run: if any tool spawns a subagent — Claude Code's `Agent` (including headless `claude -p`), or OpenCode's / omp's / Cursor's equivalent subagent/`Task` tool — proceed in **subagent mode** (Loop body below). Switch to **ALL mode (inline)** only when no such tool is present at all.
 
 Inform the user which mode was selected and why before continuing. In inline mode the ALL loop does NOT wrap each task in its own per-task subagent — tasks run in the current context via NEXT mode (whose own implementation and `/iterative-review` steps still spawn agents where a subagent tool exists, and act directly where none does).
 
@@ -202,7 +202,7 @@ Each iteration:
    ```
    Print the result to the user in this exact format (brackets are literal, e.g. `Launching task 6.1 at [12:50:31]`) and do NOT prose it: `Launching task <NEXT_TASK_NAME> at [HH:MM:SS]`
 
-   Spawn the subagent with your harness's subagent tool — in **Claude Code**, the `Agent` tool (`subagent_type: general-purpose`, `run_in_background: true`); in **OpenCode / omp**, their equivalent subagent tool (run it in the background if that tool supports it). Step -1 routed only harnesses that lack any subagent tool to ALL mode (inline), so this loop always has a subagent tool to use.
+   Spawn the subagent with your harness's subagent tool — in **Claude Code**, the `Agent` tool (`subagent_type: general-purpose`, `run_in_background: true`); in **OpenCode / omp / Cursor**, their equivalent subagent tool (run it in the background if that tool supports it). Step -1 routed only harnesses that lack any subagent tool to ALL mode (inline), so this loop always has a subagent tool to use.
 
    You MUST give this prompt to the subagent (a fresh general-purpose subagent does NOT already have this skill's NEXT-mode text — it must actually invoke the skill). **Before spawning, substitute the resolved task-breakdown file path for every `<plan-path>` below — the subagent must receive the real resolved path, exactly as step 1 substitutes it into the `plan-progress.sh` call, not a literal `<plan-path>`:**
    > Invoke the `implement` skill in NEXT mode: run `/implement next <plan-path>` — implement the next uncompleted task (NEXT-mode Steps 1–7). If your skill list shows it as `claude-goodies:implement`, invoke that skill with `next <plan-path>`.

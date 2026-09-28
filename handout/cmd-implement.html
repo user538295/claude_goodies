@@ -6,7 +6,7 @@
   <title>/implement — Claude Code Handout</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="card.css">
-  <!-- Source: skills/implement/SKILL.md (last synced: 2026-09-25) -->
+  <!-- Source: skills/implement/SKILL.md (last synced: 2026-09-28) -->
 </head>
 <body>
   <div class="card-page">
@@ -18,8 +18,8 @@
 
     <section data-section="1-summary">
       <h2>Summary</h2>
-      <p>Portable runtime-agnostic skill that executes an existing plan or task-breakdown file. A leading mode keyword selects the behaviour: implement only the next uncompleted task, or loop through every remaining task — each task built test-first (TDD), self-reviewed via <code>/iterative-review</code>, tested blocking, checked off, and committed as its own commit. One task, one commit. Works in any harness (Claude Code, Cursor, <code>claude -p</code>) without hook dependencies.</p>
-      <p><strong>Unifies three former commands.</strong> <code>/implement</code> replaces the separate <code>/implement-next</code>, <code>/implement-all</code>, and <code>/implement-all-safe</code> commands — the mode is now a keyword you pass, not a different command. In ALL mode it spawns one subagent per task <strong>whenever the harness exposes a subagent-spawning tool</strong> — Claude Code's <code>Agent</code> (including headless <code>claude -p</code>), OpenCode's <code>Task</code>, omp's <code>task</code>, Cursor 2.4+'s <code>Task</code> — and falls back to an inline loop (no subagents) only when the harness exposes no subagent tool at all.</p>
+      <p>Portable runtime-agnostic skill that executes an existing plan or task-breakdown file. A leading mode keyword selects the behaviour: implement only the next uncompleted task, or loop through every remaining task — each task built test-first (TDD), self-reviewed via <code>/iterative-review</code>, tested blocking, checked off, and committed as its own commit. One task, one commit. Works in any harness (Claude Code, Cursor, OpenCode, omp, <code>claude -p</code>) without hook dependencies.</p>
+      <p><strong>Unifies three former commands.</strong> <code>/implement</code> replaces the separate <code>/implement-next</code>, <code>/implement-all</code>, and <code>/implement-all-safe</code> commands — the mode is now a keyword you pass, not a different command. In ALL mode it spawns one subagent per task <strong>whenever the harness exposes a subagent-spawning tool</strong> — Claude Code's <code>Agent</code> (including headless <code>claude -p</code>), OpenCode's <code>Task</code>, omp's <code>task</code>, Cursor's <code>Task</code> — and falls back to an inline loop (no subagents) only when the harness exposes no subagent tool at all.</p>
     </section>
 
     <section data-section="2-when-to-use">
@@ -45,7 +45,7 @@
       <p><strong>The four invocation shapes:</strong></p>
       <ul>
         <li><code>/implement next &lt;file&gt;</code> → <strong>NEXT mode</strong>: implement only the next uncompleted task (NEXT-mode Steps 1–7 below).</li>
-        <li><code>/implement all &lt;file&gt;</code> → <strong>ALL mode</strong>: loop over every remaining task. Spawns ONE subagent per task whenever the harness exposes a subagent-spawning tool (Claude Code's <code>Agent</code> — including headless <code>claude -p</code> — OpenCode's <code>Task</code>, omp's <code>task</code>, Cursor 2.4+'s <code>Task</code>); <strong>falls back to the inline loop</strong> (no subagents) only when the harness exposes no subagent tool at all.</li>
+        <li><code>/implement all &lt;file&gt;</code> → <strong>ALL mode</strong>: loop over every remaining task. Spawns ONE subagent per task whenever the harness exposes a subagent-spawning tool (Claude Code's <code>Agent</code> — including headless <code>claude -p</code> — OpenCode's <code>Task</code>, omp's <code>task</code>, Cursor's <code>Task</code>); <strong>falls back to the inline loop</strong> (no subagents) only when the harness exposes no subagent tool at all.</li>
         <li><code>/implement all inline &lt;file&gt;</code> (also <code>inline all &lt;file&gt;</code> or <code>inline &lt;file&gt;</code>) → <strong>ALL mode forced INLINE</strong>: never spawn subagents, every step runs in the current context.</li>
         <li><code>/implement &lt;file&gt;</code> (no keyword) → counts remaining tasks: 0 → report already complete and stop; exactly 1 → proceed in NEXT mode; more than 1 → <strong>ask</strong> whether to do just the next task or all of them. In a non-interactive / headless run (e.g. <code>claude -p</code>) it does NOT hang — it defaults to NEXT mode and prints a one-line note (add <code>all</code> to run the whole plan).</li>
       </ul>
@@ -64,7 +64,7 @@
 
       <p><strong>ALL mode — the loop:</strong></p>
       <ol>
-        <li><strong>Step -1 — Pick the execution mode (subagents vs inline):</strong> Decides by <strong>capability, not harness brand or version</strong>: uses subagents whenever the harness exposes a subagent-spawning tool (Claude Code's <code>Agent</code>, including headless <code>claude -p</code>; OpenCode's <code>Task</code>; omp's <code>task</code>; Cursor 2.4+'s <code>Task</code>), and switches to the inline loop only when the harness exposes no subagent tool at all. It tells the user which mode was selected and why. Forced INLINE skips this and goes straight inline.</li>
+        <li><strong>Step -1 — Pick the execution mode (subagents vs inline):</strong> Decides by <strong>capability, not harness brand or version</strong>: uses subagents whenever the harness exposes a subagent-spawning tool (Claude Code's <code>Agent</code>, including headless <code>claude -p</code>; OpenCode's <code>Task</code>; omp's <code>task</code>; Cursor's <code>Task</code>), and switches to the inline loop only when the harness exposes no subagent tool at all. It tells the user which mode was selected and why. Forced INLINE skips this and goes straight inline.</li>
         <li><strong>Step 0 — Resolve the plan file</strong> (and companion plan) via the shared resolution rules.</li>
         <li><strong>Loop body</strong> (repeats until <code>plan-progress.sh</code> exit 1 = all complete): (1) run <code>plan-progress.sh</code> and show the first two lines verbatim, unreformatted — exit 2/3 or any unexpected code halts; (2) print <code>Launching task &lt;NAME&gt; at [HH:MM:SS]</code> (inline prints <code>Starting task …</code>) then run the task — via the Agent tool subagent (<code>general-purpose</code>, background) or inline NEXT mode — under a strict scoped prompt (exactly one task; Acceptance Criteria A–F; forbid <code>--no-verify</code>/<code>--amend</code>, bundling, nested ALL loops, editing anything but this task's checkbox); (3) recovery check — verify the task is checked off and its files committed. Not checked → respawn/redo (up to 3 attempts, then stop for manual intervention); checked but uncommitted → commit only that task's files by explicit path (never <code>git add -A</code>) and report the violation.</li>
       </ol>

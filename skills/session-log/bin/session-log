@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly SUPPORTED_HARNESSES="claude, opencode, omp"
+readonly SUPPORTED_HARNESSES="claude, codex, cursor, opencode, omp"
 readonly OWNER_MARKER_VALUE="universal-session-log"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
@@ -90,7 +90,11 @@ split_command_string() {
         ;;
       double)
         if ((escaped)); then
-          token+="$char"
+          if [[ "$char" == '$' || "$char" == '`' || "$char" == '"' || "$char" == "\\" ]]; then
+            token+="$char"
+          elif [[ "$char" != $'\n' ]]; then
+            token+="\\$char"
+          fi
           escaped=0
         elif [[ "$char" == "\\" ]]; then
           escaped=1
@@ -177,8 +181,8 @@ parse_args() {
         done
         ;;
       --help|-h)
-        printf 'Usage: session-log --entrypoint <claude|opencode|omp> --harness <same> [on|off|status|usage] [native args...]\n'
-        printf '       session-log --entrypoint <claude|opencode|omp> --harness <same> --arguments "<command and native args>"\n'
+        printf 'Usage: session-log --entrypoint <claude|codex|cursor|opencode|omp> --harness <same> [on|off|status|usage] [native args...]\n'
+        printf '       session-log --entrypoint <claude|codex|cursor|opencode|omp> --harness <same> --arguments "<command and native args>"\n'
         exit 0
         ;;
       --)
@@ -200,7 +204,7 @@ parse_args() {
   [[ -n "$HARNESS" ]] || fail "active harness identity is required from a native entrypoint"
   [[ "$ENTRYPOINT" == "$HARNESS" ]] || fail "conflicting native entrypoint and harness identities"
   case "$HARNESS" in
-    claude|opencode|omp) ;;
+    claude|codex|cursor|opencode|omp) ;;
     *) fail "unsupported harness '$HARNESS'; supported harnesses: $SUPPORTED_HARNESSES" ;;
   esac
 }
@@ -214,6 +218,24 @@ resolve_roots() {
       fi
       HARNESS_LABEL="Claude Code"
       HARNESS_ROOT="$HOME_ROOT/.claude"
+      STATE_DIR="$HARNESS_ROOT/session-log"
+      FLAG_FILE="$HARNESS_ROOT/prompt-logs/.enabled"
+      RUNTIME_FILE="$STATE_DIR/runtime.json"
+      ;;
+    codex)
+      if [[ -n "${CODEX_HOME:-}" ]] &&
+        ! paths_equivalent "$CODEX_HOME" "$HOME_ROOT/.codex"; then
+        fail "Codex root is relocated; install this package explicitly for that location"
+      fi
+      HARNESS_LABEL="Codex"
+      HARNESS_ROOT="$HOME_ROOT/.codex"
+      STATE_DIR="$HARNESS_ROOT/session-log"
+      FLAG_FILE="$HARNESS_ROOT/prompt-logs/.enabled"
+      RUNTIME_FILE="$STATE_DIR/runtime.json"
+      ;;
+    cursor)
+      HARNESS_LABEL="Cursor"
+      HARNESS_ROOT="$HOME_ROOT/.cursor"
       STATE_DIR="$HARNESS_ROOT/session-log"
       FLAG_FILE="$HARNESS_ROOT/prompt-logs/.enabled"
       RUNTIME_FILE="$STATE_DIR/runtime.json"
@@ -264,6 +286,9 @@ source_for() {
     omp:extension) printf '%s\n' "$PACKAGE_ROOT/adapters/omp/session-log.js" ;;
     omp:usage) printf '%s\n' "$PACKAGE_ROOT/adapters/omp/session_log_usage.ts" ;;
     claude:hook) printf '%s\n' "$PACKAGE_ROOT/adapters/claude/claude_hook.sh" ;;
+    cursor:hook|codex:hook) printf '%s\n' "$PACKAGE_ROOT/adapters/native/session_log_hook.py" ;;
+    cursor:configurator|codex:configurator) printf '%s\n' "$PACKAGE_ROOT/adapters/native/install_hooks.py" ;;
+    codex:usage) printf '%s\n' "$PACKAGE_ROOT/adapters/codex/session_log_usage.py" ;;
     *) fail "no adapter asset for $HARNESS/$1" ;;
   esac
 }
@@ -285,6 +310,13 @@ adapter_asset_current() {
   target="$(target_for "$kind")"
   [[ -L "$target" ]] || return 1
   [[ "$(readlink "$target")" == "$source" ]]
+}
+
+native_hooks_current() {
+  local config="$HARNESS_ROOT/hooks.json"
+  require_command python3
+  [[ -f "$config" && ! -L "$config" ]] || return 1
+  python3 "$(source_for configurator)" check "$HARNESS" "$config" "$(source_for hook)"
 }
 
 claude_plugin_mode() {
@@ -424,6 +456,20 @@ manifest_current() {
       expected="$(sha256_file "$source")"
       [[ "$(manifest_asset_hash hook)" == "$expected" ]]
       ;;
+    cursor)
+      for kind in hook configurator; do
+        source="$(source_for "$kind")"
+        expected="$(sha256_file "$source")"
+        [[ "$(manifest_asset_hash "$kind")" == "$expected" ]] || return 1
+      done
+      ;;
+    codex)
+      for kind in hook configurator usage; do
+        source="$(source_for "$kind")"
+        expected="$(sha256_file "$source")"
+        [[ "$(manifest_asset_hash "$kind")" == "$expected" ]] || return 1
+      done
+      ;;
     opencode)
       for kind in plugin usage; do
         source="$(source_for "$kind")"
@@ -450,6 +496,7 @@ adapter_current() {
   manifest_current || return 1
   case "$HARNESS" in
     claude) claude_settings_has_adapter ;;
+    codex|cursor) native_hooks_current ;;
     opencode) adapter_asset_current plugin && adapter_asset_current usage ;;
     omp) adapter_asset_current extension && adapter_asset_current usage ;;
   esac
@@ -661,17 +708,30 @@ preflight_adapter_target() {
   ensure_safe_parent "$target"
   if [[ -L "$target" ]]; then
     existing="$(readlink "$target")"
-    case "$HARNESS:$kind:$existing" in
-      "opencode:plugin:$source"|\
-      opencode:plugin:"$STORE/releases/"*/adapters/opencode/session-log.js|\
-      "opencode:usage:$source"|\
-      opencode:usage:"$STORE/releases/"*/adapters/opencode/session_log_usage.sh|\
-      "omp:extension:$source"|\
-      omp:extension:"$STORE/releases/"*/adapters/omp/session-log.js|\
-      "omp:usage:$source"|\
-      omp:usage:"$STORE/releases/"*/adapters/omp/session_log_usage.ts) ;;
-      *) fail "refusing to overwrite unowned adapter link: $target" ;;
-    esac
+    if [[ ! -e "$target" ]] && {
+      [[ "$HARNESS:$kind:$existing" == opencode:plugin:"$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session-log.js ]] ||
+      [[ "$HARNESS:$kind:$existing" == opencode:usage:"$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session_log_usage.sh ]] ||
+      [[ "$HARNESS:$kind:$existing" == omp:extension:"$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/omp/session-log.js ]] ||
+      [[ "$HARNESS:$kind:$existing" == omp:usage:"$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/omp/session_log_usage.ts ]] ||
+      [[ "$HARNESS:$kind:$existing" == opencode:plugin:"$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session-log.js ]] ||
+      [[ "$HARNESS:$kind:$existing" == opencode:usage:"$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session_log_usage.sh ]] ||
+      [[ "$HARNESS:$kind:$existing" == omp:extension:"$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/omp/session-log.js ]] ||
+      [[ "$HARNESS:$kind:$existing" == omp:usage:"$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/omp/session_log_usage.ts ]];
+    }; then
+      :
+    else
+      case "$HARNESS:$kind:$existing" in
+        "opencode:plugin:$source"|\
+        opencode:plugin:"$STORE/releases/"*/adapters/opencode/session-log.js|\
+        "opencode:usage:$source"|\
+        opencode:usage:"$STORE/releases/"*/adapters/opencode/session_log_usage.sh|\
+        "omp:extension:$source"|\
+        omp:extension:"$STORE/releases/"*/adapters/omp/session-log.js|\
+        "omp:usage:$source"|\
+        omp:usage:"$STORE/releases/"*/adapters/omp/session_log_usage.ts) ;;
+        *) fail "refusing to overwrite unowned adapter link: $target" ;;
+      esac
+    fi
   elif [[ -e "$target" ]]; then
     [[ -f "$target" && ! -L "$target" ]] ||
       fail "refusing to overwrite non-file adapter target: $target"
@@ -691,6 +751,17 @@ preflight_adapter_targets() {
       preflight_adapter_target usage
       ;;
   esac
+}
+
+preflight_native_hooks() {
+  local config="$HARNESS_ROOT/hooks.json"
+  [[ -f "$(source_for hook)" && ! -L "$(source_for hook)" ]] ||
+    fail "adapter asset is missing: $(source_for hook)"
+  [[ -f "$(source_for configurator)" && ! -L "$(source_for configurator)" ]] ||
+    fail "adapter asset is missing: $(source_for configurator)"
+  ensure_safe_parent "$config"
+  [[ ! -L "$config" ]] || fail "refusing to update symlinked hooks file: $config"
+  [[ ! -d "$config" ]] || fail "refusing to update directory as hooks file: $config"
 }
 
 preflight_claude_settings() {
@@ -739,6 +810,7 @@ preflight_on() {
   preflight_state_files
   case "$HARNESS" in
     claude) preflight_claude_settings ;;
+    codex|cursor) preflight_native_hooks ;;
     opencode|omp) preflight_adapter_targets ;;
   esac
 }
@@ -879,6 +951,20 @@ write_manifest() {
       claude)
         printf 'asset=hook\n'
         printf 'sha256=%s\n' "$(sha256_file "$(source_for hook)")"
+        ;;
+      cursor)
+        for kind in hook configurator; do
+          source="$(source_for "$kind")"
+          printf 'asset=%s\n' "$kind"
+          printf 'sha256=%s\n' "$(sha256_file "$source")"
+        done
+        ;;
+      codex)
+        for kind in hook configurator usage; do
+          source="$(source_for "$kind")"
+          printf 'asset=%s\n' "$kind"
+          printf 'sha256=%s\n' "$(sha256_file "$source")"
+        done
         ;;
       opencode)
         for kind in plugin usage; do
@@ -1411,6 +1497,25 @@ clear_runtime_markers() {
   done
 }
 
+remove_recognized_dangling_adapter_link() {
+  local kind="$1" target destination
+  target="$(target_for "$kind")"
+  [[ -L "$target" && ! -e "$target" ]] || return 0
+  destination="$(readlink "$target")"
+  case "$HARNESS:$kind:$destination" in
+    opencode:plugin:"$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session-log.js|\
+    opencode:usage:"$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session_log_usage.sh|\
+    omp:extension:"$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/omp/session-log.js|\
+    omp:usage:"$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/omp/session_log_usage.ts|\
+    opencode:plugin:"$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session-log.js|\
+    opencode:usage:"$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session_log_usage.sh|\
+    omp:extension:"$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/omp/session-log.js|\
+    omp:usage:"$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/omp/session_log_usage.ts)
+      unlink "$target"
+      ;;
+  esac
+}
+
 install_adapter() {
   case "$HARNESS" in
     claude)
@@ -1418,11 +1523,19 @@ install_adapter() {
         install_claude_settings
       fi
       ;;
+    codex|cursor)
+      python3 "$(source_for configurator)" install "$HARNESS" \
+        "$HARNESS_ROOT/hooks.json" "$(source_for hook)"
+      ;;
     opencode)
+      remove_recognized_dangling_adapter_link plugin
+      remove_recognized_dangling_adapter_link usage
       atomic_link "$(source_for plugin)" "$(target_for plugin)"
       atomic_link "$(source_for usage)" "$(target_for usage)"
       ;;
     omp)
+      remove_recognized_dangling_adapter_link extension
+      remove_recognized_dangling_adapter_link usage
       atomic_link "$(source_for extension)" "$(target_for extension)"
       atomic_link "$(source_for usage)" "$(target_for usage)"
       ;;
@@ -1448,9 +1561,7 @@ set_disabled() {
     ensure_private_directory "$(dirname "$FLAG_FILE")"
     set_enable_state_locked off
   fi
-  if [[ "$HARNESS" == claude ]]; then
-    clear_runtime_markers
-  fi
+  clear_runtime_markers
 }
 
 print_status() {
@@ -1466,7 +1577,11 @@ print_status() {
     return
   fi
   if ! runtime_current; then
-    printf '%s: on — restart required\n' "$HARNESS_LABEL"
+    if [[ "$HARNESS" == codex ]]; then
+      printf '%s: on — trust review/restart required\n' "$HARNESS_LABEL"
+    else
+      printf '%s: on — restart required\n' "$HARNESS_LABEL"
+    fi
     return
   fi
   printf '%s: on\n' "$HARNESS_LABEL"
@@ -1478,7 +1593,9 @@ validate_usage_args() {
       --latest)
         target_count=$((target_count + 1))
         ;;
-      --check) ;;
+      --check)
+        [[ "$HARNESS" == claude ]] || fail "--check is only valid for Claude Code"
+        ;;
       --no-session)
         [[ "$HARNESS" == omp ]] || fail "--no-session is only valid for OMP"
         fail "OMP started with --no-session; native session data is unavailable, so usage cannot be reconstructed"
@@ -1500,11 +1617,17 @@ validate_usage_args() {
 }
 run_usage() {
   validate_usage_args
+  if [[ "$HARNESS" == cursor ]]; then
+    printf '%s: usage\n' "$HARNESS_LABEL"
+    printf 'native token usage unavailable: Cursor hooks and transcripts do not expose token totals\n'
+    return
+  fi
   local parser runner output_file error_file
   parser=""
   runner=""
   case "$HARNESS" in
     claude) parser="$PACKAGE_ROOT/adapters/claude/scripts/prompt_log_usage.sh"; runner=bash; require_command jq ;;
+    codex) parser="$(source_for usage)"; runner=python3; require_command python3 ;;
     opencode) parser="$(source_for usage)"; runner=bash; require_command jq; require_command sqlite3 ;;
     omp) parser="$(source_for usage)"; runner=bun; require_command bun ;;
   esac
@@ -1530,6 +1653,17 @@ run_usage() {
   unlink "$error_file"
 }
 
+repair_enabled_adapter() {
+  [[ -f "$FLAG_FILE" && ! -L "$FLAG_FILE" ]] || return 0
+  adapter_current && return 0
+  preflight_on
+  acquire_install_lock
+  trap release_install_lock EXIT
+  install_adapter
+  release_install_lock
+  trap - EXIT
+}
+
 main() {
   parse_args "$@"
   resolve_roots
@@ -1542,6 +1676,8 @@ main() {
       set_enabled
       if runtime_current; then
         printf '%s: on\n' "$HARNESS_LABEL"
+      elif [[ "$HARNESS" == codex ]]; then
+        printf '%s: on — trust review/restart required\n' "$HARNESS_LABEL"
       else
         printf '%s: on — restart required\n' "$HARNESS_LABEL"
       fi
@@ -1558,9 +1694,11 @@ main() {
       trap - EXIT
       ;;
     status)
+      repair_enabled_adapter
       print_status
       ;;
     usage)
+      repair_enabled_adapter
       run_usage
       ;;
   esac

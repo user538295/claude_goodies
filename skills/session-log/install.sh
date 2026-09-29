@@ -75,6 +75,17 @@ selected_harness() {
   [[ "$HARNESS_SELECTION" == all || "$HARNESS_SELECTION" == "$1" ]]
 }
 
+package_root_for() {
+  case "$1" in
+    claude) printf '%s\n' "$HOME_ROOT/.claude/skills/session-log" ;;
+    codex) printf '%s\n' "$HOME_ROOT/.codex/skills/session-log" ;;
+    cursor) printf '%s\n' "$HOME_ROOT/.cursor/skills/session-log" ;;
+    opencode) printf '%s\n' "$HOME_ROOT/.config/opencode/skills/session-log" ;;
+    omp) printf '%s\n' "$HOME_ROOT/.omp/agent/skills/session-log" ;;
+    *) fail "unknown harness: $1" ;;
+  esac
+}
+
 parse_args() {
   local arg
   while (($#)); do
@@ -109,8 +120,8 @@ parse_args() {
         shift
         ;;
       --help|-h)
-        printf 'Usage: install.sh --harness <claude|opencode|omp|all> [--arguments "<command and native args>"]\n'
-        printf '       install.sh --install --harness <claude|opencode|omp|all>\n'
+        printf 'Usage: install.sh --harness <claude|codex|cursor|opencode|omp|all> [--arguments "<command and native args>"]\n'
+        printf '       install.sh --install --harness <claude|codex|cursor|opencode|omp|all>\n'
         exit 0
         ;;
       *)
@@ -120,8 +131,8 @@ parse_args() {
   done
   [[ -n "$HARNESS_SELECTION" ]] || fail "--harness is required"
   case "$HARNESS_SELECTION" in
-    claude|opencode|omp|all) ;;
-    *) fail "unknown harness: $HARNESS_SELECTION (use claude, opencode, omp, or all)" ;;
+    claude|codex|cursor|opencode|omp|all) ;;
+    *) fail "unknown harness: $HARNESS_SELECTION (use claude, codex, cursor, opencode, omp, or all)" ;;
   esac
   if ((INSTALL_MODE == 0)); then
     [[ "$LOCAL_ARGUMENTS_SET" == 1 ]] || LOCAL_ARGUMENTS="status"
@@ -592,6 +603,8 @@ validate_managed_path() {
       "$HOME_ROOT/.config/opencode/plugins/session-log.js:$SOURCE_ROOT/adapters/opencode/session-log.js"|\
       "$HOME_ROOT/.config/opencode/plugins/session-log.js:$HOME_ROOT/.config/opencode/skills/session-log/adapters/opencode/session-log.js"|\
       "$HOME_ROOT/.config/opencode/plugins/session-log.js:$STORE/releases/"*/adapters/opencode/session-log.js|\
+      "$HOME_ROOT/.config/opencode/plugins/session-log.js:$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session-log.js|\
+      "$HOME_ROOT/.config/opencode/plugins/session-log.js:$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session-log.js|\
       "$HOME_ROOT/.config/opencode/plugins/session-log-omp.js:$SOURCE_ROOT/adapters/omp/session-log.js"|\
       "$HOME_ROOT/.config/opencode/plugins/session-log-omp.js:$HOME_ROOT/.omp/agent/skills/session-log/adapters/omp/session-log.js"|\
       "$HOME_ROOT/.config/opencode/plugins/session-log-omp.js:$STORE/releases/"*/adapters/omp/session-log.js|\
@@ -673,6 +686,11 @@ check_default_roots() {
     [[ -z "${CLAUDE_CONFIG_DIR:-}" ]] ||
       paths_equivalent "$CLAUDE_CONFIG_DIR" "$HOME_ROOT/.claude" ||
       fail "CLAUDE_CONFIG_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
+  fi
+  if selected_harness codex; then
+    [[ -z "${CODEX_HOME:-}" ]] ||
+      paths_equivalent "$CODEX_HOME" "$HOME_ROOT/.codex" ||
+      fail "CODEX_HOME is relocated; custom roots are unsupported; install this package explicitly for that location"
   fi
   if selected_harness opencode; then
     [[ -z "${OPENCODE_CONFIG_DIR:-}" ]] ||
@@ -771,6 +789,8 @@ current_adapter_link() {
     "$HOME_ROOT/.config/opencode/plugins/session-log.js:$SOURCE_ROOT/adapters/opencode/session-log.js"|\
     "$HOME_ROOT/.config/opencode/plugins/session-log.js:$HOME_ROOT/.config/opencode/skills/session-log/adapters/opencode/session-log.js"|\
     "$HOME_ROOT/.config/opencode/plugins/session-log.js:$STORE/releases/"*/adapters/opencode/session-log.js|\
+    "$HOME_ROOT/.config/opencode/plugins/session-log.js:$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session-log.js|\
+    "$HOME_ROOT/.config/opencode/plugins/session-log.js:$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log/adapters/opencode/session-log.js|\
     "$HOME_ROOT/.config/opencode/scripts/session_log_usage.sh:$SOURCE_ROOT/adapters/opencode/session_log_usage.sh"|\
     "$HOME_ROOT/.config/opencode/scripts/session_log_usage.sh:$HOME_ROOT/.config/opencode/skills/session-log/adapters/opencode/session_log_usage.sh"|\
     "$HOME_ROOT/.config/opencode/scripts/session_log_usage.sh:$STORE/releases/"*/adapters/opencode/session_log_usage.sh|\
@@ -1168,13 +1188,14 @@ adapters/claude/scripts/prompt_log_stop.sh
 adapters/claude/scripts/prompt_log_subagent.sh
 adapters/claude/scripts/prompt_log_usage.jq
 adapters/claude/scripts/prompt_log_usage.sh
+adapters/codex/session_log_usage.py
+adapters/native/session_log_hook.py
+adapters/native/install_hooks.py
 adapters/opencode/session-log.js
 adapters/opencode/session_log_usage.sh
 adapters/omp/session-log.js
 adapters/omp/session_log_usage.ts
-templates/opencode/SKILL.md
 templates/opencode/command.md
-templates/omp/SKILL.md
 EOF
 }
 
@@ -1192,7 +1213,8 @@ package_manifest_hash() {
 }
 
 validate_package_manifest() {
-  local target="$1" skill_source="$2" manifest="$target/$PACKAGE_MANIFEST"
+  local target="$1" skill_source="$2"
+  local manifest="$target/$PACKAGE_MANIFEST"
   local relative expected source_hash target_hash manifest_version
   [[ -e "$manifest" || -L "$manifest" ]] || return 0
   [[ -f "$manifest" && ! -L "$manifest" ]] ||
@@ -1203,6 +1225,7 @@ import re
 
 manifest = os.environ["SESSION_LOG_MANIFEST"]
 allowed = set(os.environ["SESSION_LOG_PACKAGE_ASSETS"].splitlines())
+allowed.update({"templates/opencode/SKILL.md", "templates/omp/SKILL.md"})
 with open(manifest, encoding="utf-8") as handle:
     lines = [line.rstrip("\n") for line in handle]
 if len(lines) < 5 or lines[0] != "format=1" or lines[1] != "owner=universal-session-log":
@@ -1237,6 +1260,14 @@ PY
     [[ "$target_hash" == "$expected" || "$target_hash" == "$source_hash" ]] ||
       fail "managed package asset was modified: $target/$relative"
   done < <(package_files)
+  for relative in templates/opencode/SKILL.md templates/omp/SKILL.md; do
+    expected="$(package_manifest_hash "$manifest" "$relative")"
+    [[ -z "$expected" ]] && continue
+    [[ -f "$target/$relative" && ! -L "$target/$relative" ]] ||
+      fail "managed package asset is missing: $target/$relative"
+    [[ "$(sha256_file "$target/$relative")" == "$expected" ]] ||
+      fail "managed package asset was modified: $target/$relative"
+  done
   expected="$(package_manifest_hash "$manifest" SKILL.md)"
   [[ "$expected" =~ ^[0-9a-f]{64}$ ]] ||
     fail "refusing to use invalid package ownership manifest: $manifest"
@@ -1255,6 +1286,16 @@ package_manifest_owns() {
   [[ "$expected" =~ ^[0-9a-f]{64}$ ]] || return 1
   [[ -f "$target/$relative" && ! -L "$target/$relative" ]] || return 1
   [[ "$(sha256_file "$target/$relative")" == "$expected" ]]
+}
+
+remove_retired_package_assets() {
+  local target="$1" relative
+  for relative in templates/opencode/SKILL.md templates/omp/SKILL.md; do
+    if package_manifest_owns "$target" "$relative"; then
+      unlink "$target/$relative"
+    fi
+  done
+  rmdir "$target/templates/opencode" "$target/templates/omp" 2>/dev/null || true
 }
 package_skill_owned() {
   local target="$1"
@@ -1301,6 +1342,8 @@ write_package_manifest() {
 is_known_entrypoint_target() {
   case "$1" in
     "$HOME_ROOT/.claude/skills/session-log/SKILL.md"|\
+    "$HOME_ROOT/.codex/skills/session-log/SKILL.md"|\
+    "$HOME_ROOT/.cursor/skills/session-log/SKILL.md"|\
     "$HOME_ROOT/.config/opencode/skills/session-log/SKILL.md"|\
     "$HOME_ROOT/.config/opencode/commands/session-log.md"|\
     "$HOME_ROOT/.omp/agent/skills/session-log/SKILL.md") return 0 ;;
@@ -1372,39 +1415,65 @@ copy_package() {
     ! cmp -s "$skill_source" "$target/SKILL.md"; then
     atomic_copy "$skill_source" "$target/SKILL.md" 1 1
   fi
+  remove_retired_package_assets "$target"
   write_package_manifest "$target"
+}
+
+recognized_dangling_package_link() {
+  local target="$1" destination
+  [[ -L "$target" && ! -e "$target" ]] || return 1
+  destination="$(readlink "$target")"
+  case "$destination" in
+    "$SOURCE_ROOT"|\
+    "$STORE/releases/"*/skills/session-log|\
+    "$HOME_ROOT/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log|\
+    "$HOME/.claude/plugins/cache/"*/claude-goodies/*/skills/session-log) return 0 ;;
+  esac
+  return 1
+}
+
+prepare_package_target() {
+  local target="$1"
+  if [[ -L "$target" ]]; then
+    recognized_dangling_package_link "$target" ||
+      fail "refusing to replace unowned package link: $target"
+    unlink "$target"
+  fi
 }
 
 validate_seed_entrypoints() {
   local command_target="$HOME_ROOT/.config/opencode/commands/session-log.md"
-  local command_allow_legacy_marker=0
-  if selected_harness claude; then
-    validate_package_targets "$HOME_ROOT/.claude/skills/session-log" "$SOURCE_ROOT/SKILL.md"
-  fi
+  local command_allow_legacy_marker=0 harness target
+  for harness in claude codex cursor opencode omp; do
+    selected_harness "$harness" || continue
+    target="$(package_root_for "$harness")"
+    if ! recognized_dangling_package_link "$target"; then
+      validate_package_targets "$target" "$SOURCE_ROOT/SKILL.md"
+    fi
+  done
   if selected_harness opencode; then
-    validate_package_targets "$HOME_ROOT/.config/opencode/skills/session-log" \
-      "$SOURCE_ROOT/templates/opencode/SKILL.md"
     is_known_entrypoint_target "$command_target" && command_allow_legacy_marker=1
     validate_copy_target "$SOURCE_ROOT/templates/opencode/command.md" \
       "$command_target" "$command_allow_legacy_marker"
-  fi
-  if selected_harness omp; then
-    validate_package_targets "$HOME_ROOT/.omp/agent/skills/session-log" \
-      "$SOURCE_ROOT/templates/omp/SKILL.md"
   fi
 }
 
 seed_entrypoints() {
   local command_target="$HOME_ROOT/.config/opencode/commands/session-log.md"
-  if selected_harness claude; then
-    copy_package "$HOME_ROOT/.claude/skills/session-log" "$SOURCE_ROOT/SKILL.md"
-  fi
+  local harness target
+  for harness in claude codex cursor opencode omp; do
+    selected_harness "$harness" || continue
+    target="$(package_root_for "$harness")"
+    prepare_package_target "$target"
+    if [[ "$SOURCE_ROOT" != "$target" ]]; then
+      copy_package "$target" "$SOURCE_ROOT/SKILL.md"
+    else
+      remove_retired_package_assets "$target"
+      write_package_manifest "$target"
+    fi
+  done
   if selected_harness opencode; then
-    copy_package "$HOME_ROOT/.config/opencode/skills/session-log" "$SOURCE_ROOT/templates/opencode/SKILL.md"
     atomic_copy "$SOURCE_ROOT/templates/opencode/command.md" "$command_target" 1 1
-  fi
-  if selected_harness omp; then
-    copy_package "$HOME_ROOT/.omp/agent/skills/session-log" "$SOURCE_ROOT/templates/omp/SKILL.md"
   fi
 }
 
@@ -1425,16 +1494,9 @@ validate_package() {
 }
 
 main() {
+  local dispatch_root
   parse_args "$@"
   validate_package
-  if ((INSTALL_MODE == 0)); then
-    [[ "$HARNESS_SELECTION" != all ]] || fail "--harness all requires --install"
-    exec "$SOURCE_ROOT/bin/session-log" \
-      --entrypoint "$HARNESS_SELECTION" \
-      --harness "$HARNESS_SELECTION" \
-      --arguments "$LOCAL_ARGUMENTS"
-  fi
-
   command -v python3 >/dev/null 2>&1 || fail "missing dependency: python3"
   check_default_roots
   acquire_package_lock
@@ -1446,8 +1508,18 @@ main() {
   release_package_lock
   trap - EXIT
 
+  if ((INSTALL_MODE == 0)); then
+    [[ "$HARNESS_SELECTION" != all ]] || fail "--harness all requires --install"
+    dispatch_root="$(package_root_for "$HARNESS_SELECTION")"
+    bash "$dispatch_root/bin/session-log" \
+      --entrypoint "$HARNESS_SELECTION" \
+      --harness "$HARNESS_SELECTION" \
+      --arguments "$LOCAL_ARGUMENTS"
+    return
+  fi
+
   printf 'Universal session-log installed for %s.\n' \
-    "$([[ "$HARNESS_SELECTION" == all ]] && printf 'Claude Code, OpenCode, and OMP' || printf '%s' "$HARNESS_SELECTION")"
+    "$([[ "$HARNESS_SELECTION" == all ]] && printf 'Claude Code, Codex, Cursor, OpenCode, and OMP' || printf '%s' "$HARNESS_SELECTION")"
   printf 'Run /session-log on in the current harness; restart it when activation requires it.\n'
   printf 'Logging remains off until explicitly enabled per harness.\n'
 }

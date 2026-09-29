@@ -18,19 +18,19 @@
 
     <section data-section="1-summary">
       <h2>Mi ez</h2>
-      <p>A <code>/session-log</code> folyamatos feljegyzést vezet a munkameneteidről. Amíg be van kapcsolva, minden elküldött prompt és minden kapott válasz bekerül egy sima Markdown-fájlba, időbélyeggel, a munkaidővel, a token-számokkal és egy becsült dollárköltséggel minden fordulóhoz fűzve. Később ezt a fájlt olvasod el — vagy egy fordulónként egysoros összesítést kérsz —, hogy lásd, mit csináltál egy sessionben és mennyibe került.</p>
-      <p>Ugyanígy működik <strong>Claude Code</strong>, <strong>OpenCode</strong> és <strong>OMP</strong> alatt. Egyetlen parancs, a <code>/session-log</code> vezérli mindenhol; alul mindegyik eszköz a saját natív tárolását és költségadatait használja.</p>
+      <p>A <code>/session-log</code> az aktuális környezet által átadott prompt- és válaszszöveget helyi Markdown-átiratba írja. Pontosan öt környezetet támogat: <strong>Claude Code</strong>, <strong>Codex</strong>, <strong>Cursor</strong>, <strong>OpenCode</strong> és <strong>OMP</strong>.</p>
+      <p>Mindegyikben ugyanaz a négy parancs használható, de a riportok szándékosan nem egyformák. Az adapterek kizárólag a környezet saját életciklus- és usage-adataiból dolgoznak: a Cursor prompt- és válaszszöveget ad, tokenösszesítést nem; a Codex a natív rollout rekordokból ad tokenösszeget.</p>
     </section>
 
     <section data-section="2-features">
       <h2>Mit kapsz</h2>
       <ul>
-        <li><strong>Olvasható session-átirat.</strong> A promptjaid és az asszisztens végleges válaszai időrendben, mind egy <code>HH:MM:SS</code> fejléc alatt — a session naplója, amit újraolvashatsz vagy grepelhetsz.</li>
-        <li><strong>Fordulónkénti költség és idő.</strong> Minden választ egy <code>working time</code> és egy <code>est. used token</code> sor követ: input, output, cache-írás, cache-olvasás, összeg, és egy becsült <code>price</code>.</li>
-        <li><strong>Modell-/effort-váltás követése.</strong> Ha két forduló között modellt vagy gondolkodási szintet váltasz, egy <code>switched:</code> sor rögzíti — érdemes figyelni rá, mert modellváltáskor a prompt-cache nullázódik, és a következő forduló teljes cache-írást fizet.</li>
-        <li><strong>Al-ügynökök követése.</strong> Minden befejeződő al-ügynök egy sort ad hozzá, megnevezve őt és a saját átiratára mutatva, így a háttérmunka látható és beleszámít — a workflow-kba ágyazott ügynökök is.</li>
-        <li><strong>Teljes session-összesítés igény szerint.</strong> A <code>/session-log usage</code> minden fordulót és minden al-ügynököt egyetlen <code>TOTAL</code>-ba ad össze — minden átiratot pontosan egyszer számol, bármilyen mélyen van beágyazva.</li>
-        <li><strong>Helyi és privát.</strong> A naplók a home config könyvtáradba íródnak, <code>600</code> jogosultsággal. Semmi nem töltődik fel; az árazás offline, egy verziózott táblából számolódik.</li>
+        <li><strong>Olvasható session-átirat.</strong> A natív életciklus-eseményekből elérhető promptok, végleges válaszok és alügynök-jelzések időrendben kerülnek egy privát, helyi Markdown-fájlba.</li>
+        <li><strong>Valós natív usage-adatok.</strong> A Claude Code és az OMP fordulónkénti adatokat is tud adni; az OpenCode a fő session és az alügynökök natív összesítéseit írja ki; a Codex egy rollout-<code>TOTAL</code>-t ad. A Cursor kitalált számok helyett közli, hogy nincs tokenadata.</li>
+        <li><strong>Idő- és költségadat csak ott, ahol létezik.</strong> A Claude Code offline árbecslést számol; az OpenCode és az OMP megőrzi a natív költségmezőket. A Codex tokenmezőket ad ár és munkaidő nélkül, a Cursor pedig sem tokenösszeget, sem költséget nem közöl.</li>
+        <li><strong>Natív alügynök-elszámolás, ahol elérhető.</strong> A Claude Code, az OpenCode és az OMP a saját tárolójában elérhető alügynök-rekordokat is figyelembe veszi. A mezők és a csoportosítás környezetenként eltérnek.</li>
+        <li><strong>Egyértelmű környezetazonosítás.</strong> Az univerzális skill az aktuális hostot/modellt kéri meg, hogy válassza ki a <code>claude</code>, <code>codex</code>, <code>cursor</code>, <code>opencode</code> vagy <code>omp</code> azonosítót; útvonalból, folyamatból vagy környezeti változóból soha nem találgat.</li>
+        <li><strong>Helyi és privát.</strong> A kezelt naplófájlok <code>600</code> jogosultságúak, és a csomag semmit nem tölt fel.</li>
       </ul>
     </section>
 
@@ -44,39 +44,39 @@
         <tbody>
           <tr>
             <td><code>on</code></td>
-            <td>Bekapcsolja a naplózást az aktuális eszközhöz és beköti.</td>
-            <td><code>Claude Code: on</code> — vagy <code>on — restart required</code></td>
+            <td>Telepíti az aktuális környezet adapterét, majd bekapcsolja a naplózást.</td>
+            <td><code>&lt;címke&gt;: on</code> vagy <code>on — restart required</code>; Codexnél <code>on — trust review/restart required</code></td>
           </tr>
           <tr>
             <td><code>off</code></td>
-            <td>Kikapcsolja a naplózást az aktuális eszközhöz.</td>
-            <td><code>Claude Code: off</code></td>
+            <td>Kikapcsolja a naplózást az aktuális környezetben.</td>
+            <td><code>&lt;címke&gt;: off</code></td>
           </tr>
           <tr>
             <td><code>status</code> <span class="badge optional">alapértelmezett</span></td>
-            <td>Megmondja, aktív-e most a naplózás.</td>
-            <td><code>on</code> / <code>off</code> / <code>on — restart required</code> / <code>on — adapter missing</code></td>
+            <td>Szükség esetén helyreállítja a bekapcsolt adaptert, majd kiírja az állapotot.</td>
+            <td><code>on</code> / <code>off</code> / <code>on — adapter missing</code> / <code>on — restart required</code>; Codexnél <code>on — trust review/restart required</code></td>
           </tr>
           <tr>
             <td><code>usage</code></td>
-            <td>Fordulónkénti bontást és a session-összeget írja ki.</td>
-            <td><code>Claude Code: usage</code>, majd a riport</td>
+            <td>Az aktuális környezet natív usage-riportját futtatja.</td>
+            <td><code>&lt;címke&gt;: usage</code>, natív riport, vagy a Cursor egyértelmű korlátozásjelzése</td>
           </tr>
         </tbody>
       </table>
-      <p>Minden sor elején a címke (<code>Claude Code</code>, <code>OpenCode</code> vagy <code>OMP</code>) megmondja, melyik eszköz válaszolt. A <code>usage</code> alapból az aktuális projekt legújabb sessionjét összesíti; adj meg egy session-azonosítót vagy átirat-útvonalat egy konkrét összesítéséhez. Claude Code alatt a <code>--check</code> kapcsoló összeveti az összeget a <code>ccusage</code>-dzsel, ha az telepítve van.</p>
+      <p>A pontos címkék: <code>Claude Code</code>, <code>Codex</code>, <code>Cursor</code>, <code>OpenCode</code> és <code>OMP</code>. A <code>usage</code> alapból a legújabb natív sessiont választja; megadhatsz sessionazonosítót, illetve ahol az adapter elfogadja, átirat-útvonalat. Az OpenCode csak azonosítót vagy <code>--latest</code>-et fogad el. A <code>--check</code> kizárólag Claude Code alatt használható, és a telepített <code>ccusage</code> eredményével vet össze.</p>
     </section>
 
     <section data-section="4-good-to-know">
       <h2>Jó tudni</h2>
       <ul>
-        <li><strong>Egyszer kapcsold be, majd indítsd újra.</strong> Az első <code>on</code> beépíti az eszköz naplózó hookját. Ha a <code>status</code> azt írja, <code>on — restart required</code>, indítsd újra az eszközt, mielőtt a naplóra hagyatkoznál — a hook csak új sessionben lép életbe.</li>
-        <li><strong>A be/ki eszközönként külön.</strong> Ha Claude Code-ban bekapcsolod, attól OpenCode-ban vagy OMP-ben még nem lesz bekapcsolva; mindegyiknek saját kapcsolója van. A <code>status</code> és az <code>off</code> mindig csak azt az eszközt érinti, amelyikben vagy.</li>
-        <li><strong>A költség becslés.</strong> Ezért <code>est.</code> — az ár egy verziózott táblából jön, tehát determinisztikus és offline is működik, de nem számla. A táblából hiányzó modell <code>$0</code>-t ad és <code>?</code> jelet kap, hogy észrevedd a hiányt.</li>
-        <li><strong>A cache-sor az érdekes.</strong> A <code>cache_create</code> az 5 perces és az 1 órás cache-írásokat együtt tartalmazza (eltérő árazással); egy nagy cache-írás fölötti <code>switched:</code> sor általában megmagyaráz egy kiugrást.</li>
-        <li><strong>A formátum grep-barát.</strong> A <code>^### .* response$</code>, <code>^est\. used token:</code>, <code>^switched:</code> és <code>sub-agent finished:</code> mind pontosan egyféle sorra illeszkedik, így egyetlen paranccsal kihúzhatod a költségeket vagy a válaszokat egy naplóból.</li>
-        <li><strong>Függőségek.</strong> Kell hozzá <code>bash</code>, Python 3 és <code>jq</code>. A <code>usage</code>-hez ezenfelül OpenCode-on <code>sqlite3</code>, OMP-n Bun kell. Ha valamelyik hiányzik, közvetlen hibát ad.</li>
-        <li><strong>Csak az alapértelmezett helyek.</strong> A naplók a szokásos home gyökerekbe kerülnek (pl. <code>~/.claude/prompt-logs/</code>). Az áthelyezett vagy egyedi config gyökerek nem támogatottak, és hangosan hibáznak, ahelyett hogy rossz helyre naplóznának.</li>
+        <li><strong>Telepítsd mind az ötöt bekapcsolás nélkül.</strong> A repó gyökerében futtasd ezt: <code>bash install-universal-session-log.sh</code>. A parancs minden alapértelmezett skill-gyökérben létrehozza vagy frissíti a teljes stabil csomagot, és az OpenCode parancs-belépési pontját is telepíti.</li>
+        <li><strong>Egy környezetet parancsfuttatás közben is előkészíthetsz.</strong> Például a <code>bash skills/session-log/install.sh --harness cursor --arguments "status"</code> előbb létrehozza vagy frissíti a Cursor csomagját, majd lefuttatja a <code>status</code> parancsot. A <code>--install --harness &lt;azonosító&gt;</code> csak telepít, parancsot nem futtat.</li>
+        <li><strong>Az aktiválás környezetenként külön történik.</strong> Az <code>on</code>, az <code>off</code> és a <code>status</code> csak a megadott azonosítót érinti. Az <code>on — restart required</code> után indítsd újra a környezetet. Codexnél nézd át és engedélyezd a <code>~/.codex/hooks.json</code>-hoz adott parancsokat, majd indítsd újra.</li>
+        <li><strong>A bekapcsolt adapter helyreáll magától.</strong> Az installer minden parancs előtt frissíti a kiválasztott stabil csomagot. Bekapcsolt naplózásnál a <code>status</code> és a <code>usage</code> a hiányzó vagy elavult natív adaptert is újratelepíti.</li>
+        <li><strong>A usage nem közös séma.</strong> A Claude Code fordulónkénti és alügynök-összesítést ad offline árbecsléssel; az OpenCode és az OMP a natív token- és költségadatokat őrzi meg; a Codex ár nélkül összegzi a rollout tokenrekordjait; a Cursor pedig <code>native token usage unavailable</code> üzenetet ír ki, mert a hookjai és átiratai nem tartalmaznak tokenösszeget.</li>
+        <li><strong>A függőségek parancsonként eltérnek.</strong> A csomag előkészítéséhez <code>bash</code>, Python 3 és <code>shasum</code> vagy <code>sha256sum</code> kell; a futásállapot ellenőrzéséhez és a Claude Code-hoz <code>jq</code> szükséges. Az OpenCode <code>usage</code> ezenfelül <code>sqlite3</code>-at, az OMP riportja pedig Bunt igényel. A <code>ccusage</code> csak a Claude Code <code>--check</code> opcionális függősége.</li>
+        <li><strong>Csak az alapértelmezett gyökerek támogatottak.</strong> Ezek: <code>~/.claude</code>, <code>~/.codex</code>, <code>~/.cursor</code>, <code>~/.config/opencode</code> (a natív adatok helye <code>~/.local/share/opencode</code>) és <code>~/.omp/agent</code>. Az áthelyezett gyökerek egyértelmű hibával leállnak.</li>
       </ul>
     </section>
 
@@ -106,9 +106,9 @@ switched: model claude-sonnet-5 → claude-opus-5, effort high → max
     </section>
 
     <section data-section="6-usage-report">
-      <h2>Hogy néz ki egy <code>usage</code> riport</h2>
+      <h2>Ilyen a Claude Code <code>usage</code> riportja</h2>
       <div class="example">
-        <p><strong>Parancs:</strong> <code>/session-log usage</code> (az aktuális projekt legújabb sessionjét összesíti).</p>
+        <p><strong>Parancs:</strong> <code>/session-log usage</code> Claude Code alatt (az aktuális projekt legújabb sessionjét összesíti). A többi környezet megtartja a fent leírt saját riportformáját.</p>
         <pre><code>Claude Code: usage
 
 1. 14:02:11  Implement the next uncompleted task…   est. used token: … price: $2.32

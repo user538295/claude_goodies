@@ -67,11 +67,11 @@ Powered by the [`devils-advocate`](https://user538295.github.io/claude_goodies/h
 ### Monitor background tasks
 
 - [**`/status-report`**](https://user538295.github.io/claude_goodies/handout/skill-status-report.html) — Kicked off a long task and don't know when it'll finish. Reports status on demand or on a recurring schedule — cancel anytime with `off`.
-- [**`/session-log`**](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) — One package for Claude Code, OpenCode, and OMP. It installs one explicit native entrypoint per harness, enables native lifecycle logging lazily, and preserves each harness's native usage report.
+- [**`/session-log`**](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) — One stable package for Claude Code, Codex, Cursor, OpenCode, and OMP. The host selects its identity explicitly; the package never guesses from paths, processes, or environment variables. Logging and usage stay native to each harness.
 
-Install the universal package once, then restart the selected harness after `/session-log on` reports `on — restart required`.
+Install the universal package once. After `/session-log on`, restart the selected harness when it reports `on — restart required`; Codex instead reports `on — trust review/restart required`, because its new `hooks.json` commands require review before restart.
 
-One script bundle handles the progress plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement` reads it once in NEXT mode, and on every iteration in ALL mode. The [`session-log`](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) skill archives every prompt and response as per-project Markdown so you never lose a conversation; the universal session-log package now owns activation and migration for all three harnesses. See the [session-log handout](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) for details.
+One script bundle handles the progress plumbing — [`scripts-plan`](https://user538295.github.io/claude_goodies/handout/scripts-plan.html) prints the next-task progress header — `/implement` reads it once in NEXT mode, and on every iteration in ALL mode. The [`session-log`](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) skill archives the prompt and response text exposed by each harness as per-project Markdown; the universal package owns activation and migration for all five harnesses. See the [session-log handout](https://user538295.github.io/claude_goodies/handout/skill-session-log.html) for details.
 
 ---
 
@@ -85,30 +85,27 @@ From a checkout of this repository:
 bash install-universal-session-log.sh
 ```
 
-The checkout wrapper copies the complete package into Claude Code, OpenCode, and OMP without enabling logging. Each harness receives its own entrypoint and native adapter assets; the package-local `/session-log on` command installs only the selected harness adapter.
+The wrapper seeds or updates the complete stable package without enabling logging under the five default harness roots: Claude Code `~/.claude`, Codex `~/.codex`, Cursor `~/.cursor`, OpenCode `~/.config/opencode`, and OMP `~/.omp/agent`. It also installs OpenCode's command entrypoint.
 
-For a standalone installation, copy the complete `skills/session-log/` directory and replace `SKILL.md` with the harness-specific entrypoint:
+To install or update one harness from the checkout, use its explicit identity:
 
 ```bash
-# Claude Code
-mkdir -p ~/.claude/skills
-cp -R skills/session-log ~/.claude/skills/session-log
-
-# OpenCode
-mkdir -p ~/.config/opencode/skills ~/.config/opencode/commands
-cp -R skills/session-log ~/.config/opencode/skills/session-log
-cp skills/session-log/templates/opencode/SKILL.md ~/.config/opencode/skills/session-log/SKILL.md
-cp skills/session-log/templates/opencode/command.md ~/.config/opencode/commands/session-log.md
-
-# OMP
-mkdir -p ~/.omp/agent/skills
-cp -R skills/session-log ~/.omp/agent/skills/session-log
-cp skills/session-log/templates/omp/SKILL.md ~/.omp/agent/skills/session-log/SKILL.md
+bash skills/session-log/install.sh --install --harness claude
+bash skills/session-log/install.sh --install --harness codex
+bash skills/session-log/install.sh --install --harness cursor
+bash skills/session-log/install.sh --install --harness opencode
+bash skills/session-log/install.sh --install --harness omp
 ```
 
-Standalone installs support only the harness default roots under `$HOME` (`~/.claude`, `~/.config/opencode` and `~/.local/share/opencode`, and `~/.omp/agent`). Relocated or custom config/data roots are unsupported; use the defaults before running `/session-log`.
+A normal command also bootstraps or updates that harness's stable package before dispatching the command:
 
-The complete package includes the local installer, CLI, adapters, templates, and version file. `/session-log on` installs only the current harness adapter; logging stays off until then.
+```bash
+bash skills/session-log/install.sh --harness opencode --arguments "on"
+```
+
+The supported identities are exactly `claude`, `codex`, `cursor`, `opencode`, and `omp`. The universal `SKILL.md` requires the current host/model to choose one explicitly; identity is never inferred from directories, processes, or environment variables.
+
+Only default roots are supported. OpenCode also reads native data from `~/.local/share/opencode`; relocated config or data roots fail explicitly. Logging remains off until enabled separately in each harness. When logging is already enabled, `status` and `usage` repair a missing or outdated adapter after the package bootstrap.
 
 ### Claude Code plugin marketplace
 
@@ -149,9 +146,9 @@ If that's not your speed, this repo isn't for you. If it is — install in 30 se
 
 ## Requirements
 
-- Claude Code, OpenCode, or OMP.
+- Universal session-log: Claude Code, Codex, Cursor, OpenCode, or OMP.
 - macOS or Linux — or Windows via WSL.
-- bash, Python 3, jq, and standard POSIX utilities.
+- bash, Python 3, jq, standard POSIX utilities, and `shasum` or `sha256sum`.
 - sqlite3 for OpenCode native usage reports.
 - Bun for OMP native usage reports.
 

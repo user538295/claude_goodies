@@ -5,6 +5,7 @@ set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 INSTALL="$REPO/install-universal-session-log.sh"
+PACKAGE_VERSION="$(tr -d '[:space:]' < "$REPO/skills/session-log/VERSION")"
 FAIL=0
 WORKROOT="$(mktemp -d)"
 trap 'cd /; mv "$WORKROOT" "$HOME/.Trash/universal-session-log-test-$$" 2>/dev/null || true' EXIT
@@ -38,6 +39,8 @@ assert_link() {
 package_root_for() {
   case "$1" in
     claude) printf '%s\n' "$TEST_HOME/.claude/skills/session-log" ;;
+    codex) printf '%s\n' "$TEST_HOME/.codex/skills/session-log" ;;
+    cursor) printf '%s\n' "$TEST_HOME/.cursor/skills/session-log" ;;
     opencode) printf '%s\n' "$TEST_HOME/.config/opencode/skills/session-log" ;;
     omp) printf '%s\n' "$TEST_HOME/.omp/agent/skills/session-log" ;;
     *) fail "unsupported test harness: $1" ;;
@@ -70,6 +73,29 @@ run_harness_at_home_and_dir() {
       --entrypoint "$harness" --harness "$harness" "$@"
   )
 }
+run_skill_entrypoint() {
+  local skill_file="$1"
+  local home="$2"
+  local harness="$3"
+  local arguments="${4:-status}"
+  local script skill_dir escaped_harness escaped_dir escaped_arguments line rewritten=""
+  script="$(awk '/^```bash$/ { capture = 1; next } capture && /^```$/ { exit } capture { print }' "$skill_file")"
+  skill_dir="$(cd "$(dirname "$skill_file")" && pwd -P)"
+  printf -v escaped_harness '%q' "$harness"
+  printf -v escaped_dir '%q' "$skill_dir"
+  printf -v escaped_arguments '%q' "$arguments"
+  while IFS= read -r line; do
+    case "$line" in
+      "harness='<claude|codex|cursor|opencode|omp: choose the current host>'") line="harness=$escaped_harness" ;;
+      "BASE='<the skill directory announced by the current host, or empty>'") line="BASE=$escaped_dir" ;;
+      "arguments='<exact invocation arguments, or status>'") line="arguments=$escaped_arguments" ;;
+    esac
+    rewritten+="${rewritten:+$'\n'}$line"
+  done <<< "$script"
+  script="$rewritten"
+  HOME="$home" SESSION_LOG_HOME="${SESSION_LOG_HOME:-}" bash -c "$script"
+}
+
 
 TEST_HOME="$WORKROOT/home"
 mkdir -p "$TEST_HOME/.Trash"
@@ -80,6 +106,10 @@ assert_file "Claude package entrypoint seeded" "$TEST_HOME/.claude/skills/sessio
 assert_file "Claude package installer seeded" "$TEST_HOME/.claude/skills/session-log/install.sh"
 assert_file "Claude package CLI seeded" "$TEST_HOME/.claude/skills/session-log/bin/session-log"
 assert_file "Claude package hook seeded" "$TEST_HOME/.claude/skills/session-log/adapters/claude/claude_hook.sh"
+assert_file "Codex package entrypoint seeded" "$TEST_HOME/.codex/skills/session-log/SKILL.md"
+assert_file "Codex package native hook seeded" "$TEST_HOME/.codex/skills/session-log/adapters/native/session_log_hook.py"
+assert_file "Cursor package entrypoint seeded" "$TEST_HOME/.cursor/skills/session-log/SKILL.md"
+assert_file "Cursor package native hook seeded" "$TEST_HOME/.cursor/skills/session-log/adapters/native/session_log_hook.py"
 assert_file "OpenCode package entrypoint seeded" "$TEST_HOME/.config/opencode/skills/session-log/SKILL.md"
 assert_file "OpenCode package adapter seeded" "$TEST_HOME/.config/opencode/skills/session-log/adapters/opencode/session-log.js"
 assert_file "OMP package entrypoint seeded" "$TEST_HOME/.omp/agent/skills/session-log/SKILL.md"
@@ -88,17 +118,17 @@ assert_file "OpenCode slash command seeded" "$TEST_HOME/.config/opencode/command
 assert_not_file "global CLI wrapper is not installed" "$TEST_HOME/.local/bin/session-log"
 assert_not_file "global runtime release is not installed" "$TEST_HOME/.local/share/universal-session-log"
 assert_not_file "Claude logging remains disabled" "$TEST_HOME/.claude/prompt-logs/.enabled"
+assert_not_file "Codex logging remains disabled" "$TEST_HOME/.codex/prompt-logs/.enabled"
+assert_not_file "Cursor logging remains disabled" "$TEST_HOME/.cursor/prompt-logs/.enabled"
 assert_not_file "OpenCode logging remains disabled" "$TEST_HOME/.config/opencode/prompt-logs/.enabled"
 assert_not_file "OMP logging remains disabled" "$TEST_HOME/.omp/agent/prompt-logs/.enabled"
 assert_contains "install reports all harnesses" "Claude Code" "$(cat "$WORKROOT/install.out")"
+assert_contains "install reports all harnesses" "Codex" "$(cat "$WORKROOT/install.out")"
+assert_contains "install reports all harnesses" "Cursor" "$(cat "$WORKROOT/install.out")"
 assert_contains "install reports all harnesses" "OpenCode" "$(cat "$WORKROOT/install.out")"
 assert_contains "install reports all harnesses" "OMP" "$(cat "$WORKROOT/install.out")"
-for harness in claude opencode omp; do
-  case "$harness" in
-    claude) package_root="$TEST_HOME/.claude/skills/session-log" ;;
-    opencode) package_root="$TEST_HOME/.config/opencode/skills/session-log" ;;
-    omp) package_root="$TEST_HOME/.omp/agent/skills/session-log" ;;
-  esac
+for harness in claude codex cursor opencode omp; do
+  package_root="$(package_root_for "$harness")"
   while IFS= read -r relative; do
     assert_file "$harness package asset installed: $relative" "$package_root/$relative"
   done <<'EOF'
@@ -115,17 +145,71 @@ adapters/claude/scripts/prompt_log_stop.sh
 adapters/claude/scripts/prompt_log_subagent.sh
 adapters/claude/scripts/prompt_log_usage.jq
 adapters/claude/scripts/prompt_log_usage.sh
+adapters/codex/session_log_usage.py
+adapters/native/session_log_hook.py
+adapters/native/install_hooks.py
 adapters/opencode/session-log.js
 adapters/opencode/session_log_usage.sh
 adapters/omp/session-log.js
 adapters/omp/session_log_usage.ts
-templates/opencode/SKILL.md
 templates/opencode/command.md
-templates/omp/SKILL.md
 EOF
 done
 initial_claude_status="$(run_harness claude status 2>&1)"
 assert_exact "initial Claude status is exact" "Claude Code: off" "$initial_claude_status"
+
+printf '=== source skill honors the current host harness ===\n'
+for host in omp cursor codex; do
+  case "$host" in
+    omp)
+      host_label="OMP"
+      host_skill_parent=".omp/agent/skills"
+      ;;
+    cursor)
+      host_label="Cursor"
+      host_skill_parent=".cursor/skills"
+      ;;
+    codex)
+      host_label="Codex"
+      host_skill_parent=".codex/skills"
+      ;;
+  esac
+  host_home="$WORKROOT/$host-source-home"
+  host_skill_root="$host_home/$host_skill_parent/session-log"
+  mkdir -p "$host_home/.Trash" "$host_home/$host_skill_parent"
+  cp -R "$REPO/skills/session-log" "$host_skill_root"
+  host_status="$(run_skill_entrypoint "$host_skill_root/SKILL.md" "$host_home" "$host" status 2>&1)"
+  assert_exact "$host_label execution of source skill reports $host_label status" \
+    "$host_label: off" "$host_status"
+done
+
+printf '=== source installer repairs a previously enabled OpenCode entrypoint ===\n'
+OPENCODE_RECOVERY_HOME="$WORKROOT/opencode-recovery-home"
+OPENCODE_DEAD_PACKAGE="$OPENCODE_RECOVERY_HOME/.claude/plugins/cache/user538295/claude-goodies/1.12.1/skills/session-log"
+mkdir -p "$OPENCODE_RECOVERY_HOME/.Trash" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/skills" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/plugins" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/prompt-logs"
+ln -s "$OPENCODE_DEAD_PACKAGE" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/skills/session-log"
+ln -s "$OPENCODE_DEAD_PACKAGE/adapters/opencode/session-log.js" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/plugins/session-log.js"
+touch "$OPENCODE_RECOVERY_HOME/.config/opencode/prompt-logs/.enabled"
+opencode_recovery_status="$(
+  HOME="$OPENCODE_RECOVERY_HOME" \
+    bash "$REPO/skills/session-log/install.sh" --harness opencode --arguments status 2>&1
+)"
+assert_exact "OpenCode source invocation restores an enabled adapter" \
+  "OpenCode: on — restart required" "$opencode_recovery_status"
+assert_file "OpenCode source invocation installs its package" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/skills/session-log/install.sh"
+assert_link "OpenCode source invocation replaces the dead plugin link" \
+  "$(cd "$OPENCODE_RECOVERY_HOME" && pwd -P)/.config/opencode/skills/session-log/adapters/opencode/session-log.js" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/plugins/session-log.js"
+assert_file "OpenCode source invocation restores adapter.version" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/session-log/adapter.version"
+assert_file "OpenCode source invocation restores adapter.manifest" \
+  "$OPENCODE_RECOVERY_HOME/.config/opencode/session-log/adapter.manifest"
 
 printf '=== identity is explicit and strict ===\n'
 set +e
@@ -137,7 +221,7 @@ set -e
 [[ "$missing_rc" -ne 0 ]] && pass "missing harness identity fails" || fail "missing harness identity fails"
 assert_contains "missing identity is actionable" "active harness identity is required" "$missing_identity"
 [[ "$unknown_rc" -ne 0 ]] && pass "unknown harness identity fails" || fail "unknown harness identity fails"
-assert_contains "unknown identity lists supported harnesses" "claude, opencode, omp" "$unknown_identity"
+assert_contains "unknown identity lists supported harnesses" "claude, codex, cursor, opencode, omp" "$unknown_identity"
 set +e
 trailing_status="$(run_harness claude status unexpected 2>&1)"
 trailing_status_rc=$?
@@ -187,6 +271,97 @@ assert_file "OpenCode plugin lifecycle writes runtime state" "$OPENCODE_HOME/.co
 assert_exact "OMP extension registers native handlers" "command:session-log,session_start,session_shutdown,before_agent_start,agent_end,session_stop" "$omp_plugin_smoke"
 assert_file "OMP extension lifecycle writes runtime state" "$OMP_HOME/.omp/agent/session-log/runtime.json"
 
+CURSOR_HOME="$WORKROOT/cursor-home"
+CODEX_HOME="$WORKROOT/codex-home"
+mkdir -p "$CURSOR_HOME/.Trash" "$CURSOR_HOME/.cursor" "$CODEX_HOME/.Trash" "$CODEX_HOME/.codex"
+printf '%s\n' '{"version":1,"hooks":{"afterFileEdit":[{"command":"echo keep-cursor"}]}}' > "$CURSOR_HOME/.cursor/hooks.json"
+printf '%s\n' '{"hooks":{"PostToolUse":[{"hooks":[{"type":"command","command":"echo keep-codex"}]}]}}' > "$CODEX_HOME/.codex/hooks.json"
+cursor_on="$(HOME="$CURSOR_HOME" bash "$REPO/skills/session-log/install.sh" --harness cursor --arguments on 2>&1)"
+codex_on="$(HOME="$CODEX_HOME" bash "$REPO/skills/session-log/install.sh" --harness codex --arguments on 2>&1)"
+assert_exact "Cursor on status is exact" "Cursor: on — restart required" "$cursor_on"
+assert_exact "Codex on reports trust review honestly" "Codex: on — trust review/restart required" "$codex_on"
+assert_file "Cursor native hooks config installed" "$CURSOR_HOME/.cursor/hooks.json"
+assert_file "Codex native hooks config installed" "$CODEX_HOME/.codex/hooks.json"
+assert_contains "Cursor preserves user hooks" "keep-cursor" "$(cat "$CURSOR_HOME/.cursor/hooks.json")"
+assert_contains "Codex preserves user hooks" "keep-codex" "$(cat "$CODEX_HOME/.codex/hooks.json")"
+assert_contains "Cursor installs prompt hook" "beforeSubmitPrompt" "$(cat "$CURSOR_HOME/.cursor/hooks.json")"
+assert_contains "Cursor installs response hook" "afterAgentResponse" "$(cat "$CURSOR_HOME/.cursor/hooks.json")"
+assert_contains "Cursor installs subagent hook" "subagentStop" "$(cat "$CURSOR_HOME/.cursor/hooks.json")"
+assert_contains "Codex installs prompt hook" "UserPromptSubmit" "$(cat "$CODEX_HOME/.codex/hooks.json")"
+assert_contains "Codex installs stop hook" "\"Stop\"" "$(cat "$CODEX_HOME/.codex/hooks.json")"
+assert_contains "Codex installs subagent hook" "SubagentStop" "$(cat "$CODEX_HOME/.codex/hooks.json")"
+CURSOR_HOOK="$CURSOR_HOME/.cursor/skills/session-log/adapters/native/session_log_hook.py"
+CODEX_HOOK="$CODEX_HOME/.codex/skills/session-log/adapters/native/session_log_hook.py"
+set +e
+unknown_native_event="$(
+  printf '%s\n' '{"conversation_id":"cursor-session"}' |
+    HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor unknown-event 2>&1
+)"
+unknown_native_event_rc=$?
+set -e
+[[ "$unknown_native_event_rc" -ne 0 ]] && pass "native hook rejects unknown lifecycle events" || fail "native hook rejects unknown lifecycle events"
+assert_contains "unknown native event error is explicit" "unknown cursor lifecycle event" "$unknown_native_event"
+cursor_prompt_hook_output="$(
+  printf '%s\n' '{"conversation_id":"cursor-session","generation_id":"cursor-generation","model":"fixture","workspace_roots":["/tmp/cursor-project"],"prompt":"cursor prompt"}' |
+    HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor user-prompt
+)"
+assert_exact "Cursor prompt hook explicitly continues submission" '{"continue":true}' "$cursor_prompt_hook_output"
+printf '%s\n' '{"conversation_id":"cursor-session","generation_id":"cursor-generation","model":"fixture","workspace_roots":["/tmp/cursor-project"],"text":"cursor response"}' |
+  HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor assistant-response >/dev/null
+printf '%s\n' '{"conversation_id":"cursor-session","generation_id":"cursor-generation","model":"fixture","workspace_roots":["/tmp/cursor-project"],"subagent_type":"explore","summary":"cursor child"}' |
+  HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor subagent-stop >/dev/null
+printf '%s\n' '{"session_id":"codex-session","cwd":"/tmp/codex-project","model":"fixture","prompt":"codex prompt"}' |
+  HOME="$CODEX_HOME" python3 "$CODEX_HOOK" codex user-prompt >/dev/null
+printf '%s\n' '{"session_id":"codex-session","cwd":"/tmp/codex-project","model":"fixture","last_assistant_message":"codex response"}' |
+  HOME="$CODEX_HOME" python3 "$CODEX_HOOK" codex stop >/dev/null
+printf '%s\n' '{"session_id":"codex-session","cwd":"/tmp/codex-project","model":"fixture","agent_type":"explore","last_assistant_message":"codex child"}' |
+  HOME="$CODEX_HOME" python3 "$CODEX_HOOK" codex subagent-stop >/dev/null
+cursor_status="$(HOME="$CURSOR_HOME" bash "$CURSOR_HOME/.cursor/skills/session-log/install.sh" --harness cursor --arguments status 2>&1)"
+codex_status="$(HOME="$CODEX_HOME" bash "$CODEX_HOME/.codex/skills/session-log/install.sh" --harness codex --arguments status 2>&1)"
+assert_exact "Cursor status becomes on after native hook smoke" "Cursor: on" "$cursor_status"
+assert_exact "Codex status becomes on after native hook smoke" "Codex: on" "$codex_status"
+cursor_log_path=("$CURSOR_HOME/.cursor/prompt-logs/"*/session_cursor-session.md)
+codex_log_path=("$CODEX_HOME/.codex/prompt-logs/"*/session_codex-session.md)
+cursor_log="$(cat "${cursor_log_path[0]}")"
+codex_log="$(cat "${codex_log_path[0]}")"
+assert_contains "Cursor native hook logs prompts" "cursor prompt" "$cursor_log"
+assert_contains "Cursor native hook logs responses" "cursor response" "$cursor_log"
+assert_contains "Cursor native hook logs subagents" "cursor child" "$cursor_log"
+assert_contains "Codex native hook logs prompts" "codex prompt" "$codex_log"
+assert_contains "Codex native hook logs responses" "codex response" "$codex_log"
+assert_contains "Codex native hook logs subagents" "codex child" "$codex_log"
+printf '%s\n' '{"conversation_id":"cursor-one","workspace_roots":["/tmp/one/shared"],"prompt":"first shared project"}' |
+  HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor user-prompt >/dev/null
+printf '%s\n' '{"conversation_id":"cursor-two","workspace_roots":["/tmp/two/shared"],"prompt":"second shared project"}' |
+  HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor user-prompt >/dev/null
+cursor_one_path=("$CURSOR_HOME/.cursor/prompt-logs/"*/session_cursor-one.md)
+cursor_two_path=("$CURSOR_HOME/.cursor/prompt-logs/"*/session_cursor-two.md)
+[[ "${cursor_one_path[0]%/*}" != "${cursor_two_path[0]%/*}" ]] &&
+  pass "native logs keep same-named projects separate" ||
+  fail "native logs keep same-named projects separate"
+long_cursor_id="$(printf '%0300d' 0 | tr '0' 'a')"
+set +e
+long_cursor_output="$(
+  printf '{"conversation_id":"%s","workspace_roots":["/tmp/cursor-project"],"prompt":"invalid id"}\n' "$long_cursor_id" |
+    HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor user-prompt 2>&1
+)"
+long_cursor_rc=$?
+set -e
+[[ "$long_cursor_rc" -eq 0 ]] && pass "native hook ignores overlong session IDs safely" || fail "native hook ignores overlong session IDs safely"
+assert_exact "overlong Cursor session still allows the prompt" '{"continue":true}' "$long_cursor_output"
+assert_exact "overlong Cursor session creates no log" "" \
+  "$(find "$CURSOR_HOME/.cursor/prompt-logs" -name "session_${long_cursor_id}.md" -print)"
+cursor_usage="$(run_skill_entrypoint "$CURSOR_HOME/.cursor/skills/session-log/SKILL.md" "$CURSOR_HOME" cursor 'usage --latest' 2>&1)"
+assert_contains "source skill forwards usage --latest" "Cursor: usage" "$cursor_usage"
+assert_contains "Cursor usage states native token limitation" "native token usage unavailable" "$cursor_usage"
+assert_not_contains "Cursor usage does not invent totals" "TOTAL" "$cursor_usage"
+set +e
+codex_check="$(HOME="$CODEX_HOME" bash "$CODEX_HOME/.codex/skills/session-log/install.sh" --harness codex --arguments 'usage --check' 2>&1)"
+codex_check_rc=$?
+set -e
+[[ "$codex_check_rc" -ne 0 ]] && pass "Codex usage rejects Claude-only --check" || fail "Codex usage rejects Claude-only --check"
+assert_contains "Codex --check rejection is explicit" "--check is only valid for Claude Code" "$codex_check"
+
 
 printf '=== first on installs only the selected adapter and requires restart ===\n'
 claude_on="$(run_harness claude on 2>&1)"
@@ -202,11 +377,11 @@ CLAUDE_HOOK="$TEST_HOME/.claude/skills/session-log/adapters/claude/claude_hook.s
 printf '%s\n' '{"session_id":"claude-runtime","cwd":"'"$PWD"'"}' | HOME="$TEST_HOME" bash "$CLAUDE_HOOK" session-start >/dev/null
 claude_status="$(run_harness claude status 2>&1)"
 assert_exact "Claude loaded status is exact" "Claude Code: on" "$claude_status"
-assert_contains "Claude runtime records package version" '"version": "1.0.0"' "$(cat "$TEST_HOME/.claude/session-log/runtime.json")"
+assert_contains "Claude runtime records package version" "\"version\": \"$PACKAGE_VERSION\"" "$(cat "$TEST_HOME/.claude/session-log/runtime.json")"
 printf '0.0.0\n' > "$TEST_HOME/.claude/session-log/adapter.version"
 claude_update="$(run_harness claude on 2>&1)"
 assert_exact "outdated Claude adapter status is exact" "Claude Code: on — restart required" "$claude_update"
-assert_contains "outdated Claude adapter is updated" "1.0.0" "$(cat "$TEST_HOME/.claude/session-log/adapter.version")"
+assert_contains "outdated Claude adapter is updated" "$PACKAGE_VERSION" "$(cat "$TEST_HOME/.claude/session-log/adapter.version")"
 
 printf '=== off is idempotent and does not install an absent adapter ===\n'
 OFF_HOME="$WORKROOT/off-home"
@@ -233,6 +408,35 @@ set -e
 [[ "$install_root_rc" -ne 0 ]] && pass "installer rejects relocated roots" || fail "installer rejects relocated roots"
 assert_contains "installer relocation error is explicit" "custom roots are unsupported" "$install_root_error"
 assert_not_file "installer relocation leaves package absent" "$INSTALL_ROOT_HOME/.config/opencode/skills/session-log/SKILL.md"
+
+CODEX_ROOT_HOME="$WORKROOT/codex-root-home"
+mkdir -p "$CODEX_ROOT_HOME/.Trash"
+set +e
+codex_root_error="$(
+  HOME="$CODEX_ROOT_HOME" CODEX_HOME="$WORKROOT/custom-codex" \
+    bash "$REPO/skills/session-log/install.sh" --install --harness codex 2>&1
+)"
+codex_root_rc=$?
+set -e
+[[ "$codex_root_rc" -ne 0 ]] && pass "installer rejects relocated Codex root" || fail "installer rejects relocated Codex root"
+assert_contains "Codex relocation error is explicit" "custom roots are unsupported" "$codex_root_error"
+assert_not_file "Codex relocation leaves package absent" "$CODEX_ROOT_HOME/.codex/skills/session-log/SKILL.md"
+
+PREFLIGHT_HOME="$WORKROOT/preflight-home"
+PREFLIGHT_DEAD_PACKAGE="$PREFLIGHT_HOME/.claude/plugins/cache/user538295/claude-goodies/1.12.1/skills/session-log"
+mkdir -p "$PREFLIGHT_HOME/.Trash" "$PREFLIGHT_HOME/.claude/skills" \
+  "$PREFLIGHT_HOME/.codex/skills/session-log"
+ln -s "$PREFLIGHT_DEAD_PACKAGE" "$PREFLIGHT_HOME/.claude/skills/session-log"
+printf 'user-owned Codex skill\n' > "$PREFLIGHT_HOME/.codex/skills/session-log/SKILL.md"
+set +e
+preflight_error="$(HOME="$PREFLIGHT_HOME" bash "$INSTALL" 2>&1)"
+preflight_rc=$?
+set -e
+[[ "$preflight_rc" -ne 0 ]] && pass "all-harness preflight rejects an unowned package" || fail "all-harness preflight rejects an unowned package"
+assert_contains "all-harness preflight names the unowned package" "unowned file" "$preflight_error"
+assert_link "failed preflight preserves an earlier managed dangling link" \
+  "$PREFLIGHT_DEAD_PACKAGE" "$PREFLIGHT_HOME/.claude/skills/session-log"
+
 
 UNOWNED_HOME="$WORKROOT/unowned-home"
 mkdir -p "$UNOWNED_HOME/.Trash" "$UNOWNED_HOME/.config/opencode/plugins"
@@ -345,7 +549,6 @@ printf '=== complete copied packages bootstrap locally ===\n'
 PACKAGE_OPENCODE_HOME="$WORKROOT/package-opencode-home"
 mkdir -p "$PACKAGE_OPENCODE_HOME/.Trash" "$PACKAGE_OPENCODE_HOME/.config/opencode/skills"
 cp -R "$REPO/skills/session-log" "$PACKAGE_OPENCODE_HOME/.config/opencode/skills/session-log"
-cp "$REPO/skills/session-log/templates/opencode/SKILL.md" "$PACKAGE_OPENCODE_HOME/.config/opencode/skills/session-log/SKILL.md"
 PACKAGE_OPENCODE_ROOT="$(cd "$PACKAGE_OPENCODE_HOME/.config/opencode/skills/session-log" && pwd -P)"
 package_opencode_on="$(HOME="$PACKAGE_OPENCODE_HOME" bash "$PACKAGE_OPENCODE_HOME/.config/opencode/skills/session-log/install.sh" --harness opencode --arguments on 2>&1)"
 assert_contains "copied OpenCode package enables logging" "OpenCode: on — restart required" "$package_opencode_on"
@@ -376,13 +579,23 @@ assert_contains "tampered package rejection names the asset" "VERSION" "$tampere
 PACKAGE_OMP_HOME="$WORKROOT/package-omp-home"
 mkdir -p "$PACKAGE_OMP_HOME/.Trash" "$PACKAGE_OMP_HOME/.omp/agent/skills"
 cp -R "$REPO/skills/session-log" "$PACKAGE_OMP_HOME/.omp/agent/skills/session-log"
-cp "$REPO/skills/session-log/templates/omp/SKILL.md" "$PACKAGE_OMP_HOME/.omp/agent/skills/session-log/SKILL.md"
 PACKAGE_OMP_ROOT="$(cd "$PACKAGE_OMP_HOME/.omp/agent/skills/session-log" && pwd -P)"
 package_omp_on="$(HOME="$PACKAGE_OMP_HOME" bash "$PACKAGE_OMP_HOME/.omp/agent/skills/session-log/install.sh" --harness omp --arguments on 2>&1)"
 assert_contains "copied OMP package enables logging" "OMP: on — restart required" "$package_omp_on"
 assert_link "copied OMP package installs its extension" \
   "$PACKAGE_OMP_ROOT/adapters/omp/session-log.js" \
   "$PACKAGE_OMP_HOME/.omp/agent/extensions/session-log.js"
+
+OMP_HANDOFF_HOME="$WORKROOT/omp-handoff-home"
+mkdir -p "$OMP_HANDOFF_HOME/.Trash" "$OMP_HANDOFF_HOME/.omp/agent/skills"
+cp -R "$REPO/skills/session-log" "$OMP_HANDOFF_HOME/.omp/agent/skills/session-log"
+OMP_HANDOFF_ROOT="$OMP_HANDOFF_HOME/.omp/agent/skills/session-log"
+HOME="$OMP_HANDOFF_HOME" bash "$OMP_HANDOFF_ROOT/install.sh" --install --harness all >/dev/null
+claude_handoff_status="$(
+  run_skill_entrypoint "$OMP_HANDOFF_HOME/.claude/skills/session-log/SKILL.md" "$OMP_HANDOFF_HOME" claude status 2>&1
+)"
+assert_exact "OMP package all-install keeps Claude entrypoint on Claude" \
+  "Claude Code: off" "$claude_handoff_status"
 PACKAGE_CLAUDE_HOME="$WORKROOT/package-claude-home"
 mkdir -p "$PACKAGE_CLAUDE_HOME/.Trash" "$PACKAGE_CLAUDE_HOME/.claude/skills"
 cp -R "$REPO/skills/session-log" "$PACKAGE_CLAUDE_HOME/.claude/skills/session-log"
@@ -394,13 +607,14 @@ PACKAGE_PLUGIN_HOME="$WORKROOT/package-plugin-home"
 mkdir -p "$PACKAGE_PLUGIN_HOME/.Trash" "$PACKAGE_PLUGIN_HOME/plugin/skills"
 cp -R "$REPO/skills/session-log" "$PACKAGE_PLUGIN_HOME/plugin/skills/session-log"
 package_plugin_on="$(HOME="$PACKAGE_PLUGIN_HOME" CLAUDE_PLUGIN_ROOT="$PACKAGE_PLUGIN_HOME/plugin" bash "$PACKAGE_PLUGIN_HOME/plugin/skills/session-log/install.sh" --harness claude --arguments on 2>&1)"
-assert_contains "marketplace package enables logging" "Claude Code: on — restart required" "$package_plugin_on"
-assert_not_file "marketplace package does not rewrite settings" "$PACKAGE_PLUGIN_HOME/.claude/settings.json"
+assert_contains "marketplace source bootstraps stable Claude package" "Claude Code: on — restart required" "$package_plugin_on"
+assert_file "marketplace source installs the stable package" "$PACKAGE_PLUGIN_HOME/.claude/skills/session-log/install.sh"
+assert_file "marketplace source installs stable native hooks" "$PACKAGE_PLUGIN_HOME/.claude/settings.json"
 printf '%s\n' '{"session_id":"plugin-package-session","cwd":"'"$PWD"'"}' |
-  HOME="$PACKAGE_PLUGIN_HOME" CLAUDE_PLUGIN_ROOT="$PACKAGE_PLUGIN_HOME/plugin" \
-  bash "$PACKAGE_PLUGIN_HOME/plugin/skills/session-log/adapters/claude/claude_hook.sh" session-start >/dev/null
-package_plugin_status="$(HOME="$PACKAGE_PLUGIN_HOME" CLAUDE_PLUGIN_ROOT="$PACKAGE_PLUGIN_HOME/plugin" bash "$PACKAGE_PLUGIN_HOME/plugin/skills/session-log/install.sh" --harness claude --arguments status 2>&1)"
-assert_contains "marketplace package becomes loaded through plugin hook" "Claude Code: on" "$package_plugin_status"
+  HOME="$PACKAGE_PLUGIN_HOME" \
+  bash "$PACKAGE_PLUGIN_HOME/.claude/skills/session-log/adapters/claude/claude_hook.sh" session-start >/dev/null
+package_plugin_status="$(HOME="$PACKAGE_PLUGIN_HOME" bash "$PACKAGE_PLUGIN_HOME/.claude/skills/session-log/install.sh" --harness claude --arguments status 2>&1)"
+assert_contains "stable package becomes loaded through stable hook" "Claude Code: on" "$package_plugin_status"
 
 printf '=== native reports keep their raw payload after one harness label ===\n'
 set +e
@@ -546,6 +760,36 @@ set -e
 [[ "$opencode_symlink_runtime_rc" -ne 0 ]] && pass "OpenCode rejects symlinked runtime state" || fail "OpenCode rejects symlinked runtime state"
 assert_exact "OpenCode symlinked runtime target remains unchanged" "runtime sentinel" "$(cat "$WORKROOT/opencode-runtime-sentinel")"
 
+
+mkdir -p "$CODEX_HOME/.codex/sessions/2026/09"
+CODEX_ROLLOUT="$CODEX_HOME/.codex/sessions/2026/09/rollout fixture.jsonl"
+printf '%s\n' \
+  '{"type":"session_meta","payload":{"id":"codex-session","cwd":"'"$PWD"'"}}' \
+  '{"type":"token_usage_record","data":{"input_tokens":3,"cached_input_tokens":2,"output_tokens":7,"reasoning_output_tokens":4,"total_tokens":10}}' \
+  '{"type":"token_usage_record","payload":{"usage":{"input_tokens":2,"cached_input_tokens":1,"output_tokens":3,"reasoning_output_tokens":1}}}' \
+  > "$CODEX_ROLLOUT"
+codex_usage="$(run_skill_entrypoint "$CODEX_HOME/.codex/skills/session-log/SKILL.md" "$CODEX_HOME" codex "usage \"$CODEX_ROLLOUT\"" 2>&1)"
+assert_contains "source skill preserves quoted usage target" "session: $CODEX_ROLLOUT" "$codex_usage"
+assert_contains "Codex total excludes cached and reasoning subsets" "total_tokens: 15" "$codex_usage"
+codex_id_usage="$(run_harness_at_home_and_dir "$CODEX_HOME" "$PWD" codex usage codex-session 2>&1)"
+assert_contains "Codex usage resolves a native session id" "session: $CODEX_ROLLOUT" "$codex_id_usage"
+CODEX_BACKSLASH_ROLLOUT="$CODEX_HOME/.codex/sessions/2026/09/rollout\\fixture.jsonl"
+cp "$CODEX_ROLLOUT" "$CODEX_BACKSLASH_ROLLOUT"
+touch -t 202001010101 "$CODEX_BACKSLASH_ROLLOUT"
+codex_backslash_usage="$(
+  run_skill_entrypoint "$CODEX_HOME/.codex/skills/session-log/SKILL.md" \
+    "$CODEX_HOME" codex "usage \"$CODEX_BACKSLASH_ROLLOUT\"" 2>&1
+)"
+assert_contains "quoted usage preserves a literal backslash" \
+  "session: $CODEX_BACKSLASH_ROLLOUT" "$codex_backslash_usage"
+UNRELATED_CODEX_ROLLOUT="$CODEX_HOME/.codex/sessions/2026/09/rollout-unrelated.jsonl"
+printf '%s\n' \
+  '{"type":"session_meta","payload":{"id":"unrelated-session","cwd":"/tmp/unrelated-project"}}' \
+  '{"type":"token_usage_record","data":{"input_tokens":999,"output_tokens":1,"total_tokens":1000}}' \
+  > "$UNRELATED_CODEX_ROLLOUT"
+touch -t 203001010101 "$UNRELATED_CODEX_ROLLOUT"
+codex_latest_usage="$(run_harness_at_home_and_dir "$CODEX_HOME" "$PWD" codex usage --latest 2>&1)"
+assert_contains "Codex latest stays in the current project" "session: $CODEX_ROLLOUT" "$codex_latest_usage"
 
 mkdir -p "$OMP_HOME/.omp/agent/sessions"
 printf '{"type":"session","id":"omp-session","cwd":"%s","timestamp":"2026-08-28T10:00:00.000Z"}\n{"type":"message","message":{"role":"user","content":"hello","timestamp":"2026-08-28T10:00:00.000Z"}}\n{"type":"message","message":{"role":"assistant","model":"fixture-model","timestamp":"2026-08-28T10:00:01.000Z","completedAt":"2026-08-28T10:00:03.000Z","usage":{"input":1,"output":2,"reasoning":3,"cacheRead":4,"cacheWrite":5,"cost":{"total":0.01}}}}\n' "$PWD" > "$OMP_HOME/.omp/agent/sessions/omp-session.jsonl"

@@ -4,15 +4,24 @@ description: Manage session prompt logging and usage totals (on / off / status /
 ---
 <!-- universal-session-log: managed -->
 
-Resolve this skill's own package directory (`$BASE`) across every supported harness — without Claude-Code-only artifacts — then hand off to its `install.sh` for the fixed `claude` harness.
+This skill supports exactly five host identities: `claude`, `codex`, `cursor`, `opencode`, and `omp`.
+
+Select the identity of the host that loaded this skill from runtime/system context. Never infer it from paths, processes, or environment variables. Set `harness` below to that literal identity. Set `BASE` first to the skill directory announced by the host. Set `arguments` to the exact invocation arguments, or to `status` when none were supplied.
 
 ```bash
-BASE=""; for d in "${SESSION_LOG_HOME:-}" .agents/skills/session-log .claude/skills/session-log .cursor/skills/session-log .opencode/skills/session-log .codex/skills/session-log ~/.agents/skills/session-log ~/.claude/skills/session-log ~/.cursor/skills/session-log ~/.config/opencode/skills/session-log ~/.omp/agent/skills/session-log ~/.codex/skills/session-log "$(ls -d ~/.claude/plugins/cache/*/claude-goodies/*/skills/session-log 2>/dev/null | sort -V | tail -1)"; do [ -n "$d" ] && [ -f "$d/install.sh" ] && { BASE="$d"; break; }; done
-if [ -n "$BASE" ]; then
-  exec bash "$BASE/install.sh" --harness claude --arguments "${ARGUMENTS:-status}"
+harness='<claude|codex|cursor|opencode|omp: choose the current host>'
+BASE='<the skill directory announced by the current host, or empty>'
+arguments='<exact invocation arguments, or status>'
+case "$harness" in claude|codex|cursor|opencode|omp) ;; *) printf 'session-log: unsupported host identity: %s\n' "$harness" >&2; false ;; esac
+if [ ! -f "$BASE/install.sh" ]; then
+  BASE=""; for d in "${SESSION_LOG_HOME:-}" .agents/skills/session-log .claude/skills/session-log .cursor/skills/session-log .opencode/skills/session-log .codex/skills/session-log ~/.agents/skills/session-log ~/.claude/skills/session-log ~/.cursor/skills/session-log ~/.config/opencode/skills/session-log ~/.omp/agent/skills/session-log ~/.codex/skills/session-log "$(ls -d ~/.claude/plugins/cache/*/claude-goodies/*/skills/session-log 2>/dev/null | sort -V | tail -1)"; do [ -n "$d" ] && [ -f "$d/install.sh" ] && { BASE="$d"; break; }; done
 fi
-printf 'session-log: complete package not found in any known skills root — set SESSION_LOG_HOME=<skill dir>\n' >&2
-exit 1
+if [ -n "$BASE" ]; then
+  bash "$BASE/install.sh" --harness "$harness" --arguments "$arguments"
+else
+  printf 'session-log: complete package not found in any known skills root — set SESSION_LOG_HOME=<skill dir>\n' >&2
+  false
+fi
 ```
 
-No argument means `status`. `usage` prints Claude Code's native report without changing its fields. `on` may report `on — restart required`; restart Claude Code before relying on logging.
+Keep arguments exact and shell-quote the assignment as one data value; never evaluate invocation text as shell syntax. For example, forward `usage --latest` as both words and preserve quoted values. Cursor native hooks/transcripts do not expose token totals, so Cursor usage reports that limitation rather than inventing totals. Codex user hooks require trust review after installation.

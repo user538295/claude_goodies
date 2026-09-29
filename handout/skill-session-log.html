@@ -18,19 +18,19 @@
 
     <section data-section="1-summary">
       <h2>What it is</h2>
-      <p><code>/session-log</code> keeps a running record of your coding sessions. While it is on, every prompt you send and every reply you get is written to a plain-Markdown file, timestamped, with the working time, token counts and an estimated dollar cost stitched onto each turn. Later you read that file — or ask for a one-line-per-turn total — to see what you did in a session and what it cost.</p>
-      <p>It works the same way across <strong>Claude Code</strong>, <strong>OpenCode</strong> and <strong>OMP</strong>. One command, <code>/session-log</code>, drives it everywhere; each tool keeps its own native storage and cost figures underneath.</p>
+      <p><code>/session-log</code> writes the prompt and response text exposed by the current harness to a local Markdown transcript. It supports exactly five host identities: <strong>Claude Code</strong>, <strong>Codex</strong>, <strong>Cursor</strong>, <strong>OpenCode</strong>, and <strong>OMP</strong>.</p>
+      <p>The same four commands control every harness, but their reports are deliberately not identical. Each adapter uses only its native lifecycle and usage records: Cursor exposes prompt and response text but no token totals, while Codex exposes token totals through native rollout records.</p>
     </section>
 
     <section data-section="2-features">
       <h2>What you get</h2>
       <ul>
-        <li><strong>A readable session transcript.</strong> Your prompts and the assistant's final replies, in order, each under an <code>HH:MM:SS</code> heading — a chronological diary of the session you can reread or grep.</li>
-        <li><strong>Per-turn cost &amp; timing.</strong> Every reply is followed by <code>working time</code> and an <code>est. used token</code> line: input, output, cache-write, cache-read, a total, and an estimated <code>price</code>.</li>
-        <li><strong>Model / effort switch tracking.</strong> When you change model or reasoning effort between turns, a <code>switched:</code> line records it — worth noticing, because switching models resets the prompt cache and the next turn pays for a fresh cache write.</li>
-        <li><strong>Sub-agent tracking.</strong> Each sub-agent that finishes adds a line naming it and pointing at its own transcript, so background work is visible and counted — even agents nested inside workflows.</li>
-        <li><strong>Whole-session totals on demand.</strong> <code>/session-log usage</code> adds every turn and every sub-agent into one <code>TOTAL</code> — each transcript counted exactly once, however deeply nested.</li>
-        <li><strong>Local and private.</strong> Logs are written under your home config directory with <code>600</code> permissions. Nothing is uploaded; pricing is computed offline from a checked-in table.</li>
+        <li><strong>A readable session transcript.</strong> Native lifecycle events append available prompts, final responses, and sub-agent notices in chronological order to a private local Markdown file.</li>
+        <li><strong>Truthful native usage.</strong> Claude Code and OMP can report per-turn usage; OpenCode reports native main-session and sub-agent aggregates; Codex reports a native rollout <code>TOTAL</code>. Cursor says token usage is unavailable instead of inventing numbers.</li>
+        <li><strong>Native timing and cost where available.</strong> Claude Code calculates an offline price estimate; OpenCode and OMP preserve their native cost fields. Codex reports token fields without price or working-time figures, and Cursor reports neither token totals nor cost.</li>
+        <li><strong>Native sub-agent accounting where available.</strong> Claude Code, OpenCode, and OMP include the sub-agent records their stores expose. Report fields and grouping remain harness-specific.</li>
+        <li><strong>An explicit identity boundary.</strong> The universal skill asks the current host/model to select <code>claude</code>, <code>codex</code>, <code>cursor</code>, <code>opencode</code>, or <code>omp</code>; it never infers identity from paths, processes, or environment variables.</li>
+        <li><strong>Local and private.</strong> Managed log files use <code>600</code> permissions and nothing is uploaded by this package.</li>
       </ul>
     </section>
 
@@ -44,39 +44,39 @@
         <tbody>
           <tr>
             <td><code>on</code></td>
-            <td>Turns logging on for the current tool and wires it in.</td>
-            <td><code>Claude Code: on</code> — or <code>on — restart required</code></td>
+            <td>Installs the current harness adapter and turns logging on.</td>
+            <td><code>&lt;label&gt;: on</code> or <code>on — restart required</code>; Codex uses <code>on — trust review/restart required</code></td>
           </tr>
           <tr>
             <td><code>off</code></td>
-            <td>Turns logging off for the current tool.</td>
-            <td><code>Claude Code: off</code></td>
+            <td>Turns logging off for the current harness.</td>
+            <td><code>&lt;label&gt;: off</code></td>
           </tr>
           <tr>
             <td><code>status</code> <span class="badge optional">default</span></td>
-            <td>Reports whether logging is active right now.</td>
-            <td><code>on</code> / <code>off</code> / <code>on — restart required</code> / <code>on — adapter missing</code></td>
+            <td>Repairs an enabled adapter if needed, then reports whether it is active.</td>
+            <td><code>on</code> / <code>off</code> / <code>on — adapter missing</code> / <code>on — restart required</code>; Codex uses <code>on — trust review/restart required</code></td>
           </tr>
           <tr>
             <td><code>usage</code></td>
-            <td>Prints a per-turn breakdown plus the session total.</td>
-            <td><code>Claude Code: usage</code> then the report</td>
+            <td>Runs the current harness's native usage report.</td>
+            <td><code>&lt;label&gt;: usage</code>, a native report, or Cursor's explicit limitation</td>
           </tr>
         </tbody>
       </table>
-      <p>The label at the front of every line (<code>Claude Code</code>, <code>OpenCode</code> or <code>OMP</code>) tells you which tool answered. <code>usage</code> targets the newest session of the current project by default; pass a session id or a transcript path to total a specific one. On Claude Code, add <code>--check</code> to cross-check the total against <code>ccusage</code> when it is installed.</p>
+      <p>The exact labels are <code>Claude Code</code>, <code>Codex</code>, <code>Cursor</code>, <code>OpenCode</code>, and <code>OMP</code>. <code>usage</code> defaults to the latest native session; pass a session ID, or a transcript path where that adapter accepts one. OpenCode accepts only an ID or <code>--latest</code>. Claude Code alone accepts <code>--check</code> to compare with <code>ccusage</code> when installed.</p>
     </section>
 
     <section data-section="4-good-to-know">
       <h2>Good to know</h2>
       <ul>
-        <li><strong>Turn it on once, then restart.</strong> The first <code>on</code> installs the tool's logging hook. If <code>status</code> says <code>on — restart required</code>, restart the tool before relying on the log — the hook only takes effect in a fresh session.</li>
-        <li><strong>On/off is per tool.</strong> Enabling it in Claude Code does not enable it in OpenCode or OMP; each keeps its own switch. <code>status</code> and <code>off</code> only ever touch the tool you are in.</li>
-        <li><strong>Cost is an estimate.</strong> Hence <code>est.</code> — the price comes from a checked-in table, so it is deterministic and works offline, but it is not a bill. A model missing from the table contributes <code>$0</code> and gets a <code>?</code> so you can spot the gap.</li>
-        <li><strong>The cache line is the interesting one.</strong> <code>cache_create</code> combines 5-minute and 1-hour cache writes (priced differently); a <code>switched:</code> line right above a large cache-write cost usually explains a spike.</li>
-        <li><strong>The format is grep-friendly.</strong> <code>^### .* response$</code>, <code>^est\. used token:</code>, <code>^switched:</code> and <code>sub-agent finished:</code> each match exactly one kind of line, so you can pull costs or responses out of a log with one command.</li>
-        <li><strong>Dependencies.</strong> Needs <code>bash</code>, Python 3 and <code>jq</code>. <code>usage</code> additionally needs <code>sqlite3</code> on OpenCode and Bun on OMP. A missing one gives a direct error.</li>
-        <li><strong>Default locations only.</strong> Logs live under the standard home roots (e.g. <code>~/.claude/prompt-logs/</code>). Relocated or custom config roots are unsupported and fail loudly rather than logging to the wrong place.</li>
+        <li><strong>Install all five without enabling them.</strong> From the repository, run <code>bash install-universal-session-log.sh</code>. It seeds or updates a complete stable package in every default skill root and installs OpenCode's command entrypoint.</li>
+        <li><strong>Bootstrap one harness while running a command.</strong> For example, <code>bash skills/session-log/install.sh --harness cursor --arguments "status"</code> first seeds or updates Cursor's package, then dispatches <code>status</code>. Use <code>--install --harness &lt;identity&gt;</code> to seed one package without running a command.</li>
+        <li><strong>Activation is per harness.</strong> <code>on</code>, <code>off</code>, and <code>status</code> touch only the explicitly selected identity. Restart after <code>on — restart required</code>. For Codex, review the commands added to <code>~/.codex/hooks.json</code>, trust them, then restart.</li>
+        <li><strong>Enabled adapters recover automatically.</strong> Every installer dispatch refreshes the selected stable package. If logging is enabled, <code>status</code> and <code>usage</code> also reinstall a missing or outdated native adapter before continuing.</li>
+        <li><strong>Usage is not a common schema.</strong> Claude Code reports per-turn and sub-agent totals with offline price estimates; OpenCode and OMP preserve native token and cost data; Codex totals native rollout token records without price; Cursor prints <code>native token usage unavailable</code> because its hooks and transcripts expose no totals.</li>
+        <li><strong>Dependencies are command-specific.</strong> Package bootstrap needs <code>bash</code>, Python 3, and <code>shasum</code> or <code>sha256sum</code>; runtime-state checks and Claude Code need <code>jq</code>. OpenCode <code>usage</code> additionally needs <code>sqlite3</code>; OMP <code>usage</code> needs Bun. <code>ccusage</code> is optional for Claude Code's <code>--check</code>.</li>
+        <li><strong>Default roots only.</strong> The roots are <code>~/.claude</code>, <code>~/.codex</code>, <code>~/.cursor</code>, <code>~/.config/opencode</code> (with native data in <code>~/.local/share/opencode</code>), and <code>~/.omp/agent</code>. Relocated roots fail explicitly.</li>
       </ul>
     </section>
 
@@ -106,9 +106,9 @@ switched: model claude-sonnet-5 → claude-opus-5, effort high → max
     </section>
 
     <section data-section="6-usage-report">
-      <h2>What a <code>usage</code> report looks like</h2>
+      <h2>What a Claude Code <code>usage</code> report looks like</h2>
       <div class="example">
-        <p><strong>Command:</strong> <code>/session-log usage</code> (totals the newest session of the current project).</p>
+        <p><strong>Command:</strong> <code>/session-log usage</code> in Claude Code (totals the newest session of the current project). Other harnesses keep their native report shapes described above.</p>
         <pre><code>Claude Code: usage
 
 1. 14:02:11  Implement the next uncompleted task…   est. used token: … price: $2.32

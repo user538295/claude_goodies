@@ -10,12 +10,11 @@ conventions including:
 - Review dates
 """
 
-import os
 import re
 import sys
 from pathlib import Path
-from datetime import datetime, timedelta
-from typing import List, Dict, Tuple
+from datetime import datetime
+from typing import List
 
 class Colors:
     """Terminal colors for output"""
@@ -26,140 +25,43 @@ class Colors:
     END = '\033[0m'
     BOLD = '\033[1m'
 
-class DocumentationValidator:
-    """Validates documentation structure and content"""
-    
-    def __init__(self, docs_path: str = "Documentation"):
-        self.docs_path = Path(docs_path)
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
-        self.info: List[str] = []
-        
-        # Expected directory structure
-        self.expected_dirs = {
-            "Architecture",
-            "ADRs",
-            "Backlog",
-            "Completed",
-            "UserManual"
-        }
-        
-        # Metadata pattern
-        self.metadata_pattern = re.compile(
-            r'\*\*Purpose\*\*:.*\n'
-            r'\*\*Audience\*\*:.*\n'
-            r'\*\*Status\*\*:.*\n'
-            r'\*\*Last reviewed\*\*:.*\n'
-            r'\*\*Next review\*\*:.*',
-            re.MULTILINE
-        )
-        
-    def validate(self) -> bool:
-        """Run all validations"""
-        print(f"{Colors.BOLD}Validating documentation structure...{Colors.END}\n")
-        
-        if not self.docs_path.exists():
-            self.errors.append(f"Documentation directory not found: {self.docs_path}")
-            return False
-        
-        self.validate_directory_structure()
-        self.validate_root_files()
-        self.validate_architecture_files()
-        self.validate_adr_files()
-        self.validate_all_markdown_files()
-        
-        return self.print_results()
-    
-    def validate_directory_structure(self):
-        """Validate that expected directories exist"""
-        print(f"{Colors.BLUE}Checking directory structure...{Colors.END}")
-        
-        existing_dirs = {d.name for d in self.docs_path.iterdir() if d.is_dir()}
-        missing_dirs = self.expected_dirs - existing_dirs
-        
-        if missing_dirs:
-            self.warnings.append(
-                f"Missing expected directories: {', '.join(missing_dirs)}"
-            )
-        else:
-            self.info.append("All expected directories present")
-    
-    def validate_root_files(self):
-        """Validate root-level documentation files"""
-        print(f"{Colors.BLUE}Checking root files...{Colors.END}")
-        
-        root = Path(".")
-        expected_files = ["readme.md", "contributing.md"]
-        
-        for filename in expected_files:
-            filepath = root / filename
-            if not filepath.exists():
-                self.warnings.append(f"Missing root file: {filename}")
-    
-    def validate_architecture_files(self):
-        """Validate Architecture directory files"""
-        arch_dir = self.docs_path / "Architecture"
-        if not arch_dir.exists():
-            return
-        
-        print(f"{Colors.BLUE}Checking Architecture files...{Colors.END}")
-        
-        for filepath in arch_dir.glob("*.md"):
-            # Check naming convention: NNN_snake_case.md
-            if not re.match(r'^\d{3}_[a-z0-9_]+\.md$', filepath.name):
-                self.errors.append(
-                    f"Architecture file has invalid naming: {filepath.name}. "
-                    f"Expected format: NNN_snake_case.md"
-                )
-            
-            self.validate_markdown_file(filepath)
-    
-    def validate_adr_files(self):
-        """Validate ADR directory files"""
-        adr_dir = self.docs_path / "ADRs"
-        if not adr_dir.exists():
-            return
-        
-        print(f"{Colors.BLUE}Checking ADR files...{Colors.END}")
-        
-        for filepath in adr_dir.glob("*.md"):
-            # Check naming convention: NN_descriptive_name.md
-            if not re.match(r'^\d{2}_[a-z0-9_-]+\.md$', filepath.name):
-                self.errors.append(
-                    f"ADR file has invalid naming: {filepath.name}. "
-                    f"Expected format: NN_descriptive_name.md"
-                )
-            
-            self.validate_adr_structure(filepath)
-    
+class DocumentationFileValidator:
+    """Validates the content of individual documentation files."""
+
+    def __init__(
+        self,
+        metadata_pattern: "re.Pattern[str]",
+        errors: List[str],
+        warnings: List[str],
+    ):
+        self._metadata_pattern = metadata_pattern
+        self._errors = errors
+        self._warnings = warnings
+
     def validate_markdown_file(self, filepath: Path):
         """Validate markdown file content"""
         try:
             content = filepath.read_text(encoding='utf-8')
         except Exception as e:
-            self.errors.append(f"Cannot read file {filepath}: {e}")
+            self._errors.append(f"Cannot read file {filepath}: {e}")
             return
-        
-        # Check for metadata header
-        if not self.metadata_pattern.search(content):
-            self.errors.append(f"Missing or invalid metadata header: {filepath}")
-        
-        # Check review dates
+
+        if not self._metadata_pattern.search(content):
+            self._errors.append(f"Missing or invalid metadata header: {filepath}")
+
         self.validate_review_dates(filepath, content)
-        
-        # Check for H1 heading
+
         if not re.search(r'^# .+', content, re.MULTILINE):
-            self.errors.append(f"Missing H1 heading: {filepath}")
-    
+            self._errors.append(f"Missing H1 heading: {filepath}")
+
     def validate_adr_structure(self, filepath: Path):
         """Validate ADR structure"""
         try:
             content = filepath.read_text(encoding='utf-8')
         except Exception as e:
-            self.errors.append(f"Cannot read ADR {filepath}: {e}")
+            self._errors.append(f"Cannot read ADR {filepath}: {e}")
             return
-        
-        # Check for required ADR sections
+
         required_sections = [
             "Status:",
             "Date:",
@@ -167,13 +69,13 @@ class DocumentationValidator:
             "Decision",
             "Consequences"
         ]
-        
+
         for section in required_sections:
             if section not in content:
-                self.errors.append(
+                self._errors.append(
                     f"ADR missing required section '{section}': {filepath}"
                 )
-    
+
     def validate_review_dates(self, filepath: Path, content: str):
         """Validate review dates in metadata"""
         last_review_match = re.search(
@@ -184,10 +86,10 @@ class DocumentationValidator:
             r'\*\*Next review\*\*:\s*(\d{4}-\d{2}-\d{2})',
             content
         )
-        
+
         if not last_review_match or not next_review_match:
             return  # Already caught by metadata validation
-        
+
         try:
             last_review = datetime.strptime(
                 last_review_match.group(1), '%Y-%m-%d'
@@ -195,94 +97,217 @@ class DocumentationValidator:
             next_review = datetime.strptime(
                 next_review_match.group(1), '%Y-%m-%d'
             )
-            
-            # Check if review is overdue
+
             if next_review < datetime.now():
-                self.warnings.append(
+                self._warnings.append(
                     f"Documentation review overdue: {filepath} "
                     f"(next review: {next_review.date()})"
                 )
-            
-            # Check if next review is before last review
+
             if next_review <= last_review:
-                self.errors.append(
+                self._errors.append(
                     f"Next review date must be after last review: {filepath}"
                 )
         except ValueError as e:
-            self.errors.append(
+            self._errors.append(
                 f"Invalid date format in {filepath}: {e}"
             )
-    
+
+
+class DocumentationValidator:
+    """Validates documentation structure and content"""
+
+    def __init__(self, docs_path: str = "Documentation"):
+        self._docs_path = Path(docs_path)
+        self._errors: List[str] = []
+        self._warnings: List[str] = []
+        self._info: List[str] = []
+        self._expected_dirs = {
+            "Architecture",
+            "ADRs",
+            "Backlog",
+            "Completed",
+            "UserManual"
+        }
+
+        self._metadata_pattern = re.compile(
+            r'\*\*Purpose\*\*:.*\n'
+            r'\*\*Audience\*\*:.*\n'
+            r'\*\*Status\*\*:.*\n'
+            r'\*\*Last reviewed\*\*:.*\n'
+            r'\*\*Next review\*\*:.*',
+            re.MULTILINE
+        )
+        self._file_validator = DocumentationFileValidator(
+            self._metadata_pattern, self._errors, self._warnings
+        )
+
+    def validate(self):
+        """Run all validations and collect findings."""
+        self._errors.clear()
+        self._warnings.clear()
+        self._info.clear()
+        if not self._docs_path.exists():
+            self._errors.append(
+                f"Documentation directory not found: {self._docs_path}"
+            )
+            return
+
+        self.validate_directory_structure()
+        self.validate_root_files()
+        self.validate_architecture_files()
+        self.validate_adr_files()
+        self.validate_all_markdown_files()
+
+    def has_warnings(self) -> bool:
+        """Return whether validation found warnings."""
+        return bool(self._warnings)
+
+    def is_successful(self) -> bool:
+        """Return whether validation passed with no errors."""
+        return not self._errors
+
+    def is_strictly_successful(self) -> bool:
+        """Return whether validation passed with no errors or warnings."""
+        return not self._errors and not self._warnings
+
+    @property
+    def errors(self) -> tuple[str, ...]:
+        return tuple(self._errors)
+
+    @property
+    def warnings(self) -> tuple[str, ...]:
+        return tuple(self._warnings)
+
+    @property
+    def info(self) -> tuple[str, ...]:
+        return tuple(self._info)
+
+    def validate_directory_structure(self):
+        """Validate that expected directories exist."""
+        existing_dirs = {
+            directory.name
+            for directory in self._docs_path.iterdir()
+            if directory.is_dir()
+        }
+        missing_dirs = self._expected_dirs - existing_dirs
+
+        if missing_dirs:
+            self._warnings.append(
+                f"Missing expected directories: {', '.join(missing_dirs)}"
+            )
+        else:
+            self._info.append("All expected directories present")
+
+    def validate_root_files(self):
+        """Validate root-level documentation files."""
+        root = Path(".")
+        expected_files = ["readme.md", "contributing.md"]
+
+        for filename in expected_files:
+            filepath = root / filename
+            if not filepath.exists():
+                self._warnings.append(f"Missing root file: {filename}")
+
+    def validate_architecture_files(self):
+        """Validate Architecture directory files."""
+        arch_dir = self._docs_path / "Architecture"
+        if not arch_dir.exists():
+            return
+
+        for filepath in arch_dir.glob("*.md"):
+            if not re.match(r'^\d{3}_[a-z0-9_]+\.md$', filepath.name):
+                self._errors.append(
+                    f"Architecture file has invalid naming: {filepath.name}. "
+                    f"Expected format: NNN_snake_case.md"
+                )
+
+            self._file_validator.validate_markdown_file(filepath)
+
+    def validate_adr_files(self):
+        """Validate ADR directory files"""
+        adr_dir = self._docs_path / "ADRs"
+        if not adr_dir.exists():
+            return
+
+        for filepath in adr_dir.glob("*.md"):
+            if not re.match(r'^\d{2}_[a-z0-9_-]+\.md$', filepath.name):
+                self._errors.append(
+                    f"ADR file has invalid naming: {filepath.name}. "
+                    f"Expected format: NN_descriptive_name.md"
+                )
+
+            self._file_validator.validate_adr_structure(filepath)
+
     def validate_all_markdown_files(self):
         """Validate all markdown files for common issues"""
-        print(f"{Colors.BLUE}Checking all markdown files...{Colors.END}")
-        
-        for filepath in self.docs_path.rglob("*.md"):
+        for filepath in self._docs_path.rglob("*.md"):
             try:
                 content = filepath.read_text(encoding='utf-8')
-                
+
                 # Check for trailing whitespace
                 if re.search(r' +$', content, re.MULTILINE):
-                    self.warnings.append(
+                    self._warnings.append(
                         f"File contains trailing whitespace: {filepath}"
                     )
-                
+
                 # Check for multiple blank lines
                 if re.search(r'\n\n\n+', content):
-                    self.warnings.append(
+                    self._warnings.append(
                         f"File contains multiple consecutive blank lines: {filepath}"
                     )
-                
+
                 # Check for tabs
                 if '\t' in content:
-                    self.warnings.append(
+                    self._warnings.append(
                         f"File contains tabs (use spaces): {filepath}"
                     )
             except Exception as e:
-                self.errors.append(f"Cannot validate {filepath}: {e}")
+                self._errors.append(f"Cannot validate {filepath}: {e}")
     
-    def print_results(self) -> bool:
-        """Print validation results"""
-        print(f"\n{Colors.BOLD}Validation Results:{Colors.END}\n")
-        
-        if self.info:
-            print(f"{Colors.GREEN}✓ Info:{Colors.END}")
-            for msg in self.info:
-                print(f"  {msg}")
-            print()
-        
-        if self.warnings:
-            print(f"{Colors.YELLOW}⚠ Warnings ({len(self.warnings)}):{Colors.END}")
-            for msg in self.warnings:
-                print(f"  {msg}")
-            print()
-        
-        if self.errors:
-            print(f"{Colors.RED}✗ Errors ({len(self.errors)}):{Colors.END}")
-            for msg in self.errors:
-                print(f"  {msg}")
-            print()
-        
-        # Summary
-        total_issues = len(self.errors) + len(self.warnings)
-        if self.errors:
-            print(f"{Colors.RED}{Colors.BOLD}Validation FAILED{Colors.END}")
-            print(f"Found {len(self.errors)} error(s) and {len(self.warnings)} warning(s)")
-            return False
-        elif self.warnings:
-            print(f"{Colors.YELLOW}{Colors.BOLD}Validation PASSED with warnings{Colors.END}")
-            print(f"Found {len(self.warnings)} warning(s)")
-            return True
-        else:
-            print(f"{Colors.GREEN}{Colors.BOLD}Validation PASSED{Colors.END}")
-            print("No issues found!")
-            return True
+def print_results(validator: DocumentationValidator):
+    """Print collected validation findings."""
+    errors = validator.errors
+    warnings = validator.warnings
+    info = validator.info
+    print(f"\n{Colors.BOLD}Validation Results:{Colors.END}\n")
+
+    if info:
+        print(f"{Colors.GREEN}✓ Info:{Colors.END}")
+        for msg in info:
+            print(f"  {msg}")
+        print()
+
+    if warnings:
+        print(f"{Colors.YELLOW}⚠ Warnings ({len(warnings)}):{Colors.END}")
+        for msg in warnings:
+            print(f"  {msg}")
+        print()
+
+    if errors:
+        print(f"{Colors.RED}✗ Errors ({len(errors)}):{Colors.END}")
+        for msg in errors:
+            print(f"  {msg}")
+        print()
+
+    if errors:
+        print(f"{Colors.RED}{Colors.BOLD}Validation FAILED{Colors.END}")
+        print(
+            f"Found {len(errors)} error(s) and "
+            f"{len(warnings)} warning(s)"
+        )
+    elif warnings:
+        print(f"{Colors.YELLOW}{Colors.BOLD}Validation PASSED with warnings{Colors.END}")
+        print(f"Found {len(warnings)} warning(s)")
+    else:
+        print(f"{Colors.GREEN}{Colors.BOLD}Validation PASSED{Colors.END}")
+        print("No issues found!")
 
 
 def main():
-    """Main entry point"""
+    """Main entry point."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(
         description='Validate documentation structure and content'
     )
@@ -296,16 +321,31 @@ def main():
         action='store_true',
         help='Treat warnings as errors'
     )
-    
+
     args = parser.parse_args()
-    
+
     validator = DocumentationValidator(args.path)
-    success = validator.validate()
-    
-    if args.strict and validator.warnings:
+    print(f"{Colors.BOLD}Validating documentation structure...{Colors.END}\n")
+    if Path(args.path).exists():
+        print(f"{Colors.BLUE}Checking directory structure...{Colors.END}")
+        print(f"{Colors.BLUE}Checking root files...{Colors.END}")
+        if (Path(args.path) / "Architecture").exists():
+            print(f"{Colors.BLUE}Checking Architecture files...{Colors.END}")
+        if (Path(args.path) / "ADRs").exists():
+            print(f"{Colors.BLUE}Checking ADR files...{Colors.END}")
+        print(f"{Colors.BLUE}Checking all markdown files...{Colors.END}")
+
+    validator.validate()
+    if Path(args.path).exists():
+        print_results(validator)
+
+    if args.strict and validator.has_warnings():
         print(f"\n{Colors.YELLOW}Running in strict mode: treating warnings as errors{Colors.END}")
-        success = False
-    
+
+    if args.strict:
+        success = validator.is_strictly_successful()
+    else:
+        success = validator.is_successful()
     sys.exit(0 if success else 1)
 
 

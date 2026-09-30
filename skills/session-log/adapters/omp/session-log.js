@@ -358,7 +358,7 @@ finally:
         os.close(enable_lock_fd)
 print("1")
 `;
-const secureAppend = (file, payload, dedupe, enableSignature, dedupeKey) => {
+const secureAppend = (file, payload, { dedupe = false, enableSignature = "", dedupeKey = "" } = {}) => {
 	const expected = fs.lstatSync(file);
 	const result = execFileSync("python3", ["-c", SECURE_APPEND_SCRIPT], {
 		env: {
@@ -489,6 +489,7 @@ const packageRoot = path.resolve(import.meta.dir, "../..");
 const version = fs.readFileSync(path.join(packageRoot, "VERSION"), "utf8").trim();
 const MAX_APPEND_ATTEMPTS = 5;
 const APPEND_RETRY_DELAY_MS = 250;
+const MAX_CLOSED_SESSIONS = 1024;
 const validId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
 function isEnabled() {
 	try { return fs.lstatSync(enabledFile).isFile(); } catch { return false; }
@@ -545,7 +546,8 @@ const ensureDirectory = (directory) => {
 		if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error(`OMP path is not a safe directory: ${current}`);
 		const privateDirectory = pathInside(logDir, current) || pathInside(stateDir, current);
 		const uid = typeof process.getuid === "function" ? process.getuid() : null;
-		if (privateDirectory && uid !== null && stat.uid !== uid) {
+		const ownedByAnotherUser = privateDirectory && uid !== null && stat.uid !== uid;
+		if (ownedByAnotherUser) {
 			throw new Error(`OMP private directory is not owned by this process: ${current}`);
 		}
 		if (privateDirectory && (stat.mode & 0o077) !== 0) fs.chmodSync(current, 0o700);
@@ -623,7 +625,8 @@ function sessionEntries(ctx) {
 
 function rootState(ctx) {
 	let current = sessionState(ctx);
-	if (current.metadataAvailable === false || !current.file || !validId(current.id)) return null;
+	const unusableRoot = current.metadataAvailable === false || !current.file || !validId(current.id);
+	if (unusableRoot) return null;
 	const seen = new Set();
 	while (!seen.has(current.file || current.id)) {
 		seen.add(current.file || current.id);
@@ -679,7 +682,7 @@ function append(file, text, dedupe = false, expectedSignature = enableSignature(
 	ensureFile(file, false);
 	const payload = text.endsWith("\n") ? text : `${text}\n`;
 	if (!isEnabled() || expectedSignature !== enableSignature()) return false;
-	return secureAppend(file, payload, Boolean(dedupeKey) || dedupe, expectedSignature, dedupeKey);
+	return secureAppend(file, payload, { dedupe: Boolean(dedupeKey) || dedupe, enableSignature: expectedSignature, dedupeKey });
 }
 function finiteNumber(value) {
 	if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -742,7 +745,8 @@ function modelName(message, ctx) {
 function messageKey(message) {
 	if (!message || message.role !== "assistant") return "";
 	const identity = message.responseId || message.messageId || message.id;
-	if ((typeof identity === "string" && identity) || typeof identity === "number") return `id:${String(identity)}`;
+	const hasStableIdentity = (typeof identity === "string" && identity) || typeof identity === "number";
+	if (hasStableIdentity) return `id:${String(identity)}`;
 	const timestamp = timestampNumber(message.timestamp);
 	if (timestamp !== undefined) return `timestamp:${String(timestamp)}`;
 	try {
@@ -860,8 +864,10 @@ function markLoaded() {
 	const runtime = path.join(stateDir, "runtime.json");
 	const processRuntime = path.join(stateDir, `runtime.${process.pid}.json`);
 	const payload = { harness: "omp", version, pid: process.pid, process_start: processStart(process.pid), nonce };
-	const temporaries = [temporary, processTemporary];
-	const runtimes = [runtime, processRuntime];
+	// Publish the per-process runtime before the canonical runtime.json pointer so a
+	// mid-failure can't leave runtime.json referencing a pid with no per-process file.
+	const temporaries = [processTemporary, temporary];
+	const runtimes = [processRuntime, runtime];
 	const owned = new Set();
 	try {
 		for (const file of [...temporaries, ...runtimes]) ensureFile(file);
@@ -893,7 +899,38 @@ function runUniversalCommand(argumentString, ctx) {
 	notify(ctx, stdout);
 }
 
-export default function sessionLogOmp(pi) {
+function createRun(overrides = {}) {
+	return { messages: [], endSeen: false, settled: false, finalizing: false, appendAttempts: 0, responseDedupeKey: "", ...overrides };
+}
+const queuedEventHandlers = {
+	end(run, item) {
+		run.messages.push(...(item.event.messages || []));
+		if (item.terminal !== false) {
+			run.endSeen = true;
+			run.settled = true;
+		}
+	},
+	default(run, item) {
+		for (const entry of sessionEntries(item.ctx) || []) {
+			if (entry?.message?.role === "assistant") run.messages.push(entry.message);
+		}
+		run.settled = run.messages.some(message => message?.role === "assistant");
+	},
+};
+function composeFinalizeRecord({ state, root, messages, ctx, start, end, previousModel }) {
+	const summary = summarize(messages, ctx);
+	const model = [...summary.models][0] || ctx.model?.id || "";
+	const switched = model && previousModel && model !== previousModel ? `switched: ${previousModel} → ${model}\n` : "";
+	const block = `${switched}${usageLine(summary)}\n\n---\n`;
+	const record = state.id === root.id
+		? `### ${new Date(end).toTimeString().slice(0, 8)} response\n\n${responseText(messages)}\n\nworking time: ${formatHms(end - start)}\n${block}`
+		: `sub-agent: ${state.id}, working time: ${formatHms(end - start)}\n${usageLine(summary)}\n\n`;
+	const responseIdentity = messages.map(messageKey).filter(Boolean).join("\0");
+	return { record, model, responseIdentity };
+}
+
+export default function sessionLogOmp(pi, options = {}) {
+	const now = options.now ?? Date.now;
 	markLoaded();
 	pi.registerCommand("session-log", {
 		description: "Manage session prompt logging and usage totals",
@@ -923,6 +960,12 @@ export default function sessionLogOmp(pi) {
 		clearTimeout(retryTimers.get(id));
 		retryTimers.delete(id);
 	};
+	const sessionUnavailable = (state) => !state.file || !validId(state.id) || closedSessions.has(state.id);
+	const runSignatureMismatch = (run, signature) => run && run.enableSignature !== signature;
+	const logAsyncFailure = (label, id) => (error) => {
+		const message = error instanceof Error ? error.message : String(error);
+		process.stderr.write(`session-log: ${label} failed for ${id}: ${message}\n`);
+	};
 	const clearPromptRetry = (id) => {
 		clearTimeout(promptRetryTimers.get(id));
 		promptRetryTimers.delete(id);
@@ -933,7 +976,7 @@ export default function sessionLogOmp(pi) {
 		const timer = setTimeout(() => {
 			retryTimers.delete(id);
 			if (!pendingRuns.has(id) || finalizedRuns.has(id)) return;
-			void finalize(ctx);
+			finalize(ctx).catch(logAsyncFailure("finalize", id));
 		}, APPEND_RETRY_DELAY_MS);
 		retryTimers.set(id, timer);
 	};
@@ -1002,20 +1045,9 @@ export default function sessionLogOmp(pi) {
 		const state = sessionState(next.ctx);
 		if (!state.file || !validId(state.id)) return;
 		finalizedRuns.delete(id);
-		const startedAt = Date.now();
+		const startedAt = now();
 		const runSignature = next.enableSignature ?? enableSignature();
-		const run = {
-			messages: [],
-			endSeen: false,
-			settled: false,
-			finalizing: false,
-			appendAttempts: 0,
-			prompt: next.event.prompt,
-			ctx: next.ctx,
-			enableSignature: runSignature,
-			dedupeKey: next.dedupeKey,
-			responseDedupeKey: "",
-		};
+		const run = createRun({ prompt: next.event.prompt, ctx: next.ctx, enableSignature: runSignature, dedupeKey: next.dedupeKey });
 		pendingRuns.set(id, run);
 		promptAttempts.set(id, { prompt: next.event.prompt, startedAt });
 		try {
@@ -1029,18 +1061,7 @@ export default function sessionLogOmp(pi) {
 		if (!queue.prompts.length) queuedRuns.delete(id);
 		for (const item of events) {
 			if (item.enableSignature !== runSignature) continue;
-			if (item.type === "end") {
-				run.messages.push(...(item.event.messages || []));
-				if (item.terminal !== false) {
-					run.endSeen = true;
-					run.settled = true;
-				}
-			} else {
-				for (const entry of sessionEntries(item.ctx) || []) {
-					if (entry?.message?.role === "assistant") run.messages.push(entry.message);
-				}
-				run.settled = run.messages.some(message => message?.role === "assistant");
-			}
+			(queuedEventHandlers[item.type] || queuedEventHandlers.default)(run, item);
 		}
 		if (run.endSeen && run.settled) await finalize(next.ctx, runSignature);
 	};
@@ -1056,18 +1077,7 @@ export default function sessionLogOmp(pi) {
 		clearRetry(id);
 		clearPromptRetry(id);
 	};
-	const discardDisabledSession = (id) => {
-		promptStates.delete(id);
-		promptAttempts.delete(id);
-		committedMessages.delete(id);
-		pendingMessages.delete(id);
-		pendingRuns.delete(id);
-		queuedRuns.delete(id);
-		finalizedRuns.delete(id);
-		lastModels.delete(id);
-		clearRetry(id);
-		clearPromptRetry(id);
-	};
+	const discardDisabledSession = forgetSession;
 	pi.on("session_start", () => {
 		markLoaded();
 	});
@@ -1075,6 +1085,7 @@ export default function sessionLogOmp(pi) {
 		const state = sessionState(ctx);
 		if (validId(state.id)) {
 			closedSessions.add(state.id);
+			if (closedSessions.size > MAX_CLOSED_SESSIONS) closedSessions.delete(closedSessions.values().next().value);
 			forgetSession(state.id);
 		}
 	});
@@ -1087,10 +1098,10 @@ export default function sessionLogOmp(pi) {
 		const currentSignature = enableSignature();
 		if (typeof event.prompt !== "string") return;
 		const state = sessionState(ctx);
-		if (!state.file || !validId(state.id) || closedSessions.has(state.id)) return;
+		if (sessionUnavailable(state)) return;
 		seedSessionMessages(ctx, stores);
 		let active = pendingRuns.get(state.id);
-		if (active && active.enableSignature !== currentSignature) {
+		if (runSignatureMismatch(active, currentSignature)) {
 			discardDisabledSession(state.id);
 			active = undefined;
 		}
@@ -1110,20 +1121,8 @@ export default function sessionLogOmp(pi) {
 		const attempt = promptAttempts.get(state.id);
 		if (attempt?.prompt === event.prompt && promptRetryTimers.has(state.id)) return;
 		finalizedRuns.delete(state.id);
-		const startedAt = attempt?.prompt === event.prompt ? attempt.startedAt : Date.now();
-		const run = {
-			messages: [],
-			endSeen: false,
-			settled: false,
-			finalizing: false,
-			promptReady: false,
-			appendAttempts: 0,
-			prompt: event.prompt,
-			ctx,
-			enableSignature: currentSignature,
-			dedupeKey: stableKey("omp-prompt", state.id, event.id ?? event.promptId ?? event.requestId ?? event.prompt),
-			responseDedupeKey: "",
-		};
+		const startedAt = attempt?.prompt === event.prompt ? attempt.startedAt : now();
+		const run = createRun({ promptReady: false, prompt: event.prompt, ctx, enableSignature: currentSignature, dedupeKey: stableKey("omp-prompt", state.id, event.id ?? event.promptId ?? event.requestId ?? event.prompt) });
 		pendingRuns.set(state.id, run);
 		promptAttempts.set(state.id, { prompt: event.prompt, startedAt });
 		try {
@@ -1144,7 +1143,7 @@ export default function sessionLogOmp(pi) {
 		clearRetry(id);
 		if (hasNext) {
 			finalizedRuns.delete(id);
-			void startQueuedRun(id);
+			startQueuedRun(id).catch(logAsyncFailure("startQueuedRun", id));
 		} else {
 			finalizedRuns.add(id);
 		}
@@ -1160,7 +1159,8 @@ export default function sessionLogOmp(pi) {
 		if (!state.file || !validId(state.id)) return;
 		if (finalizedRuns.has(state.id)) return;
 		const run = pendingRuns.get(state.id);
-		if (!run || !run.endSeen || run.finalizing) return;
+		const runNotReadyToFinalize = !run || !run.endSeen || run.finalizing;
+		if (runNotReadyToFinalize) return;
 		if (run.enableSignature !== expectedSignature || run.enableSignature !== enableSignature()) {
 			discardDisabledSession(state.id);
 			return;
@@ -1192,18 +1192,10 @@ export default function sessionLogOmp(pi) {
 		}
 		const logFile = ensureLog(root, ctx.cwd);
 		const messageStart = messages.map(message => timestampNumber(message?.timestamp)).find(value => value !== undefined);
-		const start = promptState?.startedAt ?? messageStart ?? Date.now();
+		const start = promptState?.startedAt ?? messageStart ?? now();
 		const end = messages.filter(message => message?.role === "assistant").map(messageTime).reduce((latest, value) => Math.max(latest, value), start);
-		const summary = summarize(messages, ctx);
-		const model = [...summary.models][0] || ctx.model?.id || "";
-		const previousModel = lastModels.get(root.id);
-		const switched = model && previousModel && model !== previousModel ? `switched: ${previousModel} → ${model}\n` : "";
-		const block = `${switched}${usageLine(summary)}\n\n---\n`;
-		const record = state.id === root.id
-			? `### ${new Date(end).toTimeString().slice(0, 8)} response\n\n${responseText(messages)}\n\nworking time: ${formatHms(end - start)}\n${block}`
-			: `sub-agent: ${state.id}, working time: ${formatHms(end - start)}\n${usageLine(summary)}\n\n`;
-		const responseIdentity = messages.map(messageKey).filter(Boolean).join("\0") || run.prompt || "";
-		run.responseDedupeKey ||= stableKey("omp-response", state.id, responseIdentity);
+		const { record, model, responseIdentity } = composeFinalizeRecord({ state, root, messages, ctx, start, end, previousModel: lastModels.get(root.id) });
+		run.responseDedupeKey ||= stableKey("omp-response", state.id, responseIdentity || run.prompt || "");
 		run.finalizing = true;
 		run.appendAttempts = (run.appendAttempts || 0) + 1;
 		try {
@@ -1247,7 +1239,7 @@ export default function sessionLogOmp(pi) {
 		}
 		const currentSignature = enableSignature();
 		const state = sessionState(ctx);
-		if (!state.file || !validId(state.id) || closedSessions.has(state.id)) return;
+		if (sessionUnavailable(state)) return;
 		const terminal = event.willContinue !== true;
 		const queued = queuedRuns.get(state.id);
 		let run = pendingRuns.get(state.id);
@@ -1259,23 +1251,14 @@ export default function sessionLogOmp(pi) {
 			discardDisabledSession(state.id);
 			return;
 		}
-		if (queued?.prompts.length && (!run || run.finalizing || run.endSeen || finalizedRuns.has(state.id))) {
+		const runBusyOrDone = !run || run.finalizing || run.endSeen || finalizedRuns.has(state.id);
+		if (queued?.prompts.length && runBusyOrDone) {
 			queued.prompts[0].events.push({ type: "end", event, ctx, terminal, enableSignature: currentSignature });
 			return;
 		}
 		if (finalizedRuns.has(state.id) && !run) return;
 		if (run?.finalizing || run?.endSeen) return;
-		run ||= {
-			messages: [],
-			endSeen: false,
-			settled: false,
-			finalizing: false,
-			appendAttempts: 0,
-			ctx,
-			enableSignature: currentSignature,
-			dedupeKey: "",
-			responseDedupeKey: "",
-		};
+		run ||= createRun({ ctx, enableSignature: currentSignature, dedupeKey: "" });
 		pendingRuns.set(state.id, run);
 		run.ctx = ctx;
 		run.messages.push(...(event.messages || []));
@@ -1294,24 +1277,14 @@ export default function sessionLogOmp(pi) {
 		}
 		const currentSignature = enableSignature();
 		const state = sessionState(ctx);
-		if (!state.file || !validId(state.id) || closedSessions.has(state.id)) return;
+		if (sessionUnavailable(state)) return;
 		let run = pendingRuns.get(state.id);
 		if (run && run.enableSignature !== currentSignature) {
 			discardDisabledSession(state.id);
 			return;
 		}
 		if (finalizedRuns.has(state.id) || run?.finalizing) return;
-		run ||= {
-			messages: [],
-			endSeen: false,
-			settled: false,
-			finalizing: false,
-			appendAttempts: 0,
-			ctx,
-			enableSignature: currentSignature,
-			dedupeKey: "",
-			responseDedupeKey: "",
-		};
+		run ||= createRun({ ctx, enableSignature: currentSignature, dedupeKey: "" });
 		run.ctx = ctx;
 		run.messages.push(...(event.messages || []));
 		run.endSeen = true;
@@ -1321,3 +1294,5 @@ export default function sessionLogOmp(pi) {
 	});
 
 }
+
+export { stableKey, projectSlug, contentText, messageKey, pathInside, finiteNumber, timestampNumber, nonNegativeInteger, usageLine, formatHms, createRun, queuedEventHandlers, composeFinalizeRecord };

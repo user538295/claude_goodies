@@ -1068,6 +1068,308 @@ printf 'different\n' > "$PSROOT/unowned.txt"
 cu_out="$(SESSION_LOG_SOURCE="$PSROOT/src.txt" SESSION_LOG_TARGET="$PSROOT/unowned.txt" SESSION_LOG_PRESERVE_MODE=0 SESSION_LOG_MANIFEST_OWNED=0 python3 "$PSLIB/pathsafe.py" copy-file 2>&1)"
 assert_contains "pathsafe copy-file refuses unowned file" "refusing to overwrite unowned file" "$cu_out"
 
+# copy_file restores the original when a target appears during replacement
+RACE_DIR="$PSROOT/copy-race"
+mkdir -p "$RACE_DIR"
+printf 'package source\n' > "$RACE_DIR/source"
+printf 'original target\n' > "$RACE_DIR/target"
+SESSION_LOG_SOURCE="$RACE_DIR/source" \
+  SESSION_LOG_TARGET="$RACE_DIR/target" \
+  SESSION_LOG_PRESERVE_MODE=0 \
+  SESSION_LOG_MANIFEST_OWNED=1 \
+  python3 - "$PSLIB" >/dev/null 2>&1 <<'PYRACE'
+import os
+import sys
+
+sys.path.insert(0, sys.argv[1])
+import pathsafe
+target = os.environ["SESSION_LOG_TARGET"]
+original_link = os.link
+pathsafe.random.randrange = lambda *_args: 0
+backup_zero = os.path.join(
+    os.path.dirname(target),
+    f".session-log-backup.{os.getpid()}.00000000.0",
+)
+conflict_zero = f"{backup_zero[:-2]}.1.conflict.0"
+with open(backup_zero, "x", encoding="utf-8") as handle:
+    handle.write("occupied backup target\n")
+with open(conflict_zero, "x", encoding="utf-8") as handle:
+    handle.write("occupied conflict target\n")
+
+def create_racing_target(source_name, target_name, **options):
+    if target_name == os.path.basename(target) and source_name.startswith(".session-log."):
+        with open(target, "x", encoding="utf-8") as handle:
+            handle.write("concurrent target\n")
+    return original_link(source_name, target_name, **options)
+
+os.link = create_racing_target
+try:
+    pathsafe.main(["copy-file"])
+except SystemExit as error:
+    if str(error) != f"package target changed during copy: {target}":
+        raise
+else:
+    raise SystemExit("copy-file accepted concurrent target")
+PYRACE
+race_rc=$?
+assert_exact "copy-file rejects a target created during replacement" "0" "$race_rc"
+assert_exact "copy-file restores the original target after a race" "original target" "$(cat "$RACE_DIR/target")"
+assert_exact "copy-file preserves the occupied conflict path" "occupied conflict target" "$(cat "$RACE_DIR"/.session-log-backup.*.conflict.0)"
+assert_exact "copy-file preserves the occupied backup path" "occupied backup target" "$(cat "$RACE_DIR"/.session-log-backup.*.00000000.0)"
+assert_exact "copy-file preserves the racing target as a conflict" "concurrent target" "$(find "$RACE_DIR" -type f -name '*.conflict.1' -exec cat {} \;)"
+
+# copy_file does not overwrite a target created during backup restoration
+RESTORE_RACE_DIR="$PSROOT/copy-restore-race"
+mkdir -p "$RESTORE_RACE_DIR"
+printf 'package source\n' > "$RESTORE_RACE_DIR/source"
+printf 'original target\n' > "$RESTORE_RACE_DIR/target"
+SESSION_LOG_SOURCE="$RESTORE_RACE_DIR/source" \
+  SESSION_LOG_TARGET="$RESTORE_RACE_DIR/target" \
+  SESSION_LOG_PRESERVE_MODE=0 \
+  SESSION_LOG_MANIFEST_OWNED=1 \
+  python3 - "$PSLIB" >/dev/null 2>&1 <<'PYRESTORERACE'
+import os
+import sys
+
+sys.path.insert(0, sys.argv[1])
+import pathsafe
+
+target = os.environ["SESSION_LOG_TARGET"]
+original_link = os.link
+original_stat = os.stat
+replacement_collision_created = [False]
+
+def create_replacement_collision(source_name, target_name, **options):
+    if (
+        target_name == os.path.basename(target)
+        and source_name.startswith(".session-log.")
+        and not replacement_collision_created[0]
+    ):
+        replacement_collision_created[0] = True
+        with open(target, "x", encoding="utf-8") as handle:
+            handle.write("concurrent target\n")
+    return original_link(source_name, target_name, **options)
+
+def create_restore_collision(path, *args, **options):
+    if path == os.path.basename(target):
+        try:
+            return original_stat(path, *args, **options)
+        except FileNotFoundError:
+            with open(target, "x", encoding="utf-8") as handle:
+                handle.write("restore collision target\n")
+            raise
+    return original_stat(path, *args, **options)
+
+os.link = create_replacement_collision
+os.stat = create_restore_collision
+try:
+    pathsafe.main(["copy-file"])
+except SystemExit as error:
+    if str(error) != f"package target changed during copy: {target}":
+        raise
+else:
+    raise SystemExit("copy-file accepted concurrent target")
+PYRESTORERACE
+restore_race_rc=$?
+assert_exact "copy-file rejects a collision during restore" "0" "$restore_race_rc"
+assert_exact "copy-file preserves the restore-race target" "restore collision target" "$(cat "$RESTORE_RACE_DIR/target")"
+assert_exact "copy-file preserves the original target backup" "original target" "$(find "$RESTORE_RACE_DIR" -type f -name '.session-log-backup.*' ! -name '*.conflict.*' -exec cat {} \;)"
+assert_exact "copy-file preserves the earlier racing target" "concurrent target" "$(find "$RESTORE_RACE_DIR" -type f -name '*.conflict.0' -exec cat {} \;)"
+
+# Claude settings restoration preserves a target created during rollback
+CLAUDE_RESTORE_RACE_DIR="$PSROOT/claude-restore-race"
+mkdir -p "$CLAUDE_RESTORE_RACE_DIR"
+printf '{"retained":"original"}\n' > "$CLAUDE_RESTORE_RACE_DIR/settings.json"
+SESSION_LOG_OWNER_MARKER=restore-owner \
+  SETTINGS_PATH="$CLAUDE_RESTORE_RACE_DIR/settings.json" \
+  HOOK_PATH="$CLAUDE_RESTORE_RACE_DIR/hook.sh" \
+  python3 - "$PSLIB" >/dev/null 2>&1 <<'PYCLAUDERACE'
+import os
+import sys
+
+sys.path.insert(0, sys.argv[1])
+import claude_settings
+
+settings = os.environ["SETTINGS_PATH"]
+name = os.path.basename(settings)
+original_link = os.link
+original_rename = claude_settings.pathsafe._rename_no_replace
+
+def create_settings_races(source_name, target_name, **options):
+    if target_name == name:
+        with open(settings, "x", encoding="utf-8") as handle:
+            handle.write("initial settings collision\n")
+    return original_link(source_name, target_name, **options)
+
+def create_restore_collision(dir_fd, source_name, target_name):
+    if target_name == name and source_name.startswith(".session-log-backup."):
+        with open(settings, "x", encoding="utf-8") as handle:
+            handle.write("restore collision settings\n")
+    return original_rename(dir_fd, source_name, target_name)
+
+os.link = create_settings_races
+claude_settings.pathsafe._rename_no_replace = create_restore_collision
+try:
+    claude_settings.main(["install"])
+except SystemExit as error:
+    if str(error) != "Claude settings changed during update; retry installation":
+        raise
+else:
+    raise SystemExit("settings install accepted concurrent target")
+PYCLAUDERACE
+claude_race_rc=$?
+assert_exact "Claude install rejects a collision during restore" "0" "$claude_race_rc"
+assert_exact "Claude install preserves the restore-race target" "restore collision settings" "$(cat "$CLAUDE_RESTORE_RACE_DIR/settings.json")"
+assert_exact "Claude install preserves the original settings backup" '{"retained":"original"}' "$(find "$CLAUDE_RESTORE_RACE_DIR" -type f -name '.session-log-backup.*' ! -name '*.conflict.*' -exec cat {} \;)"
+assert_exact "Claude install preserves the earlier racing settings" "initial settings collision" "$(find "$CLAUDE_RESTORE_RACE_DIR" -type f -name '*.conflict.0' -exec cat {} \;)"
+
+
+# Claude install and migration cleanup preserve destinations recreated before restore
+CLAUDE_CLEANUP_RACE_DIR="$PSROOT/claude-cleanup-race"
+mkdir -p "$CLAUDE_CLEANUP_RACE_DIR"
+SESSION_LOG_LIB="$PSLIB" CLAUDE_CLEANUP_RACE_DIR="$CLAUDE_CLEANUP_RACE_DIR" \
+  python3 - >/dev/null 2>&1 <<'PYCLAUDECLEANUP'
+import json
+import os
+import sys
+
+sys.path.insert(0, os.environ["SESSION_LOG_LIB"])
+import claude_settings
+
+root = os.environ["CLAUDE_CLEANUP_RACE_DIR"]
+original_link = os.link
+original_stat = os.stat
+
+def fail_update_link(source_name, target_name, **options):
+    if target_name == os.path.basename(os.environ["SETTINGS_PATH"]) and source_name.startswith(
+        (".session-log.", ".session-log-migrate.")
+    ):
+        raise OSError("injected update link failure")
+    return original_link(source_name, target_name, **options)
+
+def create_cleanup_collision(path, *args, **options):
+    settings = os.environ.get("SETTINGS_PATH")
+    if settings is not None and path == os.path.basename(settings):
+        try:
+            return original_stat(path, *args, **options)
+        except FileNotFoundError:
+            with open(settings, "x", encoding="utf-8") as handle:
+                handle.write("cleanup collision target\n")
+            raise
+    return original_stat(path, *args, **options)
+
+os.link = fail_update_link
+os.stat = create_cleanup_collision
+try:
+    for operation in ("install", "migrate"):
+        directory = os.path.join(root, operation)
+        os.makedirs(directory)
+        settings = os.path.join(directory, "settings.json")
+        legacy = os.path.join(directory, "scripts")
+        document = {"retained": f"{operation} original"}
+        if operation == "migrate":
+            document["hooks"] = {
+                "Stop": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": f"bash {legacy}/prompt_log_stop.sh",
+                            }
+                        ]
+                    }
+                ]
+            }
+        original_contents = json.dumps(document) + "\n"
+        with open(settings, "w", encoding="utf-8") as handle:
+            handle.write(original_contents)
+        os.environ.update(
+            SETTINGS_PATH=settings,
+            HOOK_PATH=os.path.join(directory, "hook.sh"),
+            SESSION_LOG_OWNER_MARKER="cleanup-owner",
+            CLAUDE_SCRIPTS_DIR=legacy,
+        )
+        try:
+            claude_settings.main([operation])
+        except OSError as error:
+            if str(error) != "injected update link failure":
+                raise
+        else:
+            raise SystemExit(f"{operation} accepted injected link failure")
+        with open(settings, encoding="utf-8") as handle:
+            assert handle.read() == "cleanup collision target\n"
+        backups = [
+            name
+            for name in os.listdir(directory)
+            if name.startswith(".session-log-backup.")
+            and ".conflict." not in name
+        ]
+        assert len(backups) == 1
+        with open(os.path.join(directory, backups[0]), encoding="utf-8") as handle:
+            assert handle.read() == original_contents
+finally:
+    os.link = original_link
+    os.stat = original_stat
+PYCLAUDECLEANUP
+claude_cleanup_race_rc=$?
+assert_exact "Claude cleanup rollback preserves recreated targets" "0" "$claude_cleanup_race_rc"
+# adapter-link rollback preserves a target created while restoring a symlink
+ADAPTER_RESTORE_RACE_DIR="$PSROOT/adapter-restore-race"
+mkdir -p "$ADAPTER_RESTORE_RACE_DIR/store/releases/v1" "$ADAPTER_RESTORE_RACE_DIR/store/releases/v2" "$ADAPTER_RESTORE_RACE_DIR/harness"
+printf 'old adapter\n' > "$ADAPTER_RESTORE_RACE_DIR/store/releases/v1/adapter.js"
+printf 'new adapter\n' > "$ADAPTER_RESTORE_RACE_DIR/store/releases/v2/adapter.js"
+ln -s "$ADAPTER_RESTORE_RACE_DIR/store/releases/v1/adapter.js" "$ADAPTER_RESTORE_RACE_DIR/harness/adapter.js"
+SESSION_LOG_SOURCE="$ADAPTER_RESTORE_RACE_DIR/store/releases/v2/adapter.js" \
+  SESSION_LOG_TARGET="$ADAPTER_RESTORE_RACE_DIR/harness/adapter.js" \
+  SESSION_LOG_STORE="$ADAPTER_RESTORE_RACE_DIR/store" \
+  python3 - "$PSLIB" >/dev/null 2>&1 <<'PYADAPTERRACE'
+import os
+import sys
+
+sys.path.insert(0, sys.argv[1])
+import pathsafe
+
+target = os.environ["SESSION_LOG_TARGET"]
+name = os.path.basename(target)
+original_rename = pathsafe._rename_no_replace
+original_symlink = os.symlink
+pathsafe.random.randrange = lambda *_args: 0
+conflict_zero = os.path.join(
+    os.path.dirname(target),
+    f".session-log-backup.{os.getpid()}.00000000.0.conflict.0",
+)
+with open(conflict_zero, "x", encoding="utf-8") as handle:
+    handle.write("occupied adapter conflict\n")
+
+def create_restore_collision(dir_fd, source_name, target_name):
+    if target_name == name and source_name.startswith(".session-log-backup."):
+        with open(target, "x", encoding="utf-8") as handle:
+            handle.write("adapter restore collision\n")
+    return original_rename(dir_fd, source_name, target_name)
+
+def create_adapter_collision(source, target_name, **options):
+    if target_name == name:
+        with open(target, "x", encoding="utf-8") as handle:
+            handle.write("adapter target collision\n")
+    return original_symlink(source, target_name, **options)
+
+pathsafe._rename_no_replace = create_restore_collision
+os.symlink = create_adapter_collision
+try:
+    pathsafe.main(["link-adapter"])
+except SystemExit as error:
+    if str(error) != f"adapter target changed during update: {target}":
+        raise
+else:
+    raise SystemExit("link-adapter accepted concurrent target")
+PYADAPTERRACE
+adapter_race_rc=$?
+assert_exact "link-adapter rejects a collision during restore" "0" "$adapter_race_rc"
+assert_exact "link-adapter preserves the restore-race target" "adapter restore collision" "$(cat "$ADAPTER_RESTORE_RACE_DIR/harness/adapter.js")"
+assert_exact "link-adapter preserves the original symlink backup" "$ADAPTER_RESTORE_RACE_DIR/store/releases/v1/adapter.js" "$(find "$ADAPTER_RESTORE_RACE_DIR/harness" -maxdepth 1 -type l -name '.session-log-backup.*' ! -name '*.conflict.*' -exec readlink {} \;)"
+assert_exact "link-adapter preserves the occupied conflict path" "occupied adapter conflict" "$(cat "$ADAPTER_RESTORE_RACE_DIR/harness"/.session-log-backup.*.conflict.0)"
+assert_exact "link-adapter preserves the earlier racing target" "adapter target collision" "$(find "$ADAPTER_RESTORE_RACE_DIR/harness" -maxdepth 1 -type f -name '*.conflict.1' -exec cat {} \;)"
+
 # link_adapter refuses an unowned link (points outside store/releases and differs from source)
 mkdir -p "$PSROOT/store/releases/v1"
 printf 'asset\n' > "$PSROOT/asset.js"
@@ -1165,6 +1467,88 @@ mig_bad_rc=$?
 assert_contains "claude_settings migrate reports malformed JSON cleanly" "cannot update Claude settings:" "$mig_bad_error"
 assert_not_contains "claude_settings migrate emits no raw traceback" "Traceback" "$mig_bad_error"
 set -e
+
+printf '=== CLI preserves hard-linked lock files and respects installation locks ===\n'
+HARDLINK_HOME="$WORKROOT/hardlink-home"
+HARDLINK_SENTINEL="$WORKROOT/hardlink-lock-sentinel"
+mkdir -p "$HARDLINK_HOME/.Trash" "$HARDLINK_HOME/.claude/prompt-logs"
+printf 'external lock sentinel\n' > "$HARDLINK_SENTINEL"
+chmod 644 "$HARDLINK_SENTINEL"
+ln "$HARDLINK_SENTINEL" "$HARDLINK_HOME/.claude/prompt-logs/.enabled.lock"
+set +e
+hardlink_lock_error="$(
+  HOME="$HARDLINK_HOME" "$TEST_HOME/.claude/skills/session-log/bin/session-log" \
+    --entrypoint claude --harness claude on 2>&1
+)"
+hardlink_lock_rc=$?
+set -e
+[[ "$hardlink_lock_rc" -ne 0 ]] && pass "CLI rejects hard-linked enable locks" || fail "CLI rejects hard-linked enable locks"
+assert_contains "hard-linked enable lock failure is explicit" "unsafe session-log enable lock" "$hardlink_lock_error"
+assert_exact "hard-linked enable lock target remains unchanged" "external lock sentinel" "$(cat "$HARDLINK_SENTINEL")"
+assert_mode "hard-linked enable lock keeps external permissions" "644" "$HARDLINK_SENTINEL"
+[[ "$HARDLINK_HOME/.claude/prompt-logs/.enabled.lock" -ef "$HARDLINK_SENTINEL" ]] &&
+  pass "hard-linked enable lock remains linked" ||
+  fail "hard-linked enable lock remains linked"
+
+FLAG_HARDLINK_HOME="$WORKROOT/flag-hardlink-home"
+FLAG_HARDLINK_SENTINEL="$WORKROOT/flag-hardlink-sentinel"
+mkdir -p "$FLAG_HARDLINK_HOME/.Trash" "$FLAG_HARDLINK_HOME/.claude/prompt-logs"
+printf 'external flag sentinel\n' > "$FLAG_HARDLINK_SENTINEL"
+chmod 644 "$FLAG_HARDLINK_SENTINEL"
+ln "$FLAG_HARDLINK_SENTINEL" "$FLAG_HARDLINK_HOME/.claude/prompt-logs/.enabled"
+set +e
+hardlink_flag_error="$(
+  HOME="$FLAG_HARDLINK_HOME" "$TEST_HOME/.claude/skills/session-log/bin/session-log" \
+    --entrypoint claude --harness claude off 2>&1
+)"
+hardlink_flag_rc=$?
+set -e
+[[ "$hardlink_flag_rc" -ne 0 ]] && pass "CLI rejects hard-linked enable flags" || fail "CLI rejects hard-linked enable flags"
+assert_contains "hard-linked flag failure is explicit" "unsafe session-log enable flag" "$hardlink_flag_error"
+assert_exact "hard-linked enable flag target remains unchanged" "external flag sentinel" "$(cat "$FLAG_HARDLINK_SENTINEL")"
+assert_mode "hard-linked enable flag keeps external permissions" "644" "$FLAG_HARDLINK_SENTINEL"
+[[ "$FLAG_HARDLINK_HOME/.claude/prompt-logs/.enabled" -ef "$FLAG_HARDLINK_SENTINEL" ]] &&
+  pass "hard-linked enable flag remains linked" ||
+  fail "hard-linked enable flag remains linked"
+
+CLAUDE_ATOMIC_HOME="$WORKROOT/claude-atomic-home"
+CLAUDE_SETTINGS_SENTINEL="$WORKROOT/claude-settings-sentinel"
+mkdir -p "$CLAUDE_ATOMIC_HOME/.Trash" "$CLAUDE_ATOMIC_HOME/.claude"
+printf '{"retained":"external settings"}\n' > "$CLAUDE_SETTINGS_SENTINEL"
+chmod 640 "$CLAUDE_SETTINGS_SENTINEL"
+ln "$CLAUDE_SETTINGS_SENTINEL" "$CLAUDE_ATOMIC_HOME/.claude/settings.json"
+set +e
+claude_atomic_output="$(
+  HOME="$CLAUDE_ATOMIC_HOME" bash "$REPO/skills/session-log/install.sh" \
+    --harness claude --arguments on 2>&1
+)"
+claude_atomic_rc=$?
+set -e
+[[ "$claude_atomic_rc" -eq 0 ]] && pass "Claude installer atomically updates hard-linked settings" || fail "Claude installer atomically updates hard-linked settings (actual: $claude_atomic_output)"
+assert_exact "Claude installer keeps activation output" "Claude Code: on — restart required" "$claude_atomic_output"
+assert_exact "settings hard-link target remains unchanged" '{"retained":"external settings"}' "$(cat "$CLAUDE_SETTINGS_SENTINEL")"
+assert_mode "updated Claude settings preserve mode" "640" "$CLAUDE_ATOMIC_HOME/.claude/settings.json"
+[[ ! "$CLAUDE_ATOMIC_HOME/.claude/settings.json" -ef "$CLAUDE_SETTINGS_SENTINEL" ]] &&
+  pass "Claude settings update replaces rather than mutates hard links" ||
+  fail "Claude settings update replaces rather than mutates hard links"
+assert_contains "updated Claude settings preserve existing values" "external settings" "$(cat "$CLAUDE_ATOMIC_HOME/.claude/settings.json")"
+
+PACKAGE_LOCK_HOME="$WORKROOT/package-lock-home"
+PACKAGE_LOCK="$PACKAGE_LOCK_HOME/.local/share/universal-session-log/.install.lock"
+mkdir -p "$PACKAGE_LOCK_HOME/.Trash" "$PACKAGE_LOCK"
+PACKAGE_LOCK_START="$(ps -p "$$" -o lstart= 2>/dev/null | sed 's/^ *//; s/[[:space:]]*$//')"
+printf '%s\n%s\n' "$$" "$PACKAGE_LOCK_START" > "$PACKAGE_LOCK/owner"
+PACKAGE_LOCK_OWNER="$(cat "$PACKAGE_LOCK/owner")"
+set +e
+package_lock_error="$(
+  HOME="$PACKAGE_LOCK_HOME" bash "$REPO/skills/session-log/install.sh" --install --harness omp 2>&1
+)"
+package_lock_rc=$?
+set -e
+[[ "$package_lock_rc" -ne 0 ]] && pass "package installer waits for a live installation lock" || fail "package installer waits for a live installation lock"
+assert_contains "package lock failure is explicit" "installation is already in progress" "$package_lock_error"
+assert_not_file "package lock prevents partial package installation" "$PACKAGE_LOCK_HOME/.omp/agent/skills/session-log/SKILL.md"
+assert_exact "package lock owner remains unchanged" "$PACKAGE_LOCK_OWNER" "$(cat "$PACKAGE_LOCK/owner")"
 
 printf '\nResults: %s\n' "$([[ "$FAIL" -eq 0 ]] && echo passed || echo FAILED)"
 exit "$FAIL"

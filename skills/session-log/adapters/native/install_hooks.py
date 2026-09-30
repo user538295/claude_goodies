@@ -8,23 +8,29 @@ import stat
 import sys
 from pathlib import Path
 
+LIB_PATH = str(Path(__file__).resolve().parents[2] / "lib")
+if LIB_PATH not in sys.path:
+    sys.path.insert(0, LIB_PATH)
+import pathsafe
+
 MAX_TEMP_FILE_ATTEMPTS = 20
 
-EVENTS = {
-    "cursor": {
-        "sessionStart": "session-start",
-        "beforeSubmitPrompt": "user-prompt",
-        "afterAgentResponse": "assistant-response",
-        "subagentStop": "subagent-stop",
-        "stop": "stop",
-    },
-    "codex": {
-        "SessionStart": "session-start",
-        "UserPromptSubmit": "user-prompt",
-        "Stop": "stop",
-        "SubagentStop": "subagent-stop",
-    },
-}
+
+def _events(harness):
+    if harness == "cursor":
+        return (
+            ("sessionStart", "session-start"),
+            ("beforeSubmitPrompt", "user-prompt"),
+            ("afterAgentResponse", "assistant-response"),
+            ("subagentStop", "subagent-stop"),
+            ("stop", "stop"),
+        )
+    return (
+        ("SessionStart", "session-start"),
+        ("UserPromptSubmit", "user-prompt"),
+        ("Stop", "stop"),
+        ("SubagentStop", "subagent-stop"),
+    )
 
 
 def fail(message):
@@ -32,7 +38,7 @@ def fail(message):
     raise SystemExit(1)
 
 
-def is_unsafe_file(path):
+def is_unsafe_path(path):
     return path.is_symlink() or (path.exists() and not path.is_file())
 
 
@@ -63,31 +69,40 @@ def expected_codex(harness, hook, lifecycle):
     return {"hooks": [{"type": "command", "command": build_command(harness, hook, lifecycle)}]}
 
 
-EXPECTED_BUILDERS = {
-    "cursor": expected_cursor,
-    "codex": expected_codex,
-}
+def _expected_builder(harness):
+    return expected_cursor if harness == "cursor" else expected_codex
 
 
-def is_codex_hook_entry(entry):
-    return isinstance(entry, dict) and isinstance(entry.get("hooks"), list)
+def is_cursor_managed_entry(entry, harness, lifecycle):
+    return isinstance(entry, dict) and managed_command(entry.get("command"), harness, lifecycle)
+
+
+def is_codex_managed_entry(entry, harness, lifecycle):
+    if not isinstance(entry, dict) or not isinstance(entry.get("hooks"), list):
+        return False
+    items = entry["hooks"]
+    return len(items) == 1 and isinstance(items[0], dict) and managed_command(items[0].get("command"), harness, lifecycle)
 
 
 def is_managed_entry(entry, harness, lifecycle):
     if harness == "cursor":
-        return isinstance(entry, dict) and managed_command(entry.get("command"), harness, lifecycle)
-    if is_codex_hook_entry(entry):
-        items = entry["hooks"]
-        return len(items) == 1 and isinstance(items[0], dict) and managed_command(items[0].get("command"), harness, lifecycle)
-    return False
+        return is_cursor_managed_entry(entry, harness, lifecycle)
+    return is_codex_managed_entry(entry, harness, lifecycle)
+
+
+def prepare_cursor_document(document):
+    version = document.get("version", 1)
+    if version != 1:
+        fail("Cursor hooks version must be 1")
+    document["version"] = 1
 
 
 def is_current(document, harness, hook):
     hooks = document.get("hooks")
     if not isinstance(hooks, dict):
         return False
-    expected_for = EXPECTED_BUILDERS[harness]
-    for event, lifecycle in EVENTS[harness].items():
+    expected_for = _expected_builder(harness)
+    for event, lifecycle in _events(harness):
         entries = hooks.get(event)
         if not isinstance(entries, list):
             return False
@@ -101,12 +116,9 @@ def update(document, harness, hook):
     if not isinstance(hooks, dict):
         fail(f"{harness} hooks must be an object")
     if harness == "cursor":
-        version = document.get("version", 1)
-        if version != 1:
-            fail("Cursor hooks version must be 1")
-        document["version"] = 1
-    expected_for = EXPECTED_BUILDERS[harness]
-    for event, lifecycle in EVENTS[harness].items():
+        prepare_cursor_document(document)
+    expected_for = _expected_builder(harness)
+    for event, lifecycle in _events(harness):
         entries = hooks.setdefault(event, [])
         if not isinstance(entries, list):
             fail(f"{harness} hooks.{event} must be an array")
@@ -128,7 +140,7 @@ def safe_parent(path):
 
 def load(path):
     safe_parent(path)
-    if is_unsafe_file(path):
+    if is_unsafe_path(path):
         fail(f"refusing to update unsafe hooks file: {path}")
     if not path.exists():
         return {}
@@ -141,54 +153,94 @@ def load(path):
     return value
 
 
+def _is_unsafe_existing_target(original):
+    return original is not None and (
+        stat.S_ISLNK(original.st_mode) or not stat.S_ISREG(original.st_mode)
+    )
+
+
 def atomic_write(path, document):
-    mode = stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o600
-    data = (json.dumps(document, indent=2) + "\n").encode()
-    for _ in range(MAX_TEMP_FILE_ATTEMPTS):
-        temporary = path.parent / f".{path.name}.{os.getpid()}.{random.randrange(1 << 30):08x}"
-        try:
-            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
-            break
-        except FileExistsError:
-            continue
-    else:
-        fail("cannot create temporary hooks file")
+    path = path.absolute()
+    parent_fd = pathsafe.open_directory(str(path.parent), create=False)
+    temporary = None
+    descriptor = None
+    temporary_stat = None
     try:
+        try:
+            original = os.stat(path.name, dir_fd=parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            original = None
+        if _is_unsafe_existing_target(original):
+            fail(f"refusing to replace unsafe hooks file: {path}")
+        mode = stat.S_IMODE(original.st_mode) if original is not None else 0o600
+        data = (json.dumps(document, indent=2) + "\n").encode()
+        for _ in range(MAX_TEMP_FILE_ATTEMPTS):
+            candidate = f".{path.name}.{os.getpid()}.{random.randrange(1 << 30):08x}"
+            try:
+                descriptor = os.open(
+                    candidate,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                    0o600,
+                    dir_fd=parent_fd,
+                )
+                temporary = candidate
+                temporary_stat = os.fstat(descriptor)
+                break
+            except FileExistsError:
+                continue
+        else:
+            fail("cannot create temporary hooks file")
         os.fchmod(descriptor, mode)
-        os.write(descriptor, data)
+        data_view = memoryview(data)
+        offset = 0
+        while offset < len(data_view):
+            written = os.write(descriptor, data_view[offset:])
+            if written == 0:
+                raise OSError("hooks file write made no progress")
+            offset += written
         os.fsync(descriptor)
         os.close(descriptor)
         descriptor = None
-        if is_unsafe_file(path):
-            fail(f"refusing to replace unsafe hooks file: {path}")
-        os.replace(temporary, path)
-        directory = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
+        pathsafe.replace_file_no_replace(
+            pathsafe.AtomicReplacement(
+                parent_fd,
+                temporary,
+                path.name,
+                original,
+                temporary_stat,
+            )
+        )
+        temporary = None
+        os.fsync(parent_fd)
     finally:
         if descriptor is not None:
             os.close(descriptor)
-        try:
-            temporary.unlink()
-        except FileNotFoundError:
-            pass
-
+        if temporary is not None:
+            try:
+                pathsafe.unlink_if_same_file(parent_fd, temporary, temporary_stat)
+            except OSError:
+                pass
+        os.close(parent_fd)
 
 def invalid_arguments(argv):
-    return len(argv) != 5 or argv[1] not in ("check", "install") or argv[2] not in EVENTS
+    return len(argv) != 5 or argv[1] not in ("check", "install") or argv[2] not in ("cursor", "codex")
 
 
-if invalid_arguments(sys.argv):
-    fail("hooks configurator requires check|install, cursor|codex, config path, and hook path")
-mode, harness, config_path, hook_path = sys.argv[1:]
-config = Path(config_path)
-hook = Path(hook_path)
-if not hook.is_file() or hook.is_symlink():
-    fail(f"native lifecycle adapter is missing: {hook}")
-document = load(config)
-if mode == "check":
-    raise SystemExit(0 if is_current(document, harness, hook) else 1)
-update(document, harness, hook)
-atomic_write(config, document)
+def main(argv=None):
+    args = sys.argv if argv is None else [sys.argv[0], *argv]
+    if invalid_arguments(args):
+        fail("hooks configurator requires check|install, cursor|codex, config path, and hook path")
+    mode, harness, config_path, hook_path = args[1:]
+    config = Path(config_path)
+    hook = Path(hook_path)
+    if not hook.is_file() or hook.is_symlink():
+        fail(f"native lifecycle adapter is missing: {hook}")
+    document = load(config)
+    if mode == "check":
+        raise SystemExit(0 if is_current(document, harness, hook) else 1)
+    update(document, harness, hook)
+    atomic_write(config, document)
+
+
+if __name__ == "__main__":
+    main()

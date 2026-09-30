@@ -2,7 +2,7 @@
 
 Records which raw files have been ingested into the wiki and their sha256 at
 ingest time, so changed files can be flagged for re-ingest. This is the
-*ingested*-hash authority; the current-hash is computed on demand by status().
+*ingested*-hash authority; the current-hash is computed on demand by get_status().
 Script-owned so the LLM never hand-edits the ledger.
 """
 
@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +20,11 @@ READ_CHUNK_BYTES = 65536
 
 
 def _hash_file(path: Path) -> str:
+    # Guard the hash boundary: a user-supplied path (possibly via a symlink)
+    # must resolve to a regular file before it can reach open(). This blocks
+    # devices/FIFOs/sockets that would otherwise be read here.
+    if not path.is_file():
+        raise ValueError(f"not a regular file: {path}")
     h = hashlib.sha256()
     with open(path, "rb") as f:
         while chunk := f.read(READ_CHUNK_BYTES):
@@ -58,8 +64,8 @@ class CatalogStore:
         tmp.rename(path)
 
 
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+def _now_iso(clock: Callable[[], datetime]) -> str:
+    return clock().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
 def _raw_dir(project_root: Path) -> Path:
@@ -72,29 +78,44 @@ def _catalog_path(project_root: Path) -> Path:
     return Path(project_root) / "llm-wiki" / "catalog.json"
 
 
-def _relkey(project_root: Path, raw_path: str, must_exist: bool = True) -> str:
-    """Resolve raw_path to a POSIX key relative to raw/. Rejects anything that
-    resolves outside raw/ (blocks `..` traversal). Tolerates the documented
-    `raw/<file>` form (schema.md) as well as a bare `<file>`."""
+def _has_raw_prefix(path: Path) -> bool:
+    return not path.is_absolute() and len(path.parts) > 1 and path.parts[0] == "raw"
+
+
+def _raw_path(project_root: Path, raw_path: str) -> Path:
+    """Normalize a user path lexically and require it to remain under raw/."""
     raw_dir = _raw_dir(project_root)
-    p = Path(raw_path)
-    # A leading `raw/` is the documented CLI form (schema.md); strip it.
-    if not p.is_absolute() and len(p.parts) > 1 and p.parts[0] == "raw":
-        p = Path(*p.parts[1:])
-    p = p if p.is_absolute() else (raw_dir / p)
-    # ponytail: normpath collapses .. without following symlinks, so
-    # symlinked files/dirs in raw/ resolve to their link path, not target.
-    p = Path(os.path.normpath(p))
+    path = Path(raw_path)
+    if _has_raw_prefix(path):
+        path = Path(*path.parts[1:])
+    path = path if path.is_absolute() else raw_dir / path
+    # Collapse traversal components without resolving symlinks, preserving link paths.
+    path = Path(os.path.normpath(path))
     try:
-        rel = p.relative_to(raw_dir)
+        path.relative_to(raw_dir)
     except ValueError:
         raise ValueError(f"path is not under {raw_dir}: {raw_path}")
-    if must_exist and not p.is_file():
+    return path
+
+
+def _existing_file_key(project_root: Path, raw_path: str) -> str:
+    """Resolve an existing file to a POSIX key relative to raw/."""
+    path = _raw_path(project_root, raw_path)
+    if not path.is_file():
         raise ValueError(f"not an existing file under raw/: {raw_path}")
-    return rel.as_posix()
+    return path.relative_to(_raw_dir(project_root)).as_posix()
 
 
-def add(project_root: Path, paths: list[str]) -> None:
+def _ledger_key(project_root: Path, raw_path: str) -> str:
+    """Resolve a ledger key, including paths for files already removed."""
+    return _raw_path(project_root, raw_path).relative_to(_raw_dir(project_root)).as_posix()
+
+
+def add(
+    project_root: Path,
+    paths: list[str],
+    clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+) -> None:
     """Record (upsert) each raw file's current sha256 and ingest time. Each path
     must be an existing file under raw/ (bare or `raw/`-prefixed); raises
     ValueError otherwise."""
@@ -102,10 +123,10 @@ def add(project_root: Path, paths: list[str]) -> None:
     entries = CatalogStore.load(cat_path)
     raw_dir = _raw_dir(project_root)
     for raw_path in paths:
-        key = _relkey(project_root, raw_path, must_exist=True)
+        key = _existing_file_key(project_root, raw_path)
         entries[key] = CatalogEntry(
             sha256=_hash_file(raw_dir / key),
-            ingested_at=_now_iso(),
+            ingested_at=_now_iso(clock),
         )
     CatalogStore.save(cat_path, entries)
 
@@ -116,7 +137,7 @@ def remove(project_root: Path, paths: list[str]) -> None:
     cat_path = _catalog_path(project_root)
     entries = CatalogStore.load(cat_path)
     for raw_path in paths:
-        key = _relkey(project_root, raw_path, must_exist=False)
+        key = _ledger_key(project_root, raw_path)
         entries.pop(key, None)
     CatalogStore.save(cat_path, entries)
 
@@ -124,36 +145,78 @@ def remove(project_root: Path, paths: list[str]) -> None:
 def get(project_root: Path, raw_path: str) -> CatalogEntry | None:
     """Return the ledger entry for a raw path, or None if not catalogued."""
     entries = CatalogStore.load(_catalog_path(project_root))
-    key = _relkey(project_root, raw_path, must_exist=False)
+    key = _ledger_key(project_root, raw_path)
     return entries.get(key)
 
 
-def status(project_root: Path) -> dict[str, list[str]]:
+def _scan_children(directory: Path) -> list:
+    """Directory entries, or [] if the directory can't be scanned."""
+    try:
+        with os.scandir(directory) as children:
+            return list(children)
+    except OSError:
+        return []
+
+
+def _dir_identity(child) -> tuple[int, int] | None:
+    """(st_dev, st_ino) if child is a (followable) directory, else None."""
+    try:
+        if child.is_dir(follow_symlinks=True):
+            child_stat = child.stat(follow_symlinks=True)
+            return (child_stat.st_dev, child_stat.st_ino)
+    except OSError:
+        return None
+    return None
+
+
+def _is_regular_file(child) -> bool:
+    try:
+        return child.is_file(follow_symlinks=True)
+    except OSError:
+        return False
+
+
+def _iter_raw_files(raw_dir: Path):
+    """Yield (posix_key, full_path) for every regular file under raw/, following
+    symlinks but never revisiting a directory already on the current path so
+    symlink cycles terminate."""
+    if not raw_dir.exists():
+        return
+    root_stat = raw_dir.stat()
+    stack = [(raw_dir, Path(), frozenset({(root_stat.st_dev, root_stat.st_ino)}))]
+    while stack:
+        directory, relative_dir, ancestors = stack.pop()
+        for child in _scan_children(directory):
+            relative_path = relative_dir / child.name
+            identity = _dir_identity(child)
+            if identity is not None:
+                if identity not in ancestors:
+                    stack.append(
+                        (Path(child.path), relative_path, ancestors | {identity})
+                    )
+                continue
+            if not _is_regular_file(child):
+                continue
+            yield relative_path.as_posix(), Path(child.path)
+
+
+def get_status(project_root: Path) -> dict[str, list[str]]:
     """Diff raw/ against the catalog. new/changed/current re-hash each raw file
-    (ponytail: O(total bytes) per call; add an mtime/size cache if corpora grow
-    huge). missing = catalogued files no longer in raw/."""
+    in full on every call. missing = catalogued files no longer in raw/."""
     entries = CatalogStore.load(_catalog_path(project_root))
     raw_dir = _raw_dir(project_root)
 
     new, changed, current = [], [], []
     seen: set[str] = set()
-    if raw_dir.exists():
-        # ponytail: followlinks=True lets users symlink external corpora into raw/;
-        # symlink loops are the user's problem — upgrade to cycle detection if needed.
-        for dirpath, _dirnames, filenames in os.walk(raw_dir, followlinks=True):
-            for filename in filenames:
-                full = Path(dirpath) / filename
-                if not full.is_file():
-                    continue
-                key = full.relative_to(raw_dir).as_posix()
-                seen.add(key)
-                entry = entries.get(key)
-                if entry is None:
-                    new.append(key)
-                elif entry.sha256 == _hash_file(full):
-                    current.append(key)
-                else:
-                    changed.append(key)
+    for key, full in _iter_raw_files(raw_dir):
+        seen.add(key)
+        entry = entries.get(key)
+        if entry is None:
+            new.append(key)
+        elif entry.sha256 == _hash_file(full):
+            current.append(key)
+        else:
+            changed.append(key)
 
     missing = [k for k in entries if k not in seen]
     return {
@@ -162,6 +225,37 @@ def status(project_root: Path) -> dict[str, list[str]]:
         "current": sorted(current),
         "missing": sorted(missing),
     }
+
+
+def _cmd_add(args: argparse.Namespace) -> None:
+    add(args.project_root, args.paths)
+    print(json.dumps(get_status(args.project_root), indent=2))
+
+
+def _cmd_remove(args: argparse.Namespace) -> None:
+    remove(args.project_root, args.paths)
+    print(json.dumps(get_status(args.project_root), indent=2))
+
+
+def _cmd_get(args: argparse.Namespace) -> None:
+    entry = get(args.project_root, args.path)
+    print(json.dumps(
+        None if entry is None
+        else {"sha256": entry.sha256, "ingested_at": entry.ingested_at},
+        indent=2,
+    ))
+
+
+def _cmd_status(args: argparse.Namespace) -> None:
+    print(json.dumps(get_status(args.project_root), indent=2))
+
+
+_COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
+    "add": _cmd_add,
+    "remove": _cmd_remove,
+    "get": _cmd_get,
+    "status": _cmd_status,
+}
 
 
 def main() -> None:
@@ -183,21 +277,7 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        if args.command == "add":
-            add(args.project_root, args.paths)
-            print(json.dumps(status(args.project_root), indent=2))
-        elif args.command == "remove":
-            remove(args.project_root, args.paths)
-            print(json.dumps(status(args.project_root), indent=2))
-        elif args.command == "get":
-            entry = get(args.project_root, args.path)
-            print(json.dumps(
-                None if entry is None
-                else {"sha256": entry.sha256, "ingested_at": entry.ingested_at},
-                indent=2,
-            ))
-        elif args.command == "status":
-            print(json.dumps(status(args.project_root), indent=2))
+        _COMMANDS[args.command](args)
     except ValueError as e:
         print(f"error: {e}", file=sys.stderr)
         sys.exit(1)

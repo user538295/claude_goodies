@@ -2,6 +2,7 @@ import hashlib
 import json
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 _ISO_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$")
@@ -14,12 +15,13 @@ from catalog import (
     CatalogEntry,
     CatalogStore,
     _catalog_path,
-    _relkey,
+    _existing_file_key,
+    _ledger_key,
     add,
     get,
     main,
     remove,
-    status,
+    get_status,
 )
 
 
@@ -68,8 +70,17 @@ def test_store_roundtrip(tmp_path):
 
 def test_store_save_atomic_no_tmp_left(tmp_path):
     path = tmp_path / "catalog.json"
-    CatalogStore.save(path, {"a.md": CatalogEntry(sha256="x", ingested_at="t")})
+    first = {"a.md": CatalogEntry(sha256="x", ingested_at="t")}
+    CatalogStore.save(path, first)
+    # The atomic rename leaves no temp file and lands the exact ledger.
     assert not path.with_suffix(".tmp").exists()
+    assert CatalogStore.load(path) == first
+
+    # A second save atomically replaces the file wholesale (no merge/leftover).
+    second = {"b.md": CatalogEntry(sha256="y", ingested_at="u")}
+    CatalogStore.save(path, second)
+    assert not path.with_suffix(".tmp").exists()
+    assert CatalogStore.load(path) == second
 
 
 def test_store_save_creates_parent_dir(tmp_path):
@@ -78,70 +89,123 @@ def test_store_save_creates_parent_dir(tmp_path):
     assert path.exists()
 
 
-# --- _relkey tests ---
+# --- raw key resolution tests ---
 
-def test_relkey_relative_to_raw(tmp_path):
+def test_existing_file_key_relative_to_raw(tmp_path):
     raw = _mk_raw(tmp_path)
     (raw / "doc.md").write_text("x")
-    assert _relkey(tmp_path, "doc.md") == "doc.md"
+    assert _existing_file_key(tmp_path, "doc.md") == "doc.md"
 
 
-def test_relkey_tolerates_documented_raw_prefix(tmp_path):
+def test_existing_file_key_tolerates_documented_raw_prefix(tmp_path):
     # Docs (schema.md) instruct `add <root> raw/<file>`; that form must resolve.
     raw = _mk_raw(tmp_path)
     (raw / "doc.md").write_text("x")
-    assert _relkey(tmp_path, "raw/doc.md") == "doc.md"
+    assert _existing_file_key(tmp_path, "raw/doc.md") == "doc.md"
 
 
-def test_relkey_absolute_under_raw(tmp_path):
+def test_existing_file_key_absolute_under_raw(tmp_path):
     raw = _mk_raw(tmp_path)
     f = raw / "sub" / "doc.md"
     f.parent.mkdir()
     f.write_text("x")
-    assert _relkey(tmp_path, str(f)) == "sub/doc.md"
+    assert _existing_file_key(tmp_path, str(f)) == "sub/doc.md"
 
 
-def test_relkey_rejects_path_outside_raw(tmp_path):
+def test_existing_file_key_rejects_path_outside_raw(tmp_path):
     _mk_raw(tmp_path)
     outside = tmp_path / "llm-wiki" / "wiki" / "page.md"
     outside.parent.mkdir(parents=True)
     outside.write_text("x")
     with pytest.raises(ValueError):
-        _relkey(tmp_path, str(outside))
+        _existing_file_key(tmp_path, str(outside))
 
 
-def test_relkey_rejects_traversal(tmp_path):
+def test_ledger_key_rejects_traversal(tmp_path):
     _mk_raw(tmp_path)
     with pytest.raises(ValueError):
-        _relkey(tmp_path, "../secret.md", must_exist=False)
+        _ledger_key(tmp_path, "../secret.md")
 
 
-def test_relkey_add_requires_existing_file(tmp_path):
+def test_existing_file_key_add_requires_existing_file(tmp_path):
     _mk_raw(tmp_path)
     with pytest.raises(ValueError):
-        _relkey(tmp_path, "ghost.md", must_exist=True)
+        _existing_file_key(tmp_path, "ghost.md")
 
 
-def test_relkey_resolves_symlinked_file(tmp_path):
+def test_existing_file_key_preserves_external_symlink_path(tmp_path):
     raw = _mk_raw(tmp_path)
     outside = tmp_path / "external.md"
     outside.write_text("content")
     (raw / "linked.md").symlink_to(outside)
-    assert _relkey(tmp_path, "linked.md") == "linked.md"
+    assert _existing_file_key(tmp_path, "linked.md") == "linked.md"
+
+
+def test_existing_file_key_preserves_internal_symlink_path(tmp_path):
+    raw = _mk_raw(tmp_path)
+    target = raw / "target.md"
+    target.write_text("content")
+    (raw / "linked.md").symlink_to(target)
+    assert _existing_file_key(tmp_path, "linked.md") == "linked.md"
 
 
 # --- add tests ---
 
-def test_add_new_file_records_hash_and_timestamp(tmp_path):
+def test_add_follows_external_symlink_file_and_status_is_current(tmp_path):
+    raw = _mk_raw(tmp_path)
+    outside = tmp_path / "outside.md"
+    outside.write_bytes(b"external content")
+    (raw / "linked.md").symlink_to(outside)
+
+    add(tmp_path, ["linked.md"])
+
+    entries = CatalogStore.load(_catalog_path(tmp_path))
+    assert entries["linked.md"].sha256 == _sha(b"external content")
+    assert get_status(tmp_path) == {
+        "new": [],
+        "changed": [],
+        "current": ["linked.md"],
+        "missing": [],
+    }
+
+
+def test_add_follows_external_symlink_directory_and_status_is_current(tmp_path):
+    raw = _mk_raw(tmp_path)
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "paper.md").write_bytes(b"external paper")
+    (raw / "linked-corpus").symlink_to(corpus)
+
+    add(tmp_path, ["linked-corpus/paper.md"])
+
+    assert get_status(tmp_path) == {
+        "new": [],
+        "changed": [],
+        "current": ["linked-corpus/paper.md"],
+        "missing": [],
+    }
+
+
+def test_status_stops_symlink_directory_ancestor_cycle(tmp_path):
+    raw = _mk_raw(tmp_path)
+    (raw / "doc.md").write_bytes(b"content")
+    (raw / "loop").symlink_to(raw, target_is_directory=True)
+
+    assert get_status(tmp_path)["new"] == ["doc.md"]
+
+def test_add_new_file_records_hash_and_injected_timestamp(tmp_path):
     raw = _mk_raw(tmp_path)
     content = b"hello world"
     (raw / "doc.md").write_bytes(content)
+    fixed_time = datetime(2024, 2, 3, 4, 5, 6, tzinfo=timezone.utc)
 
-    add(tmp_path, ["doc.md"])
+    add(tmp_path, ["doc.md"], clock=lambda: fixed_time)
 
     entries = CatalogStore.load(_catalog_path(tmp_path))
     assert entries["doc.md"].sha256 == _sha(content)
-    assert _ISO_UTC.match(entries["doc.md"].ingested_at)
+    assert entries["doc.md"].ingested_at == "2024-02-03T04:05:06+00:00"
+
+
 
 
 def test_add_upsert_on_reingest_updates_hash(tmp_path):
@@ -250,7 +314,7 @@ def test_status_new_changed_current_missing(tmp_path):
     # new: never ingested
     (raw / "new.md").write_bytes(b"fresh")
 
-    result = status(tmp_path)
+    result = get_status(tmp_path)
     assert result["new"] == ["new.md"]
     assert result["changed"] == ["changed.md"]
     assert result["current"] == ["current.md"]
@@ -261,7 +325,7 @@ def test_status_empty_catalog_all_new(tmp_path):
     raw = _mk_raw(tmp_path)
     (raw / "a.md").write_bytes(b"a")
     (raw / "b.md").write_bytes(b"b")
-    result = status(tmp_path)
+    result = get_status(tmp_path)
     assert result["new"] == ["a.md", "b.md"]
     assert result["changed"] == []
     assert result["current"] == []
@@ -270,7 +334,7 @@ def test_status_empty_catalog_all_new(tmp_path):
 
 def test_status_empty_raw(tmp_path):
     _mk_raw(tmp_path)
-    result = status(tmp_path)
+    result = get_status(tmp_path)
     assert result == {"new": [], "changed": [], "current": [], "missing": []}
 
 
@@ -279,7 +343,7 @@ def test_status_follows_symlinked_file(tmp_path):
     outside = tmp_path / "outside.md"
     outside.write_text("content")
     (raw / "link.md").symlink_to(outside)
-    result = status(tmp_path)
+    result = get_status(tmp_path)
     assert result["new"] == ["link.md"]
 
 
@@ -290,14 +354,14 @@ def test_status_follows_symlinked_directory(tmp_path):
     (corpus / "a.md").write_text("a")
     (corpus / "b.md").write_text("b")
     (raw / "linked-corpus").symlink_to(corpus)
-    result = status(tmp_path)
+    result = get_status(tmp_path)
     assert sorted(result["new"]) == ["linked-corpus/a.md", "linked-corpus/b.md"]
 
 
 def test_status_skips_broken_symlink(tmp_path):
     raw = _mk_raw(tmp_path)
     (raw / "broken.md").symlink_to(tmp_path / "nonexistent.md")
-    result = status(tmp_path)
+    result = get_status(tmp_path)
     assert result["new"] == []
 
 
@@ -305,7 +369,7 @@ def test_status_lists_sorted(tmp_path):
     raw = _mk_raw(tmp_path)
     for name in ("z.md", "a.md", "m.md"):
         (raw / name).write_bytes(b"x")
-    result = status(tmp_path)
+    result = get_status(tmp_path)
     assert result["new"] == ["a.md", "m.md", "z.md"]
 
 

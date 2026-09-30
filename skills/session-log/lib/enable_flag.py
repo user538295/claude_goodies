@@ -12,6 +12,15 @@ import stat
 import secrets
 import pathsafe
 
+
+def _is_safe_owned_file(info):
+    return (
+        stat.S_ISREG(info.st_mode)
+        and info.st_nlink == 1
+        and info.st_uid == os.getuid()
+    )
+
+
 lock_path = os.environ["SESSION_LOG_ENABLE_LOCK"]
 flag_path = os.environ["SESSION_LOG_ENABLE_FLAG"]
 action = os.environ["SESSION_LOG_ENABLE_ACTION"]
@@ -24,11 +33,7 @@ parent_fd = pathsafe.open_directory(parent, create=False)
 lock_fd = os.open(lock_name, lock_flags, 0o600, dir_fd=parent_fd)
 try:
     lock_stat = os.fstat(lock_fd)
-    if (
-        not stat.S_ISREG(lock_stat.st_mode)
-        or lock_stat.st_nlink != 1
-        or lock_stat.st_uid != os.getuid()
-    ):
+    if not _is_safe_owned_file(lock_stat):
         raise RuntimeError("unsafe session-log enable lock")
     os.fchmod(lock_fd, 0o600)
     fcntl.flock(lock_fd, fcntl.LOCK_EX)
@@ -37,12 +42,7 @@ try:
             current = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
         except FileNotFoundError:
             current = None
-        if current is not None and (
-            stat.S_ISLNK(current.st_mode)
-            or not stat.S_ISREG(current.st_mode)
-            or current.st_nlink != 1
-            or current.st_uid != os.getuid()
-        ):
+        if current is not None and not _is_safe_owned_file(current):
             raise RuntimeError("unsafe session-log enable flag")
         if action == "on":
             if current is None:

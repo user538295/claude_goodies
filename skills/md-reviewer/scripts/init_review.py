@@ -22,8 +22,42 @@ import argparse
 import json
 import os
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+WORKSPACE_FILE_COUNT = 10
+REPORT_CONFIDENCE_THRESHOLD = 0.90
+POSSIBLE_CONFIDENCE_THRESHOLD = 0.70
+REVIEW_SUGGESTED_CONFIDENCE_THRESHOLD = 0.50
+
+
+@dataclass(frozen=True)
+class ConfigOptions:
+    masters: list
+    output_format: str
+    on_master_conflict: str
+    priority_files: list
+    language: str
+
+
+@dataclass(frozen=True)
+class ProgressOptions:
+    masters: list
+    all_files: list
+    priority_files: list
+    output_format: str
+    on_master_conflict: str
+
+
+@dataclass(frozen=True)
+class WorkspaceOptions:
+    workspace: str
+    masters: list
+    output_format: str
+    scope: str = None
+    on_master_conflict: str = "warn"
+    priority_files: list = None
+    language: str = "en"
 
 
 def find_markdown_files(directory: str, exclude_dirs: set = None) -> list:
@@ -33,7 +67,6 @@ def find_markdown_files(directory: str, exclude_dirs: set = None) -> list:
     
     md_files = []
     for root, dirs, files in os.walk(directory):
-        # Filter out excluded directories
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         
         for file in files:
@@ -44,36 +77,33 @@ def find_markdown_files(directory: str, exclude_dirs: set = None) -> list:
     return sorted(md_files)
 
 
-def create_config_file(masters: list, output_format: str, on_master_conflict: str,
-                       priority_files: list, language: str) -> dict:
+def create_config_file(options: ConfigOptions) -> dict:
     """Create the config.json structure."""
     return {
         "version": "1.0",
         "created_at": datetime.now().isoformat(),
-        "masters": masters,
-        "output_format": output_format,
-        "on_master_conflict": on_master_conflict,
-        "priority_files": priority_files or [],
-        "language": language,
+        "masters": options.masters,
+        "output_format": options.output_format,
+        "on_master_conflict": options.on_master_conflict,
+        "priority_files": options.priority_files or [],
+        "language": options.language,
         "confidence_thresholds": {
-            "report": 0.90,
-            "possible": 0.70,
-            "review_suggested": 0.50
+            "report": REPORT_CONFIDENCE_THRESHOLD,
+            "possible": POSSIBLE_CONFIDENCE_THRESHOLD,
+            "review_suggested": REVIEW_SUGGESTED_CONFIDENCE_THRESHOLD
         }
     }
 
 
-def create_progress_file(masters: list, all_files: list, priority_files: list,
-                         output_format: str, on_master_conflict: str) -> str:
+def create_progress_file(options: ProgressOptions) -> str:
     """Create the progress.md tracking file."""
     now = datetime.now().isoformat()
     
     # Separate masters and followers
-    master_set = set(masters)
-    followers = [f for f in all_files if f not in master_set]
+    master_set = set(options.masters)
+    followers = [f for f in options.all_files if f not in master_set]
     
-    # Reorder followers: priority first, then alphabetical
-    priority_set = set(priority_files or [])
+    priority_set = set(options.priority_files or [])
     priority_followers = [f for f in followers if f in priority_set]
     other_followers = [f for f in followers if f not in priority_set]
     ordered_followers = priority_followers + other_followers
@@ -81,15 +111,15 @@ def create_progress_file(masters: list, all_files: list, priority_files: list,
     content = f"""# Review Progress
 
 ## Configuration
-- Masters: {', '.join(masters)}
-- Output: {output_format}
-- On master conflict: {on_master_conflict}
+- Masters: {', '.join(options.masters)}
+- Output: {options.output_format}
+- On master conflict: {options.on_master_conflict}
 - Started: {now}
-- Total files: {len(all_files)} ({len(masters)} masters, {len(followers)} followers)
+- Total files: {len(options.all_files)} ({len(options.masters)} masters, {len(followers)} followers)
 
 ## Phase Status
 - [x] Phase 1: Setup
-- [ ] Phase 2a: Master Extraction (0/{len(masters)})
+- [ ] Phase 2a: Master Extraction (0/{len(options.masters)})
 - [ ] Phase 2b: Master Consolidation
 - [ ] Phase 3: Follower Validation (0/{len(followers)})
 - [ ] Phase 4: Cross-Document Analysis
@@ -106,7 +136,7 @@ def create_progress_file(masters: list, all_files: list, priority_files: list,
 ## Master Documents
 """
     
-    for master in masters:
+    for master in options.masters:
         content += f"- [ ] {master} | claims: - | terms: - | anchors: -\n"
     
     content += "\n## Follower Documents\n"
@@ -280,109 +310,87 @@ Individual findings are in `findings/by-file/`.
 """
 
 
-def init_workspace(workspace: str, masters: list, output_format: str, 
-                   scope: str = None, on_master_conflict: str = "warn",
-                   priority_files: list = None, language: str = "en") -> dict:
-    """Initialize the review workspace."""
-    
-    # Resolve paths
-    workspace_path = Path(workspace).resolve()
+def summarize_workspace(options: WorkspaceOptions) -> dict:
+    workspace_path = Path(options.workspace).resolve()
     review_path = workspace_path / "_review"
-    findings_path = review_path / "findings"
-    by_file_path = findings_path / "by-file"
-    
-    # Determine scope
-    if scope:
-        scope_path = Path(scope).resolve()
-    else:
-        scope_path = workspace_path
-    
-    # Check masters exist
-    missing_masters = []
-    for master in masters:
-        master_path = scope_path / master
-        if not master_path.exists():
-            missing_masters.append(master)
-    
+    if review_path.exists():
+        return {
+            "success": False,
+            "error": f"Review workspace already exists: {review_path}"
+        }
+
+    scope_path = Path(options.scope).resolve() if options.scope else workspace_path
+
+    missing_masters = [
+        master for master in options.masters if not (scope_path / master).exists()
+    ]
     if missing_masters:
         return {
             "success": False,
             "error": f"Master documents not found: {', '.join(missing_masters)}"
         }
-    
-    # Find all markdown files
+
     all_files = find_markdown_files(str(scope_path))
-    
     if not all_files:
         return {
             "success": False,
             "error": f"No .md files found in {scope_path}"
         }
-    
-    # Validate priority files exist
-    if priority_files:
-        missing_priority = [f for f in priority_files if f not in all_files]
+
+    if options.priority_files:
+        missing_priority = [f for f in options.priority_files if f not in all_files]
         if missing_priority:
             return {
                 "success": False,
                 "error": f"Priority files not found: {', '.join(missing_priority)}"
             }
-    
-    # Create directory structure
-    review_path.mkdir(exist_ok=True)
-    findings_path.mkdir(exist_ok=True)
-    by_file_path.mkdir(exist_ok=True)
-    
-    # Create files
-    files_created = []
-    
-    # Config file (JSON)
-    config = create_config_file(masters, output_format, on_master_conflict, 
-                                priority_files, language)
-    (review_path / "config.json").write_text(json.dumps(config, indent=2))
-    files_created.append("config.json")
-    
-    # Progress file
-    progress_content = create_progress_file(
-        masters, all_files, priority_files, output_format, on_master_conflict
-    )
-    (review_path / "progress.md").write_text(progress_content)
-    files_created.append("progress.md")
-    
-    # Glossary file
-    (review_path / "glossary.md").write_text(create_glossary_file())
-    files_created.append("glossary.md")
-    
-    # Master facts file
-    (review_path / "master_facts.md").write_text(create_master_facts_file())
-    files_created.append("master_facts.md")
-    
-    # Cross-refs file
-    (review_path / "cross_refs.md").write_text(create_cross_refs_file())
-    files_created.append("cross_refs.md")
-    
-    # Master conflicts file
-    (findings_path / "master-conflicts.md").write_text(create_master_conflicts_file())
-    files_created.append("findings/master-conflicts.md")
-    
-    # Consolidated findings files (populated in Phase 5)
-    for severity in ["critical", "warnings", "info"]:
-        (findings_path / f"{severity}.md").write_text(create_findings_file(severity))
-        files_created.append(f"findings/{severity}.md")
-    
-    # Create empty by-file directory marker
-    (by_file_path / ".gitkeep").write_text("# Per-file findings will be stored here\n")
-    files_created.append("findings/by-file/.gitkeep")
-    
+
     return {
         "success": True,
-        "workspace": str(review_path),
-        "files_created": files_created,
+        "workspace": str(workspace_path / "_review"),
         "total_files": len(all_files),
-        "masters": len(masters),
-        "followers": len(all_files) - len(masters),
-        "priority_files": len(priority_files) if priority_files else 0
+        "masters": len(options.masters),
+        "followers": len(all_files) - len(options.masters),
+        "priority_files": len(options.priority_files) if options.priority_files else 0,
+        "all_files": all_files,
     }
+
+
+def initialize_workspace(options: WorkspaceOptions, summary: dict) -> None:
+    review_path = Path(summary["workspace"])
+    findings_path = review_path / "findings"
+    by_file_path = findings_path / "by-file"
+    review_path.mkdir()
+    findings_path.mkdir(exist_ok=True)
+    by_file_path.mkdir(exist_ok=True)
+
+    config = create_config_file(ConfigOptions(
+        options.masters,
+        options.output_format,
+        options.on_master_conflict,
+        options.priority_files,
+        options.language,
+    ))
+    (review_path / "config.json").write_text(json.dumps(config, indent=2))
+
+    progress_content = create_progress_file(ProgressOptions(
+        options.masters,
+        summary["all_files"],
+        options.priority_files,
+        options.output_format,
+        options.on_master_conflict,
+    ))
+    (review_path / "progress.md").write_text(progress_content)
+
+    (review_path / "glossary.md").write_text(create_glossary_file())
+    (review_path / "master_facts.md").write_text(create_master_facts_file())
+    (review_path / "cross_refs.md").write_text(create_cross_refs_file())
+    (findings_path / "master-conflicts.md").write_text(create_master_conflicts_file())
+
+    for severity in ["critical", "warnings", "info"]:
+        (findings_path / f"{severity}.md").write_text(create_findings_file(severity))
+
+    (by_file_path / ".gitkeep").write_text("# Per-file findings will be stored here\n")
 
 
 def main():
@@ -448,34 +456,40 @@ Examples:
     
     args = parser.parse_args()
     
-    # Parse comma-separated lists
     masters = [m.strip() for m in args.masters.split(",")]
     priority_files = [p.strip() for p in args.priority.split(",")] if args.priority else None
     
-    # Initialize
-    result = init_workspace(
+    options = WorkspaceOptions(
         workspace=args.workspace,
         masters=masters,
         output_format=args.output,
         scope=args.scope,
         on_master_conflict=args.on_master_conflict,
         priority_files=priority_files,
-        language=args.language
+        language=args.language,
     )
-    
-    if result["success"]:
-        print(f"✅ Review workspace initialized: {result['workspace']}")
-        print(f"   Files created: {len(result['files_created'])}")
-        print(f"   Total documents: {result['total_files']}")
-        print(f"   Masters: {result['masters']}")
-        print(f"   Followers: {result['followers']}")
-        if result['priority_files']:
-            print(f"   Priority files: {result['priority_files']}")
-        print(f"\n   Next: Begin Phase 2a (Master Extraction)")
-        print(f"   Process each master ONE AT A TIME.")
-    else:
+    result = summarize_workspace(options)
+    if not result["success"]:
         print(f"❌ Error: {result['error']}", file=sys.stderr)
         sys.exit(1)
+
+    try:
+        initialize_workspace(options, result)
+    except FileExistsError:
+        print(
+            f"❌ Error: Review workspace already exists: {result['workspace']}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    print(f"✅ Review workspace initialized: {result['workspace']}")
+    print(f"   Files created: {WORKSPACE_FILE_COUNT}")
+    print(f"   Total documents: {result['total_files']}")
+    print(f"   Masters: {result['masters']}")
+    print(f"   Followers: {result['followers']}")
+    if result['priority_files']:
+        print(f"   Priority files: {result['priority_files']}")
+    print(f"\n   Next: Begin Phase 2a (Master Extraction)")
+    print(f"   Process each master ONE AT A TIME.")
 
 
 if __name__ == "__main__":

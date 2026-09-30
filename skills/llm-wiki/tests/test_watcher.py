@@ -1,13 +1,31 @@
-import os
+import signal as sig_mod
+import subprocess
 import sys
+import time
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from watcher import PIDFile, WatcherLog, _snapshot, main
+from pid_file import PIDFile
+from watcher import WatcherLog, _snapshot, main
+
+_READY_TIMEOUT = 5.0
+_POLL_INTERVAL = 0.01
+
+
+def _wait_until(predicate, timeout=_READY_TIMEOUT, interval=_POLL_INTERVAL) -> bool:
+    """Poll predicate() until it is truthy or the timeout elapses; return its
+    final value. Deterministic poll-with-timeout on an observable condition, so
+    the caller asserts on the condition itself instead of a fixed sleep."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return bool(predicate())
 
 
 # --- _snapshot tests ---
@@ -17,7 +35,7 @@ def test_snapshot_lists_files_with_mtime_size(tmp_path):
     raw.mkdir()
     f = raw / "file.md"
     f.write_text("hello")
-    snap = _snapshot(raw)
+    snap = _snapshot(raw, WatcherLog(tmp_path))
     stat = f.stat()
     assert snap == {str(f): (stat.st_mtime, stat.st_size)}
 
@@ -28,7 +46,7 @@ def test_snapshot_follows_symlinked_file(tmp_path):
     outside = tmp_path / "outside.txt"
     outside.write_text("outside")
     (raw / "link.txt").symlink_to(outside)
-    snap = _snapshot(raw)
+    snap = _snapshot(raw, WatcherLog(tmp_path))
     assert str(raw / "link.txt") in snap
 
 
@@ -39,7 +57,7 @@ def test_snapshot_follows_symlinked_directory(tmp_path):
     corpus.mkdir()
     (corpus / "a.md").write_text("a")
     (raw / "linked").symlink_to(corpus)
-    snap = _snapshot(raw)
+    snap = _snapshot(raw, WatcherLog(tmp_path))
     assert str(raw / "linked" / "a.md") in snap
 
 
@@ -47,18 +65,18 @@ def test_snapshot_skips_broken_symlink(tmp_path):
     raw = tmp_path / "raw"
     raw.mkdir()
     (raw / "broken.md").symlink_to(tmp_path / "nonexistent.md")
-    snap = _snapshot(raw)
+    snap = _snapshot(raw, WatcherLog(tmp_path))
     assert snap == {}
 
 
 def test_snapshot_nonexistent_dir(tmp_path):
-    assert _snapshot(tmp_path / "does_not_exist") == {}
+    assert _snapshot(tmp_path / "does_not_exist", WatcherLog(tmp_path)) == {}
 
 
 def test_snapshot_empty_dir(tmp_path):
     raw = tmp_path / "raw"
     raw.mkdir()
-    assert _snapshot(raw) == {}
+    assert _snapshot(raw, WatcherLog(tmp_path)) == {}
 
 
 def test_snapshot_nested_files(tmp_path):
@@ -66,7 +84,7 @@ def test_snapshot_nested_files(tmp_path):
     (raw / "sub").mkdir(parents=True)
     (raw / "sub" / "a.md").write_text("a")
     (raw / "b.md").write_text("b")
-    snap = _snapshot(raw)
+    snap = _snapshot(raw, WatcherLog(tmp_path))
     assert set(snap) == {str(raw / "sub" / "a.md"), str(raw / "b.md")}
 
 
@@ -162,7 +180,9 @@ def test_log_rotate_cuts_at_line_boundary(tmp_path):
 
 def test_log_rotate_missing_file_noop(tmp_path):
     wl = WatcherLog(tmp_path)
+    log_file = tmp_path / "watcher.log"
     wl.rotate_if_needed()
+    assert not log_file.exists()
 
 
 def test_log_rotate_exactly_at_boundary_no_rotation(tmp_path):
@@ -183,52 +203,55 @@ def test_main_missing_llm_wiki_raw_exits_1(tmp_path):
     assert exc_info.value.code == 1
 
 
-def test_main_creates_watcher_dir(tmp_path):
-    raw_dir = tmp_path / "llm-wiki" / "raw"
-    raw_dir.mkdir(parents=True)
-    watcher_dir = tmp_path / "llm-wiki" / ".watcher"
-    assert not watcher_dir.exists()
-
-    mock_event = MagicMock()
-    mock_event.is_set.return_value = True
-
-    with patch("sys.argv", ["watcher.py", "start", str(tmp_path)]):
-        with patch("watcher._stop_event", mock_event):
-            main()
-
-    assert watcher_dir.exists()
-    assert (watcher_dir / "watcher.pid").exists()
-
-
 # --- Integration test ---
 
 def test_watcher_process_journals_and_exits_cleanly(tmp_path):
-    import subprocess
-    import time
-    import signal as sig_mod
-
     project_root = tmp_path
     raw_dir = project_root / "llm-wiki" / "raw"
     raw_dir.mkdir(parents=True)
     (raw_dir / "note.md").write_text("hello")
+    (raw_dir / "broken.md").symlink_to(project_root / "missing.md")
+    corpus = project_root / "corpus"
+    corpus.mkdir()
+    (corpus / "corpus.md").write_text("external")
+    (raw_dir / "external").symlink_to(corpus)
+    (corpus / "loop").symlink_to(raw_dir)
 
     watcher_py = Path(__file__).parent.parent / "watcher.py"
     proc = subprocess.Popen(
         ["python3", str(watcher_py), "start", str(project_root)],
         cwd=str(watcher_py.parent),
     )
-    time.sleep(2)
-    proc.send_signal(sig_mod.SIGTERM)
-    proc.wait(timeout=5)
-
-    assert proc.returncode == 0
-
     watcher_dir = project_root / "llm-wiki" / ".watcher"
     log_file = watcher_dir / "watcher.log"
     pid_file = watcher_dir / "watcher.pid"
 
+    try:
+        def watcher_ready() -> bool:
+            if proc.poll() is not None:
+                return False
+            if not (pid_file.exists() and log_file.exists()):
+                return False
+            log_text = log_file.read_text()
+            return "watcher started" in log_text and "appeared" in log_text
+
+        assert _wait_until(watcher_ready), (
+            "watcher did not become ready before the deadline"
+        )
+        proc.send_signal(sig_mod.SIGTERM)
+        proc.wait(timeout=5)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=5)
+
+    assert proc.returncode == 0
     assert pid_file.exists()
     assert log_file.exists()
     log_text = log_file.read_text()
     assert "watcher stopped" in log_text
     assert "appeared" in log_text  # the pre-existing note.md must be journaled
+    assert "stat failed" in log_text
+    assert "broken.md" in log_text
+    assert f"appeared {raw_dir / 'external' / 'corpus.md'}" in log_text
+    assert f"appeared {corpus / 'loop' / 'note.md'}" not in log_text

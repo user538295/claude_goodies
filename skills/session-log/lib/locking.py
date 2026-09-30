@@ -23,6 +23,7 @@ owner_start = os.environ["SESSION_LOG_LOCK_START"]
 directory, name = os.path.split(lock_path)
 flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
 
+
 def read_owner(fd):
     descriptor = os.open("owner", os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=fd)
     try:
@@ -30,8 +31,17 @@ def read_owner(fd):
     finally:
         os.close(descriptor)
 
+
+def _has_liveness_data(lines):
+    return len(lines) >= 2 and lines[0].isdigit() and bool(lines[1])
+
+
+def _matches_owner(lines, pid, process_start):
+    return len(lines) >= 2 and lines[0] == str(pid) and lines[1] == process_start
+
+
 def owner_alive(lines):
-    if len(lines) < 2 or not lines[0].isdigit() or not lines[1]:
+    if not _has_liveness_data(lines):
         return None
     pid = int(lines[0])
     try:
@@ -43,6 +53,7 @@ def owner_alive(lines):
     except (OSError, subprocess.CalledProcessError):
         return True
     return actual == lines[1] if actual else True
+
 
 parent_fd = pathsafe.open_directory(directory, create=True)
 lock_fd = None
@@ -84,7 +95,7 @@ try:
         try:
             lock_fd = os.open(name, flags, dir_fd=parent_fd)
             lines = read_owner(lock_fd)
-            if len(lines) >= 2 and lines[0] == str(owner_pid) and lines[1] == owner_start:
+            if _matches_owner(lines, owner_pid, owner_start):
                 os.unlink("owner", dir_fd=lock_fd)
                 os.close(lock_fd)
                 lock_fd = None

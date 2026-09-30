@@ -11,10 +11,15 @@ it stays cheap on large corpora.
 import argparse
 import os
 import signal
+import stat
 import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from pid_file import PIDFile
+
+MAX_LOG_LINES = 10000
+RETAINED_LOG_LINES = 4999
 
 
 class WatcherLog:
@@ -31,82 +36,68 @@ class WatcherLog:
             lines = self._path.read_text().splitlines(keepends=True)
         except OSError:
             return
-        if len(lines) <= 10000:
+        if len(lines) <= MAX_LOG_LINES:
             return
         n = len(lines)
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        rotation_line = f"[{ts}] rotated: kept last 5000 of {n} lines\n"
-        tail = lines[-(4999):]
+        rotation_line = f"[{ts}] rotated: kept last {RETAINED_LOG_LINES + 1} of {n} lines\n"
+        tail = lines[-RETAINED_LOG_LINES:]
         output = [rotation_line] + tail
         tmp = self._path.with_suffix(".log.tmp")
         tmp.write_text("".join(output))
         tmp.rename(self._path)
 
 
-class PIDFile:
-    def __init__(self, watcher_dir: Path) -> None:
-        self._path = watcher_dir / "watcher.pid"
-
-    def _format_lines(self, pid: int, nonce: str) -> str:
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        return f"{pid}:{nonce}\n{ts}\n"
-
-    def write(self, pid: int, nonce: str) -> None:
-        self._path.write_text(self._format_lines(pid, nonce))
-
-    def update_heartbeat(self, pid: int, nonce: str) -> None:
-        tmp = self._path.with_suffix(".pid.tmp")
-        tmp.write_text(self._format_lines(pid, nonce))
-        tmp.rename(self._path)
-
-    def read(self) -> tuple[int, str, datetime] | None:
-        try:
-            lines = self._path.read_text().splitlines()
-        except OSError:
-            return None
-        if len(lines) < 2:
-            return None
-        parts = lines[0].split(":", maxsplit=1)
-        if len(parts) != 2:
-            return None
-        try:
-            pid = int(parts[0])
-        except ValueError:
-            return None
-        nonce = parts[1]
-        try:
-            heartbeat_dt = datetime.fromisoformat(lines[1])
-        except ValueError:
-            return None
-        return (pid, nonce, heartbeat_dt)
-
-
 _POLL_INTERVAL = 30
-_stop_event = threading.Event()
 
 
-def _sigterm_handler(signum, frame) -> None:
-    _stop_event.set()
-
-
-def _snapshot(raw_dir: Path) -> dict[str, tuple[float, int]]:
-    """Cheap stat-only view of raw/: path -> (mtime, size). Follows symlinks so
-    users can symlink external corpora into raw/. Missing raw_dir → empty."""
+def _snapshot(raw_dir: Path, log: WatcherLog) -> dict[str, tuple[float, int]]:
+    """Cheap stat-only view of raw/: path -> (mtime, size). Missing raw_dir → empty."""
     snap: dict[str, tuple[float, int]] = {}
-    # ponytail: followlinks=True; symlink loops are the user's problem.
-    for dirpath, _dirnames, filenames in os.walk(raw_dir, followlinks=True):
-        for filename in filenames:
-            path = os.path.join(dirpath, filename)
-            try:
-                stat = os.stat(path)
-            except OSError:
-                continue
-            snap[path] = (stat.st_mtime, stat.st_size)
+    ancestors: set[tuple[int, int]] = set()
+
+    def record(entry) -> None:
+        try:
+            entry_stat = entry.stat(follow_symlinks=True)
+        except OSError as exc:
+            log.write(f"stat failed {entry.path}: {exc}")
+            return
+        if stat.S_ISDIR(entry_stat.st_mode):
+            visit(entry.path)
+        else:
+            snap[entry.path] = (entry_stat.st_mtime, entry_stat.st_size)
+
+    def visit(directory: Path | str) -> None:
+        try:
+            directory_stat = os.stat(directory)
+        except OSError as exc:
+            log.write(f"stat failed {directory}: {exc}")
+            return
+
+        identity = (directory_stat.st_dev, directory_stat.st_ino)
+        if identity in ancestors:
+            return
+
+        ancestors.add(identity)
+        try:
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    record(entry)
+        except OSError as exc:
+            log.write(f"scan failed {directory}: {exc}")
+        finally:
+            ancestors.remove(identity)
+
+    # Follow directory symlinks, but do not revisit a directory on the current path.
+    visit(raw_dir)
     return snap
 
 
 def main() -> None:
-    _stop_event.clear()
+    stop_event = threading.Event()
+
+    def _sigterm_handler(signum, frame) -> None:
+        stop_event.set()
 
     parser = argparse.ArgumentParser(prog="watcher")
     subparsers = parser.add_subparsers(dest="command")
@@ -137,15 +128,15 @@ def main() -> None:
     log.write(f"watcher started pid={pid} nonce={nonce} project={project_root}")
 
     prev: dict[str, tuple[float, int]] = {}
-    while not _stop_event.is_set():
-        cur = _snapshot(raw_dir)
+    while not stop_event.is_set():
+        cur = _snapshot(raw_dir, log)
         for path in sorted(set(cur) - set(prev)):
             log.write(f"appeared {path}")
         for path in sorted(k for k in cur if k in prev and cur[k] != prev[k]):
             log.write(f"modified {path}")
         prev = cur
         pid_file.update_heartbeat(pid, nonce)
-        _stop_event.wait(timeout=_POLL_INTERVAL)
+        stop_event.wait(timeout=_POLL_INTERVAL)
 
     log.write("watcher stopped")
 

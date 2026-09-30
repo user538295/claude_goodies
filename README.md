@@ -77,6 +77,22 @@ One script bundle handles the progress plumbing — [`scripts-plan`](https://use
 
 ## Install · Update
 
+
+### Claude Code plugin marketplace
+
+```bash
+claude plugin marketplace add user538295/claude_goodies
+claude plugin install claude-goodies
+```
+
+The marketplace plugin bundles the Claude skill, runtime, and native hooks. Restart Claude Code (or start a new session) for plugin changes to load. To update later:
+
+```bash
+claude plugin update claude-goodies@user538295
+```
+
+Each entrypoint passes its native harness identity explicitly; it never infers a harness from directories or environment variables. `off` never installs an absent adapter.
+
 ### Universal session-log package
 
 From a checkout of this repository:
@@ -107,20 +123,8 @@ The supported identities are exactly `claude`, `codex`, `cursor`, `opencode`, an
 
 Only default roots are supported. OpenCode also reads native data from `~/.local/share/opencode`; relocated config or data roots fail explicitly. Logging remains off until enabled separately in each harness. When logging is already enabled, `status` and `usage` repair a missing or outdated adapter after the package bootstrap.
 
-### Claude Code plugin marketplace
+OpenCode and OMP keep per-process runtime records alongside the shared runtime pointer. The adapters bound their in-memory session history; after a process restart, the on-disk logs remain the source of recorded prompts and responses.
 
-```bash
-claude plugin marketplace add user538295/claude_goodies
-claude plugin install claude-goodies
-```
-
-The marketplace plugin bundles the Claude skill, runtime, and native hooks. Restart Claude Code (or start a new session) for plugin changes to load. To update later:
-
-```bash
-claude plugin update claude-goodies@user538295
-```
-
-Each entrypoint passes its native harness identity explicitly; it never infers a harness from directories or environment variables. `off` never installs an absent adapter.
 
 ---
 

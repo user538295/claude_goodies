@@ -7,6 +7,9 @@ import path from "node:path";
 
 type JsonObject = Record<string, any>;
 type SessionRecord = { file: string; header: JsonObject; entries: JsonObject[] };
+// Money is an exact integer count of ten-thousandths of a dollar, so per-request
+// amounts can be summed without binary-float drift; format only at the edge.
+type Money = number;
 type Usage = {
 	input: number;
 	output: number;
@@ -14,12 +17,24 @@ type Usage = {
 	cacheRead: number;
 	cacheWrite: number;
 	total: number;
-	cost: number;
+	spend: Money;
 	models: Set<string>;
 	efforts: Set<string>;
 };
 type Segment = { prompt: string; start: number; end: number; usage: Usage };
 type Aggregate = { requests: Segment[]; usage: Usage; workMs: number; helpers: number };
+type SessionIndex = { byFile: Map<string, SessionRecord>; bySessionId: Map<string, SessionRecord> };
+type RecordedUsageOptions = { recorded: JsonObject; model: unknown; provider: unknown; effort: unknown };
+
+const MONEY_SCALE = 10000;
+
+function isErrnoException(error: unknown): error is { code?: string } {
+	return typeof error === "object" && error !== null && "code" in error;
+}
+
+function isEnoent(error: unknown): boolean {
+	return isErrnoException(error) && error.code === "ENOENT";
+}
 
 const canonicalPath = (value: string): string => {
 	const resolved = path.resolve(value);
@@ -31,7 +46,7 @@ const canonicalPath = (value: string): string => {
 			const canonical = fs.realpathSync.native(current);
 			return path.join(canonical, ...suffix.reverse());
 		} catch (error) {
-			if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "ENOENT") return resolved;
+			if (!isEnoent(error)) return resolved;
 			const parent = path.dirname(current);
 			if (parent === current) return resolved;
 			suffix.push(path.basename(current));
@@ -46,7 +61,7 @@ const containsSymlinkComponent = (value: string): boolean => {
 		try {
 			if (fs.lstatSync(current).isSymbolicLink()) return true;
 		} catch (error) {
-			if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "ENOENT") throw error;
+			if (!isEnoent(error)) throw error;
 		}
 		const parent = path.dirname(current);
 		if (parent === current) return false;
@@ -65,21 +80,30 @@ const configuredLogDir = canonicalPath(process.env.OMP_PROMPT_LOG_DIR || default
 if (agentDir !== canonicalPath(defaultAgentDir) || configuredLogDir !== canonicalPath(defaultLogDir)) throw new Error("OMP root is relocated; universal session-log does not support custom roots");
 const sessionsDir = path.join(agentDir, "sessions");
 const validId = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
-function safeSessionPath(value: string): string {
-	const absolute = path.resolve(value);
-	const resolved = path.join(canonicalPath(path.dirname(absolute)), path.basename(absolute));
-	const rootAbsolute = path.resolve(sessionsDir);
-	const root = path.join(canonicalPath(path.dirname(rootAbsolute)), path.basename(rootAbsolute));
-	if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) throw new Error(`OMP session path escapes the configured root: ${resolved}`);
-	let current = root;
+
+// Canonicalize the directory but keep the literal basename, so a not-yet-created
+// leaf is still checked against a real, symlink-resolved parent.
+function canonicalDirWithBasename(target: string): string {
+	const absolute = path.resolve(target);
+	return path.join(canonicalPath(path.dirname(absolute)), path.basename(absolute));
+}
+
+// Returns true when the sessions root itself is absent and the target *is* the
+// root, so the caller may accept the path without walking any components.
+function rootIsAbsent(root: string, resolved: string): boolean {
 	try {
-		if (fs.lstatSync(current).isSymbolicLink()) throw new Error(`OMP sessions root is a symlink: ${current}`);
+		if (fs.lstatSync(root).isSymbolicLink()) throw new Error(`OMP sessions root is a symlink: ${root}`);
 	} catch (error) {
-		if (isEnoent(error) && resolved === root) return resolved;
-		if (isEnoent(error)) throw new Error(`OMP session path has a missing parent: ${current}`);
+		if (isEnoent(error) && resolved === root) return true;
+		if (isEnoent(error)) throw new Error(`OMP session path has a missing parent: ${root}`);
 		throw error;
 	}
+	return false;
+}
+
+function assertSafeComponents(root: string, resolved: string): void {
 	const components = resolved.slice(root.length).split(path.sep).filter(Boolean);
+	let current = root;
 	for (const [index, component] of components.entries()) {
 		current = path.join(current, component);
 		const isLeaf = index === components.length - 1;
@@ -88,11 +112,19 @@ function safeSessionPath(value: string): string {
 			if (stat.isSymbolicLink()) throw new Error(`OMP session path contains a symlink: ${current}`);
 			if (!isLeaf && !stat.isDirectory()) throw new Error(`OMP session path parent is not a directory: ${current}`);
 		} catch (error) {
-			if (isEnoent(error) && isLeaf) return resolved;
+			if (isEnoent(error) && isLeaf) return;
 			if (isEnoent(error)) throw new Error(`OMP session path has a missing parent: ${current}`);
 			throw error;
 		}
 	}
+}
+
+function safeSessionPath(value: string): string {
+	const resolved = canonicalDirWithBasename(value);
+	const root = canonicalDirWithBasename(sessionsDir);
+	if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) throw new Error(`OMP session path escapes the configured root: ${resolved}`);
+	if (rootIsAbsent(root, resolved)) return resolved;
+	assertSafeComponents(root, resolved);
 	return resolved;
 }
 
@@ -101,7 +133,7 @@ function sessionReference(value: string, base = sessionsDir): string {
 	return safeSessionPath(candidate);
 }
 
-function usage(): never {
+function printUsage(): never {
 	console.error(`usage: session_log_usage.ts <session-id | transcript.jsonl | --latest> [--check]`);
 	process.exit(2);
 }
@@ -120,9 +152,14 @@ function nonnegativeInteger(value: unknown): number | undefined {
 	return parsed === undefined ? undefined : Math.max(0, Math.floor(parsed));
 }
 
-function nonnegativeCost(value: unknown): number {
+function parseMoney(value: unknown): Money {
 	const parsed = finiteNumber(value);
-	return parsed === undefined ? 0 : Math.max(0, parsed);
+	if (parsed === undefined || parsed <= 0) return 0;
+	return Math.round(parsed * MONEY_SCALE);
+}
+
+function formatMoney(value: Money): string {
+	return `$${(value / MONEY_SCALE).toFixed(4)}`;
 }
 
 function timestampMs(value: unknown): number {
@@ -156,18 +193,26 @@ function textOf(content: unknown): string {
 		.join("\n");
 }
 
+function isUserMessage(entry: JsonObject): boolean {
+	return entry.message?.role === "user" && entry.message.attribution !== "agent";
+}
+
+function isUserCustomMessage(entry: JsonObject): boolean {
+	return entry.attribution === "user" || entry.customType === "skill-prompt";
+}
+
+const promptExtractors: Record<string, (entry: JsonObject) => string | null> = {
+	message: entry => (isUserMessage(entry) ? textOf(entry.message.content) : null),
+	custom_message: entry => (isUserCustomMessage(entry) ? textOf(entry.content) : null),
+};
+
 function promptOf(entry: JsonObject): string | null {
-	if (entry.type === "message" && entry.message?.role === "user" && entry.message.attribution !== "agent") {
-		return textOf(entry.message.content);
-	}
-	if (entry.type === "custom_message" && (entry.attribution === "user" || entry.customType === "skill-prompt")) {
-		return textOf(entry.content);
-	}
-	return null;
+	const extract = promptExtractors[entry.type];
+	return extract ? extract(entry) : null;
 }
 
 function newUsage(): Usage {
-	return { input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, total: 0, cost: 0, models: new Set(), efforts: new Set() };
+	return { input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, total: 0, spend: 0, models: new Set(), efforts: new Set() };
 }
 
 function recordedNumber(recorded: JsonObject, names: string[]): number {
@@ -186,7 +231,20 @@ function nativeRecordedNumber(recorded: JsonObject, names: string[]): number | u
 	return undefined;
 }
 
-function addRecordedUsage(usageValue: Usage, recorded: JsonObject, model: unknown, provider: unknown, effort: unknown): void {
+function modelLabelOf(model: unknown, provider: unknown): string {
+	const modelName = typeof model === "string" ? model : "";
+	const providerName = typeof provider === "string" ? provider : "";
+	if (!modelName) return "";
+	return providerName && !modelName.includes("/") ? `${providerName}/${modelName}` : modelName;
+}
+
+function recordedSpend(recorded: JsonObject): Money {
+	const rawCost = recorded.cost;
+	return parseMoney(typeof rawCost === "object" && rawCost !== null ? rawCost.total : rawCost);
+}
+
+function addRecordedUsage(usageValue: Usage, options: RecordedUsageOptions): void {
+	const { recorded, model, provider, effort } = options;
 	if (!recorded || typeof recorded !== "object") return;
 	const input = recordedNumber(recorded, ["input", "inputTokens", "input_tokens"]);
 	const output = recordedNumber(recorded, ["output", "outputTokens", "output_tokens"]);
@@ -200,11 +258,8 @@ function addRecordedUsage(usageValue: Usage, recorded: JsonObject, model: unknow
 	usageValue.cacheWrite += cacheWrite;
 	const total = nativeRecordedNumber(recorded, ["totalTokens", "total_tokens", "total"]);
 	usageValue.total += total ?? input + output + reasoning + cacheRead + cacheWrite;
-	const cost = recorded.cost;
-	usageValue.cost += nonnegativeCost(typeof cost === "object" && cost !== null ? cost.total : cost);
-	const modelName = typeof model === "string" ? model : "";
-	const providerName = typeof provider === "string" ? provider : "";
-	const modelLabel = modelName ? (providerName && !modelName.includes("/") ? `${providerName}/${modelName}` : modelName) : "";
+	usageValue.spend += recordedSpend(recorded);
+	const modelLabel = modelLabelOf(model, provider);
 	if (modelLabel) usageValue.models.add(modelLabel);
 	if (typeof effort === "string" && effort) usageValue.efforts.add(effort);
 }
@@ -212,12 +267,12 @@ function addRecordedUsage(usageValue: Usage, recorded: JsonObject, model: unknow
 function addAssistant(usageValue: Usage, message: JsonObject, currentEffort: string): void {
 	if (message.role !== "assistant") return;
 	const messageEffort = typeof message.thinkingLevel === "string" ? message.thinkingLevel : typeof message.effort === "string" ? message.effort : currentEffort;
-	addRecordedUsage(usageValue, message.usage, message.model, message.provider, messageEffort);
+	addRecordedUsage(usageValue, { recorded: message.usage, model: message.model, provider: message.provider, effort: messageEffort });
 }
 
 function addModelUsage(usageValue: Usage, entry: JsonObject, currentEffort: string): void {
 	if (entry.type !== "model_usage") return;
-	addRecordedUsage(usageValue, entry.usage, entry.model, entry.provider, currentEffort);
+	addRecordedUsage(usageValue, { recorded: entry.usage, model: entry.model, provider: entry.provider, effort: currentEffort });
 }
 
 function mergeUsage(target: Usage, source: Usage): void {
@@ -227,9 +282,13 @@ function mergeUsage(target: Usage, source: Usage): void {
 	target.cacheRead += source.cacheRead;
 	target.cacheWrite += source.cacheWrite;
 	target.total += source.total;
-	target.cost += source.cost;
+	target.spend += source.spend;
 	for (const model of source.models) target.models.add(model);
 	for (const effort of source.efforts) target.efforts.add(effort);
+}
+
+function isPlainRecord(value: unknown): value is JsonObject {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function readEntries(file: string): JsonObject[] {
@@ -245,8 +304,8 @@ function readEntries(file: string): JsonObject[] {
 		if (!line.trim()) continue;
 		try {
 			const value = JSON.parse(line);
-			if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("record is not an object");
-			entries.push(value as JsonObject);
+			if (!isPlainRecord(value)) throw new Error("record is not an object");
+			entries.push(value);
 		} catch {
 			// OMP transcripts can be interrupted mid-write; ignore only the malformed line.
 		}
@@ -256,11 +315,6 @@ function readEntries(file: string): JsonObject[] {
 
 function sessionHeader(entries: JsonObject[]): JsonObject | null {
 	return entries.find(entry => entry.type === "session") ?? null;
-}
-
-function isEnoent(error: unknown): boolean {
-	if (typeof error !== "object" || error === null || !("code" in error)) return false;
-	return error.code === "ENOENT";
 }
 
 function walkJsonl(dir: string): string[] {
@@ -302,81 +356,101 @@ function loadSessionsFrom(dir: string): SessionRecord[] {
 function loadSessions(): SessionRecord[] {
 	return loadSessionsFrom(sessionsDir);
 }
+
 function sessionId(record: SessionRecord): string {
 	const value = typeof record.header.id === "string" ? record.header.id : path.basename(record.file, ".jsonl");
 	return validId(value) ? value : "";
 }
 
-function parentFile(record: SessionRecord, byId: Map<string, SessionRecord>): string | null {
+function indexSessions(records: SessionRecord[]): SessionIndex {
+	const byFile = new Map<string, SessionRecord>();
+	const bySessionId = new Map<string, SessionRecord>();
+	for (const record of records) {
+		byFile.set(record.file, record);
+		const id = sessionId(record);
+		if (id && !bySessionId.has(id)) bySessionId.set(id, record);
+	}
+	return { byFile, bySessionId };
+}
+
+function parentFile(record: SessionRecord, index: SessionIndex): string | null {
 	const parent = record.header.parentSession;
 	if (typeof parent !== "string" || !parent) return null;
-	const bySessionId = [...byId.values()].find(candidate => sessionId(candidate) === parent);
+	const bySessionId = index.bySessionId.get(parent);
 	if (bySessionId) return bySessionId.file;
 	let resolved: string;
 	try { resolved = sessionReference(parent); } catch { return null; }
-	return byId.has(resolved) ? resolved : null;
+	return index.byFile.has(resolved) ? resolved : null;
 }
 
-function rootFile(record: SessionRecord, byId: Map<string, SessionRecord>): string {
+function rootFile(record: SessionRecord, index: SessionIndex): string {
 	let current = record;
 	const seen = new Set<string>();
 	while (true) {
 		if (seen.has(current.file)) throw new Error(`Malformed OMP session ancestry cycle involving ${current.file}`);
 		seen.add(current.file);
 		const hasParent = typeof current.header.parentSession === "string" && current.header.parentSession.length > 0;
-		const parent = parentFile(current, byId);
+		const parent = parentFile(current, index);
 		if (hasParent && !parent) throw new Error(`Malformed OMP session ancestry involving ${current.file}`);
-		const next = parent ? byId.get(parent) : undefined;
+		const next = parent ? index.byFile.get(parent) : undefined;
 		if (!next) break;
 		current = next;
 	}
 	return current.file;
 }
 
-function hasUnresolvedParent(record: SessionRecord, byId: Map<string, SessionRecord>): boolean {
+function hasUnresolvedParent(record: SessionRecord, index: SessionIndex): boolean {
 	const hasParent = typeof record.header.parentSession === "string" && record.header.parentSession.length > 0;
-	return hasParent && !parentFile(record, byId);
+	return hasParent && !parentFile(record, index);
 }
 
-function resolveTarget(target: string, records: SessionRecord[]): SessionRecord {
-	if (target !== "--latest" && !validId(target)) {
-		let isFile = false;
-		let resolved = "";
-		try {
-			resolved = safeSessionPath(target);
-			isFile = fs.statSync(resolved).isFile();
-		} catch (error) {
-			if (!isEnoent(error)) throw error;
-		}
-		if (isFile) {
-			const record = recordFromFile(resolved);
-			if (record) return record;
-		}
+function recordFromPathTarget(target: string): SessionRecord | null {
+	if (target === "--latest" || validId(target)) return null;
+	let resolved: string;
+	try {
+		resolved = safeSessionPath(target);
+		if (!fs.statSync(resolved).isFile()) return null;
+	} catch (error) {
+		if (!isEnoent(error)) throw error;
+		return null;
 	}
-	const byFile = new Map(records.map(record => [record.file, record]));
-	const byId = byFile;
+	return recordFromFile(resolved);
+}
+
+function rootsOf(records: SessionRecord[], index: SessionIndex): { roots: SessionRecord[]; malformed: Set<string> } {
 	const malformed = new Set<string>();
 	for (const record of records) {
-		try { rootFile(record, byFile); } catch { malformed.add(record.file); }
+		try { rootFile(record, index); } catch { malformed.add(record.file); }
 	}
 	const roots = records.filter(record =>
 		!malformed.has(record.file) &&
-		!parentFile(record, byId) &&
-		!hasUnresolvedParent(record, byId)
+		!parentFile(record, index) &&
+		!hasUnresolvedParent(record, index),
 	);
-	if (target === "--latest") {
-		const cwd = path.resolve(process.cwd());
-		const inCwd = roots.filter(record => typeof record.header.cwd === "string" && record.header.cwd.length > 0 && path.resolve(record.header.cwd) === cwd);
-		const candidates = inCwd.length ? inCwd : roots;
-		const newest = candidates.sort((a, b) =>
-			modifiedTime(b) - modifiedTime(a) ||
-			timestampMs(b.header.timestamp) - timestampMs(a.header.timestamp) ||
-			a.file.localeCompare(b.file),
-		)[0];
-		if (!newest) throw new Error(`No OMP session found under ${sessionsDir}`);
-		return newest;
-	}
-	if (!validId(target)) throw new Error(`Invalid OMP session target: ${target}`);
+	return { roots, malformed };
+}
+
+function isRecordInCwd(record: SessionRecord, cwd: string): boolean {
+	const recordCwd = record.header.cwd;
+	return typeof recordCwd === "string" && recordCwd.length > 0 && path.resolve(recordCwd) === cwd;
+}
+
+function compareRecency(a: SessionRecord, b: SessionRecord): number {
+	return modifiedTime(b) - modifiedTime(a) ||
+		timestampMs(b.header.timestamp) - timestampMs(a.header.timestamp) ||
+		a.file.localeCompare(b.file);
+}
+
+function newestRoot(roots: SessionRecord[]): SessionRecord {
+	const cwd = path.resolve(process.cwd());
+	const inCwd = roots.filter(record => isRecordInCwd(record, cwd));
+	const candidates = inCwd.length ? inCwd : roots;
+	const newest = [...candidates].sort(compareRecency)[0];
+	if (!newest) throw new Error(`No OMP session found under ${sessionsDir}`);
+	return newest;
+}
+
+function matchById(target: string, records: SessionRecord[], malformed: Set<string>): SessionRecord {
 	const matches = records.filter(record => sessionId(record) === target || sessionId(record).startsWith(target));
 	if (matches.length === 1) {
 		if (malformed.has(matches[0].file)) throw new Error(`Malformed OMP session ancestry involving ${matches[0].file}`);
@@ -386,10 +460,20 @@ function resolveTarget(target: string, records: SessionRecord[]): SessionRecord 
 	throw new Error(`No OMP session found for: ${target}`);
 }
 
+function resolveTarget(target: string, records: SessionRecord[]): SessionRecord {
+	const direct = recordFromPathTarget(target);
+	if (direct) return direct;
+	const index = indexSessions(records);
+	const { roots, malformed } = rootsOf(records, index);
+	if (target === "--latest") return newestRoot(roots);
+	if (!validId(target)) throw new Error(`Invalid OMP session target: ${target}`);
+	return matchById(target, records, malformed);
+}
 
 function modifiedTime(record: SessionRecord): number {
 	try { return fs.statSync(record.file).mtimeMs; } catch { return timestampMs(record.header.timestamp); }
 }
+
 function cleanHead(value: string): string {
 	return value.replace(/\s+/g, " ").slice(0, 60);
 }
@@ -402,50 +486,31 @@ function formatHms(milliseconds: number): string {
 function formatUsage(value: Usage): string {
 	const models = [...value.models].sort().join("+") || "-";
 	const efforts = [...value.efforts].sort().join("+") || "-";
-	return `est. used token: input: ${value.input}, output: ${value.output}, reasoning: ${value.reasoning}, cache_write: ${value.cacheWrite}, cache_read: ${value.cacheRead}, total_tokens: ${value.total}, cost: $${value.cost.toFixed(4)}, model: ${models}, effort: ${efforts}`;
+	return `est. used token: input: ${value.input}, output: ${value.output}, reasoning: ${value.reasoning}, cache_write: ${value.cacheWrite}, cache_read: ${value.cacheRead}, total_tokens: ${value.total}, cost: ${formatMoney(value.spend)}, model: ${models}, effort: ${efforts}`;
 }
 
-function aggregate(record: SessionRecord): Aggregate {
-	const requests: Segment[] = [];
-	const helperUsage = newUsage();
-	let helpers = 0;
-	let current: Segment | null = null;
-	let currentEffort = "";
-	const latestResponses = new Map<string, number>();
-	for (const [index, entry] of record.entries.entries()) {
-		if (entry.type !== "message" || entry.message?.role !== "assistant") continue;
-		const message = entry.message;
-		const identity = message.responseId || message.messageId || message.id;
-		const responseKey = ((typeof identity === "string" && identity) || typeof identity === "number")
-			? `id:${String(identity)}`
-			: typeof message.timestamp === "string" || typeof message.timestamp === "number"
-				? `timestamp:${String(message.timestamp)}`
-				: "";
-		if (responseKey) latestResponses.set(responseKey, index);
+function responseKeyOf(message: JsonObject): string {
+	const identity = message.responseId || message.messageId || message.id;
+	if ((typeof identity === "string" && identity) || typeof identity === "number") return `id:${String(identity)}`;
+	if (typeof message.timestamp === "string" || typeof message.timestamp === "number") return `timestamp:${String(message.timestamp)}`;
+	return "";
+}
+
+function isAssistantEntry(entry: JsonObject): boolean {
+	return entry.type === "message" && entry.message?.role === "assistant";
+}
+
+function latestResponseIndices(entries: JsonObject[]): Map<string, number> {
+	const latest = new Map<string, number>();
+	for (const [index, entry] of entries.entries()) {
+		if (!isAssistantEntry(entry)) continue;
+		const key = responseKeyOf(entry.message);
+		if (key) latest.set(key, index);
 	}
-	for (const [index, entry] of record.entries.entries()) {
-		if (entry.type === "thinking_level_change" && typeof entry.thinkingLevel === "string") currentEffort = entry.thinkingLevel;
-		const prompt = promptOf(entry);
-		if (prompt !== null) {
-			const start = entryTime(entry);
-			if (current) { requests.push(current); current = null; }
-			current = { prompt, start, end: 0, usage: newUsage() };
-		}
-		if (entry.type === "model_usage") { helpers += 1; addModelUsage(current?.usage || helperUsage, entry, currentEffort); continue; }
-		if (entry.type !== "message" || entry.message?.role !== "assistant") continue;
-		const message = entry.message;
-		const identity = message.responseId || message.messageId || message.id;
-		const responseKey = ((typeof identity === "string" && identity) || typeof identity === "number")
-			? `id:${String(identity)}`
-			: typeof message.timestamp === "string" || typeof message.timestamp === "number"
-				? `timestamp:${String(message.timestamp)}`
-				: "";
-		if (responseKey && latestResponses.get(responseKey) !== index) continue;
-		if (!current) current = { prompt: "", start: entryTime(entry), end: 0, usage: newUsage() };
-		current.end = Math.max(current.end, completedTime(entry));
-		addAssistant(current.usage, message, currentEffort);
-	}
-	if (current) requests.push(current);
+	return latest;
+}
+
+function summarize(requests: Segment[], helperUsage: Usage, helpers: number): Aggregate {
 	const total = newUsage();
 	let workMs = 0;
 	for (const request of requests) {
@@ -457,49 +522,85 @@ function aggregate(record: SessionRecord): Aggregate {
 	return { requests, usage: total, workMs, helpers };
 }
 
-function main(): void {
-	const args = process.argv.slice(2);
+function aggregate(record: SessionRecord): Aggregate {
+	const requests: Segment[] = [];
+	const helperUsage = newUsage();
+	let helpers = 0;
+	let current: Segment | null = null;
+	let currentEffort = "";
+	const latestResponses = latestResponseIndices(record.entries);
+	for (const [index, entry] of record.entries.entries()) {
+		if (entry.type === "thinking_level_change" && typeof entry.thinkingLevel === "string") currentEffort = entry.thinkingLevel;
+		const prompt = promptOf(entry);
+		if (prompt !== null) {
+			if (current) requests.push(current);
+			current = { prompt, start: entryTime(entry), end: 0, usage: newUsage() };
+		}
+		if (entry.type === "model_usage") { helpers += 1; addModelUsage(current?.usage || helperUsage, entry, currentEffort); continue; }
+		if (!isAssistantEntry(entry)) continue;
+		const message = entry.message;
+		const responseKey = responseKeyOf(message);
+		if (responseKey && latestResponses.get(responseKey) !== index) continue;
+		if (!current) current = { prompt: "", start: entryTime(entry), end: 0, usage: newUsage() };
+		current.end = Math.max(current.end, completedTime(entry));
+		addAssistant(current.usage, message, currentEffort);
+	}
+	if (current) requests.push(current);
+	return summarize(requests, helperUsage, helpers);
+}
+
+function parseArgs(args: string[]): { target: string; check: boolean } {
 	let target = "";
 	let check = false;
 	for (const arg of args) {
 		if (arg === "--check") check = true;
 		else if (arg === "--latest") target = "--latest";
-		else if (arg === "--help" || arg === "-h") usage();
-		else if (arg.startsWith("-")) usage();
+		else if (arg === "--help" || arg === "-h") printUsage();
+		else if (arg.startsWith("-")) printUsage();
 		else if (target) throw new Error("Only one OMP session target is allowed");
 		else target = arg;
 	}
-	if (!target) target = "--latest";
-	let records = loadSessions();
-	const selected = resolveTarget(target, records);
-	if (!records.some(record => record.file === selected.file)) {
-		const discovered = new Map(records.map(record => [record.file, record]));
-		for (const record of loadSessionsFrom(path.dirname(selected.file))) discovered.set(record.file, record);
-		let parent = selected.header.parentSession;
-		while (typeof parent === "string" && parent) {
-			let parentPath: string;
-			try { parentPath = sessionReference(parent); } catch { break; }
-			const parentRecord = recordFromFile(parentPath);
-			if (!parentRecord) break;
-			discovered.set(parentRecord.file, parentRecord);
-			parent = parentRecord.header.parentSession;
-		}
-		records = [...discovered.values()];
+	return { target: target || "--latest", check };
+}
+
+function discoverFamily(records: SessionRecord[], selected: SessionRecord): SessionRecord[] {
+	if (records.some(record => record.file === selected.file)) return records;
+	const discovered = new Map(records.map(record => [record.file, record]));
+	for (const record of loadSessionsFrom(path.dirname(selected.file))) discovered.set(record.file, record);
+	let parent = selected.header.parentSession;
+	while (typeof parent === "string" && parent) {
+		let parentPath: string;
+		try { parentPath = sessionReference(parent); } catch { break; }
+		const parentRecord = recordFromFile(parentPath);
+		if (!parentRecord) break;
+		discovered.set(parentRecord.file, parentRecord);
+		parent = parentRecord.header.parentSession;
 	}
-	const byFile = new Map(records.map(record => [record.file, record]));
-	const root = byFile.get(rootFile(selected, byFile)) ?? selected;
-	const family = records.filter(record => {
-		try { return rootFile(record, byFile) === root.file; } catch { return false; }
-	}).sort((a, b) => (a.file === root.file ? -1 : b.file === root.file ? 1 : modifiedTime(b) - modifiedTime(a)));
+	return [...discovered.values()];
+}
+
+function compareFamily(a: SessionRecord, b: SessionRecord, rootFilePath: string): number {
+	if (a.file === rootFilePath) return -1;
+	if (b.file === rootFilePath) return 1;
+	return modifiedTime(b) - modifiedTime(a);
+}
+
+function familyOf(records: SessionRecord[], root: SessionRecord, index: SessionIndex): SessionRecord[] {
+	return records
+		.filter(record => {
+			try { return rootFile(record, index) === root.file; } catch { return false; }
+		})
+		.sort((a, b) => compareFamily(a, b, root.file));
+}
+
+function printReport(root: SessionRecord, rootAggregate: Aggregate, childAggregates: { child: SessionRecord; aggregate: Aggregate }[], check: boolean): void {
 	console.log(`session: ${root.file}${root.header.title ? `  — ${root.header.title}` : ""}`);
-	const rootAggregate = aggregate(root);
 	for (const [index, request] of rootAggregate.requests.entries()) {
-		console.log(`${index + 1}. ${request.start ? new Date(request.start).toTimeString().slice(0, 8) : "00:00:00"} (working time ${formatHms(request.end - request.start)}) "${cleanHead(request.prompt)}"`);
+		const startClock = request.start ? new Date(request.start).toTimeString().slice(0, 8) : "00:00:00";
+		console.log(`${index + 1}. ${startClock} (working time ${formatHms(request.end - request.start)}) "${cleanHead(request.prompt)}"`);
 		console.log(formatUsage(request.usage));
 	}
-	const children = family.filter(record => record.file !== root.file);
 	if (rootAggregate.helpers) console.log(`internal helpers: ${rootAggregate.helpers}`);
-	const childAggregates = children.map(child => ({ child, aggregate: aggregate(child) }));
 	for (const { child, aggregate: childAggregate } of childAggregates) {
 		const helperLabel = childAggregate.helpers ? `, internal helpers: ${childAggregate.helpers}` : "";
 		console.log(`sub-agent: ${sessionId(child)}, working time: ${formatHms(childAggregate.workMs)}${helperLabel}, jsonl: ${child.file}`);
@@ -509,9 +610,21 @@ function main(): void {
 	mergeUsage(total, rootAggregate.usage);
 	for (const { aggregate: childAggregate } of childAggregates) mergeUsage(total, childAggregate.usage);
 	console.log("---");
-	console.log(`TOTAL: requests: ${rootAggregate.requests.length}, sub-agents: ${children.length}, working time: ${formatHms(rootAggregate.workMs)}`);
+	console.log(`TOTAL: requests: ${rootAggregate.requests.length}, sub-agents: ${childAggregates.length}, working time: ${formatHms(rootAggregate.workMs)}`);
 	console.log(formatUsage(total));
 	if (check) console.log("check: OMP transcript usage is authoritative; native cost fields are preserved");
+}
+
+function main(): void {
+	const { target, check } = parseArgs(process.argv.slice(2));
+	const selected = resolveTarget(target, loadSessions());
+	const records = discoverFamily(loadSessions(), selected);
+	const index = indexSessions(records);
+	const root = index.byFile.get(rootFile(selected, index)) ?? selected;
+	const children = familyOf(records, root, index).filter(record => record.file !== root.file);
+	const rootAggregate = aggregate(root);
+	const childAggregates = children.map(child => ({ child, aggregate: aggregate(child) }));
+	printReport(root, rootAggregate, childAggregates, check);
 }
 
 try { main(); } catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exit(1); }

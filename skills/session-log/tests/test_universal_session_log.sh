@@ -136,6 +136,12 @@ SKILL.md
 VERSION
 install.sh
 bin/session-log
+lib/common.sh
+lib/pathsafe.py
+lib/claude_settings.py
+lib/enable_flag.py
+lib/locking.py
+lib/adapter_install.sh
 adapters/claude/claude_hook.sh
 adapters/claude/scripts/prompt_log_lib.sh
 adapters/claude/scripts/prompt_log_new_session.sh
@@ -351,6 +357,17 @@ set -e
 assert_exact "overlong Cursor session still allows the prompt" '{"continue":true}' "$long_cursor_output"
 assert_exact "overlong Cursor session creates no log" "" \
   "$(find "$CURSOR_HOME/.cursor/prompt-logs" -name "session_${long_cursor_id}.md" -print)"
+set +e
+home_unset_output="$(
+  printf '%s\n' '{"session_id":"codex-session","cwd":"/tmp/codex-project","last_assistant_message":"leak"}' |
+    HOME="" python3 "$CODEX_HOOK" codex stop 2>&1
+)"
+home_unset_rc=$?
+set -e
+[[ "$home_unset_rc" -ne 0 ]] && pass "native hook fails when HOME is unset" || fail "native hook fails when HOME is unset"
+assert_contains "native hook HOME error is explicit" "HOME is not set" "$home_unset_output"
+assert_exact "native hook writes no log under cwd when HOME unset" "" \
+  "$(find "$PWD/.codex/prompt-logs" -name 'session_codex-session.md' -print 2>/dev/null)"
 cursor_usage="$(run_skill_entrypoint "$CURSOR_HOME/.cursor/skills/session-log/SKILL.md" "$CURSOR_HOME" cursor 'usage --latest' 2>&1)"
 assert_contains "source skill forwards usage --latest" "Cursor: usage" "$cursor_usage"
 assert_contains "Cursor usage states native token limitation" "native token usage unavailable" "$cursor_usage"
@@ -867,6 +884,287 @@ omp_no_session_rc=$?
 set -e
 [[ "$omp_no_session_rc" -ne 0 ]] && pass "OMP no-session usage fails directly" || fail "OMP no-session usage fails directly"
 assert_contains "OMP no-session error explains missing reconstruction" "cannot be reconstructed" "$omp_no_session"
+
+printf '=== CLI argument parsing covers quoting, conflicts, and relocation guards ===\n'
+sq_status="$(run_harness cursor --arguments "'status'" 2>&1)"
+assert_exact "single-quoted command token is preserved literally" "Cursor: off" "$sq_status"
+set +e
+dq_dollar="$(run_harness cursor --arguments '"\$"' 2>&1)"
+set -e
+assert_contains "double-quoted backslash-dollar keeps the dollar" 'unknown command: $' "$dq_dollar"
+set +e
+dq_literal="$(run_harness cursor --arguments '"a\zb"' 2>&1)"
+set -e
+assert_contains "double-quoted backslash before a normal char stays literal" 'unknown command: a\zb' "$dq_literal"
+set +e
+dq_backslash="$(run_harness cursor --arguments '"\\"' 2>&1)"
+set -e
+assert_contains "double-quoted double backslash collapses to one" 'unknown command: \' "$dq_backslash"
+set +e
+plain_escape="$(run_harness cursor --arguments 'unknown\ cmd' 2>&1)"
+set -e
+assert_contains "plain backslash escapes the following space" 'unknown command: unknown cmd' "$plain_escape"
+set +e
+unterminated_quote="$(run_harness cursor --arguments "'oops" 2>&1)"
+unterminated_quote_rc=$?
+set -e
+[[ "$unterminated_quote_rc" -ne 0 ]] && pass "unterminated quote fails" || fail "unterminated quote fails"
+assert_contains "unterminated quote error is explicit" "unterminated quote in command arguments" "$unterminated_quote"
+set +e
+unterminated_escape="$(run_harness cursor --arguments 'oops\' 2>&1)"
+unterminated_escape_rc=$?
+set -e
+[[ "$unterminated_escape_rc" -ne 0 ]] && pass "unterminated escape fails" || fail "unterminated escape fails"
+assert_contains "unterminated escape error is explicit" "unterminated escape in command arguments" "$unterminated_escape"
+set +e
+empty_arguments="$(run_harness cursor --arguments "" 2>&1)"
+empty_arguments_rc=$?
+set -e
+[[ "$empty_arguments_rc" -ne 0 ]] && pass "empty arguments fail" || fail "empty arguments fail"
+assert_contains "empty arguments require a command" "session-log command is required" "$empty_arguments"
+set +e
+unknown_arguments="$(run_harness cursor --arguments bogus 2>&1)"
+unknown_arguments_rc=$?
+set -e
+[[ "$unknown_arguments_rc" -ne 0 ]] && pass "unknown command via arguments fails" || fail "unknown command via arguments fails"
+assert_contains "unknown command via arguments is explicit" "unknown command: bogus" "$unknown_arguments"
+set +e
+entry_mismatch="$(run_session_log --entrypoint claude --harness codex status 2>&1)"
+entry_mismatch_rc=$?
+set -e
+[[ "$entry_mismatch_rc" -ne 0 ]] && pass "entrypoint and harness mismatch fails" || fail "entrypoint and harness mismatch fails"
+assert_contains "entrypoint/harness mismatch is explicit" "conflicting native entrypoint and harness identities" "$entry_mismatch"
+set +e
+dup_harness="$(run_session_log --entrypoint cursor --harness cursor --harness cursor status 2>&1)"
+dup_harness_rc=$?
+set -e
+[[ "$dup_harness_rc" -ne 0 ]] && pass "duplicate harness flag fails" || fail "duplicate harness flag fails"
+assert_contains "duplicate harness flag is explicit" "conflicting harness identity claims" "$dup_harness"
+set +e
+dup_entry="$(run_session_log --entrypoint cursor --entrypoint cursor --harness cursor status 2>&1)"
+dup_entry_rc=$?
+set -e
+[[ "$dup_entry_rc" -ne 0 ]] && pass "duplicate entrypoint flag fails" || fail "duplicate entrypoint flag fails"
+assert_contains "duplicate entrypoint flag is explicit" "conflicting native entrypoint claims" "$dup_entry"
+set +e
+command_and_arguments="$(run_harness cursor --arguments foo status 2>&1)"
+command_and_arguments_rc=$?
+set -e
+[[ "$command_and_arguments_rc" -ne 0 ]] && pass "command combined with --arguments fails" || fail "command combined with --arguments fails"
+assert_contains "command with --arguments conflict is explicit" "cannot combine a command with --arguments" "$command_and_arguments"
+set +e
+codex_reloc="$(HOME="$TEST_HOME" CODEX_HOME="$WORKROOT/relocated-codex" "$(package_root_for codex)/bin/session-log" --entrypoint codex --harness codex status 2>&1)"
+codex_reloc_rc=$?
+set -e
+[[ "$codex_reloc_rc" -ne 0 ]] && pass "relocated Codex root is refused" || fail "relocated Codex root is refused"
+assert_contains "relocated Codex root message is explicit" "Codex root is relocated" "$codex_reloc"
+set +e
+opencode_reloc="$(HOME="$TEST_HOME" XDG_DATA_HOME="$WORKROOT/relocated-data" "$(package_root_for opencode)/bin/session-log" --entrypoint opencode --harness opencode status 2>&1)"
+opencode_reloc_rc=$?
+set -e
+[[ "$opencode_reloc_rc" -ne 0 ]] && pass "relocated OpenCode data root is refused" || fail "relocated OpenCode data root is refused"
+assert_contains "relocated OpenCode data root message is explicit" "OpenCode data root is relocated" "$opencode_reloc"
+set +e
+omp_reloc="$(HOME="$TEST_HOME" PI_CODING_AGENT_DIR="$WORKROOT/relocated-omp" "$(package_root_for omp)/bin/session-log" --entrypoint omp --harness omp status 2>&1)"
+omp_reloc_rc=$?
+set -e
+[[ "$omp_reloc_rc" -ne 0 ]] && pass "relocated OMP root is refused" || fail "relocated OMP root is refused"
+assert_contains "relocated OMP root message is explicit" "OMP root is relocated" "$omp_reloc"
+
+printf '=== native hooks honor the enabled flag and reject malformed payloads ===\n'
+NATIVE_OFF_HOME="$WORKROOT/native-off-home"
+mkdir -p "$NATIVE_OFF_HOME/.Trash" "$NATIVE_OFF_HOME/.codex/skills" "$NATIVE_OFF_HOME/.codex/session-log"
+cp -R "$REPO/skills/session-log" "$NATIVE_OFF_HOME/.codex/skills/session-log"
+NATIVE_OFF_HOOK="$NATIVE_OFF_HOME/.codex/skills/session-log/adapters/native/session_log_hook.py"
+printf '{"stale":true}\n' > "$NATIVE_OFF_HOME/.codex/session-log/runtime.json"
+set +e
+native_off_output="$(
+  printf '%s\n' '{"session_id":"off-session","cwd":"/tmp/off-project","last_assistant_message":"must not log"}' |
+    HOME="$NATIVE_OFF_HOME" python3 "$NATIVE_OFF_HOOK" codex stop 2>&1
+)"
+native_off_rc=$?
+set -e
+[[ "$native_off_rc" -eq 0 ]] && pass "disabled native hook exits cleanly" || fail "disabled native hook exits cleanly (actual: $native_off_output)"
+assert_not_file "disabled native hook removes stale runtime state" "$NATIVE_OFF_HOME/.codex/session-log/runtime.json"
+assert_exact "disabled native hook writes no prompt log" "" \
+  "$(find "$NATIVE_OFF_HOME/.codex/prompt-logs" -name 'session_off-session.md' -print 2>/dev/null)"
+set +e
+native_invalid="$(printf '%s\n' 'not-json' | HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor user-prompt 2>&1)"
+native_invalid_rc=$?
+set -e
+[[ "$native_invalid_rc" -ne 0 ]] && pass "invalid native payload fails" || fail "invalid native payload fails"
+assert_contains "invalid native payload error is explicit" "invalid cursor hook payload" "$native_invalid"
+set +e
+native_missing_id="$(printf '%s\n' '{"model":"fixture","prompt":"orphan prompt"}' | HOME="$CURSOR_HOME" python3 "$CURSOR_HOOK" cursor user-prompt 2>&1)"
+native_missing_id_rc=$?
+set -e
+[[ "$native_missing_id_rc" -eq 0 ]] && pass "native hook without a session id continues" || fail "native hook without a session id continues"
+assert_exact "session-less native prompt still continues submission" '{"continue":true}' "$native_missing_id"
+
+printf '=== Codex usage surfaces resolution failures ===\n'
+set +e
+codex_no_rollout="$(run_harness_at_home_and_dir "$CODEX_HOME" "$WORKROOT" codex usage --latest 2>&1)"
+codex_no_rollout_rc=$?
+set -e
+[[ "$codex_no_rollout_rc" -ne 0 ]] && pass "Codex usage without a project rollout fails" || fail "Codex usage without a project rollout fails"
+assert_contains "missing Codex rollout error is explicit" "no Codex rollout transcript found" "$codex_no_rollout"
+set +e
+codex_missing_session="$(run_harness_at_home_and_dir "$CODEX_HOME" "$PWD" codex usage nonexistent-session 2>&1)"
+codex_missing_session_rc=$?
+set -e
+[[ "$codex_missing_session_rc" -ne 0 ]] && pass "Codex usage for an unknown session fails" || fail "Codex usage for an unknown session fails"
+assert_contains "unknown Codex session error is explicit" "Codex session does not exist" "$codex_missing_session"
+set +e
+codex_invalid_session="$(run_harness_at_home_and_dir "$CODEX_HOME" "$PWD" codex usage 'bad!id' 2>&1)"
+codex_invalid_session_rc=$?
+set -e
+[[ "$codex_invalid_session_rc" -ne 0 ]] && pass "Codex usage rejects invalid session ids" || fail "Codex usage rejects invalid session ids"
+assert_contains "invalid Codex session id error is explicit" "invalid Codex session id" "$codex_invalid_session"
+# sha256_file shasum->sha256sum fallback intentionally not covered: exercising it requires
+# removing shasum from PATH globally, which would break unrelated hashing across the suite.
+
+
+printf '=== pathsafe and locked-writer modules reject unsafe inputs ===\n'
+PSLIB="$(package_root_for claude)/lib"
+PSROOT="$WORKROOT/pathsafe-units"
+mkdir -p "$PSROOT"
+PSROOT="$(cd "$PSROOT" && pwd -P)"
+set +e
+
+# open_directory refuses '..' traversal
+trav_out="$(SESSION_LOG_FILE="$PSROOT/a/../b" SESSION_LOG_CONTENT=x python3 "$PSLIB/pathsafe.py" write-file 2>&1)"
+trav_rc=$?
+assert_exact "pathsafe write-file rejects .. traversal (rc)" "1" "$trav_rc"
+assert_contains "pathsafe .. traversal message" "refusing parent traversal" "$trav_out"
+
+# open_directory refuses a symlinked intermediate component
+mkdir -p "$PSROOT/real"
+ln -s "$PSROOT/real" "$PSROOT/link"
+sym_out="$(SESSION_LOG_FILE="$PSROOT/link/f" SESSION_LOG_CONTENT=x python3 "$PSLIB/pathsafe.py" write-file 2>&1)"
+sym_rc=$?
+[[ "$sym_rc" -ne 0 ]] && pass "pathsafe refuses symlinked component" || fail "pathsafe refuses symlinked component (rc=$sym_rc)"
+assert_not_file "pathsafe did not write through symlinked component" "$PSROOT/real/f"
+
+# write_file refuses a symlinked target file
+: > "$PSROOT/realfile"
+ln -s "$PSROOT/realfile" "$PSROOT/slink"
+wf_out="$(SESSION_LOG_FILE="$PSROOT/slink" SESSION_LOG_CONTENT=x python3 "$PSLIB/pathsafe.py" write-file 2>&1)"
+assert_contains "pathsafe write-file refuses symlinked target" "refusing to overwrite unsafe private file" "$wf_out"
+
+printf 'src\n' > "$PSROOT/src.txt"
+# copy_file refuses a symlink target
+: > "$PSROOT/copyreal"
+ln -s "$PSROOT/copyreal" "$PSROOT/copylink"
+cs_out="$(SESSION_LOG_SOURCE="$PSROOT/src.txt" SESSION_LOG_TARGET="$PSROOT/copylink" SESSION_LOG_PRESERVE_MODE=0 SESSION_LOG_MANIFEST_OWNED=1 python3 "$PSLIB/pathsafe.py" copy-file 2>&1)"
+assert_contains "pathsafe copy-file refuses symlink target" "refusing to overwrite symlink" "$cs_out"
+
+# copy_file refuses a non-file (directory) target
+mkdir -p "$PSROOT/dirtarget"
+cn_out="$(SESSION_LOG_SOURCE="$PSROOT/src.txt" SESSION_LOG_TARGET="$PSROOT/dirtarget" SESSION_LOG_PRESERVE_MODE=0 SESSION_LOG_MANIFEST_OWNED=1 python3 "$PSLIB/pathsafe.py" copy-file 2>&1)"
+assert_contains "pathsafe copy-file refuses non-file target" "refusing to overwrite non-file" "$cn_out"
+
+# copy_file refuses an unowned file (manifest_owned=0, differing content)
+printf 'different\n' > "$PSROOT/unowned.txt"
+cu_out="$(SESSION_LOG_SOURCE="$PSROOT/src.txt" SESSION_LOG_TARGET="$PSROOT/unowned.txt" SESSION_LOG_PRESERVE_MODE=0 SESSION_LOG_MANIFEST_OWNED=0 python3 "$PSLIB/pathsafe.py" copy-file 2>&1)"
+assert_contains "pathsafe copy-file refuses unowned file" "refusing to overwrite unowned file" "$cu_out"
+
+# link_adapter refuses an unowned link (points outside store/releases and differs from source)
+mkdir -p "$PSROOT/store/releases/v1"
+printf 'asset\n' > "$PSROOT/asset.js"
+printf 'x\n' > "$PSROOT/elsewhere"
+ln -sfn "$PSROOT/elsewhere" "$PSROOT/otherlink"
+lu_out="$(SESSION_LOG_SOURCE="$PSROOT/asset.js" SESSION_LOG_TARGET="$PSROOT/otherlink" SESSION_LOG_STORE="$PSROOT/store" python3 "$PSLIB/pathsafe.py" link-adapter 2>&1)"
+assert_contains "pathsafe link-adapter refuses unowned link" "refusing to overwrite unowned adapter link" "$lu_out"
+
+# link_adapter is idempotent when the link already points at the source
+ln -sfn "$PSROOT/asset.js" "$PSROOT/ownedlink"
+SESSION_LOG_SOURCE="$PSROOT/asset.js" SESSION_LOG_TARGET="$PSROOT/ownedlink" SESSION_LOG_STORE="$PSROOT/store" python3 "$PSLIB/pathsafe.py" link-adapter
+li_rc=$?
+assert_exact "pathsafe link-adapter idempotent exit 0" "0" "$li_rc"
+assert_link "pathsafe link unchanged after idempotent relink" "$PSROOT/asset.js" "$PSROOT/ownedlink"
+
+# locking acquire/release round-trip and stale-owner reclaim
+LK="$PSROOT/lockroot/install.lock"
+mkdir -p "$PSROOT/lockroot"
+LK_START="$(ps -p "$$" -o lstart= 2>/dev/null | sed 's/^ *//; s/[[:space:]]*$//')"
+SESSION_LOG_LOCK_PATH="$LK" SESSION_LOG_LOCK_PID="$$" SESSION_LOG_LOCK_START="$LK_START" python3 "$PSLIB/locking.py" acquire
+lk_rc=$?
+assert_exact "locking acquire succeeds" "0" "$lk_rc"
+assert_file "locking records owner" "$LK/owner"
+SESSION_LOG_LOCK_PATH="$LK" SESSION_LOG_LOCK_PID="$$" SESSION_LOG_LOCK_START="$LK_START" python3 "$PSLIB/locking.py" acquire
+lk2_rc=$?
+assert_exact "locking blocks while held by a live owner" "1" "$lk2_rc"
+SESSION_LOG_LOCK_PATH="$LK" SESSION_LOG_LOCK_PID="$$" SESSION_LOG_LOCK_START="$LK_START" python3 "$PSLIB/locking.py" release
+assert_not_file "locking release removes the lock" "$LK"
+mkdir -p "$LK"
+printf '%s\nStale Owner Start\n' "$$" > "$LK/owner"
+python3 - "$LK" <<'PYUTIL'
+import os, sys, time
+past = time.time() - 3600
+os.utime(sys.argv[1], (past, past))
+PYUTIL
+SESSION_LOG_LOCK_PATH="$LK" SESSION_LOG_LOCK_PID="$$" SESSION_LOG_LOCK_START="$LK_START" python3 "$PSLIB/locking.py" acquire
+lk3_rc=$?
+assert_exact "locking reclaims a stale (start-mismatched) lock" "0" "$lk3_rc"
+
+# enable_flag on/off round-trip
+mkdir -p "$PSROOT/enable"
+EN_FLAG="$PSROOT/enable/.enabled"
+EN_LOCK="$PSROOT/enable/.enable.lock"
+SESSION_LOG_ENABLE_LOCK="$EN_LOCK" SESSION_LOG_ENABLE_FLAG="$EN_FLAG" SESSION_LOG_ENABLE_ACTION=on python3 "$PSLIB/enable_flag.py"
+en_rc=$?
+assert_exact "enable_flag on succeeds" "0" "$en_rc"
+assert_file "enable_flag on creates the flag" "$EN_FLAG"
+assert_contains "enable_flag writes an enabled token" "enabled:" "$(cat "$EN_FLAG")"
+assert_mode "enable_flag creates a private flag" "600" "$EN_FLAG"
+SESSION_LOG_ENABLE_LOCK="$EN_LOCK" SESSION_LOG_ENABLE_FLAG="$EN_FLAG" SESSION_LOG_ENABLE_ACTION=off python3 "$PSLIB/enable_flag.py"
+assert_not_file "enable_flag off removes the flag" "$EN_FLAG"
+SESSION_LOG_ENABLE_LOCK="$EN_LOCK" SESSION_LOG_ENABLE_FLAG="$EN_FLAG" SESSION_LOG_ENABLE_ACTION=off python3 "$PSLIB/enable_flag.py"
+en_off_rc=$?
+assert_exact "enable_flag off on a missing flag is a clean no-op" "0" "$en_off_rc"
+assert_not_file "enable_flag off leaves no flag behind" "$EN_FLAG"
+
+# claude_settings install injects the four hook events, is idempotent, and refuses symlinks
+mkdir -p "$PSROOT/claude-settings"
+CS_SET="$PSROOT/claude-settings/settings.json"
+CS_HOOK="$PSROOT/claude-settings/hook.sh"
+: > "$CS_HOOK"
+SETTINGS_PATH="$CS_SET" HOOK_PATH="$CS_HOOK" SESSION_LOG_OWNER_MARKER="ownerX" python3 "$PSLIB/claude_settings.py" install
+cs_rc=$?
+assert_exact "claude_settings install succeeds on a fresh file" "0" "$cs_rc"
+cs_json="$(cat "$CS_SET")"
+assert_contains "claude_settings injects SessionStart" "SessionStart" "$cs_json"
+assert_contains "claude_settings injects UserPromptSubmit" "UserPromptSubmit" "$cs_json"
+assert_contains "claude_settings injects Stop" "\"Stop\"" "$cs_json"
+assert_contains "claude_settings injects SubagentStop" "SubagentStop" "$cs_json"
+SETTINGS_PATH="$CS_SET" HOOK_PATH="$CS_HOOK" SESSION_LOG_OWNER_MARKER="ownerX" python3 "$PSLIB/claude_settings.py" install
+cs_count="$(grep -c "SESSION_LOG_OWNER=ownerX" "$CS_SET")"
+assert_exact "claude_settings install is idempotent (4 owned hooks)" "4" "$cs_count"
+ln -s "$CS_SET" "$PSROOT/claude-settings/settings-link.json"
+SETTINGS_PATH="$PSROOT/claude-settings/settings-link.json" HOOK_PATH="$CS_HOOK" SESSION_LOG_OWNER_MARKER="ownerX" python3 "$PSLIB/claude_settings.py" install >/dev/null 2>&1
+csl_rc=$?
+[[ "$csl_rc" -ne 0 ]] && pass "claude_settings refuses symlinked settings" || fail "claude_settings refuses symlinked settings (rc=$csl_rc)"
+
+# claude_settings migrate refuses a symlinked settings parent directory
+MIG_REAL="$PSROOT/mig-real"
+MIG_LEGACY="$PSROOT/mig-legacy"
+mkdir -p "$MIG_REAL"
+printf '{\n  "hooks": {\n    "Stop": [\n      {\n        "hooks": [\n          {"type": "command", "command": "bash %s/prompt_log_stop.sh"}\n        ]\n      }\n    ]\n  }\n}\n' "$MIG_LEGACY" > "$MIG_REAL/settings.json"
+mig_before="$(cat "$MIG_REAL/settings.json")"
+ln -s "$MIG_REAL" "$PSROOT/mig-link"
+SETTINGS_PATH="$PSROOT/mig-link/settings.json" CLAUDE_SCRIPTS_DIR="$MIG_LEGACY" python3 "$PSLIB/claude_settings.py" migrate >/dev/null 2>&1
+migp_rc=$?
+[[ "$migp_rc" -ne 0 ]] && pass "claude_settings migrate refuses symlinked settings parent" || fail "claude_settings migrate refuses symlinked settings parent (rc=$migp_rc)"
+assert_exact "claude_settings migrate leaves symlinked-parent settings unchanged" "$mig_before" "$(cat "$MIG_REAL/settings.json")"
+MIG_BAD="$PSROOT/mig-bad"
+mkdir -p "$MIG_BAD"
+printf '{not-json\n' > "$MIG_BAD/settings.json"
+mig_bad_error="$(SETTINGS_PATH="$MIG_BAD/settings.json" CLAUDE_SCRIPTS_DIR="$MIG_LEGACY" python3 "$PSLIB/claude_settings.py" migrate 2>&1)"
+mig_bad_rc=$?
+[[ "$mig_bad_rc" -ne 0 ]] && pass "claude_settings migrate rejects malformed JSON" || fail "claude_settings migrate rejects malformed JSON (rc=$mig_bad_rc)"
+assert_contains "claude_settings migrate reports malformed JSON cleanly" "cannot update Claude settings:" "$mig_bad_error"
+assert_not_contains "claude_settings migrate emits no raw traceback" "Traceback" "$mig_bad_error"
+set -e
 
 printf '\nResults: %s\n' "$([[ "$FAIL" -eq 0 ]] && echo passed || echo FAILED)"
 exit "$FAIL"

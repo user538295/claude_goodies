@@ -12,6 +12,10 @@ readonly INSTALL_LOCK="$STORE/.install.lock"
 INSTALL_LOCK_OWNER_START=""
 INSTALL_STORE_CREATED=0
 
+SESSION_LOG_LOG_PREFIX="universal-session-log"
+# shellcheck source=lib/common.sh
+source "$PACKAGE_ROOT/lib/common.sh"
+
 has_exact_ownership_marker() {
   local file="$1"
   [[ -f "$file" && ! -L "$file" ]] || return 1
@@ -48,28 +52,6 @@ HARNESS_SELECTION=""
 INSTALL_MODE=0
 LOCAL_ARGUMENTS=""
 LOCAL_ARGUMENTS_SET=0
-
-fail() {
-  printf 'universal-session-log: %s\n' "$1" >&2
-  exit 1
-}
-canonical_path() {
-  local path="$1" resolved
-  if [[ -d "$path" ]]; then
-    resolved="$(cd "$path" 2>/dev/null && pwd -P)" || return 1
-    printf '%s\n' "$resolved"
-  else
-    printf '%s\n' "$path"
-  fi
-}
-
-paths_equivalent() {
-  local left right
-  left="$(canonical_path "$1")" || return 1
-  right="$(canonical_path "$2")" || return 1
-  [[ "$left" == "$right" ]]
-}
-
 
 selected_harness() {
   [[ "$HARNESS_SELECTION" == all || "$HARNESS_SELECTION" == "$1" ]]
@@ -141,89 +123,6 @@ parse_args() {
   fi
 }
 
-ensure_safe_parent() {
-  local path="$1" current component
-  local -a components=()
-  IFS='/' read -r -a components <<< "$(dirname "$path")"
-  current=""
-  for component in "${components[@]}"; do
-    [[ -n "$component" ]] || continue
-    current="$current/$component"
-    [[ -L "$current" ]] && fail "refusing to follow symlinked parent: $current"
-    [[ -e "$current" && ! -d "$current" ]] &&
-      fail "refusing non-directory parent: $current"
-  done
-  return 0
-}
-ensure_private_directory() {
-  local directory="$1"
-  if ! SESSION_LOG_DIRECTORY="$directory" python3 - <<'PY'
-import os
-import stat
-
-directory = os.environ["SESSION_LOG_DIRECTORY"]
-flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-fd = os.open(os.sep, flags)
-try:
-    for part in directory.split(os.sep)[1:]:
-        if not part or part == ".":
-            continue
-        if part == "..":
-            raise SystemExit(f"refusing parent traversal: {directory}")
-        try:
-            next_fd = os.open(part, flags, dir_fd=fd)
-        except FileNotFoundError:
-            try:
-                os.mkdir(part, 0o700, dir_fd=fd)
-            except FileExistsError:
-                pass
-            next_fd = os.open(part, flags, dir_fd=fd)
-        os.close(fd)
-        fd = next_fd
-    current = os.fstat(fd)
-    if not stat.S_ISDIR(current.st_mode) or current.st_uid != os.getuid():
-        raise SystemExit(f"refusing unsafe private directory: {directory}")
-    os.fchmod(fd, 0o700)
-finally:
-    os.close(fd)
-PY
-  then
-    fail "cannot safely prepare private directory: $directory"
-  fi
-}
-
-safe_remove_path() {
-  local path="$1"
-  SESSION_LOG_REMOVE_PATH="$path" python3 - <<'PY'
-import os
-import stat
-
-target = os.environ["SESSION_LOG_REMOVE_PATH"]
-directory, name = os.path.split(os.path.abspath(target))
-flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-parent_fd = os.open(os.sep, flags)
-try:
-    for part in directory.split(os.sep)[1:]:
-        if not part or part == ".":
-            continue
-        if part == "..":
-            raise RuntimeError("parent traversal")
-        next_fd = os.open(part, flags, dir_fd=parent_fd)
-        os.close(parent_fd)
-        parent_fd = next_fd
-    try:
-        current = os.lstat(name, dir_fd=parent_fd)
-    except FileNotFoundError:
-        raise SystemExit(0)
-    if stat.S_ISDIR(current.st_mode) and not stat.S_ISLNK(current.st_mode):
-        os.rmdir(name, dir_fd=parent_fd)
-    else:
-        os.unlink(name, dir_fd=parent_fd)
-finally:
-    os.close(parent_fd)
-PY
-}
-
 cleanup() {
   local path="$1"
   [[ -n "$path" ]] || return 0
@@ -236,115 +135,9 @@ cleanup() {
 }
 _package_lock_operation() {
   local mode="$1"
-  SESSION_LOG_LOCK_PATH="$INSTALL_LOCK" SESSION_LOG_LOCK_MODE="$mode" \
+  SESSION_LOG_LOCK_PATH="$INSTALL_LOCK" \
     SESSION_LOG_LOCK_PID="$$" SESSION_LOG_LOCK_START="$INSTALL_LOCK_OWNER_START" \
-    python3 - "$mode" <<'PY'
-import json
-import os
-import subprocess
-import sys
-import time
-
-mode = sys.argv[1]
-lock_path = os.environ["SESSION_LOG_LOCK_PATH"]
-owner_pid = int(os.environ["SESSION_LOG_LOCK_PID"])
-owner_start = os.environ["SESSION_LOG_LOCK_START"]
-directory, name = os.path.split(lock_path)
-flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-
-def open_directory(path):
-    fd = os.open(os.sep, flags)
-    try:
-        for component in path.split(os.sep)[1:]:
-            if not component or component == ".":
-                continue
-            if component == "..":
-                raise RuntimeError("parent traversal")
-            try:
-                next_fd = os.open(component, flags, dir_fd=fd)
-            except FileNotFoundError:
-                os.mkdir(component, 0o700, dir_fd=fd)
-                next_fd = os.open(component, flags, dir_fd=fd)
-            os.close(fd)
-            fd = next_fd
-        return fd
-    except BaseException:
-        os.close(fd)
-        raise
-
-def read_owner(fd):
-    descriptor = os.open("owner", os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=fd)
-    try:
-        return os.read(descriptor, 512).decode("utf-8").splitlines()
-    finally:
-        os.close(descriptor)
-
-def owner_alive(lines):
-    if len(lines) < 2 or not lines[0].isdigit() or not lines[1]:
-        return None
-    pid = int(lines[0])
-    try:
-        os.kill(pid, 0)
-    except OSError as error:
-        return getattr(error, "errno", None) != 3
-    try:
-        actual = subprocess.check_output(["ps", "-p", str(pid), "-o", "lstart="], text=True, stderr=subprocess.DEVNULL).strip()
-    except (OSError, subprocess.CalledProcessError):
-        return True
-    return actual == lines[1] if actual else True
-
-parent_fd = open_directory(directory)
-lock_fd = None
-try:
-    if mode == "acquire":
-        while True:
-            try:
-                os.mkdir(name, 0o700, dir_fd=parent_fd)
-                lock_fd = os.open(name, flags, dir_fd=parent_fd)
-                descriptor = os.open("owner", os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600, dir_fd=lock_fd)
-                try:
-                    os.write(descriptor, ("%s\n%s\n" % (owner_pid, owner_start)).encode("utf-8"))
-                    os.fsync(descriptor)
-                finally:
-                    os.close(descriptor)
-                break
-            except FileExistsError:
-                if lock_fd is not None:
-                    os.close(lock_fd)
-                    lock_fd = None
-                lock_fd = os.open(name, flags, dir_fd=parent_fd)
-                try:
-                    lines = read_owner(lock_fd)
-                except FileNotFoundError:
-                    lines = []
-                if owner_alive(lines):
-                    raise SystemExit(1)
-                age = time.time() - os.stat(name, dir_fd=parent_fd, follow_symlinks=False).st_mtime
-                if age < 5:
-                    raise SystemExit(1)
-                try:
-                    os.unlink("owner", dir_fd=lock_fd)
-                except FileNotFoundError:
-                    pass
-                os.close(lock_fd)
-                lock_fd = None
-                os.rmdir(name, dir_fd=parent_fd)
-    else:
-        try:
-            lock_fd = os.open(name, flags, dir_fd=parent_fd)
-            lines = read_owner(lock_fd)
-            if len(lines) >= 2 and lines[0] == str(owner_pid) and lines[1] == owner_start:
-                os.unlink("owner", dir_fd=lock_fd)
-                os.close(lock_fd)
-                lock_fd = None
-                os.rmdir(name, dir_fd=parent_fd)
-        except (FileNotFoundError, NotADirectoryError):
-            pass
-finally:
-    if lock_fd is not None:
-        os.close(lock_fd)
-    os.close(parent_fd)
-PY
+    python3 "$SESSION_LOG_LIB/locking.py" "$mode"
 }
 acquire_package_lock() {
   [[ ! -L "$STORE" ]] || fail "refusing symlinked package store: $STORE"
@@ -363,18 +156,6 @@ release_package_lock() {
   fi
 }
 
-
-sha256_file() {
-  local file="$1"
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$file" | awk '{print $1}'
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$file" | awk '{print $1}'
-  else
-    fail "missing dependency: shasum or sha256sum"
-  fi
-}
-
 require_file() {
   [[ -f "$1" && ! -L "$1" ]] || fail "package source is incomplete: $1"
 }
@@ -383,193 +164,10 @@ atomic_copy() {
   local source="$1" target="$2" preserve_mode="${3:-0}" manifest_owned="${4:-0}"
   require_file "$source"
   ensure_safe_parent "$target"
-  if ! SESSION_LOG_SOURCE="$source" SESSION_LOG_TARGET="$target" SESSION_LOG_PRESERVE_MODE="$preserve_mode" \
-    SESSION_LOG_MANIFEST_OWNED="$manifest_owned" python3 - <<'PY'
-import os
-import random
-import stat
-
-source = os.environ["SESSION_LOG_SOURCE"]
-target = os.environ["SESSION_LOG_TARGET"]
-preserve_mode = os.environ["SESSION_LOG_PRESERVE_MODE"] == "1"
-manifest_owned = os.environ["SESSION_LOG_MANIFEST_OWNED"] == "1"
-directory, name = os.path.split(target)
-source_directory, source_name = os.path.realpath(os.path.dirname(source)), os.path.basename(source)
-directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-file_flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-
-def open_directory(path):
-    if not os.path.isabs(path):
-        fd = os.open(".", directory_flags)
-        parts = path.split(os.sep)
-    else:
-        fd = os.open(os.sep, directory_flags)
-        parts = path.split(os.sep)[1:]
-    try:
-        for part in parts:
-            if not part or part == ".":
-                continue
-            if part == "..":
-                raise SystemExit(f"refusing parent traversal: {path}")
-            try:
-                next_fd = os.open(part, directory_flags, dir_fd=fd)
-            except FileNotFoundError:
-                os.mkdir(part, 0o700, dir_fd=fd)
-                next_fd = os.open(part, directory_flags, dir_fd=fd)
-            os.close(fd)
-            fd = next_fd
-        return fd
-    except BaseException:
-        os.close(fd)
-        raise
-
-def read_all(fd):
-    chunks = []
-    while True:
-        chunk = os.read(fd, 1024 * 1024)
-        if not chunk:
-            return b"".join(chunks)
-        chunks.append(chunk)
-
-source_dir_fd = open_directory(source_directory)
-target_dir_fd = open_directory(directory)
-source_fd = None
-target_fd = None
-target_data = None
-temporary_name = None
-backup_name = None
-backup_active = False
-try:
-    source_fd = os.open(source_name, file_flags, dir_fd=source_dir_fd)
-    source_stat = os.fstat(source_fd)
-    if not stat.S_ISREG(source_stat.st_mode) or source_stat.st_nlink != 1:
-        raise SystemExit(f"package source is not a safe regular file: {source}")
-    source_data = read_all(source_fd)
-    try:
-        target_stat = os.stat(name, dir_fd=target_dir_fd, follow_symlinks=False)
-    except FileNotFoundError:
-        target_stat = None
-    if target_stat is not None:
-        if stat.S_ISLNK(target_stat.st_mode):
-            raise SystemExit(f"refusing to overwrite symlink: {target}")
-        if not stat.S_ISREG(target_stat.st_mode):
-            raise SystemExit(f"refusing to overwrite non-file: {target}")
-        target_fd = os.open(name, file_flags, dir_fd=target_dir_fd)
-        target_data = read_all(target_fd)
-        if not manifest_owned and target_data != source_data:
-            raise SystemExit(f"refusing to overwrite unowned file: {target}")
-    for attempt in range(20):
-        candidate = f".session-log.{os.getpid()}.{random.randrange(1 << 30):08x}"
-        try:
-            temporary_fd = os.open(
-                candidate,
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-                0o600,
-                dir_fd=target_dir_fd,
-            )
-            temporary_name = candidate
-            break
-        except FileExistsError:
-            continue
-    else:
-        raise SystemExit(f"cannot create temporary copy in: {directory}")
-    try:
-        offset = 0
-        while offset < len(source_data):
-            offset += os.write(temporary_fd, source_data[offset:])
-        os.fchmod(temporary_fd, stat.S_IMODE(source_stat.st_mode) if preserve_mode else 0o600)
-        os.fsync(temporary_fd)
-    finally:
-        os.close(temporary_fd)
-    if target_stat is None:
-        try:
-            os.link(temporary_name, name, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd, follow_symlinks=False)
-        except FileExistsError:
-            raise SystemExit(f"package target appeared during copy: {target}")
-        os.unlink(temporary_name, dir_fd=target_dir_fd)
-        temporary_name = None
-    else:
-        for attempt in range(20):
-            candidate = f".session-log-backup.{os.getpid()}.{random.randrange(1 << 30):08x}.{attempt}"
-            try:
-                os.rename(name, candidate, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
-                backup_name = candidate
-                backup_active = True
-                break
-            except FileExistsError:
-                continue
-        if not backup_active:
-            raise SystemExit(f"cannot stage package target: {target}")
-        backup_stat = os.stat(backup_name, dir_fd=target_dir_fd, follow_symlinks=False)
-        if (
-            stat.S_ISLNK(backup_stat.st_mode)
-            or not stat.S_ISREG(backup_stat.st_mode)
-            or backup_stat.st_dev != target_stat.st_dev
-            or backup_stat.st_ino != target_stat.st_ino
-        ):
-            os.rename(backup_name, name, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
-            backup_active = False
-            raise SystemExit(f"package target changed during copy: {target}")
-        os.lseek(target_fd, 0, os.SEEK_SET)
-        if read_all(target_fd) != target_data:
-            os.rename(backup_name, name, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
-            backup_active = False
-            raise SystemExit(f"package target changed during copy: {target}")
-        try:
-            os.link(temporary_name, name, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd, follow_symlinks=False)
-        except FileExistsError:
-            for conflict_attempt in range(20):
-                conflict = f"{backup_name}.conflict.{conflict_attempt}"
-                try:
-                    os.rename(name, conflict, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
-                    break
-                except FileExistsError:
-                    continue
-            else:
-                raise SystemExit(f"package target changed during copy: {target}")
-            raise SystemExit(f"package target changed during copy: {target}")
-        os.unlink(temporary_name, dir_fd=target_dir_fd)
-        temporary_name = None
-        os.lseek(target_fd, 0, os.SEEK_SET)
-        if read_all(target_fd) != target_data:
-            for conflict_attempt in range(20):
-                conflict = f"{backup_name}.conflict.{conflict_attempt}"
-                try:
-                    os.rename(backup_name, conflict, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
-                    break
-                except FileExistsError:
-                    continue
-            else:
-                raise SystemExit(f"package target changed during copy: {target}")
-            backup_active = False
-            raise SystemExit(f"package target changed during copy: {target}")
-        os.unlink(backup_name, dir_fd=target_dir_fd)
-        backup_active = False
-    os.fsync(target_dir_fd)
-finally:
-    if target_fd is not None:
-        os.close(target_fd)
-    if source_fd is not None:
-        os.close(source_fd)
-    if temporary_name is not None:
-        try:
-            os.unlink(temporary_name, dir_fd=target_dir_fd)
-        except OSError:
-            pass
-    if backup_active:
-        try:
-            os.stat(name, dir_fd=target_dir_fd, follow_symlinks=False)
-        except FileNotFoundError:
-            try:
-                os.rename(backup_name, name, src_dir_fd=target_dir_fd, dst_dir_fd=target_dir_fd)
-            except OSError:
-                pass
-    os.close(source_dir_fd)
-    os.close(target_dir_fd)
-PY
-  then
+  SESSION_LOG_SOURCE="$source" SESSION_LOG_TARGET="$target" SESSION_LOG_PRESERVE_MODE="$preserve_mode" \
+    SESSION_LOG_MANIFEST_OWNED="$manifest_owned" \
+    python3 "$SESSION_LOG_LIB/pathsafe.py" copy-file ||
     fail "cannot safely copy package file: $target"
-  fi
 }
 remove_known_path() {
   local path="$1" name
@@ -683,33 +281,26 @@ remove_legacy_file() {
 
 check_default_roots() {
   if selected_harness claude; then
-    [[ -z "${CLAUDE_CONFIG_DIR:-}" ]] ||
-      paths_equivalent "$CLAUDE_CONFIG_DIR" "$HOME_ROOT/.claude" ||
-      fail "CLAUDE_CONFIG_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
+    guard_env CLAUDE_CONFIG_DIR "$HOME_ROOT/.claude" \
+      "CLAUDE_CONFIG_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
   fi
   if selected_harness codex; then
-    [[ -z "${CODEX_HOME:-}" ]] ||
-      paths_equivalent "$CODEX_HOME" "$HOME_ROOT/.codex" ||
-      fail "CODEX_HOME is relocated; custom roots are unsupported; install this package explicitly for that location"
+    guard_env CODEX_HOME "$HOME_ROOT/.codex" \
+      "CODEX_HOME is relocated; custom roots are unsupported; install this package explicitly for that location"
   fi
   if selected_harness opencode; then
-    [[ -z "${OPENCODE_CONFIG_DIR:-}" ]] ||
-      paths_equivalent "$OPENCODE_CONFIG_DIR" "$HOME_ROOT/.config/opencode" ||
-      fail "OPENCODE_CONFIG_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
-    [[ -z "${XDG_CONFIG_HOME:-}" ]] ||
-      paths_equivalent "$XDG_CONFIG_HOME" "$HOME_ROOT/.config" ||
-      fail "XDG_CONFIG_HOME is relocated; custom roots are unsupported; install this package explicitly for that location"
-    [[ -z "${XDG_DATA_HOME:-}" ]] ||
-      paths_equivalent "$XDG_DATA_HOME" "$HOME_ROOT/.local/share" ||
-      fail "XDG_DATA_HOME is relocated; custom roots are unsupported; install this package explicitly for that location"
+    guard_env OPENCODE_CONFIG_DIR "$HOME_ROOT/.config/opencode" \
+      "OPENCODE_CONFIG_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
+    guard_env XDG_CONFIG_HOME "$HOME_ROOT/.config" \
+      "XDG_CONFIG_HOME is relocated; custom roots are unsupported; install this package explicitly for that location"
+    guard_env XDG_DATA_HOME "$HOME_ROOT/.local/share" \
+      "XDG_DATA_HOME is relocated; custom roots are unsupported; install this package explicitly for that location"
   fi
   if selected_harness omp; then
-    [[ -z "${PI_CODING_AGENT_DIR:-}" ]] ||
-      paths_equivalent "$PI_CODING_AGENT_DIR" "$HOME_ROOT/.omp/agent" ||
-      fail "PI_CODING_AGENT_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
-    [[ -z "${OMP_PROMPT_LOG_DIR:-}" ]] ||
-      paths_equivalent "$OMP_PROMPT_LOG_DIR" "$HOME_ROOT/.omp/agent/prompt-logs" ||
-      fail "OMP_PROMPT_LOG_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
+    guard_env PI_CODING_AGENT_DIR "$HOME_ROOT/.omp/agent" \
+      "PI_CODING_AGENT_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
+    guard_env OMP_PROMPT_LOG_DIR "$HOME_ROOT/.omp/agent/prompt-logs" \
+      "OMP_PROMPT_LOG_DIR is relocated; custom roots are unsupported; install this package explicitly for that location"
   fi
 }
 
@@ -842,8 +433,6 @@ remove_legacy_entrypoints() {
   done
 }
 
-
-
 validate_legacy_entrypoints() {
   local path
   for path in \
@@ -885,277 +474,8 @@ validate_migration() {
 migrate_legacy_files() {
   local settings="$HOME_ROOT/.claude/settings.json"
   if selected_harness claude && [[ -f "$settings" ]]; then
-    SETTINGS_PATH="$settings" CLAUDE_SCRIPTS_DIR="$HOME_ROOT/.claude/scripts" python3 - <<'PY'
-import fcntl
-import json
-import os
-import shlex
-import stat
-
-settings_path = os.environ["SETTINGS_PATH"]
-legacy_scripts_dir = os.environ["CLAUDE_SCRIPTS_DIR"]
-lock_path = settings_path + ".session-log.lock"
-lock_fd = os.open(lock_path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
-os.fchmod(lock_fd, 0o600)
-fcntl.flock(lock_fd, fcntl.LOCK_EX)
-legacy_names = {
-    "prompt_log_save.sh",
-    "prompt_log_new_session.sh",
-    "prompt_log_stop.sh",
-    "prompt_log_subagent.sh",
-    "prompt_log_lib.sh",
-    "prompt_log_usage.sh",
-    "prompt_log_usage.jq",
-    "prompt_log_prices.json",
-}
-legacy_paths = {os.path.join(legacy_scripts_dir, name) for name in legacy_names}
-
-def normalized_legacy_path(token):
-    raw_home_scripts = os.path.join(os.environ["HOME"], ".claude", "scripts")
-    prefixes = (
-        legacy_scripts_dir,
-        raw_home_scripts,
-        "$HOME/.claude/scripts",
-        "${HOME}/.claude/scripts",
-        "~/.claude/scripts",
-    )
-    for prefix in prefixes:
-        if token.startswith(prefix + "/"):
-            name = token[len(prefix) + 1:]
-            if name in legacy_names:
-                return os.path.join(legacy_scripts_dir, name)
-    return token
-
-def is_managed_legacy_command(command):
-    try:
-        tokens = shlex.split(command)
-    except ValueError:
-        return False
-    if len(tokens) != 2 or tokens[0] not in {"bash", "/bin/bash"}:
-        return False
-    return normalized_legacy_path(tokens[1]) in legacy_paths
-settings_fd = os.open(settings_path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-before_stat = os.fstat(settings_fd)
-if not stat.S_ISREG(before_stat.st_mode):
-    os.close(settings_fd)
-    raise SystemExit("Claude settings is not a regular file")
-def read_settings():
-    os.lseek(settings_fd, 0, os.SEEK_SET)
-    chunks = []
-    while True:
-        chunk = os.read(settings_fd, 1024 * 1024)
-        if not chunk:
-            return b"".join(chunks)
-        chunks.append(chunk)
-original_settings = read_settings()
-document = json.loads(original_settings.decode("utf-8"))
-hooks = document.get("hooks")
-changed = False
-if isinstance(hooks, dict):
-    for event, entries in list(hooks.items()):
-        kept = []
-        event_changed = False
-        for entry in entries:
-            if not isinstance(entry, dict) or not isinstance(entry.get("hooks"), list):
-                kept.append(entry)
-                continue
-            filtered = []
-            entry_changed = False
-            for item in entry["hooks"]:
-                command = item.get("command", "") if isinstance(item, dict) else ""
-                if (
-                    isinstance(item, dict)
-                    and item.get("type") == "command"
-                    and isinstance(command, str)
-                    and is_managed_legacy_command(command)
-                ):
-                    entry_changed = True
-                    continue
-                filtered.append(item)
-            if entry_changed:
-                changed = True
-                event_changed = True
-                if filtered:
-                    replacement = dict(entry)
-                    replacement["hooks"] = filtered
-                    kept.append(replacement)
-            else:
-                kept.append(entry)
-        if event_changed:
-            if kept:
-                hooks[event] = kept
-            else:
-                del hooks[event]
-    if changed and not hooks:
-        document.pop("hooks", None)
-
-if not changed:
-    os.close(settings_fd)
-    raise SystemExit(0)
-parent = os.path.dirname(settings_path)
-current_stat = os.fstat(settings_fd)
-current_path_stat = os.lstat(settings_path)
-if (
-    (current_stat.st_dev, current_stat.st_ino, current_stat.st_size, current_stat.st_mtime_ns, current_stat.st_ctime_ns)
-    != (before_stat.st_dev, before_stat.st_ino, before_stat.st_size, before_stat.st_mtime_ns, before_stat.st_ctime_ns)
-    or
-    (current_path_stat.st_dev, current_path_stat.st_ino, current_path_stat.st_size, current_path_stat.st_mtime_ns, current_path_stat.st_ctime_ns)
-    != (before_stat.st_dev, before_stat.st_ino, before_stat.st_size, before_stat.st_mtime_ns, before_stat.st_ctime_ns)
-):
-    os.close(settings_fd)
-    raise SystemExit("Claude settings changed during migration; retry installation")
-if read_settings() != original_settings:
-    os.close(settings_fd)
-    raise SystemExit("Claude settings changed during migration; retry installation")
-mode = stat.S_IMODE(before_stat.st_mode)
-parent_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-parent_fd = None
-temporary_fd = None
-temporary = None
-backup_name = None
-backup_active = False
-try:
-    parent_fd = os.open(parent, parent_flags)
-    parent_stat = os.fstat(parent_fd)
-    path_parent_stat = os.stat(parent, follow_symlinks=False)
-    if (parent_stat.st_dev, parent_stat.st_ino) != (path_parent_stat.st_dev, path_parent_stat.st_ino):
-        raise SystemExit("Claude settings parent changed during migration; retry installation")
-    for attempt in range(100):
-        candidate = f".session-log-migrate.{os.getpid()}.{attempt}"
-        try:
-            temporary_fd = os.open(
-                candidate,
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
-                mode & 0o777,
-                dir_fd=parent_fd,
-            )
-            temporary = candidate
-            break
-        except FileExistsError:
-            continue
-    if temporary_fd is None or temporary is None:
-        raise SystemExit("cannot allocate temporary Claude settings file")
-    os.fchmod(temporary_fd, mode & 0o777)
-    with os.fdopen(temporary_fd, "w", encoding="utf-8") as handle:
-        temporary_fd = None
-        json.dump(document, handle, indent=2)
-        handle.write("\n")
-        handle.flush()
-        os.fsync(handle.fileno())
-    settings_name = os.path.basename(settings_path)
-    final_stat = os.fstat(settings_fd)
-    final_path_stat = os.stat(settings_name, dir_fd=parent_fd, follow_symlinks=False)
-    os.lseek(settings_fd, 0, os.SEEK_SET)
-    final_settings = read_settings()
-    if (
-        (final_stat.st_dev, final_stat.st_ino, final_stat.st_size, final_stat.st_mtime_ns, final_stat.st_ctime_ns)
-        != (before_stat.st_dev, before_stat.st_ino, before_stat.st_size, before_stat.st_mtime_ns, before_stat.st_ctime_ns)
-        or
-        (final_path_stat.st_dev, final_path_stat.st_ino, final_path_stat.st_size, final_path_stat.st_mtime_ns, final_path_stat.st_ctime_ns)
-        != (before_stat.st_dev, before_stat.st_ino, before_stat.st_size, before_stat.st_mtime_ns, before_stat.st_ctime_ns)
-        or final_settings != original_settings
-    ):
-        raise SystemExit("Claude settings changed during migration; retry installation")
-    for attempt in range(20):
-        candidate = f".session-log-backup.{os.getpid()}.{attempt}"
-        try:
-            os.rename(settings_name, candidate, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
-            backup_name = candidate
-            backup_active = True
-            break
-        except FileExistsError:
-            continue
-    if not backup_active:
-        raise SystemExit("cannot stage Claude settings migration")
-    backup_fd = os.open(backup_name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent_fd)
-    try:
-        backup_stat = os.fstat(backup_fd)
-        os.lseek(backup_fd, 0, os.SEEK_SET)
-        chunks = []
-        while True:
-            chunk = os.read(backup_fd, 1024 * 1024)
-            if not chunk:
-                break
-            chunks.append(chunk)
-        backup_settings = b"".join(chunks)
-    finally:
-        os.close(backup_fd)
-    if (
-        (backup_stat.st_dev, backup_stat.st_ino, backup_stat.st_size, backup_stat.st_mtime_ns)
-        != (before_stat.st_dev, before_stat.st_ino, before_stat.st_size, before_stat.st_mtime_ns)
-        or backup_settings != original_settings
-    ):
-        os.rename(backup_name, settings_name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
-        backup_active = False
-        raise SystemExit("Claude settings changed during migration; retry installation")
-    try:
-        os.link(temporary, settings_name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd, follow_symlinks=False)
-    except FileExistsError:
-        for conflict_attempt in range(20):
-            conflict = f"{backup_name}.conflict.{conflict_attempt}"
-            try:
-                os.rename(settings_name, conflict, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
-                break
-            except FileExistsError:
-                continue
-        else:
-            raise SystemExit("Claude settings changed during migration; retry installation")
-        os.rename(backup_name, settings_name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
-        backup_active = False
-        raise SystemExit("Claude settings changed during migration; retry installation")
-    os.unlink(temporary, dir_fd=parent_fd)
-    temporary = None
-    backup_fd = os.open(backup_name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent_fd)
-    try:
-        backup_stat = os.fstat(backup_fd)
-        os.lseek(backup_fd, 0, os.SEEK_SET)
-        chunks = []
-        while True:
-            chunk = os.read(backup_fd, 1024 * 1024)
-            if not chunk:
-                break
-            chunks.append(chunk)
-        backup_settings = b"".join(chunks)
-    finally:
-        os.close(backup_fd)
-    if (
-        (backup_stat.st_dev, backup_stat.st_ino, backup_stat.st_size, backup_stat.st_mtime_ns)
-        != (before_stat.st_dev, before_stat.st_ino, before_stat.st_size, before_stat.st_mtime_ns)
-        or backup_settings != original_settings
-    ):
-        conflict = f"{backup_name}.conflict.0"
-        for conflict_attempt in range(20):
-            conflict = f"{backup_name}.conflict.{conflict_attempt}"
-            try:
-                os.rename(backup_name, conflict, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
-                break
-            except FileExistsError:
-                continue
-        backup_active = False
-        raise SystemExit("Claude settings changed during migration; retry installation")
-    os.unlink(backup_name, dir_fd=parent_fd)
-    backup_active = False
-    os.fsync(parent_fd)
-finally:
-    if temporary_fd is not None:
-        os.close(temporary_fd)
-    if temporary is not None and parent_fd is not None:
-        try:
-            os.unlink(temporary, dir_fd=parent_fd)
-        except FileNotFoundError:
-            pass
-    if backup_active:
-        try:
-            os.stat(settings_name, dir_fd=parent_fd, follow_symlinks=False)
-        except FileNotFoundError:
-            try:
-                os.rename(backup_name, settings_name, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
-            except OSError:
-                pass
-    if parent_fd is not None:
-        os.close(parent_fd)
-    os.close(settings_fd)
-PY
+    SETTINGS_PATH="$settings" CLAUDE_SCRIPTS_DIR="$HOME_ROOT/.claude/scripts" \
+      python3 "$SESSION_LOG_LIB/claude_settings.py" migrate
   fi
   selected_harness claude && validate_claude_settings
   remove_legacy_entrypoints
@@ -1179,6 +499,12 @@ SKILL.md
 VERSION
 install.sh
 bin/session-log
+lib/common.sh
+lib/pathsafe.py
+lib/claude_settings.py
+lib/enable_flag.py
+lib/locking.py
+lib/adapter_install.sh
 adapters/claude/claude_hook.sh
 adapters/claude/scripts/prompt_log_lib.sh
 adapters/claude/scripts/prompt_log_new_session.sh
@@ -1476,7 +802,6 @@ seed_entrypoints() {
     atomic_copy "$SOURCE_ROOT/templates/opencode/command.md" "$command_target" 1 1
   fi
 }
-
 
 validate_package() {
   local relative

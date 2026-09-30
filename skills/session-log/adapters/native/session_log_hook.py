@@ -10,10 +10,12 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Optional, Tuple
 
 MAX_SESSION_ID_LENGTH = 128
 WORKSPACE_NAME_LIMIT = 64
 WORKSPACE_DIGEST_LENGTH = 12
+NONCE_BYTES = 16
 SUPPORTED = {"cursor": ".cursor", "codex": ".codex"}
 SAFE_ID = re.compile(rf"^[A-Za-z0-9._-]{{1,{MAX_SESSION_ID_LENGTH}}}$")
 EVENTS = {
@@ -27,27 +29,35 @@ def fail(message):
     raise SystemExit(1)
 
 
-def ensure_directory(path):
+def new_nonce():
+    return secrets.token_hex(NONCE_BYTES)
+
+
+def ensure_directory(path, harness):
     current = Path(path.anchor)
     for part in path.parts[1:]:
         current /= part
         if current.is_symlink():
-            fail(f"unsafe {HARNESS} path: {current}")
+            fail(f"unsafe {harness} path: {current}")
         if current.exists() and not current.is_dir():
-            fail(f"non-directory {HARNESS} path: {current}")
+            fail(f"non-directory {harness} path: {current}")
         if not current.exists():
-            current.mkdir(mode=0o700)
+            current.mkdir(mode=0o700, exist_ok=True)
     return path
 
 
-def safe_regular(path):
+def safe_regular(path, harness):
     if path.is_symlink() or (path.exists() and not path.is_file()):
-        fail(f"unsafe {HARNESS} file: {path}")
+        fail(f"unsafe {harness} file: {path}")
 
 
-def atomic_private_json(path, value):
-    ensure_directory(path.parent)
-    safe_regular(path)
+def is_untrusted_descriptor(info):
+    return not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.getuid()
+
+
+def atomic_private_json(path, value, harness):
+    ensure_directory(path.parent, harness)
+    safe_regular(path, harness)
     temporary = path.parent / f".{path.name}.{os.getpid()}.{secrets.token_hex(6)}.tmp"
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
     descriptor = os.open(temporary, flags, 0o600)
@@ -65,15 +75,14 @@ def atomic_private_json(path, value):
             pass
 
 
-def append_private(path, text):
-    ensure_directory(path.parent)
-    safe_regular(path)
+def append_private(path, text, harness):
+    ensure_directory(path.parent, harness)
+    safe_regular(path, harness)
     flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
     descriptor = os.open(path, flags, 0o600)
     try:
-        current = os.fstat(descriptor)
-        if not stat.S_ISREG(current.st_mode) or current.st_nlink != 1 or current.st_uid != os.getuid():
-            fail(f"unsafe {HARNESS} log file: {path}")
+        if is_untrusted_descriptor(os.fstat(descriptor)):
+            fail(f"unsafe {harness} log file: {path}")
         os.fchmod(descriptor, 0o600)
         os.write(descriptor, text.encode("utf-8"))
         os.fsync(descriptor)
@@ -93,7 +102,7 @@ def process_start(pid):
         return ""
 
 
-def session_id(payload):
+def session_id(payload) -> Optional[str]:
     for key in ("session_id", "conversation_id"):
         value = payload.get(key)
         if isinstance(value, str) and SAFE_ID.fullmatch(value):
@@ -112,16 +121,16 @@ def workspace(payload):
     return f"{name[:WORKSPACE_NAME_LIMIT] or 'unknown'}-{digest}"
 
 
-def event_text(payload):
-    if EVENT == "user-prompt":
+def event_text(payload, event) -> Optional[Tuple[str, str]]:
+    if event == "user-prompt":
         value = payload.get("prompt")
         return ("prompt", value) if isinstance(value, str) and value else None
-    if EVENT in ("assistant-response", "stop"):
+    if event in ("assistant-response", "stop"):
         for key in ("text", "last_assistant_message", "response"):
             value = payload.get(key)
             if isinstance(value, str) and value:
                 return ("response", value)
-    if EVENT == "subagent-stop":
+    if event == "subagent-stop":
         value = payload.get("summary") or payload.get("last_assistant_message")
         if isinstance(value, str) and value:
             kind = payload.get("subagent_type") or payload.get("agent_type") or "subagent"
@@ -129,8 +138,8 @@ def event_text(payload):
     return None
 
 
-def respond():
-    value = {"continue": True} if HARNESS == "cursor" and EVENT == "user-prompt" else {}
+def respond(harness, event):
+    value = {"continue": True} if harness == "cursor" and event == "user-prompt" else {}
     print(json.dumps(value, separators=(",", ":")))
 
 
@@ -139,18 +148,21 @@ if len(sys.argv) != 3 or sys.argv[1] not in SUPPORTED:
 HARNESS, EVENT = sys.argv[1:]
 if EVENT not in EVENTS[HARNESS]:
     fail(f"unknown {HARNESS} lifecycle event: {EVENT}")
-home = Path(os.path.realpath(os.environ.get("HOME", "")))
+home_value = os.environ.get("HOME", "")
+if not home_value:
+    fail("HOME is not set; cannot resolve session-log directory")
+home = Path(os.path.realpath(home_value))
 root = home / SUPPORTED[HARNESS]
 state_dir = root / "session-log"
 flag = root / "prompt-logs" / ".enabled"
 runtime = state_dir / "runtime.json"
-ensure_directory(root)
-safe_regular(flag)
-safe_regular(runtime)
+ensure_directory(root, HARNESS)
+safe_regular(flag, HARNESS)
+safe_regular(runtime, HARNESS)
 if not flag.is_file():
     if runtime.exists():
         runtime.unlink()
-    respond()
+    respond(HARNESS, EVENT)
     raise SystemExit(0)
 try:
     payload = json.load(sys.stdin)
@@ -160,7 +172,7 @@ if not isinstance(payload, dict):
     fail(f"invalid {HARNESS} hook payload")
 sid = session_id(payload)
 if sid is None:
-    respond()
+    respond(HARNESS, EVENT)
     raise SystemExit(0)
 package_root = Path(__file__).resolve().parents[2]
 version = (package_root / "VERSION").read_text(encoding="utf-8").strip()
@@ -169,14 +181,14 @@ atomic_private_json(runtime, {
     "harness": HARNESS,
     "version": version,
     "session_id": sid,
-    "nonce": secrets.token_hex(16),
+    "nonce": new_nonce(),
     "loaded_at": int(time.time()),
     "pid": pid,
     "process_start": process_start(pid),
-})
-content = event_text(payload)
+}, HARNESS)
+content = event_text(payload, EVENT)
 if content:
     label, text = content
     log = root / "prompt-logs" / workspace(payload) / f"session_{sid}.md"
-    append_private(log, f"\n### {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} {label}\n\n{text}\n")
-respond()
+    append_private(log, f"\n### {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} {label}\n\n{text}\n", HARNESS)
+respond(HARNESS, EVENT)
